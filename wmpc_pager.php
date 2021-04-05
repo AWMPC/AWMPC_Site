@@ -12,6 +12,7 @@
     img.ad {
       width: 185;
       border: 0;
+      /* DEPRECATED - hspace, vspace */
       /* hspace: 6;
       vspace: 3; */
     }
@@ -143,9 +144,9 @@ END;
       $files['mi_sermons']       = "wmpc_s_sermons.html";
       $files['mi_testimony']     = "wmpc_s_testimonies.html";
       $files['mi_24hrhop']       = "wmpc_s_24hrhop.html";
-      $files['mi_talk']          = "wmpc_s_specialtopic.html";
+      // $files['mi_talk']          = "wmpc_s_specialtopic.html";
       $files['mi_taiwan']        = "wmpc_s_taiwan040809.html";
-      $files['mi_usrevival']     = "wmpc_s_events_revival200811.html";
+      // $files['mi_usrevival']     = "wmpc_s_events_revival200811.html";
       $files['mi_letters']       = "wmpc_s_letters.html";
       $files['mi_canaan_record'] = "canaan_chapel_record.html";
 
