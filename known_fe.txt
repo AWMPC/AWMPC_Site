@@ -1,13 +1,7 @@
-0gWe6AyWLuyRs8dD
-1446703446
 AVI
-DEo9eLrApujaxIi3
 JPG
-K_YB7Jcsp5jqeHOz
 MPG
-N3z7As9GOBS9W8ej
 PDF
-Tti7mZu_TCEZD_gP
 afm
 bk
 bmp
@@ -24,7 +18,6 @@ db
 de
 dnsbl
 docx
-ea4bak
 el
 en
 es
@@ -70,7 +63,6 @@ pm-remove_to_install
 png
 pod
 pt
-qym7_CaADcHoZ0NS
 rtf
 sample
 shtml
@@ -86,8 +78,6 @@ trt
 ttf
 txt
 types
-uTnFChE9zB3sranK
-wCQ1xQIULjQlCh1L
 webm
 widget
 wmv
