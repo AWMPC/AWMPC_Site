@@ -25,7 +25,7 @@
 </head>
 
 <!-- Full site background color HEX -->
-<body bgcolor="#eee8d5" text="#657b83">
+<body bgcolor="#EDE0BB" text="#657b83">
 
   <table width="1000" border="0" cellpadding="3" cellspacing="1">
     <!-- 
