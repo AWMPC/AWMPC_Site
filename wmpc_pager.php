@@ -35,7 +35,7 @@
     <!-- Table contents -->
     <tr>
       <!-- top banner -->
-      <td colspan="10"><img src="./resources/images/wmpc_topbanner_transparent.jpg" height="110" width="1000" border="0" hspace="0" /></td>
+      <td colspan="10"><img src="./resources/images/wmpc_topbanner_transparent.png" height="110" width="1000" border="0" hspace="0" /></td>
     </tr>
 
     <tr bgcolor="#CC0000" align="center">
