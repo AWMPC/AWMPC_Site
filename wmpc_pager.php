@@ -24,7 +24,8 @@
   </style>
 </head>
 
-<body bgcolor=#ccbb99>
+<!-- Full site background color HEX -->
+<body bgcolor=#FDF6E3>
 
   <table width="1000" border="0" cellpadding="3" cellspacing="1">
     <!-- 
