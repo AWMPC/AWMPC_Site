@@ -192,7 +192,7 @@
       fetch("/create-donation-session.php", {
         method: "POST",
         headers: {
-          'Donation-Amount': donationAmount.toString(),
+          'Donation-Amount': donationAmount,
         }
       })
         .then(function (response) {
