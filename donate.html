@@ -13,15 +13,15 @@
           <h3>Donation via Stripe</h3>
         </div>
       </div>
-      <button type="button" id="donate-button">Donate</button>
+      <button type="button" id="stripe-button">Donate</button>
     </section>
   </body>
   <script type="text/javascript">
     // Create an instance of the Stripe object with your publishable API key
     var stripe = Stripe("pk_live_51IlTacBntcIs8l3UZJJvvA9eOGjTLZ4l4dlDTyvo4O0ctbLwjnoRRfRnIIbbzet8jbE61rPIeF7l9EfztLQrlr8I00c3LeWv9J");
-    var donateButton = document.getElementById("donate-button");
+    var stripeButton = document.getElementById("stripe-button");
 
-    donateButton.addEventListener("click", function () {
+    stripeButton.addEventListener("click", function () {
       fetch("/create-donation-session.php", {
         method: "POST",
         headers: {
