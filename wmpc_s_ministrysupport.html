@@ -1048,7 +1048,7 @@
 				<br>
 				<label style="font-size:13.0pt;line-height:115%" for="donation_amount">Donation Amount:</label>
 				<input type="number" id="donation_amount" name="donation_amount">
-				<button type="button" id="stripe-button" onclick="triggerStripe()">Submit</button>
+				<button type="button" id="stripe-button" onclick="triggerStripe();triggerStripe()">Submit</button>
 				<br>
 				*Clicking Submit will bring you to a Stripe landing page to input further data.
 			</p>
@@ -1184,7 +1184,6 @@
 				var stripe = Stripe("pk_live_51IlTacBntcIs8l3UZJJvvA9eOGjTLZ4l4dlDTyvo4O0ctbLwjnoRRfRnIIbbzet8jbE61rPIeF7l9EfztLQrlr8I00c3LeWv9J");
 				var stripeButton = document.getElementById("stripe-button");
 
-				var donationAmount = document.getElementById("donation_amount").value;
 				var donationAmount = document.getElementById("donation_amount").value;
 
 				stripeButton.addEventListener("click", function () {
