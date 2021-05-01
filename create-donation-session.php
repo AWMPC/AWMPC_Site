@@ -14,10 +14,10 @@ $checkout_session = \Stripe\Checkout\Session::create([
   'payment_method_types' => ['card'],
   'line_items' => [[
     'price_data' => [
-        'currency' => 'usd',
-        'unit_amount' => (string)((int) $donationValue * 100),
-        'product_data' => [
-            'name' => 'User Submitted Donation',
+      'currency' => 'usd',
+      'unit_amount' => (string)((int) $donationValue * 100),
+      'product_data' => [
+        'name' => 'User Submitted Donation',
       ],
     ],
     'quantity' => 1,
