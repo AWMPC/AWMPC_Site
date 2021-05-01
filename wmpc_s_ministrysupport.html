@@ -1048,7 +1048,7 @@
 				<br>
 				<label style="font-size:13.0pt;line-height:115%" for="donation_amount">Donation Amount:</label>
 				<input type="number" id="donation_amount" name="donation_amount">
-				<button type="button" id="stripe-button" onclick="doubleTap()">Submit</button>
+				<button type="button" onclick="triggerStripe()">Submit</button>
 				<br>
 				*Clicking Submit will bring you to a Stripe landing page to input further data.
 			</p>
@@ -1178,43 +1178,35 @@
 
 		<script type="text/javascript">
 
-			function doubleTap() {
-				triggerStripe();
-				triggerStripe();
-			}
-
 			function triggerStripe() {
 				/* Stripe Embedded JS for triggering local PHP file. */
 				// Create an instance of the Stripe object with your publishable API key
 				var stripe = Stripe("pk_live_51IlTacBntcIs8l3UZJJvvA9eOGjTLZ4l4dlDTyvo4O0ctbLwjnoRRfRnIIbbzet8jbE61rPIeF7l9EfztLQrlr8I00c3LeWv9J");
-				var stripeButton = document.getElementById("stripe-button");
 
 				var donationAmount = document.getElementById("donation_amount").value;
 
-				stripeButton.addEventListener("click", function () {
-					fetch("/create-donation-session.php", {
-						method: "POST",
-						headers: {
-							'Donation-Amount': donationAmount.toString(),
-						}
-					})
-						.then(function (response) {
-							return response.json();
-						})
-						.then(function (session) {
-							return stripe.redirectToCheckout({ sessionId: session.id });
-						})
-						.then(function (result) {
-							// If redirectToCheckout fails due to a browser or network
-							// error, you should display the localized error message to your
-							// customer using error.message.
-							if (result.error) {
-								alert(result.error.message);
-							}
-						})
-						.catch(function (error) {
-							console.error("Error:", error);
-						});
+				fetch("/create-donation-session.php", {
+					method: "POST",
+					headers: {
+						'Donation-Amount': donationAmount.toString(),
+					}
+				})
+				.then(function (response) {
+					return response.json();
+				})
+				.then(function (session) {
+					return stripe.redirectToCheckout({ sessionId: session.id });
+				})
+				.then(function (result) {
+					// If redirectToCheckout fails due to a browser or network
+					// error, you should display the localized error message to your
+					// customer using error.message.
+					if (result.error) {
+						alert(result.error.message);
+					}
+				})
+				.catch(function (error) {
+					console.error("Error:", error);
 				});
 			}
 			
