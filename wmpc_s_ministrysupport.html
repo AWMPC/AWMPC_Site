@@ -1048,7 +1048,7 @@
 				<br>
 				<label style="font-size:13.0pt;line-height:115%" for="donation_amount">Donation Amount:</label>
 				<input type="number" id="donation_amount" name="donation_amount">
-				<button type="button" id="stripe-button" onclick="triggerStripe();triggerStripe()">Submit</button>
+				<button type="button" id="stripe-button" onclick="doubleTap()">Submit</button>
 				<br>
 				*Clicking Submit will bring you to a Stripe landing page to input further data.
 			</p>
@@ -1177,6 +1177,11 @@
 		</div>
 
 		<script type="text/javascript">
+
+			function doubleTap() {
+				triggerStripe();
+				triggerStripe();
+			}
 
 			function triggerStripe() {
 				/* Stripe Embedded JS for triggering local PHP file. */
