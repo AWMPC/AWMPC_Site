@@ -4,7 +4,7 @@
   <title>World Mission Prayer Center - 信望愛禱告中心 </title>
   <meta name="keywords" content="awmpc,wmpc,awmpc.org,World Mission Prayer Center" />
   <meta http-equiv="content-type" content="text/html;charset=utf-8" />
-  <meta name="theme-color" content="#EDE0BB">
+  <meta name="theme-color" content="#e3d5aa">
   <style>
     body {
       text-align: center;
