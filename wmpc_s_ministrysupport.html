@@ -1021,22 +1021,23 @@
 
 			<br>
 
-			<p class="MsoNormal" style="font-size:14.0pt;line-height:115%">
-				<b>
-					1. STRIPE (<u>Supports International</u> 國際奉獻):
-				</b>
-				<br>
-				<span>
+			<p class="MsoNormal">
+				<span style="font-size:14.0pt;line-height:115%">
+					<br>
+					<b>
+						1. STRIPE (<u>Supports International</u> 國際奉獻):
+					</b>
+					<br>
 					Please input desired donation amount in USD, then click 'Submit':
+					<br>
+					<label for="donation_amount">
+						Donation Amount:
+					</label>
+					<input type="number" id="donation_amount" name="donation_amount">
+					<button type="button" onclick="triggerStripe()">
+						Submit
+					</button>
 				</span>
-				<br>
-				<label for="donation_amount">
-					Donation Amount:
-				</label>
-				<input type="number" id="donation_amount" name="donation_amount">
-				<button type="button" onclick="triggerStripe()">
-					Submit
-				</button>
 			</p>
 
 			<br>
@@ -1047,17 +1048,15 @@
 
 			<p class="MsoNormal">
 				<b>
-					<span style="font-size:14.0pt;line-height:115%">
+					<span style="font-size:13.0pt;line-height:115%">
 						2. ZELLE:
 					</span>
 				</b>
 			</p>
 			<p class="MsoNormal">
-				<b>
-					<span style="font-size:13.0pt;line-height:115%;">
-						Donations are sent to: aawmpc@gmail.com
-					</span>
-				</b>
+				<span style="font-size:13.0pt;line-height:115%;">
+					Donations are sent to: aawmpc@gmail.com
+				</span>
 			</p>
 
 			<br>
