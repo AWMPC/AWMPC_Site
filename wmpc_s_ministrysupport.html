@@ -1206,12 +1206,14 @@ San Jose, CA 95129</span></p>
 
 				var donationAmount = document.getElementById("donation_amount").value;
 
-				donationAmount.replace(",", "")
+				donationAmount = donationAmount.toString()
+
+				donationAmount = donationAmount.replace(",", "")
 
 				fetch("/create-donation-session.php", {
 					method: "POST",
 					headers: {
-						'Donation-Amount': donationAmount.toString(),
+						'Donation-Amount': donationAmount,
 					}
 				})
 				.then(function (response) {
