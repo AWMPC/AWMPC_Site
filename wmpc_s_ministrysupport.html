@@ -1033,7 +1033,7 @@
 					<label for="donation_amount">
 						Donation Amount:
 					</label>
-					<input type="number" id="donation_amount" name="donation_amount">
+					<input type="number" id="donation_amount" name="donation_amount" pattern="[0-9\,]+?(?=\.)">
 					<button type="button" onclick="triggerStripe()">
 						Submit
 					</button>
@@ -1205,6 +1205,8 @@ San Jose, CA 95129</span></p>
 				var stripe = Stripe("pk_live_51IlTacBntcIs8l3UZJJvvA9eOGjTLZ4l4dlDTyvo4O0ctbLwjnoRRfRnIIbbzet8jbE61rPIeF7l9EfztLQrlr8I00c3LeWv9J");
 
 				var donationAmount = document.getElementById("donation_amount").value;
+
+				donationAmount.replace(",", "")
 
 				fetch("/create-donation-session.php", {
 					method: "POST",
