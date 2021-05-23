@@ -196,7 +196,9 @@ END;
 
       <td>
         <a href="https://awmpc.org/awmpc_tocau.html">Terms of Conditions and Use</a>
+        <br>
         <a href="https://awmpc.org/awmpc_privacy.html">Privacy Policy</a>
+        <br>
         <a href="https://awmpc.org/awmpc_refunds.html">Donations and Refunds Policy</a>
       </td>
 
