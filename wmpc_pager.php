@@ -178,23 +178,28 @@ END;
     <tr>
       <!-- counter info -->
       <td colspan="2" align="left">
-        <img src="/cgi-sys/Count.cgi?df=awmpcorg.dat|display=Counter|ft=1|md=7|frgb=204;187;153|dd=B"><br />
+        <img src="/cgi-sys/Count.cgi?df=awmpcorg.dat|display=Counter|ft=1|md=7|frgb=204;187;153|dd=B">
+        <br>
         <!-- copyright info -->
         <!-- TODO: need to attain new copyright for 2020 here. -->
-        <font size="-2" color="#5A4409;">2016&copy;awmpc.org</font><br />
+        <font size="-2" color="#5A4409;">2016&copy;awmpc.org</font>
       </td>
 
       <!-- address information -->
-      <td colspan="4" align="center"><span style='font-family:"arial";font-size:"18"'>
-          1189 S. De Anza Blvd.<br />
-          San Jose, CA 95129<br />
+      <td colspan="5" align="center">
+        <span style='font-family:"arial";font-size:"18"'>
+          1189 S. De Anza Blvd.
+          <br>
+          San Jose, CA 95129
+          <br>
           <!-- (408) 910-0073 who is this? -->
-          Jay : (415) - 816 - 7873<br />
-          Joanna : (650) - 504 - 4901<br />
-          <br /><br />
-        </span></td>
+          Jay : (415) - 816 - 7873
+          <br>
+          Joanna : (650) - 504 - 4901
+        </span>
+      </td>
 
-      <td colspan="4" align="left">
+      <td colspan="4" align="right">
         <a href="https://awmpc.org/awmpc_tocau.html">Terms of Conditions and Use</a>
         <br>
         <a href="https://awmpc.org/awmpc_privacy.html">Privacy Policy</a>
