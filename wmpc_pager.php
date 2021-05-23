@@ -185,7 +185,7 @@ END;
       </td>
 
       <!-- address information -->
-      <td colspan="8" align="center"><span style='font-family:"arial";font-size:"18"'>
+      <td colspan="4" align="center"><span style='font-family:"arial";font-size:"18"'>
           1189 S. De Anza Blvd.<br />
           San Jose, CA 95129<br />
           <!-- (408) 910-0073 who is this? -->
@@ -194,7 +194,7 @@ END;
           <br /><br />
         </span></td>
 
-      <td>
+      <td colspan="4" align="left">
         <a href="https://awmpc.org/awmpc_tocau.html">Terms of Conditions and Use</a>
         <br>
         <a href="https://awmpc.org/awmpc_privacy.html">Privacy Policy</a>
