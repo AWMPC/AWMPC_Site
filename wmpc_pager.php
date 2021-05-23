@@ -26,7 +26,7 @@
 </head>
 
 <!-- Full site background color HEX -->
-<body bgcolor="#EDE0BB" text="#112A46">
+<body bgcolor="#EDE0BB" text="#212121">
 
   <table width="1000" border="0" cellpadding="3" cellspacing="1">
     <!-- 
@@ -193,6 +193,12 @@ END;
           Joanna : (650) - 504 - 4901<br />
           <br /><br />
         </span></td>
+
+      <td>
+        <a href="https://awmpc.org/awmpc_tocau.html">Terms of Conditions and Use</a>
+        <a href="https://awmpc.org/awmpc_privacy.html">Privacy Policy</a>
+        <a href="https://awmpc.org/awmpc_refunds.html">Donations and Refunds Policy</a>
+      </td>
 
     </tr>
 
