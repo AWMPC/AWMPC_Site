@@ -205,6 +205,10 @@ END;
         <a href="https://awmpc.org/awmpc_privacy.html">Privacy Policy</a>
         <br>
         <a href="https://awmpc.org/awmpc_refunds.html">Donations and Refunds Policy</a>
+        <br>
+        <a href="https://www.ssllabs.com/ssltest/analyze.html?d=awmpc.org">Qualys SSL Security Scan</a>
+        <br>
+        <a href="https://developers.google.com/speed/pagespeed/insights/?url=awmpc.org&tab=mobile">Google Lighthouse Performance Scan</a>
       </td>
 
     </tr>
