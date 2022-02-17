@@ -30,7 +30,7 @@
 
   <table width="1000" border="0" cellpadding="3" cellspacing="1">
     <!-- 
-<caption><h2>WMPC Template<h2></caption>
+<caption><h2>AWMPC Template<h2></caption>
 -->
 
     <!-- Table contents -->
