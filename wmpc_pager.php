@@ -151,6 +151,7 @@ END;
       // $files['mi_usrevival']     = "wmpc_s_events_revival200811.html";
       $files['mi_letters']       = "wmpc_s_letters.html";
       $files['mi_canaan_record'] = "canaan_chapel_record.html";
+      $files['hymns']            = "hymns.html";
 
       $menuItem = $_GET["page"];
       $fname = $files[$menuItem];
