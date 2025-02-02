@@ -41,18 +41,18 @@
 
     <tr bgcolor="#CC0000" align="center">
       <!-- menu items -->
-      <td width="9%"><a href="./index.html"><span style='color:#FFFFFF'>&#39318;&#38913;<br />Homepage</span></a></td>
-      <td width="9%"><a href="./mission.html"><span style='color:#FFFFFF'>&#20351;&#21629;<br />Mission</span></a></td>
-      <td width="9%"><a href="./sermons.html"><span style='color:#FFFFFF'>&#35611;&#36947;<br />Sermons</span></a></td>
-      <td width="9%"><a href="./testimony.html"><span style='color:#FFFFFF'>&#35211;&#35657;<br />Testimony</span></a></td>
-      <td width="9%"><a href="./request.html"><span style='color:#FFFFFF'>&#20195;&#31153;<br />Prayers</span></a></td>
-      <td width="9%"><a href="./24hrhop.html"><span style='color:#FFFF00'>&#24314;&#22530;<br />Church</span></a></td>
-      <td width="9%"><a href="./support.html"><span style='color:#FFFFFF'>&#25903;&#25345;<br />Donations</span></a></td>
-      <td width="9%"><a href="./media.html"><span style='color:#FFFF00'>&#23186;&#39636;<br />Media</span></a></td>
+      <td width="5%"><a href="./index.html"><span style='color:#FFFFFF'>&#39318;&#38913;<br />Homepage</span></a></td>
+      <td width="5%"><a href="./mission.html"><span style='color:#FFFFFF'>&#20351;&#21629;<br />Mission</span></a></td>
+      <td width="5%"><a href="./sermons.html"><span style='color:#FFFFFF'>&#35611;&#36947;<br />Sermons</span></a></td>
+      <td width="5%"><a href="./testimony.html"><span style='color:#FFFFFF'>&#35211;&#35657;<br />Testimony</span></a></td>
+      <td width="5%"><a href="./request.html"><span style='color:#FFFFFF'>&#20195;&#31153;<br />Prayers</span></a></td>
+      <td width="5%"><a href="./24hrhop.html"><span style='color:#FFFF00'>&#24314;&#22530;<br />Church</span></a></td>
+      <td width="5%"><a href="./support.html"><span style='color:#FFFFFF'>&#25903;&#25345;<br />Donations</span></a></td>
+      <td width="5%"><a href="./media.html"><span style='color:#FFFF00'>&#23186;&#39636;<br />Media</span></a></td>
       <!--<td width="100"><a href="./wmpc_pager.php?page=mi_contact"><span style='color:#FFFFFF'>&#32879;&#32363;</span></a></td>-->
-      <td width="9%"><a href="./letters.html"><span style='color:#FFFFFF'>&#20449;&#20214;<br />Letters</span></a></td>
-      <td width="9%"><a href="./canaan_record.html"><span style='color:FFFFFF'>历史<br />Canaan</span></a></td>
-      <td width="9%"><a href="./hymns.html"><span style='color:FFFFFF'>讚美詩<br />Hymns</span></a></td>
+      <td width="5%"><a href="./letters.html"><span style='color:#FFFFFF'>&#20449;&#20214;<br />Letters</span></a></td>
+      <td width="5%"><a href="./canaan_record.html"><span style='color:FFFFFF'>历史<br />Canaan</span></a></td>
+      <td width="5%"><a href="./hymns.html"><span style='color:FFFFFF'>讚美詩<br />Hymns</span></a></td>
       <!-- sermons on revelation
 <td width="100"><a href="./wmpc_pager.php?page=mi_talk"><span style='color:#FFFFFF'>&#21855;&#31034;&#37636;</span></a></td>
 -->
