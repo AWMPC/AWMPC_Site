@@ -52,6 +52,7 @@
       <!--<td width="100"><a href="./wmpc_pager.php?page=mi_contact"><span style='color:#FFFFFF'>&#32879;&#32363;</span></a></td>-->
       <td width="100"><a href="./letters.html"><span style='color:#FFFFFF'>&#20449;&#20214;<br />Letters</span></a></td>
       <td width="100"><a href="./canaan_record.html"><span style='color:FFFFFF'>历史<br />Canaan</span></a></td>
+      <td width="100"><a href="./hymns.html"><span style='color:FFFFFF'>讚美詩<br />Hymns</span></a></td>
       <!-- sermons on revelation
 <td width="100"><a href="./wmpc_pager.php?page=mi_talk"><span style='color:#FFFFFF'>&#21855;&#31034;&#37636;</span></a></td>
 -->
