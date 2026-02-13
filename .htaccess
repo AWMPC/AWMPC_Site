@@ -26,40 +26,65 @@ RewriteCond %{REQUEST_URI} !^/\.well-known/pki-validation/(?:\ Ballot169)?
 RewriteCond %{REQUEST_URI} !^/\.well-known/pki-validation/[A-F0-9]{32}\.txt(?:\ Comodo\ DCV)?$
 RewriteRule ^(.*)$ https://awmpc.org/$1 [L,R=301]
 
-# if not using http, redirect to https
-# RewriteCond %{HTTPS} !=on
-# RewriteRule ^(.*)$ https://%{HTTP_HOST}%{REQUEST_URI} [L,R=301,NE]
-
-# AddHandler application/x-httpd-ea-php70 .php
-
-# Set PHP handler to application/x-httpd-phpbeta on Wed Nov  4 23:04:06 MST 2015.
-# AddHandler application/x-httpd-phpbeta .php
-
-# redirect port 80 to https
-# RewriteCond %{SERVER_PORT} 80 
-# RewriteRule ^(.*)$ https://%1/$1 [R=301,L]
-
-# Remove www from URL
-# RewriteCond %{HTTP_HOST} ^www\.(.*)$ [NC]
-# RewriteRule ^(.*)$ https://%1/$1 [R=301,L]
-
 # Redirect /index.html https://awmpc.org/wmpc_pager.php?page=mi_home
 
-<IfModule mod_headers.c>
-  # Make sure proxies don't deliver the wrong content
-  Header append Vary User-Agent env=!dont-vary
-  Header always set X-Frame-Options SAMEORIGIN
-  Header set X-XSS-Protection "1; mode=block"
-  Header always set Strict-Transport-Security: "max-age=31536000; includeSubDomains; preload"
-  # TODO: how to embed youtube iframes with "default-src 'self';"
-  Header set Content-Security-Policy "base-uri 'none'; form-action 'self'; frame-ancestors 'none'; upgrade-insecure-requests" "expr=%{CONTENT_TYPE} =~ m#text\/(html|javascript)|application\/pdf|xml#i"
-  Header set X-Content-Type-Options nosniff
-  Header set Referrer-Policy "no-referrer-when-downgrade"
-  Header always set Feature-Policy "microphone 'none'; payment 'none'; sync-xhr 'self' https://awmpc.org"
-  Header always set Expect-CT "enforce, max-age=300, report-uri='https://awmpc.org'"
-  Header always set Public-Key-Pins "pin-sha256='X3pGTSOuJeEVw989IJ/cEtXUEmy52zs1TZQrU06KUKg='; pin-sha256='MHJYVThihUrJcxW6wcqyOISTXIsInsdj3xK8QrZbHec='; pin-sha256='isi41AizREkLvvft0IRW4u3XMFR2Yg7bvrF7padyCJg='; includeSubdomains; max-age=2592000"
-  Header set Cache-Control: "max-age=31536000, public, no-cache, no-store"
+# --- Compression ---
+
+# Brotli compression (preferred, requires mod_brotli)
+<IfModule mod_brotli.c>
+    AddOutputFilterByType BROTLI_COMPRESS text/html text/plain text/css text/xml
+    AddOutputFilterByType BROTLI_COMPRESS text/javascript application/javascript application/json
+    AddOutputFilterByType BROTLI_COMPRESS application/xml application/xhtml+xml
+    AddOutputFilterByType BROTLI_COMPRESS image/svg+xml
 </IfModule>
+
+# Gzip compression fallback (mod_deflate)
+<IfModule mod_deflate.c>
+    AddOutputFilterByType DEFLATE text/html text/plain text/css text/xml
+    AddOutputFilterByType DEFLATE text/javascript application/javascript application/json
+    AddOutputFilterByType DEFLATE application/xml application/xhtml+xml
+    AddOutputFilterByType DEFLATE image/svg+xml
+
+    # Don't compress already-compressed files
+    SetEnvIfNoCase Request_URI \.(?:gif|jpe?g|png|webp|mp4|mp3|wmv|avi|mpg|m4v)$ no-gzip dont-vary
+</IfModule>
+
+# --- Security Headers ---
+
+<IfModule mod_headers.c>
+    # Make sure proxies don't deliver the wrong content
+    Header append Vary User-Agent env=!dont-vary
+
+    # Clickjacking protection
+    Header always set X-Frame-Options "SAMEORIGIN"
+
+    # HTTPS enforcement (1 year with subdomains + preload)
+    Header always set Strict-Transport-Security "max-age=31536000; includeSubDomains; preload"
+
+    # Content Security Policy
+    # TODO: how to embed youtube iframes with "default-src 'self';"
+    Header set Content-Security-Policy "base-uri 'none'; form-action 'self'; frame-ancestors 'none'; upgrade-insecure-requests" "expr=%{CONTENT_TYPE} =~ m#text\/(html|javascript)|application\/pdf|xml#i"
+
+    # Prevent MIME-type sniffing
+    Header set X-Content-Type-Options "nosniff"
+
+    # Referrer policy (send origin on cross-origin, full URL on same-origin)
+    Header set Referrer-Policy "strict-origin-when-cross-origin"
+
+    # Permissions Policy (replaces deprecated Feature-Policy)
+    Header always set Permissions-Policy "camera=(), microphone=(), payment=(), geolocation=(), sync-xhr=(self)"
+
+    # Cache-Control: allow caching but require revalidation for HTML
+    Header set Cache-Control "public, no-cache" "expr=%{CONTENT_TYPE} =~ m#text/html#i"
+
+    # Removed deprecated headers:
+    # - X-XSS-Protection (removed from modern browsers, CSP is the replacement)
+    # - Expect-CT (deprecated, CT is now required by default)
+    # - Public-Key-Pins / HPKP (removed from all browsers, risk of bricking site)
+    # - Feature-Policy (replaced by Permissions-Policy above)
+</IfModule>
+
+# --- Hotlink Protection ---
 
 RewriteCond %{HTTP_REFERER} !^http://awmpc.org/.*$      [NC]
 RewriteCond %{HTTP_REFERER} !^http://awmpc.org$      [NC]
@@ -78,7 +103,7 @@ RewriteCond %{HTTP_REFERER} !^https://www.awmpc.org$      [NC]
 RewriteCond %{HTTP_REFERER} !^https://www.worldmissionprayercenter.org/.*$      [NC]
 RewriteCond %{HTTP_REFERER} !^https://www.worldmissionprayercenter.org$      [NC]
 
-# Only enable me to prevent media from loading in direct links or email embedded links.
+# Only enable to prevent media from loading in direct links or email embedded links.
 # RewriteRule .*\.(jpg|jpeg|gif|png|bmp|mp4|wmv|avi|mpg|mpeg|hvec|vp9|webm|mkv|flv|mov|m4v)$ - [F,NC]
 
 # BEGIN cPanel-generated php ini directives, do not edit
@@ -227,20 +252,23 @@ RewriteCond %{HTTP_REFERER} !^https://www.worldmissionprayercenter.org$      [NC
 # Managed by Newfold Htaccess Manager v1.0.0 (awmpc.org)
 # STATE sha256: 804bb567059ec7f8f5d2efc01836117aecdb2d61c1fbacbaa6a8ed7909682a0b applied: 2025-11-14T02:16:55Z
 
-# BEGIN Newfold Browser Cache
+# BEGIN Newfold Browser Cache (updated: longer durations for static assets)
 <IfModule mod_expires.c>
 	ExpiresActive On
 	ExpiresDefault "access plus 24 hours"
-	ExpiresByType text/html "access plus 2 hours"
-	ExpiresByType image/jpg "access plus 24 hours"
-	ExpiresByType image/jpeg "access plus 24 hours"
-	ExpiresByType image/gif "access plus 24 hours"
-	ExpiresByType image/png "access plus 24 hours"
-	ExpiresByType image/webp "access plus 24 hours"
-	ExpiresByType text/css "access plus 24 hours"
-	ExpiresByType text/javascript "access plus 24 hours"
-	ExpiresByType application/pdf "access plus 1 week"
+	ExpiresByType text/html "access plus 1 hour"
+	ExpiresByType text/css "access plus 1 month"
+	ExpiresByType text/javascript "access plus 1 month"
+	ExpiresByType application/javascript "access plus 1 month"
+	ExpiresByType image/jpg "access plus 1 year"
+	ExpiresByType image/jpeg "access plus 1 year"
+	ExpiresByType image/gif "access plus 1 year"
+	ExpiresByType image/png "access plus 1 year"
+	ExpiresByType image/webp "access plus 1 year"
+	ExpiresByType image/svg+xml "access plus 1 month"
 	ExpiresByType image/x-icon "access plus 1 year"
+	ExpiresByType video/mp4 "access plus 1 year"
+	ExpiresByType application/pdf "access plus 1 week"
 </IfModule>
 # END Newfold Browser Cache
 
@@ -271,7 +299,7 @@ RewriteRule ^(.*)$ /wp-content/newfold-page-cache/$1/_index.html [L]
 # END NFD Htaccess
 
 # php -- BEGIN cPanel-generated handler, do not edit
-# Set the “ea-php80” package as the default “PHP” programming language.
+# Set the "ea-php80" package as the default "PHP" programming language.
 <IfModule mime_module>
   AddHandler application/x-httpd-ea-php80___lsphp .php .php8 .phtml
 </IfModule>

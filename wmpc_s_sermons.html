@@ -1,126 +1,10 @@
-<html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:w="urn:schemas-microsoft-com:office:word"
+<html
     xmlns="https://www.w3.org/TR/REC-html40">
 
 <head>
     <meta http-equiv=Content-Type content="text/html; charset=windows-1252">
-    <meta name=ProgId content=Word.Document>
-    <meta name=Generator content="Microsoft Word 9">
-    <meta name=Originator content="Microsoft Word 9">
-    <link rel=File-List href="./wmpc_s_specialtopic_files/filelist.xml">
+
     <title>AWMPC Sermons</title>
-    <!--[if gte mso 9]><xml>
- <o:DocumentProperties>
-  <o:Author> </o:Author>
-  <o:LastAuthor>hchau</o:LastAuthor>
-  <o:Revision>4</o:Revision>
-  <o:TotalTime>32</o:TotalTime>
-  <o:Created>2008-07-03T23:27:00Z</o:Created>
-  <o:LastSaved>2008-07-03T23:44:00Z</o:LastSaved>
-  <o:Pages>1</o:Pages>
-  <o:Words>27</o:Words>
-  <o:Characters>157</o:Characters>
-  <o:Company> </o:Company>
-  <o:Lines>1</o:Lines>
-  <o:Paragraphs>1</o:Paragraphs>
-  <o:CharactersWithSpaces>192</o:CharactersWithSpaces>
-  <o:Version>9.8944</o:Version>
- </o:DocumentProperties>
-</xml><![endif]-->
-    <!--[if gte mso 9]><xml>
- <w:WordDocument>
-  <w:PunctuationKerning/>
-  <w:Compatibility>
-   <w:UseFELayout/>
-  </w:Compatibility>
- </w:WordDocument>
-</xml><![endif]-->
-    <style>
-        <!--
-        /* Font Definitions */
-        @font-face {
-            font-family: Batang;
-            panose-1: 2 3 6 0 0 1 1 1 1 1;
-            mso-font-alt: \BC14\D0D5;
-            mso-font-charset: 129;
-            mso-generic-font-family: roman;
-            mso-font-pitch: variable;
-            mso-font-signature: -1342176593 1775729915 48 0 524447 0;
-        }
-
-        @font-face {
-            font-family: SimSun;
-            panose-1: 2 1 6 0 3 1 1 1 1 1;
-            mso-font-alt: \5B8B\4F53;
-            mso-font-charset: 134;
-            mso-generic-font-family: auto;
-            mso-font-pitch: variable;
-            mso-font-signature: 3 135135232 16 0 262145 0;
-        }
-
-        @font-face {
-            font-family: PMingLiU;
-            panose-1: 2 2 3 0 0 0 0 0 0 0;
-            mso-font-alt: \65B0\7D30\660E\9AD4;
-            mso-font-charset: 136;
-            mso-generic-font-family: roman;
-            mso-font-pitch: variable;
-            mso-font-signature: 3 137232384 22 0 1048577 0;
-        }
-
-        @font-face {
-            font-family: "\@PMingLiU";
-            panose-1: 2 2 3 0 0 0 0 0 0 0;
-            mso-font-charset: 136;
-            mso-generic-font-family: roman;
-            mso-font-pitch: variable;
-            mso-font-signature: 3 137232384 22 0 1048577 0;
-        }
-
-        @font-face {
-            font-family: "\@Batang";
-            panose-1: 2 3 6 0 0 1 1 1 1 1;
-            mso-font-charset: 129;
-            mso-generic-font-family: roman;
-            mso-font-pitch: variable;
-            mso-font-signature: -1342176593 1775729915 48 0 524447 0;
-        }
-
-        @font-face {
-            font-family: "\@SimSun";
-            panose-1: 2 1 6 0 3 1 1 1 1 1;
-            mso-font-charset: 134;
-            mso-generic-font-family: auto;
-            mso-font-pitch: variable;
-            mso-font-signature: 3 135135232 16 0 262145 0;
-        }
-
-        /* Style Definitions */
-        p.MsoNormal,
-        li.MsoNormal,
-        div.MsoNormal {
-            mso-style-parent: "";
-            margin: 0in;
-            margin-bottom: .0001pt;
-            mso-pagination: widow-orphan;
-            font-size: 12.0pt;
-            font-family: "Times New Roman";
-            mso-fareast-font-family: PMingLiU;
-            mso-fareast-language: ZH-TW;
-        }
-
-        @page Section1 {
-            size: 8.5in 11.0in;
-            margin: .5in .5in .5in .5in;
-            mso-header-margin: .5in;
-            mso-footer-margin: .5in;
-            mso-paper-source: 0;
-        }
-
-        div.Section1 {
-            page: Section1;
-        }
-        -->
-    </style>
 
     <style>
         /* video overlay */
@@ -155,7 +39,7 @@
             border-color: blue;
             border-width: 2px;
         }
-    </style>
+</style>
 
     <!-- Flowplayer scripts -->
     <!-- Old Script <script src="https://cdn.jquerytools.org/1.2.7/full/jquery.tools.min.js"></script> -->
@@ -168,20 +52,20 @@ $(function() {
 
 	$("img.trigger").overlay({
 		// use the Apple effect for overlay
-		effect: 'apple',		
-		
-		expose: '#101010',				
-		
+		effect: 'apple',
+
+		expose: '#101010',
+
 		onLoad: function(content) {
 			// find the player contained inside this overlay and load it
 			this.getOverlay().find("a.player").flowplayer(0).load();
 		},
-		
+
 		onClose: function(content) {
 			$f().unload();
 		}
 	});
-	
+
 	// install flowplayers
 	$("a.player").flowplayer("new_website/flowplayer/flowplayer-3.2.18.swf");
 
@@ -190,7 +74,7 @@ $(function() {
 
 </head>
 
-<body lang=EN-US style='tab-interval:.5in'>
+<body >
 
     <table border="1">
         <caption style="text-align:left; color:red">

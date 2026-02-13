@@ -8,14 +8,20 @@ header('Content-Type: application/json');
 
 $YOUR_DOMAIN = 'https://awmpc.org';
 
-$donationValue = $_SERVER['HTTP_DONATION_AMOUNT'];
+$donationValue = abs((int) $_SERVER['HTTP_DONATION_AMOUNT']);
+
+if ($donationValue < 1) {
+  http_response_code(400);
+  echo json_encode(['error' => 'Donation amount must be at least $1.']);
+  exit;
+}
 
 $checkout_session = \Stripe\Checkout\Session::create([
   'payment_method_types' => ['card'],
   'line_items' => [[
     'price_data' => [
       'currency' => 'usd',
-      'unit_amount' => (string)((int) $donationValue * 100),
+      'unit_amount' => (string)($donationValue * 100),
       'product_data' => [
         'name' => 'User Submitted Donation',
       ],
