@@ -107,12 +107,6 @@
 			background: rgba(255,255,255,0.85);
 			z-index: 3;
 			width: 0%;
-		}
-		.carousel-progress.running {
-			transition: width linear;
-			width: 100%;
-		}
-		.carousel-progress.paused {
 			transition: none;
 		}
 		/* Play/Pause button */
@@ -739,10 +733,9 @@
 	var slides = track.querySelectorAll('.carousel-slide');
 	var total = slides.length;
 	var idx = 0;
-	var autoInterval = 8000;
-	var timer = null;
+	var INTERVAL = 8000;
+	var timerId = 0;
 	var playing = true;
-	var hovering = false;
 	var startX = 0;
 	var dragging = false;
 
@@ -754,7 +747,7 @@
 		dot.setAttribute('data-idx', i);
 		dot.addEventListener('click', function() {
 			goTo(parseInt(this.getAttribute('data-idx')));
-			resetTimer();
+			scheduleNext();
 		});
 		dotsBox.appendChild(dot);
 	}
@@ -769,139 +762,76 @@
 		}
 	}
 
-	function next() { goTo(idx + 1); }
-	function prev() { goTo(idx - 1); }
-
 	// --- Progress bar ---
+	// Uses requestAnimationFrame for a reliable reset-then-animate cycle.
 	function startProgress() {
-		// Reset: remove transition, set width 0, force reflow, then animate to 100%
-		progressBar.className = 'carousel-progress';
+		// 1. Kill any running CSS transition and snap to 0
+		progressBar.style.transition = 'none';
 		progressBar.style.width = '0%';
-		// Force reflow so the browser registers width:0 before the transition starts
-		void progressBar.offsetWidth;
-		progressBar.style.transitionDuration = autoInterval + 'ms';
-		progressBar.className = 'carousel-progress running';
-		progressBar.style.width = '100%';
+		// 2. On the next frame the browser has committed width:0,
+		//    so we can now set the transition and target width.
+		requestAnimationFrame(function() {
+			requestAnimationFrame(function() {
+				progressBar.style.transition = 'width ' + INTERVAL + 'ms linear';
+				progressBar.style.width = '100%';
+			});
+		});
 	}
 
-	function pauseProgress() {
-		// Freeze progress bar at current position
-		var computed = window.getComputedStyle(progressBar).width;
-		progressBar.className = 'carousel-progress paused';
-		progressBar.style.width = computed;
+	function stopProgress() {
+		progressBar.style.transition = 'none';
+		progressBar.style.width = '0%';
 	}
 
-	function resumeProgress() {
-		// Calculate remaining time from current bar width
-		var barWidth = parseFloat(window.getComputedStyle(progressBar).width);
-		var fullWidth = parseFloat(window.getComputedStyle(progressBar.parentElement).width);
-		var pct = fullWidth > 0 ? barWidth / fullWidth : 0;
-		var remaining = Math.max((1 - pct) * autoInterval, 200);
-		progressBar.style.transitionDuration = remaining + 'ms';
-		progressBar.className = 'carousel-progress running';
-		progressBar.style.width = '100%';
-	}
-
-	// --- Auto-play timer ---
-	function startTimer() {
-		clearInterval(timer);
+	// --- Single-timeout auto-advance (no setInterval, no stacking) ---
+	// Every call cancels any pending timeout, then (if playing) waits
+	// INTERVAL ms, advances one slide, and calls itself again.
+	function scheduleNext() {
+		clearTimeout(timerId);
+		if (!playing) { stopProgress(); return; }
 		startProgress();
-		timer = setInterval(function() {
-			next();
-			startProgress();
-		}, autoInterval);
-	}
-
-	function stopTimer() {
-		clearInterval(timer);
-		timer = null;
-	}
-
-	function resetTimer() {
-		if (playing && !hovering) {
-			startTimer();
-		} else {
-			// Even if paused/hovering, restart the progress bar visually when user navigates
-			startProgress();
-			pauseProgress();
-		}
+		timerId = setTimeout(function() {
+			goTo(idx + 1);
+			scheduleNext();
+		}, INTERVAL);
 	}
 
 	// --- Play / Pause ---
-	function setPlaying(state) {
-		playing = state;
+	playPauseBtn.addEventListener('click', function() {
+		playing = !playing;
 		playPauseBtn.innerHTML = playing ? '&#9646;&#9646;' : '&#9654;';
 		playPauseBtn.setAttribute('aria-label', playing ? 'Pause slideshow' : 'Play slideshow');
-	}
-
-	playPauseBtn.addEventListener('click', function() {
-		if (playing) {
-			setPlaying(false);
-			stopTimer();
-			pauseProgress();
-		} else {
-			setPlaying(true);
-			if (!hovering) {
-				startTimer();
-			} else {
-				resumeProgress();
-			}
-		}
+		scheduleNext();
 	});
 
-	// Arrow buttons
-	document.querySelector('#photoCarousel .prev').addEventListener('click', function() { prev(); resetTimer(); });
-	document.querySelector('#photoCarousel .next').addEventListener('click', function() { next(); resetTimer(); });
+	// Arrow buttons — navigate then restart the full wait
+	document.querySelector('#photoCarousel .prev').addEventListener('click', function() { goTo(idx - 1); scheduleNext(); });
+	document.querySelector('#photoCarousel .next').addEventListener('click', function() { goTo(idx + 1); scheduleNext(); });
 
 	// Keyboard
 	document.getElementById('photoCarousel').addEventListener('keydown', function(e) {
-		if (e.key === 'ArrowLeft') { prev(); resetTimer(); }
-		if (e.key === 'ArrowRight') { next(); resetTimer(); }
+		if (e.key === 'ArrowLeft')  { goTo(idx - 1); scheduleNext(); }
+		if (e.key === 'ArrowRight') { goTo(idx + 1); scheduleNext(); }
 	});
 
-	// Hover: pause timer, resume on leave
+	// Touch / swipe (no hover pause per request)
 	var carousel = document.getElementById('photoCarousel');
-	carousel.addEventListener('mouseenter', function() {
-		hovering = true;
-		if (playing) { stopTimer(); pauseProgress(); }
-	});
-	carousel.addEventListener('mouseleave', function() {
-		hovering = false;
-		if (playing) {
-			// Resume from where the bar left off, then start fresh cycle after
-			var barWidth = parseFloat(window.getComputedStyle(progressBar).width);
-			var fullWidth = parseFloat(window.getComputedStyle(carousel).width);
-			var pct = fullWidth > 0 ? barWidth / fullWidth : 0;
-			var remaining = Math.max((1 - pct) * autoInterval, 200);
-
-			resumeProgress();
-			clearInterval(timer);
-			// Wait for remaining time, advance, then start normal cycle
-			timer = setTimeout(function() {
-				next();
-				startTimer();
-			}, remaining);
-		}
-	});
-
-	// Touch / swipe
 	carousel.addEventListener('touchstart', function(e) {
 		startX = e.touches[0].clientX;
 		dragging = true;
-		if (playing) { stopTimer(); pauseProgress(); }
 	}, { passive: true });
 	carousel.addEventListener('touchend', function(e) {
 		if (!dragging) return;
 		var diff = e.changedTouches[0].clientX - startX;
 		if (Math.abs(diff) > 40) {
-			if (diff < 0) next(); else prev();
+			goTo(diff < 0 ? idx + 1 : idx - 1);
+			scheduleNext();
 		}
 		dragging = false;
-		if (playing) startTimer();
 	}, { passive: true });
 
 	// Start
-	startTimer();
+	scheduleNext();
 })();
 </script>
 </body>
