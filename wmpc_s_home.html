@@ -7,32 +7,101 @@
 	<title>All World Mission Prayer Center</title>
 
 <style type="text/css">
-		<!--
-		/* Style Definitions */
+		.style5 { font-size: 24px }
+		.style7 { font-size: 28px; color: #FF0000; }
+		.style8 { font-size: 24 }
+		.style9 { font-size: 18px }
+		.style10 { font-size: 20px; color: #FF0000; text-align: center; }
 
-		.style5 {
-			font-size: 24px
+		/* --- Carousel --- */
+		.carousel {
+			position: relative;
+			max-width: 950px;
+			margin: 10px auto;
+			overflow: hidden;
+			border-radius: 6px;
+			background: #000;
+			touch-action: pan-y;
+			-webkit-user-select: none;
+			user-select: none;
 		}
-
-		.style7 {
+		.carousel-track {
+			display: flex;
+			transition: transform 0.45s ease-in-out;
+			will-change: transform;
+		}
+		.carousel-track.no-transition {
+			transition: none;
+		}
+		.carousel-slide {
+			min-width: 100%;
+			display: flex;
+			align-items: center;
+			justify-content: center;
+		}
+		.carousel-slide img {
+			width: 100%;
+			height: auto;
+			max-height: 600px;
+			object-fit: contain;
+			display: block;
+		}
+		/* Arrows */
+		.carousel-btn {
+			position: absolute;
+			top: 50%;
+			transform: translateY(-50%);
+			background: rgba(0,0,0,0.45);
+			color: #fff;
+			border: none;
 			font-size: 28px;
-			color: #FF0000;
+			line-height: 1;
+			padding: 12px 14px;
+			cursor: pointer;
+			z-index: 2;
+			border-radius: 4px;
+			transition: background 0.2s;
 		}
-
-		.style8 {
-			font-size: 24
+		.carousel-btn:hover { background: rgba(0,0,0,0.7); }
+		.carousel-btn.prev { left: 8px; }
+		.carousel-btn.next { right: 8px; }
+		/* Dots */
+		.carousel-dots {
+			position: absolute;
+			bottom: 10px;
+			left: 50%;
+			transform: translateX(-50%);
+			display: flex;
+			gap: 8px;
+			z-index: 2;
 		}
-
-		.style9 {
-			font-size: 18px
+		.carousel-dot {
+			width: 10px;
+			height: 10px;
+			border-radius: 50%;
+			background: rgba(255,255,255,0.45);
+			border: none;
+			cursor: pointer;
+			padding: 0;
+			transition: background 0.2s;
 		}
-
-		.style10 {
-			font-size: 20px;
-			color: #FF0000;
-			text-align: center;
+		.carousel-dot.active { background: #fff; }
+		/* Counter */
+		.carousel-counter {
+			position: absolute;
+			top: 10px;
+			right: 12px;
+			background: rgba(0,0,0,0.45);
+			color: #fff;
+			font-size: 13px;
+			padding: 3px 10px;
+			border-radius: 12px;
+			z-index: 2;
 		}
-		-->
+		@media (max-width: 600px) {
+			.carousel-btn { font-size: 20px; padding: 8px 10px; }
+			.carousel-slide img { max-height: 350px; }
+		}
 </style>
 
 </head>
@@ -43,76 +112,51 @@
 	</a>
 	<a href="https://info.flagcounter.com/u2K3"><img src="https://s11.flagcounter.com/count2/u2K3/bg_FFFFFF/txt_000000/border_CCCCCC/columns_2/maxflags_10/viewers_0/labels_0/pageviews_0/flags_0/percent_0/" alt="Flag Counter" border="0" loading="lazy" decoding="async"></a>
 	<script type="text/javascript" src="https://rf.revolvermaps.com/0/0/2.js?i=536ikush1dr&amp;m=7&amp;s=178&amp;c=ff0000&amp;t=1" async="async"></script>
+
+	<!-- Photo Carousel -->
+	<div class="carousel" id="photoCarousel">
+		<div class="carousel-track" id="carouselTrack">
+			<div class="carousel-slide"><img src="./resources/images/building_front_01.jpg" alt="AWMPC building front view 1" decoding="async"/></div>
+			<div class="carousel-slide"><img src="./resources/images/building_front_02.jpg" alt="AWMPC building front view 2" decoding="async"/></div>
+			<div class="carousel-slide"><img src="./resources/images/proof_of_servitude_jan_03_2022_01.jpg" alt="Proof of servitude document 1, January 2022" decoding="async"/></div>
+			<div class="carousel-slide"><img src="./resources/images/proof_of_servitude_jan_03_2022_02.jpg" alt="Proof of servitude document 2, January 2022" decoding="async"/></div>
+			<div class="carousel-slide"><img src="./resources/images/proof_of_servitude_jan_03_2022_03.jpg" alt="Proof of servitude document 3, January 2022" decoding="async"/></div>
+			<div class="carousel-slide"><img src="./resources/images/proof_of_servitude_jan_03_2022_04.jpg" alt="Proof of servitude document 4, January 2022" decoding="async"/></div>
+			<div class="carousel-slide"><img src="./resources/images/proof_of_servitude_jan_03_2022_05.jpg" alt="Proof of servitude document 5, January 2022" decoding="async"/></div>
+			<div class="carousel-slide"><img src="./resources/images/Pastor_Lee_Solo_Picture_2022_11_19.jpeg" alt="Pastor Lee, November 19 2022" decoding="async"/></div>
+			<div class="carousel-slide"><img src="./resources/images/thanksgiving_2021/thanksgiving_2021_02.jpeg" alt="Thanksgiving 2021 celebration photo 1" decoding="async"/></div>
+			<div class="carousel-slide"><img src="./resources/images/thanksgiving_2021/thanksgiving_2021_03.jpeg" alt="Thanksgiving 2021 celebration photo 2" decoding="async"/></div>
+			<div class="carousel-slide"><img src="./resources/images/thanksgiving_2021/thanksgiving_2021_04.jpeg" alt="Thanksgiving 2021 celebration photo 3" decoding="async"/></div>
+		</div>
+		<button class="carousel-btn prev" aria-label="Previous slide">&#10094;</button>
+		<button class="carousel-btn next" aria-label="Next slide">&#10095;</button>
+		<div class="carousel-counter"><span id="carouselCurrent">1</span> / <span id="carouselTotal">11</span></div>
+		<div class="carousel-dots" id="carouselDots"></div>
+	</div>
+
+	<!-- Videos -->
 	<table>
-			<tr>
-				<td>
-					<img src="./resources/images/proof_of_servitude_jan_03_2022_01.jpg" alt="Proof of servitude document 1, January 2022" style="width: 475px; padding: 3px;" loading="lazy" decoding="async"/>
-				</td>
-				<td>
-					<img src="./resources/images/proof_of_servitude_jan_03_2022_02.jpg" alt="Proof of servitude document 2, January 2022" style="width: 475px; padding: 3px;" loading="lazy" decoding="async"/>
-				</td>
-			</tr>
-			<tr>
-				<td>
-					<img src="./resources/images/proof_of_servitude_jan_03_2022_03.jpg" alt="Proof of servitude document 3, January 2022" style="width: 475px; padding: 3px;" loading="lazy" decoding="async"/>
-				</td>
-				<td>
-					<img src="./resources/images/proof_of_servitude_jan_03_2022_04.jpg" alt="Proof of servitude document 4, January 2022" style="width: 475px; padding: 3px;" loading="lazy" decoding="async"/>
-				</td>
-			</tr>
-			<tr>
-				<td>
-					<img src="./resources/images/proof_of_servitude_jan_03_2022_05.jpg" alt="Proof of servitude document 5, January 2022" style="width: 475px; padding: 3px;" loading="lazy" decoding="async"/>
-				</td>
-			</tr>
-		</table>
-		<table>
-			<tr>
-				<td>
-					<video controls width="1000" preload="none">
-						<source src="./resources/videos/2006_conference_01_intro.mp4" type="video/mp4">
-					</video>
-				</td>
-			</tr>
-			<tr>
-				<td>
-					<video controls width="1000" preload="none">
-						<source src="./resources/videos/2006_conference_02_preach.mp4" type="video/mp4">
-					</video>
-				</td>
-			</tr>
-			<tr>
-				<td>
-					<video controls width="1000" preload="none">
-						<source src="./resources/videos/2006_conference_03_healing.mp4" type="video/mp4">
-					</video>
-				</td>
-			</tr>
-		</table>
-	<table>
-		<tr>
-			<td>
-				<p style="width: 475px; padding: 3px; font-size:21px;">
-					感謝讃美我們的大能和信實的神。我們已經在 1189 S De Anza 建堂。感恩所有支持我們的人。
-					歡迎你們來到主的殿，親近主，呼求禱告，抵擋魔鬼一切在你和家人任何一方面的攻擊。得勝，榮耀歸主名。
-				</p>
-			</td>
-		</tr>
-		<tr>
-			<td>
-				<picture>
-					<source srcset="./resources/images/building_front_01.webp" type="image/webp" style="width: 475px; padding: 3px;">
-					<img src="./resources/images/building_front_01.jpg" alt="AWMPC building front view 1" style="width: 475px; padding: 3px;" loading="lazy" decoding="async"/>
-				</picture>
-			</td>
-			<td>
-				<picture>
-					<source srcset="./resources/images/building_front_02.webp" type="image/webp" style="width: 475px; padding: 3px;">
-					<img src="./resources/images/building_front_02.jpg" alt="AWMPC building front view 2" style="width: 475px; padding: 3px;" loading="lazy" decoding="async"/>
-				</picture>
-			</td>
-		</tr>
+		<tr><td>
+			<video controls width="1000" preload="none">
+				<source src="./resources/videos/2006_conference_01_intro.mp4" type="video/mp4">
+			</video>
+		</td></tr>
+		<tr><td>
+			<video controls width="1000" preload="none">
+				<source src="./resources/videos/2006_conference_02_preach.mp4" type="video/mp4">
+			</video>
+		</td></tr>
+		<tr><td>
+			<video controls width="1000" preload="none">
+				<source src="./resources/videos/2006_conference_03_healing.mp4" type="video/mp4">
+			</video>
+		</td></tr>
 	</table>
+
+	<p style="max-width: 950px; padding: 3px; font-size:21px;">
+		感謝讃美我們的大能和信實的神。我們已經在 1189 S De Anza 建堂。感恩所有支持我們的人。
+		歡迎你們來到主的殿，親近主，呼求禱告，抵擋魔鬼一切在你和家人任何一方面的攻擊。得勝，榮耀歸主名。
+	</p>
 
 	<hr>
 
@@ -648,6 +692,80 @@
 		39 求祢在天上祢的居所垂聽赦免。祢是知道人心的，要照各人所行的待他們（惟有祢知道世人的心），
 		40 使他們在祢賜給我們列祖之地上一生一世敬畏祢。
 	</p>
+
+<script>
+(function() {
+	var track = document.getElementById('carouselTrack');
+	var dotsBox = document.getElementById('carouselDots');
+	var counterEl = document.getElementById('carouselCurrent');
+	var slides = track.querySelectorAll('.carousel-slide');
+	var total = slides.length;
+	var idx = 0;
+	var autoInterval = 5000;
+	var timer = null;
+	var startX = 0;
+	var dragging = false;
+
+	// Build dots
+	for (var i = 0; i < total; i++) {
+		var dot = document.createElement('button');
+		dot.className = 'carousel-dot' + (i === 0 ? ' active' : '');
+		dot.setAttribute('aria-label', 'Go to slide ' + (i + 1));
+		dot.setAttribute('data-idx', i);
+		dot.addEventListener('click', function() { goTo(parseInt(this.getAttribute('data-idx'))); });
+		dotsBox.appendChild(dot);
+	}
+
+	function goTo(n) {
+		idx = ((n % total) + total) % total;
+		track.style.transform = 'translateX(-' + (idx * 100) + '%)';
+		counterEl.textContent = idx + 1;
+		var dots = dotsBox.querySelectorAll('.carousel-dot');
+		for (var j = 0; j < dots.length; j++) {
+			dots[j].className = 'carousel-dot' + (j === idx ? ' active' : '');
+		}
+	}
+
+	function next() { goTo(idx + 1); }
+	function prev() { goTo(idx - 1); }
+
+	// Arrow buttons
+	document.querySelector('#photoCarousel .prev').addEventListener('click', function() { prev(); resetTimer(); });
+	document.querySelector('#photoCarousel .next').addEventListener('click', function() { next(); resetTimer(); });
+
+	// Keyboard
+	document.getElementById('photoCarousel').addEventListener('keydown', function(e) {
+		if (e.key === 'ArrowLeft') { prev(); resetTimer(); }
+		if (e.key === 'ArrowRight') { next(); resetTimer(); }
+	});
+
+	// Auto-play
+	function startTimer() { timer = setInterval(next, autoInterval); }
+	function resetTimer() { clearInterval(timer); startTimer(); }
+
+	var carousel = document.getElementById('photoCarousel');
+	carousel.addEventListener('mouseenter', function() { clearInterval(timer); });
+	carousel.addEventListener('mouseleave', function() { startTimer(); });
+
+	// Touch / swipe
+	carousel.addEventListener('touchstart', function(e) {
+		startX = e.touches[0].clientX;
+		dragging = true;
+		clearInterval(timer);
+	}, { passive: true });
+	carousel.addEventListener('touchend', function(e) {
+		if (!dragging) return;
+		var diff = e.changedTouches[0].clientX - startX;
+		if (Math.abs(diff) > 40) {
+			if (diff < 0) next(); else prev();
+		}
+		dragging = false;
+		startTimer();
+	}, { passive: true });
+
+	startTimer();
+})();
+</script>
 </body>
 
 </html>
