@@ -22,6 +22,7 @@
       overflow-x: hidden;
       overflow-wrap: break-word;   /* wrap long URLs/strings globally */
       word-break: break-word;
+      transition: background-color 0.5s ease, color 0.5s ease;
     }
     img {                          /* global safety net for all images */
       max-width: 100%;
@@ -58,7 +59,7 @@
       overflow: hidden;
     }
     .site-banner img {
-      max-width: 100%;
+      max-width: 88%;
       height: auto;
     }
 
@@ -80,9 +81,15 @@
       border-radius: 26px;
       flex: 1;
       min-width: 0;
+      overflow: hidden;
       box-shadow:
         0 1px 3px rgba(0,0,0,0.08),
         0 4px 12px rgba(0,0,0,0.10);
+      transition: background-color 0.5s ease, box-shadow 0.5s ease;
+    }
+    .info-bar-scroll {
+      display: inline-block;
+      white-space: nowrap;
     }
 
     /* --- Top row icon buttons (One UI contained, circular) --- */
@@ -102,7 +109,7 @@
       box-shadow:
         0 1px 3px rgba(0,0,0,0.08),
         0 4px 12px rgba(0,0,0,0.10);
-      transition: background 0.15s;
+      transition: background-color 0.15s, box-shadow 0.5s ease;
       -webkit-tap-highlight-color: transparent;
     }
     .site-top-btn:hover { background: #333; }
@@ -117,11 +124,27 @@
     .site-top-btn svg {
       display: block;
     }
-    /* Theme toggle icon swap */
-    .icon-moon { display: block; }
-    .icon-sun  { display: none; }
-    body.dark-mode .icon-moon { display: none; }
-    body.dark-mode .icon-sun  { display: block; }
+    /* Theme toggle — 3D card-flip between sun and moon */
+    #themeToggle { perspective: 300px; }
+    .theme-icon-flip {
+      width: 18px;
+      height: 18px;
+      position: relative;
+      transform-style: preserve-3d;
+      transition: transform 0.6s cubic-bezier(0.22, 0.61, 0.36, 1);
+    }
+    body.dark-mode .theme-icon-flip {
+      transform: rotateY(180deg);
+    }
+    .icon-sun, .icon-moon {
+      position: absolute;
+      top: 0;
+      left: 0;
+      backface-visibility: hidden;
+    }
+    .icon-moon {
+      transform: rotateY(180deg);
+    }
 
     /* --- Main banner GIF (One UI card) --- */
     .site-main-banner {
@@ -227,7 +250,7 @@
     }
 
     /* --- Footer --- */
-    .site-footer-divider { border: 0; border-top: 1px solid #999; margin: 16px 0; }
+    .site-footer-divider { border: 0; border-top: 1px solid #999; margin: 16px 0; transition: border-color 0.5s ease; }
     .site-footer {
       display: flex;
       flex-wrap: wrap;
@@ -235,8 +258,9 @@
       gap: 16px;
       padding: 12px 0 24px;
       font-size: 13px;
+      transition: color 0.5s ease;
     }
-    .site-footer a { color: #212121; }
+    .site-footer a { color: #212121; transition: color 0.5s ease; }
     .footer-left   { flex: 1; min-width: 160px; }
     .footer-center { flex: 2; min-width: 200px; text-align: center; font-family: Arial, sans-serif; font-size: 15px; }
     .footer-right  { flex: 1; min-width: 200px; text-align: right; }
@@ -276,7 +300,8 @@
         0 1px 3px rgba(0,0,0,0.10),
         0 6px 20px rgba(0,0,0,0.14);
       transition:
-        box-shadow 0.35s cubic-bezier(0.22, 0.61, 0.36, 1);
+        box-shadow 0.35s cubic-bezier(0.22, 0.61, 0.36, 1),
+        background-color 0.5s ease;
       -webkit-tap-highlight-color: transparent;
       outline: none;
     }
@@ -313,6 +338,7 @@
       content: '';
       position: absolute;
       background: #CC0000;
+      transition: background-color 0.5s ease;
     }
     /* Vertical bar — full height */
     .fab-icon::before {
@@ -353,7 +379,8 @@
       transform-origin: bottom right;
       transition:
         transform 0.3s cubic-bezier(0.22, 0.61, 0.36, 1),
-        opacity 0.25s cubic-bezier(0.33, 0, 0.67, 1);
+        opacity 0.25s cubic-bezier(0.33, 0, 0.67, 1),
+        background-color 0.5s ease;
     }
     .fab-menu.open {
       transform: translateY(0) scale(1);
@@ -377,7 +404,7 @@
       font-size: 15px;
       font-weight: 500;
       line-height: 1.35;
-      transition: background 0.15s;
+      transition: background 0.15s, color 0.5s ease;
       -webkit-tap-highlight-color: transparent;
       /* Staggered entry */
       opacity: 0;
@@ -417,7 +444,7 @@
 
     /* --- Responsive --- */
     @media (max-width: 768px) {
-      .site-info-bar { font-size: 12px; word-break: keep-all; }
+      .site-info-bar { font-size: 13px; }
       table { table-layout: auto; }
       td, th { width: auto !important; }
       .site-footer {
@@ -474,10 +501,6 @@
     body.dark-mode {
       background-color: #0D1B2A;
       color: #FFD54F;
-    }
-    body.dark-mode .site-banner {
-      background-color: #152238;
-      box-shadow: 0 1px 3px rgba(0,0,0,0.25), 0 4px 12px rgba(0,0,0,0.30);
     }
     body.dark-mode .site-info-bar {
       background: #9B0000;
@@ -544,14 +567,16 @@
   <!-- Service times + action buttons — topmost row -->
   <div class="site-top-row">
     <div class="site-info-bar">
-      全年無休 | 晨禱禮拜：6:30am - 8:00am | 晚禱禮拜：8:00pm - 9:00pm | 主日崇拜 周日：10:00am 開始
+      <span class="info-bar-scroll">全年無休 | 晨禱禮拜：6:30am - 8:00am | 晚禱禮拜：8:00pm - 9:00pm | 主日崇拜 周日：10:00am 開始</span>
     </div>
     <a class="site-top-btn" href="https://allworldmissionprayercenterinc-321.my.webex.com/meet/awmpc" target="_blank" rel="noopener" aria-label="Join Webex">
       <img src="https://www.google.com/s2/favicons?domain=webex.com&sz=32" alt="Webex" />
     </a>
     <button class="site-top-btn" id="themeToggle" type="button" aria-label="Toggle dark mode">
-      <svg class="icon-moon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
-      <svg class="icon-sun" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="5"/><path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/></svg>
+      <div class="theme-icon-flip">
+        <svg class="icon-sun" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="5"/><path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/></svg>
+        <svg class="icon-moon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+      </div>
     </button>
   </div>
 
@@ -646,6 +671,54 @@
     document.body.classList.toggle('dark-mode');
     localStorage.setItem('theme', document.body.classList.contains('dark-mode') ? 'dark' : 'light');
   });
+})();
+</script>
+
+<!-- Info bar marquee for mobile -->
+<script>
+(function() {
+  var bar = document.querySelector('.site-info-bar');
+  var text = bar && bar.querySelector('.info-bar-scroll');
+  if (!bar || !text) return;
+
+  var timer = null;
+
+  function cycle() {
+    var overflow = text.scrollWidth - bar.clientWidth;
+    if (overflow <= 0) { text.style.transform = ''; return; }
+
+    // Speed: ~50px/s for a comfortable read
+    var scrollDur = overflow / 50;
+    var returnDur = overflow / 80;
+
+    // 1. Hold at start
+    text.style.transition = 'none';
+    text.style.transform = 'translateX(0)';
+
+    timer = setTimeout(function() {
+      // 2. Scroll left to show end
+      text.style.transition = 'transform ' + scrollDur + 's ease-in-out';
+      text.style.transform = 'translateX(-' + overflow + 'px)';
+
+      timer = setTimeout(function() {
+        // 3. Hold at end, then scroll back
+        text.style.transition = 'transform ' + returnDur + 's ease-in-out';
+        text.style.transform = 'translateX(0)';
+
+        timer = setTimeout(cycle, returnDur * 1000 + 2000);
+      }, scrollDur * 1000 + 1500);
+    }, 2000);
+  }
+
+  function start() {
+    stop();
+    if (window.matchMedia('(max-width: 768px)').matches) cycle();
+    else { text.style.transition = ''; text.style.transform = ''; }
+  }
+  function stop() { if (timer) { clearTimeout(timer); timer = null; } }
+
+  window.matchMedia('(max-width: 768px)').addEventListener('change', start);
+  start();
 })();
 </script>
 
