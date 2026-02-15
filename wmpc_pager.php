@@ -83,52 +83,30 @@
 
       <!--<td colspan="2" align="left">-->
 
-      <?php
+      <td colspan="2" align="left">
 
-      $adBar = $_GET["page"];
-      if ($adBar == 'mi_home') {
-        echo <<<END
-<td colspan="10">
-		
-END;
-      } else {
-        echo <<<END
-		
-<td colspan="2" align="left">
+        <a href="./24hrhop.html">
+          <img class="ad" src="./resources/images/building_front_compressed_09_05_2020_mini.jpg" />
+        </a>
+        <br><br>
 
-<a href="./24hrhop.html">
-    <img class="ad" src="./resources/images/building_front_compressed_09_05_2020_mini.jpg" />
-</a>
-<br>
-<br>
+        <a href="./prayer.html"><img class="ad" src="./webData/components/adwindow_prayermeeting.jpg" /></a>
+        <br><br>
 
-<a href="./prayer.html"><img class="ad" src="./webData/components/adwindow_prayermeeting.jpg" /></a>
-<br>
-<br>
+        <a href="./sermons.html"><img src="./webData/components/adwindow_dailysermon.jpg" border="0" class="ad" /></a>
+        <br><br>
 
-<a href="./sermons.html"><img src="./webData/components/adwindow_dailysermon.jpg" border="0" class="ad" /></a>
-<br>
-<br>
+        <a href="./request.html"><img class="ad" src="./webData/components/adwindow_prayerrequest.jpg" /></a>
+        <br><br>
 
-<a href="./request.html"><img class="ad" src="./webData/components/adwindow_prayerrequest.jpg" /></a>
-<br>
-<br>
+        <a href="./mission.html">
+          <img class="ad" src="./resources/images/sidebar_mission.jpg" />
+        </a>
+        <br><br>
 
-<a href="./mission.html">
-    <img class="ad" src="./resources/images/sidebar_mission.jpg" />
-</a>
-<br>
-<br>
+      </td>
 
-</td>
-
-<td colspan="8" rowspan="1">
-
-END;
-      }
-
-
-      ?>
+      <td colspan="8" rowspan="1">
 
       <!--<td colspan="8" rowspan="1">-->
 
