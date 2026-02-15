@@ -62,52 +62,66 @@
       height: auto;
     }
 
+    /* --- Top row: info bar + action buttons --- */
+    .site-top-row {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin: 12px 0;
+    }
+
     /* --- Info bar (service times) — One UI focus block --- */
     .site-info-bar {
       background: #CC0000;
       color: #fff;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      gap: 12px;
+      text-align: center;
       padding: 10px 16px;
       font-size: 14px;
       border-radius: 26px;
-      margin: 12px 0;
+      flex: 1;
+      min-width: 0;
       box-shadow:
         0 1px 3px rgba(0,0,0,0.08),
         0 4px 12px rgba(0,0,0,0.10);
     }
-    .site-info-bar-text {
-      flex: 1;
-      text-align: center;
-      min-width: 0;
-    }
-    .site-info-bar-webex {
+
+    /* --- Top row icon buttons (One UI contained, circular) --- */
+    .site-top-btn {
       display: flex;
       align-items: center;
       justify-content: center;
       flex-shrink: 0;
-      width: 36px;
-      height: 36px;
+      width: 40px;
+      height: 40px;
       border-radius: 50%;
+      border: none;
       background: #212121;
+      color: #fff;
+      cursor: pointer;
+      text-decoration: none;
+      box-shadow:
+        0 1px 3px rgba(0,0,0,0.08),
+        0 4px 12px rgba(0,0,0,0.10);
       transition: background 0.15s;
       -webkit-tap-highlight-color: transparent;
     }
-    .site-info-bar-webex:hover {
-      background: #333;
-    }
-    .site-info-bar-webex:active {
-      background: #444;
-    }
-    .site-info-bar-webex img {
+    .site-top-btn:hover { background: #333; }
+    .site-top-btn:active { background: #444; }
+    .site-top-btn img {
       width: 20px;
       height: 20px;
       border-radius: 4px;
       box-shadow: none;
       margin: 0;
     }
+    .site-top-btn svg {
+      display: block;
+    }
+    /* Theme toggle icon swap */
+    .icon-moon { display: block; }
+    .icon-sun  { display: none; }
+    body.dark-mode .icon-moon { display: none; }
+    body.dark-mode .icon-sun  { display: block; }
 
     /* --- Main banner GIF (One UI card) --- */
     .site-main-banner {
@@ -455,17 +469,90 @@
       }
 
     }
+
+    /* === Dark mode: deep night blue + starry yellow === */
+    body.dark-mode {
+      background-color: #0D1B2A;
+      color: #FFD54F;
+    }
+    body.dark-mode .site-banner {
+      background-color: #152238;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.25), 0 4px 12px rgba(0,0,0,0.30);
+    }
+    body.dark-mode .site-info-bar {
+      background: #9B0000;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.25), 0 4px 12px rgba(0,0,0,0.30);
+    }
+    body.dark-mode .site-top-btn {
+      background: #1E3450;
+    }
+    body.dark-mode .site-top-btn:hover { background: #2A4565; }
+    body.dark-mode .site-top-btn:active { background: #345575; }
+    body.dark-mode .site-main-banner {
+      box-shadow: 0 1px 3px rgba(0,0,0,0.25), 0 4px 12px rgba(0,0,0,0.30);
+    }
+    body.dark-mode .site-main img,
+    body.dark-mode .site-main video {
+      box-shadow: 0 1px 3px rgba(0,0,0,0.25), 0 4px 12px rgba(0,0,0,0.30);
+    }
+    body.dark-mode .footer-images a {
+      box-shadow: 0 1px 3px rgba(0,0,0,0.25), 0 4px 12px rgba(0,0,0,0.30);
+    }
+    body.dark-mode .site-footer-divider { border-top-color: #2A4060; }
+    body.dark-mode .site-footer { color: #C8A840; }
+    body.dark-mode .site-footer a { color: #FFD54F; }
+    body.dark-mode .spa-loader { background: #FFD54F; }
+
+    /* FAB — cross becomes white-on-red */
+    body.dark-mode .fab-btn {
+      background: #CC0000;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.25), 0 6px 20px rgba(0,0,0,0.35);
+    }
+    body.dark-mode .fab-btn:active { background: #A80000; }
+    body.dark-mode .fab-btn.open {
+      box-shadow: 0 1px 3px rgba(0,0,0,0.25), 0 6px 20px rgba(0,0,0,0.35),
+                  0 0 0 2.5px rgba(255,255,255,0.30);
+    }
+    body.dark-mode .fab-icon::before,
+    body.dark-mode .fab-icon::after { background: #fff; }
+
+    /* FAB menu sheet */
+    body.dark-mode .fab-menu {
+      background: #152238;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.30), 0 12px 40px rgba(0,0,0,0.40);
+    }
+    body.dark-mode .fab-menu::before { background: #3A5068; }
+    body.dark-mode .fab-menu::-webkit-scrollbar-thumb { background: #3A5068; }
+    body.dark-mode .fab-menu-item { color: #FFD54F; }
+    body.dark-mode .fab-menu-item:hover { background: #1E3450; }
+    body.dark-mode .fab-menu-item:active { background: #2A4565; }
+    body.dark-mode .fab-menu-item .fab-item-zh { color: #C8A840; }
+    body.dark-mode .fab-menu-item.fab-active {
+      background: rgba(255, 213, 79, 0.12);
+      color: #FFD54F;
+    }
+    body.dark-mode .fab-menu-item.fab-active .fab-item-zh { color: #FFD54F; }
+    body.dark-mode .fab-scrim { background: rgba(0, 0, 0, 0.65); }
   </style>
 </head>
 
 <body>
+<script>(function(){var t=localStorage.getItem('theme');if(t==='dark'||(!t&&matchMedia('(prefers-color-scheme:dark)').matches))document.body.classList.add('dark-mode')})()</script>
 
 <div class="site-wrap">
 
-  <!-- Service times — topmost -->
-  <div class="site-info-bar">
-    <span class="site-info-bar-text">全年無休 | 晨禱禮拜：6:30am - 8:00am | 晚禱禮拜：8:00pm - 9:00pm | 主日崇拜 周日：10:00am 開始</span>
-    <a class="site-info-bar-webex" href="https://allworldmissionprayercenterinc-321.my.webex.com/meet/awmpc" target="_blank" rel="noopener" aria-label="Join Webex"><img src="https://www.google.com/s2/favicons?domain=webex.com&sz=32" alt="Webex" /></a>
+  <!-- Service times + action buttons — topmost row -->
+  <div class="site-top-row">
+    <div class="site-info-bar">
+      全年無休 | 晨禱禮拜：6:30am - 8:00am | 晚禱禮拜：8:00pm - 9:00pm | 主日崇拜 周日：10:00am 開始
+    </div>
+    <a class="site-top-btn" href="https://allworldmissionprayercenterinc-321.my.webex.com/meet/awmpc" target="_blank" rel="noopener" aria-label="Join Webex">
+      <img src="https://www.google.com/s2/favicons?domain=webex.com&sz=32" alt="Webex" />
+    </a>
+    <button class="site-top-btn" id="themeToggle" type="button" aria-label="Toggle dark mode">
+      <svg class="icon-moon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+      <svg class="icon-sun" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="5"/><path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/></svg>
+    </button>
   </div>
 
   <!-- Top banner -->
@@ -550,6 +637,17 @@
   </footer>
 
 </div>
+
+<!-- Theme toggle -->
+<script>
+(function() {
+  var btn = document.getElementById('themeToggle');
+  btn.addEventListener('click', function() {
+    document.body.classList.toggle('dark-mode');
+    localStorage.setItem('theme', document.body.classList.contains('dark-mode') ? 'dark' : 'light');
+  });
+})();
+</script>
 
 <!-- SPA loading bar -->
 <div class="spa-loader" id="spaLoader"></div>
