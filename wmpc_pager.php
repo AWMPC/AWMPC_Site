@@ -72,29 +72,28 @@
       margin: 12px 0;
     }
 
-    /* --- Info bar (service times) — One UI split pill --- */
+    /* --- Info bar (service times) — Google Play split pill --- */
     .site-info-bar {
       display: flex;
       align-items: stretch;
-      border-radius: 26px;
       flex: 1;
       min-width: 0;
-      overflow: hidden;
-      box-shadow:
-        0 1px 3px rgba(0,0,0,0.08),
-        0 4px 12px rgba(0,0,0,0.10);
-      transition: box-shadow 0.5s ease;
+      gap: 3px;
     }
     .info-bar-text {
       flex: 1;
       min-width: 0;
       overflow: hidden;
-      background: #CC0000;
-      color: #fff;
+      background: #EF9A9A;
+      color: #212121;
       text-align: center;
       padding: 10px 16px;
       font-size: 14px;
-      transition: background-color 0.5s ease;
+      border-radius: 26px 6px 6px 26px;
+      box-shadow:
+        0 1px 3px rgba(0,0,0,0.08),
+        0 4px 12px rgba(0,0,0,0.10);
+      transition: background-color 0.5s ease, color 0.5s ease, box-shadow 0.5s ease;
     }
     .info-bar-scroll {
       display: inline-block;
@@ -106,16 +105,20 @@
       justify-content: center;
       flex-shrink: 0;
       width: 48px;
-      background: #A80000;
-      border-left: 1px solid rgba(255, 255, 255, 0.25);
-      color: #fff;
+      background: #EF9A9A;
+      border: none;
+      border-radius: 6px 26px 26px 6px;
+      color: #212121;
       text-decoration: none;
       cursor: pointer;
-      transition: background-color 0.15s;
+      box-shadow:
+        0 1px 3px rgba(0,0,0,0.08),
+        0 4px 12px rgba(0,0,0,0.10);
+      transition: background-color 0.15s, box-shadow 0.5s ease;
       -webkit-tap-highlight-color: transparent;
     }
-    .info-bar-webex:hover { background: #960000; }
-    .info-bar-webex:active { background: #850000; }
+    .info-bar-webex:hover { background: #E58A8A; }
+    .info-bar-webex:active { background: #D97A7A; }
     .info-bar-webex img {
       width: 20px;
       height: 20px;
@@ -476,7 +479,7 @@
 
     /* --- Responsive --- */
     @media (max-width: 768px) {
-      .site-info-bar { font-size: 13px; }
+      .info-bar-text { font-size: 13px; }
       table { table-layout: auto; }
       td, th { width: auto !important; }
       .site-footer {
@@ -534,18 +537,17 @@
       background-color: #0D1B2A;
       color: #FFD54F;
     }
-    body.dark-mode .site-info-bar {
+    body.dark-mode .info-bar-text {
+      background: #4A3768;
+      color: #FFD54F;
       box-shadow: 0 1px 3px rgba(0,0,0,0.25), 0 4px 12px rgba(0,0,0,0.30);
     }
-    body.dark-mode .info-bar-text {
-      background: #9B0000;
-    }
     body.dark-mode .info-bar-webex {
-      background: #850000;
-      border-left-color: rgba(255, 255, 255, 0.18);
+      background: #4A3768;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.25), 0 4px 12px rgba(0,0,0,0.30);
     }
-    body.dark-mode .info-bar-webex:hover { background: #750000; }
-    body.dark-mode .info-bar-webex:active { background: #650000; }
+    body.dark-mode .info-bar-webex:hover { background: #5A4878; }
+    body.dark-mode .info-bar-webex:active { background: #3D2D5C; }
     body.dark-mode .site-top-btn {
       background: #1E3450;
     }
