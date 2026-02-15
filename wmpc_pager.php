@@ -581,25 +581,6 @@
     } catch(e) { return ''; }
   }
 
-  // Strip full-document wrappers (<!DOCTYPE>, <html>, <head>, <body>)
-  // so fragment files with full HTML structure inject cleanly.
-  function extractContent(html) {
-    // If there's a <body>, extract just its inner content
-    var m = html.match(/<body[^>]*>([\s\S]*?)<\/body>/i);
-    var content = m ? m[1] : html;
-    // Preserve <style> and <link> from <head> — move them into the content
-    var head = html.match(/<head[^>]*>([\s\S]*?)<\/head>/i);
-    if (head) {
-      var styles = [];
-      // Grab <style> blocks
-      head[1].replace(/<style[\s\S]*?<\/style>/gi, function(s) { styles.push(s); return ''; });
-      // Grab <link rel="stylesheet"> tags
-      head[1].replace(/<link[^>]*rel=["']stylesheet["'][^>]*>/gi, function(s) { styles.push(s); return ''; });
-      if (styles.length) content = styles.join('\n') + '\n' + content;
-    }
-    return content;
-  }
-
   // --- Loading bar ---
   function loaderStart() {
     loader.className = 'spa-loader';
@@ -618,13 +599,7 @@
   }
 
   // --- Execute scripts inside injected HTML ---
-  // Neutralises document.write (which would wipe the entire page
-  // if called after initial parse, as is always the case in SPA).
   function runScripts(container) {
-    var origWrite = document.write;
-    document.write = function() {};       // no-op while scripts run
-    document.writeln = function() {};
-
     var scripts = container.querySelectorAll('script');
     for (var i = 0; i < scripts.length; i++) {
       var old = scripts[i];
@@ -637,9 +612,6 @@
       }
       old.parentNode.replaceChild(s, old);
     }
-
-    document.write = origWrite;           // restore
-    document.writeln = origWrite;
   }
 
   // --- Load a content fragment and swap it in ---
@@ -647,9 +619,7 @@
     loaderStart();
 
     var done = function(html) {
-      var content = extractContent(html);
-
-      mainEl.innerHTML = content;
+      mainEl.innerHTML = html;
       runScripts(mainEl);
 
       if (pushState && displayUrl) {
