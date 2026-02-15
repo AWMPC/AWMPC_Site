@@ -45,24 +45,35 @@
       padding: 0 12px;
     }
 
-    /* --- Top banner --- */
+    /* --- Top banner (One UI focus block) --- */
     .site-banner {
       text-align: center;
-      padding: 8px 0;
+      padding: 12px 0;
       background-color: #BDA58B;
+      border-radius: 26px;
+      margin: 12px 0;
+      box-shadow:
+        0 1px 3px rgba(0,0,0,0.08),
+        0 4px 12px rgba(0,0,0,0.10);
+      overflow: hidden;
     }
     .site-banner img {
       max-width: 100%;
       height: auto;
     }
 
-    /* --- Info bar (service times) — topmost --- */
+    /* --- Info bar (service times) — One UI focus block --- */
     .site-info-bar {
       background: #CC0000;
       color: #fff;
       text-align: center;
-      padding: 8px 12px;
+      padding: 10px 16px;
       font-size: 14px;
+      border-radius: 26px;
+      margin: 12px 0;
+      box-shadow:
+        0 1px 3px rgba(0,0,0,0.08),
+        0 4px 12px rgba(0,0,0,0.10);
     }
 
     /* --- Main banner GIF (One UI card) --- */
@@ -242,8 +253,8 @@
 
     /* Latin cross icon */
     .fab-icon {
-      width: 22px;
-      height: 26px;
+      width: 26px;
+      height: 32px;
       position: relative;
       transition: transform 0.35s cubic-bezier(0.22, 0.61, 0.36, 1);
     }
@@ -255,11 +266,10 @@
       content: '';
       position: absolute;
       background: #CC0000;
-      border-radius: 2px;
     }
     /* Vertical bar — full height */
     .fab-icon::before {
-      width: 4.5px;
+      width: 5px;
       height: 100%;
       left: 50%;
       top: 0;
@@ -267,8 +277,8 @@
     }
     /* Horizontal bar — positioned slightly below upper third */
     .fab-icon::after {
-      width: 17px;
-      height: 4.5px;
+      width: 20px;
+      height: 5px;
       top: 36%;
       left: 50%;
       transform: translate(-50%, -50%);
