@@ -295,13 +295,6 @@
       color: #CC0000;
     }
 
-    /* Divider inside sheet */
-    .fab-menu-divider {
-      height: 1px;
-      background: #eee;
-      margin: 6px 20px;
-    }
-
     /* --- Responsive --- */
     @media (max-width: 768px) {
       .site-content {
@@ -451,9 +444,7 @@
   <a class="fab-menu-item" href="./testimony.html">Testimony <span class="fab-item-zh">見證</span></a>
   <a class="fab-menu-item" href="./request.html">Prayers <span class="fab-item-zh">代禱</span></a>
   <a class="fab-menu-item" href="./24hrhop.html">Church <span class="fab-item-zh">建堂</span></a>
-  <div class="fab-menu-divider"></div>
   <a class="fab-menu-item fab-highlight" href="./support.html">Donations <span class="fab-item-zh">支持</span></a>
-  <div class="fab-menu-divider"></div>
   <a class="fab-menu-item" href="./media.html">Media <span class="fab-item-zh">媒體</span></a>
   <a class="fab-menu-item" href="./letters.html">Letters <span class="fab-item-zh">信件</span></a>
   <a class="fab-menu-item" href="./canaan_record.html">Canaan <span class="fab-item-zh">历史</span></a>
