@@ -66,7 +66,10 @@
     .site-info-bar {
       background: #CC0000;
       color: #fff;
-      text-align: center;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 12px;
       padding: 10px 16px;
       font-size: 14px;
       border-radius: 26px;
@@ -74,6 +77,36 @@
       box-shadow:
         0 1px 3px rgba(0,0,0,0.08),
         0 4px 12px rgba(0,0,0,0.10);
+    }
+    .site-info-bar-text {
+      flex: 1;
+      text-align: center;
+      min-width: 0;
+    }
+    .site-info-bar-webex {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+      width: 36px;
+      height: 36px;
+      border-radius: 50%;
+      background: rgba(255, 255, 255, 0.15);
+      transition: background 0.15s;
+      -webkit-tap-highlight-color: transparent;
+    }
+    .site-info-bar-webex:hover {
+      background: rgba(255, 255, 255, 0.28);
+    }
+    .site-info-bar-webex:active {
+      background: rgba(255, 255, 255, 0.36);
+    }
+    .site-info-bar-webex img {
+      width: 20px;
+      height: 20px;
+      border-radius: 4px;
+      box-shadow: none;
+      margin: 0;
     }
 
     /* --- Main banner GIF (One UI card) --- */
@@ -366,12 +399,7 @@
     .fab-menu-item.fab-active .fab-item-zh {
       color: #CC0000;
     }
-    .fab-item-icon {
-      width: 20px;
-      height: 20px;
-      flex-shrink: 0;
-      border-radius: 4px;
-    }
+
 
     /* --- Responsive --- */
     @media (max-width: 768px) {
@@ -425,9 +453,7 @@
         font-size: 11px;
         padding-left: 4px;
       }
-      .fab-menu-webex {
-        grid-column: 1 / -1;
-      }
+
     }
   </style>
 </head>
@@ -438,7 +464,8 @@
 
   <!-- Service times — topmost -->
   <div class="site-info-bar">
-    全年無休 | 晨禱禮拜：6:30am - 8:00am | 晚禱禮拜：8:00pm - 9:00pm | 主日崇拜 周日：10:00am 開始
+    <span class="site-info-bar-text">全年無休 | 晨禱禮拜：6:30am - 8:00am | 晚禱禮拜：8:00pm - 9:00pm | 主日崇拜 周日：10:00am 開始</span>
+    <a class="site-info-bar-webex" href="https://allworldmissionprayercenterinc-321.my.webex.com/meet/awmpc" target="_blank" rel="noopener" aria-label="Join Webex"><img src="https://www.google.com/s2/favicons?domain=webex.com&sz=32" alt="Webex" /></a>
   </div>
 
   <!-- Top banner -->
@@ -531,7 +558,6 @@
 <div class="fab-scrim" id="fabScrim"></div>
 
 <nav class="fab-menu" id="fabMenu" aria-label="Quick navigation">
-  <a class="fab-menu-item fab-menu-webex" href="https://allworldmissionprayercenterinc-321.my.webex.com/meet/awmpc" target="_blank" rel="noopener"><img class="fab-item-icon" src="https://www.google.com/s2/favicons?domain=webex.com&sz=32" alt="" width="20" height="20" />Join Webex</a>
   <a class="fab-menu-item" href="./index.html">Homepage <span class="fab-item-zh">首頁</span></a>
   <a class="fab-menu-item" href="./mission.html">Mission <span class="fab-item-zh">使命</span></a>
   <a class="fab-menu-item" href="./sermons.html">Sermons <span class="fab-item-zh">講道</span></a>
