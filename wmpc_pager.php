@@ -56,40 +56,7 @@
       height: auto;
     }
 
-    /* --- Nav bar --- */
-    .site-nav {
-      background: #CC0000;
-      display: flex;
-      flex-wrap: wrap;
-      justify-content: center;
-      gap: 2px;
-      padding: 4px 0;
-    }
-    .site-nav a {
-      color: #fff;
-      text-decoration: none;
-      text-align: center;
-      padding: 6px 10px;
-      font-size: 14px;
-      line-height: 1.3;
-      border-radius: 3px;
-      transition: background 0.15s;
-    }
-    .site-nav a:hover { background: rgba(255,255,255,0.15); }
-    .site-nav a.highlight { color: #FFFF00; font-weight: bold; }
-
-    /* --- Main banner GIF --- */
-    .site-main-banner {
-      text-align: center;
-      overflow: hidden;
-    }
-    .site-main-banner img {
-      width: 100%;
-      height: auto;
-      display: block;
-    }
-
-    /* --- Info bar (service times) --- */
+    /* --- Info bar (service times) — topmost --- */
     .site-info-bar {
       background: #CC0000;
       color: #fff;
@@ -98,33 +65,42 @@
       font-size: 14px;
     }
 
-    /* --- Content area: sidebar + main --- */
-    .site-content {
-      display: flex;
-      gap: 16px;
-      padding: 16px 0;
-      align-items: flex-start;
+    /* --- Banner carousel (replaces sidebar + main banner) --- */
+    .banner-carousel {
+      position: relative;
+      width: 100%;
+      overflow: hidden;
+      background: #111;
     }
-
-    /* Sidebar */
-    .site-sidebar {
-      flex: 0 0 185px;
+    .banner-carousel-track {
       display: flex;
-      flex-direction: column;
-      gap: 12px;
+      transition: transform 0.6s ease-in-out;
+      will-change: transform;
     }
-    .site-sidebar a { display: block; }
-    .site-sidebar img {
+    .banner-carousel-slide {
+      min-width: 100%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .banner-carousel-slide a {
+      display: block;
+      width: 100%;
+    }
+    .banner-carousel-slide img {
       width: 100%;
       height: auto;
       display: block;
-      border: 0;
+    }
+
+    /* --- Content area (single column now) --- */
+    .site-content {
+      padding: 16px 0;
     }
 
     /* Main content column */
     .site-main {
-      flex: 1;
-      min-width: 0;       /* allow flex child to shrink below content size */
+      min-width: 0;
       overflow-wrap: break-word;
       word-wrap: break-word;
     }
@@ -313,27 +289,15 @@
     .fab-menu-item.fab-highlight .fab-item-zh {
       color: #CC0000;
     }
+    .fab-item-icon {
+      width: 20px;
+      height: 20px;
+      flex-shrink: 0;
+      border-radius: 4px;
+    }
 
     /* --- Responsive --- */
     @media (max-width: 768px) {
-      .site-content {
-        flex-direction: column;
-      }
-      .site-sidebar {
-        flex: none;
-        width: 100%;
-        flex-direction: row;
-        flex-wrap: wrap;
-        justify-content: center;
-        gap: 8px;
-      }
-      .site-sidebar a {
-        width: 100px;
-      }
-      .site-nav a {
-        font-size: 12px;
-        padding: 5px 6px;
-      }
       .site-info-bar { font-size: 12px; word-break: keep-all; }
       table { table-layout: auto; }
       td, th { width: auto !important; }
@@ -350,49 +314,30 @@
 
 <div class="site-wrap">
 
+  <!-- Service times — topmost -->
+  <div class="site-info-bar">
+    全年無休 | 晨禱禮拜：6:30am - 8:00am | 晚禱禮拜：8:00pm - 9:00pm | 主日崇拜 周日：10:00am 開始
+  </div>
+
   <!-- Top banner -->
   <div class="site-banner">
     <img src="./resources/images/wmpc_topbanner_transparent.png" alt="All World Mission Prayer Center" />
   </div>
 
-  <!-- Navigation -->
-  <nav class="site-nav">
-    <a href="./index.html">首頁<br>Homepage</a>
-    <a href="./mission.html">使命<br>Mission</a>
-    <a href="./sermons.html">講道<br>Sermons</a>
-    <a href="./testimony.html">見證<br>Testimony</a>
-    <a href="./request.html">代禱<br>Prayers</a>
-    <a href="./24hrhop.html">建堂<br>Church</a>
-    <a class="highlight" href="./support.html">支持<br>Donations</a>
-    <a href="./media.html">媒體<br>Media</a>
-    <a href="./letters.html">信件<br>Letters</a>
-    <a href="./canaan_record.html">历史<br>Canaan</a>
-    <a href="./hymns.html">讚美詩<br>Hymns</a>
-  </nav>
-
-  <!-- Main banner image -->
-  <div class="site-main-banner">
-    <img src="./webData/components/wmpc_mainbanner2.gif" alt="AWMPC Church Banner" />
+  <!-- Banner carousel (main banner + former sidebar images) -->
+  <div class="banner-carousel" id="bannerCarousel">
+    <div class="banner-carousel-track" id="bannerTrack">
+      <div class="banner-carousel-slide"><img src="./webData/components/wmpc_mainbanner2.gif" alt="AWMPC Church Banner" /></div>
+      <div class="banner-carousel-slide"><a href="./24hrhop.html"><img src="./resources/images/building_front_compressed_09_05_2020_mini.jpg" alt="Church Building" /></a></div>
+      <div class="banner-carousel-slide"><a href="./prayer.html"><img src="./webData/components/adwindow_prayermeeting.jpg" alt="Prayer Meeting" /></a></div>
+      <div class="banner-carousel-slide"><a href="./sermons.html"><img src="./webData/components/adwindow_dailysermon.jpg" alt="Daily Sermon" /></a></div>
+      <div class="banner-carousel-slide"><a href="./request.html"><img src="./webData/components/adwindow_prayerrequest.jpg" alt="Prayer Request" /></a></div>
+      <div class="banner-carousel-slide"><a href="./mission.html"><img src="./resources/images/sidebar_mission.jpg" alt="Mission" /></a></div>
+    </div>
   </div>
 
-  <!-- Service times -->
-  <div class="site-info-bar">
-    全年無休 | 晨禱禮拜：6:30am - 8:00am | 晚禱禮拜：8:00pm - 9:00pm | 主日崇拜 周日：10:00am 開始
-  </div>
-
-  <!-- Sidebar + Page content -->
+  <!-- Page content -->
   <div class="site-content">
-
-    <aside class="site-sidebar">
-      <a href="https://allworldmissionprayercenterinc-321.my.webex.com/meet/awmpc"><img src="./resources/images/awmpc_webex_join_banner.png" alt="AWMPC Webex Join Banner" /></a>
-      <a href="https://info.flagcounter.com/u2K3"><img src="https://s11.flagcounter.com/count2/u2K3/bg_FFFFFF/txt_000000/border_CCCCCC/columns_2/maxflags_10/viewers_0/labels_0/pageviews_0/flags_0/percent_0/" alt="Flag Counter" loading="lazy" /></a>
-      <div><script type="text/javascript" src="https://rf.revolvermaps.com/0/0/2.js?i=536ikush1dr&amp;m=7&amp;s=178&amp;c=ff0000&amp;t=1" async="async"></script></div>
-      <a href="./24hrhop.html"><img src="./resources/images/building_front_compressed_09_05_2020_mini.jpg" alt="Church Building" /></a>
-      <a href="./prayer.html"><img src="./webData/components/adwindow_prayermeeting.jpg" alt="Prayer Meeting" /></a>
-      <a href="./sermons.html"><img src="./webData/components/adwindow_dailysermon.jpg" alt="Daily Sermon" /></a>
-      <a href="./request.html"><img src="./webData/components/adwindow_prayerrequest.jpg" alt="Prayer Request" /></a>
-      <a href="./mission.html"><img src="./resources/images/sidebar_mission.jpg" alt="Mission" /></a>
-    </aside>
 
     <main class="site-main">
 
@@ -470,6 +415,7 @@
   <a class="fab-menu-item" href="./letters.html">Letters <span class="fab-item-zh">信件</span></a>
   <a class="fab-menu-item" href="./canaan_record.html">Canaan <span class="fab-item-zh">历史</span></a>
   <a class="fab-menu-item" href="./hymns.html">Hymns <span class="fab-item-zh">讚美詩</span></a>
+  <a class="fab-menu-item fab-menu-webex" href="https://allworldmissionprayercenterinc-321.my.webex.com/meet/awmpc" target="_blank" rel="noopener"><img class="fab-item-icon" src="https://www.google.com/s2/favicons?domain=webex.com&sz=32" alt="" width="20" height="20" />Join Webex</a>
 </nav>
 
 <button class="fab-btn" id="fabBtn" aria-label="Open navigation menu" aria-expanded="false">
@@ -534,6 +480,23 @@
   document.addEventListener('keydown', function(e) {
     if (e.key === 'Escape') close();
   });
+})();
+</script>
+
+<script>
+(function() {
+  var track = document.getElementById('bannerTrack');
+  var slides = track.querySelectorAll('.banner-carousel-slide');
+  var total = slides.length;
+  var idx = 0;
+  var INTERVAL = 5000;
+
+  function advance() {
+    idx = (idx + 1) % total;
+    track.style.transform = 'translateX(-' + (idx * 100) + '%)';
+  }
+
+  setInterval(advance, INTERVAL);
 })();
 </script>
 
