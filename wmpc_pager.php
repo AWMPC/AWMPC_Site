@@ -207,68 +207,71 @@
       z-index: 10000;
       width: 56px;
       height: 56px;
-      border-radius: 16px;
+      border-radius: 50%;
       border: none;
-      background: #CC0000;
-      color: #fff;
+      background: #fff;
       cursor: pointer;
       display: flex;
       align-items: center;
       justify-content: center;
       box-shadow:
-        0 1px 3px rgba(0,0,0,0.12),
-        0 6px 16px rgba(0,0,0,0.16);
+        0 1px 3px rgba(0,0,0,0.10),
+        0 6px 20px rgba(0,0,0,0.14);
       transition:
-        background 0.2s,
-        box-shadow 0.2s,
-        border-radius 0.3s cubic-bezier(0.22, 0.61, 0.36, 1);
+        box-shadow 0.35s cubic-bezier(0.22, 0.61, 0.36, 1);
       -webkit-tap-highlight-color: transparent;
       outline: none;
     }
     .fab-btn:hover {
       box-shadow:
-        0 2px 6px rgba(0,0,0,0.16),
-        0 10px 24px rgba(0,0,0,0.20);
+        0 2px 6px rgba(0,0,0,0.14),
+        0 10px 28px rgba(0,0,0,0.18);
     }
     .fab-btn:active {
-      background: #A80000;
+      background: #f5f5f5;
     }
     .fab-btn.open {
-      border-radius: 50%;
-      background: #333;
+      box-shadow:
+        0 1px 3px rgba(0,0,0,0.10),
+        0 6px 20px rgba(0,0,0,0.14),
+        0 0 0 2.5px rgba(204, 0, 0, 0.3);
     }
     .fab-btn.open:active {
-      background: #555;
+      background: #f5f5f5;
     }
 
-    /* Hamburger → X icon morph */
+    /* Latin cross icon */
     .fab-icon {
       width: 22px;
-      height: 18px;
+      height: 28px;
       position: relative;
-      display: flex;
-      flex-direction: column;
-      justify-content: space-between;
+      transition: transform 0.5s cubic-bezier(0.22, 0.61, 0.36, 1);
     }
-    .fab-icon span {
-      display: block;
-      height: 2px;
-      width: 100%;
-      background: #fff;
-      border-radius: 2px;
-      transition:
-        transform 0.3s cubic-bezier(0.22, 0.61, 0.36, 1),
-        opacity 0.2s;
-      transform-origin: center;
+    .fab-btn.open .fab-icon {
+      transform: rotate(360deg);
     }
-    .fab-btn.open .fab-icon span:nth-child(1) {
-      transform: translateY(8px) rotate(45deg);
+    .fab-icon::before,
+    .fab-icon::after {
+      content: '';
+      position: absolute;
+      background: #CC0000;
+      border-radius: 1.5px;
     }
-    .fab-btn.open .fab-icon span:nth-child(2) {
-      opacity: 0;
+    /* Vertical bar — full height */
+    .fab-icon::before {
+      width: 3.5px;
+      height: 100%;
+      left: 50%;
+      top: 0;
+      transform: translateX(-50%);
     }
-    .fab-btn.open .fab-icon span:nth-child(3) {
-      transform: translateY(-8px) rotate(-45deg);
+    /* Horizontal bar — shorter, positioned at upper third */
+    .fab-icon::after {
+      width: 16px;
+      height: 3.5px;
+      top: 28%;
+      left: 50%;
+      transform: translate(-50%, -50%);
     }
 
     /* Expanded menu sheet */
@@ -533,11 +536,7 @@
 </nav>
 
 <button class="fab-btn" id="fabBtn" aria-label="Open navigation menu" aria-expanded="false">
-  <div class="fab-icon">
-    <span></span>
-    <span></span>
-    <span></span>
-  </div>
+  <div class="fab-icon"></div>
 </button>
 
 <script>
