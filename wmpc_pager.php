@@ -618,12 +618,17 @@
   }
 
   // --- Execute scripts inside injected HTML ---
+  // Neutralises document.write (which would wipe the entire page
+  // if called after initial parse, as is always the case in SPA).
   function runScripts(container) {
+    var origWrite = document.write;
+    document.write = function() {};       // no-op while scripts run
+    document.writeln = function() {};
+
     var scripts = container.querySelectorAll('script');
     for (var i = 0; i < scripts.length; i++) {
       var old = scripts[i];
       var s = document.createElement('script');
-      // Copy all attributes (src, async, type, etc.)
       for (var j = 0; j < old.attributes.length; j++) {
         s.setAttribute(old.attributes[j].name, old.attributes[j].value);
       }
@@ -632,6 +637,9 @@
       }
       old.parentNode.replaceChild(s, old);
     }
+
+    document.write = origWrite;           // restore
+    document.writeln = origWrite;
   }
 
   // --- Load a content fragment and swap it in ---
