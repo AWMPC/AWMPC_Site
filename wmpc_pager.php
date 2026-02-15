@@ -30,6 +30,7 @@
     .site-banner {
       text-align: center;
       padding: 8px 0;
+      background-color: #CC0000;
     }
     .site-banner img {
       max-width: 100%;
