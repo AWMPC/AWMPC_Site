@@ -649,8 +649,10 @@
     dragging = false;
     var dy = e.changedTouches[0].clientY - dragStartY;
 
-    // Dismiss if dragged past threshold OR flicked downward fast
-    if (dy > 80 || velocityY > 0.4) {
+    // Flick direction takes priority: upward swipe always snaps back
+    var flickingUp = velocityY < -0.3;
+    var shouldDismiss = !flickingUp && (dy > 80 || velocityY > 0.4);
+    if (shouldDismiss) {
       // Animate sheet off-screen from current position
       menu.style.transition = 'transform 0.25s cubic-bezier(0.22, 0.61, 0.36, 1)';
       menu.style.transform = 'translateY(100%)';
