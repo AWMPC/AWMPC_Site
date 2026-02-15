@@ -72,13 +72,10 @@
       margin: 12px 0;
     }
 
-    /* --- Info bar (service times) — One UI focus block --- */
+    /* --- Info bar (service times) — One UI split pill --- */
     .site-info-bar {
-      background: #CC0000;
-      color: #fff;
-      text-align: center;
-      padding: 10px 16px;
-      font-size: 14px;
+      display: flex;
+      align-items: stretch;
       border-radius: 26px;
       flex: 1;
       min-width: 0;
@@ -86,11 +83,45 @@
       box-shadow:
         0 1px 3px rgba(0,0,0,0.08),
         0 4px 12px rgba(0,0,0,0.10);
-      transition: background-color 0.5s ease, box-shadow 0.5s ease;
+      transition: box-shadow 0.5s ease;
+    }
+    .info-bar-text {
+      flex: 1;
+      min-width: 0;
+      overflow: hidden;
+      background: #CC0000;
+      color: #fff;
+      text-align: center;
+      padding: 10px 16px;
+      font-size: 14px;
+      transition: background-color 0.5s ease;
     }
     .info-bar-scroll {
       display: inline-block;
       white-space: nowrap;
+    }
+    .info-bar-webex {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+      width: 48px;
+      background: #A80000;
+      border-left: 1px solid rgba(255, 255, 255, 0.25);
+      color: #fff;
+      text-decoration: none;
+      cursor: pointer;
+      transition: background-color 0.15s;
+      -webkit-tap-highlight-color: transparent;
+    }
+    .info-bar-webex:hover { background: #960000; }
+    .info-bar-webex:active { background: #850000; }
+    .info-bar-webex img {
+      width: 20px;
+      height: 20px;
+      border-radius: 4px;
+      box-shadow: none;
+      margin: 0;
     }
 
     /* --- Top row icon buttons (One UI contained, circular) --- */
@@ -504,9 +535,17 @@
       color: #FFD54F;
     }
     body.dark-mode .site-info-bar {
-      background: #9B0000;
       box-shadow: 0 1px 3px rgba(0,0,0,0.25), 0 4px 12px rgba(0,0,0,0.30);
     }
+    body.dark-mode .info-bar-text {
+      background: #9B0000;
+    }
+    body.dark-mode .info-bar-webex {
+      background: #850000;
+      border-left-color: rgba(255, 255, 255, 0.18);
+    }
+    body.dark-mode .info-bar-webex:hover { background: #750000; }
+    body.dark-mode .info-bar-webex:active { background: #650000; }
     body.dark-mode .site-top-btn {
       background: #1E3450;
     }
@@ -568,11 +607,13 @@
   <!-- Service times + action buttons — topmost row -->
   <div class="site-top-row">
     <div class="site-info-bar">
-      <span class="info-bar-scroll">全年無休 | 晨禱禮拜：6:30am - 8:00am | 晚禱禮拜：8:00pm - 9:00pm | 主日崇拜 周日：10:00am 開始</span>
+      <div class="info-bar-text">
+        <span class="info-bar-scroll">全年無休 | 晨禱禮拜：6:30am - 8:00am | 晚禱禮拜：8:00pm - 9:00pm | 主日崇拜 周日：10:00am 開始</span>
+      </div>
+      <a class="info-bar-webex" href="https://allworldmissionprayercenterinc-321.my.webex.com/meet/awmpc" target="_blank" rel="noopener" aria-label="Join Webex">
+        <img src="https://www.google.com/s2/favicons?domain=webex.com&sz=32" alt="Webex" />
+      </a>
     </div>
-    <a class="site-top-btn" href="https://allworldmissionprayercenterinc-321.my.webex.com/meet/awmpc" target="_blank" rel="noopener" aria-label="Join Webex">
-      <img src="https://www.google.com/s2/favicons?domain=webex.com&sz=32" alt="Webex" />
-    </a>
     <button class="site-top-btn" id="themeToggle" type="button" aria-label="Toggle dark mode">
       <div class="theme-icon-flip">
         <svg class="icon-sun" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="5"/><path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/></svg>
@@ -699,7 +740,7 @@
 <!-- Info bar marquee for mobile -->
 <script>
 (function() {
-  var bar = document.querySelector('.site-info-bar');
+  var bar = document.querySelector('.info-bar-text');
   var text = bar && bar.querySelector('.info-bar-scroll');
   if (!bar || !text) return;
 
