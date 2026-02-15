@@ -573,15 +573,8 @@
       }
     }
 
-    // Prevent background scroll — compensate scrollbar width to avoid layout shift
-    if (isOpen) {
-      var sbw = window.innerWidth - document.documentElement.clientWidth;
-      document.body.style.overflow = 'hidden';
-      document.body.style.paddingRight = sbw + 'px';
-    } else {
-      document.body.style.overflow = '';
-      document.body.style.paddingRight = '';
-    }
+    // Note: no body overflow lock — the scrim blocks interaction and
+    // hiding the scrollbar causes a jarring layout shift.
   }
 
   function close() {
