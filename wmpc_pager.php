@@ -84,8 +84,8 @@
       flex: 1;
       min-width: 0;
       overflow: hidden;
-      background: #EF9A9A;
-      color: #212121;
+      background: #CC0000;
+      color: #fff;
       text-align: center;
       padding: 10px 16px;
       font-size: 14px;
@@ -105,10 +105,10 @@
       justify-content: center;
       flex-shrink: 0;
       width: 48px;
-      background: #EF9A9A;
+      background: #CC0000;
       border: none;
       border-radius: 6px 26px 26px 6px;
-      color: #212121;
+      color: #fff;
       text-decoration: none;
       cursor: pointer;
       box-shadow:
@@ -117,8 +117,8 @@
       transition: background-color 0.15s, box-shadow 0.5s ease;
       -webkit-tap-highlight-color: transparent;
     }
-    .info-bar-webex:hover { background: #E58A8A; }
-    .info-bar-webex:active { background: #D97A7A; }
+    .info-bar-webex:hover { background: #A80000; }
+    .info-bar-webex:active { background: #900000; }
     .info-bar-webex img {
       width: 20px;
       height: 20px;
