@@ -126,6 +126,182 @@
     .footer-right  { flex: 1; min-width: 200px; text-align: right; }
     .footer-right a { display: block; margin-bottom: 2px; }
 
+    /* --- One UI FAB (Floating Action Button) --- */
+    .fab-scrim {
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.42);
+      z-index: 9998;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.25s cubic-bezier(0.33, 0, 0.67, 1);
+      -webkit-tap-highlight-color: transparent;
+    }
+    .fab-scrim.open {
+      opacity: 1;
+      pointer-events: auto;
+    }
+
+    .fab-btn {
+      position: fixed;
+      bottom: 24px;
+      right: 24px;
+      z-index: 10000;
+      width: 56px;
+      height: 56px;
+      border-radius: 16px;
+      border: none;
+      background: #CC0000;
+      color: #fff;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow:
+        0 1px 3px rgba(0,0,0,0.12),
+        0 6px 16px rgba(0,0,0,0.16);
+      transition:
+        background 0.2s,
+        box-shadow 0.2s,
+        border-radius 0.3s cubic-bezier(0.22, 0.61, 0.36, 1);
+      -webkit-tap-highlight-color: transparent;
+      outline: none;
+    }
+    .fab-btn:hover {
+      box-shadow:
+        0 2px 6px rgba(0,0,0,0.16),
+        0 10px 24px rgba(0,0,0,0.20);
+    }
+    .fab-btn:active {
+      background: #A80000;
+    }
+    .fab-btn.open {
+      border-radius: 50%;
+      background: #333;
+    }
+    .fab-btn.open:active {
+      background: #555;
+    }
+
+    /* Hamburger → X icon morph */
+    .fab-icon {
+      width: 22px;
+      height: 18px;
+      position: relative;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+    }
+    .fab-icon span {
+      display: block;
+      height: 2px;
+      width: 100%;
+      background: #fff;
+      border-radius: 2px;
+      transition:
+        transform 0.3s cubic-bezier(0.22, 0.61, 0.36, 1),
+        opacity 0.2s;
+      transform-origin: center;
+    }
+    .fab-btn.open .fab-icon span:nth-child(1) {
+      transform: translateY(8px) rotate(45deg);
+    }
+    .fab-btn.open .fab-icon span:nth-child(2) {
+      opacity: 0;
+    }
+    .fab-btn.open .fab-icon span:nth-child(3) {
+      transform: translateY(-8px) rotate(-45deg);
+    }
+
+    /* Expanded menu sheet */
+    .fab-menu {
+      position: fixed;
+      bottom: 92px;
+      right: 24px;
+      z-index: 9999;
+      background: #fff;
+      border-radius: 26px;
+      box-shadow:
+        0 2px 8px rgba(0,0,0,0.08),
+        0 12px 40px rgba(0,0,0,0.18);
+      padding: 8px 0;
+      min-width: 220px;
+      max-height: calc(100dvh - 140px);
+      overflow-y: auto;
+      overscroll-behavior: contain;
+      transform: translateY(16px) scale(0.92);
+      opacity: 0;
+      pointer-events: none;
+      transform-origin: bottom right;
+      transition:
+        transform 0.3s cubic-bezier(0.22, 0.61, 0.36, 1),
+        opacity 0.25s cubic-bezier(0.33, 0, 0.67, 1);
+    }
+    .fab-menu.open {
+      transform: translateY(0) scale(1);
+      opacity: 1;
+      pointer-events: auto;
+    }
+
+    /* Scrollbar styling inside sheet */
+    .fab-menu::-webkit-scrollbar { width: 4px; }
+    .fab-menu::-webkit-scrollbar-track { background: transparent; }
+    .fab-menu::-webkit-scrollbar-thumb { background: #ccc; border-radius: 4px; }
+
+    /* Menu items */
+    .fab-menu-item {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      padding: 12px 24px;
+      text-decoration: none;
+      color: #1a1a1a;
+      font-size: 15px;
+      font-weight: 500;
+      line-height: 1.35;
+      transition: background 0.15s;
+      -webkit-tap-highlight-color: transparent;
+      /* Staggered entry */
+      opacity: 0;
+      transform: translateY(8px);
+    }
+    .fab-menu-item:hover {
+      background: #f2f2f2;
+    }
+    .fab-menu-item:active {
+      background: #e5e5e5;
+    }
+    .fab-menu.open .fab-menu-item {
+      opacity: 1;
+      transform: translateY(0);
+      transition:
+        background 0.15s,
+        opacity 0.25s cubic-bezier(0.22, 0.61, 0.36, 1),
+        transform 0.3s cubic-bezier(0.22, 0.61, 0.36, 1);
+    }
+    .fab-menu-item .fab-item-zh {
+      font-size: 13px;
+      color: #666;
+      font-weight: 400;
+      margin-left: auto;
+      padding-left: 12px;
+      white-space: nowrap;
+    }
+    .fab-menu-item.fab-highlight {
+      color: #CC0000;
+      font-weight: 700;
+    }
+    .fab-menu-item.fab-highlight .fab-item-zh {
+      color: #CC0000;
+    }
+
+    /* Divider inside sheet */
+    .fab-menu-divider {
+      height: 1px;
+      background: #eee;
+      margin: 6px 20px;
+    }
+
     /* --- Responsive --- */
     @media (max-width: 768px) {
       .site-content {
@@ -264,6 +440,78 @@
   </footer>
 
 </div>
+
+<!-- One UI FAB Navigation -->
+<div class="fab-scrim" id="fabScrim"></div>
+
+<nav class="fab-menu" id="fabMenu" aria-label="Quick navigation">
+  <a class="fab-menu-item" href="./index.html">Homepage <span class="fab-item-zh">首頁</span></a>
+  <a class="fab-menu-item" href="./mission.html">Mission <span class="fab-item-zh">使命</span></a>
+  <a class="fab-menu-item" href="./sermons.html">Sermons <span class="fab-item-zh">講道</span></a>
+  <a class="fab-menu-item" href="./testimony.html">Testimony <span class="fab-item-zh">見證</span></a>
+  <a class="fab-menu-item" href="./request.html">Prayers <span class="fab-item-zh">代禱</span></a>
+  <a class="fab-menu-item" href="./24hrhop.html">Church <span class="fab-item-zh">建堂</span></a>
+  <div class="fab-menu-divider"></div>
+  <a class="fab-menu-item fab-highlight" href="./support.html">Donations <span class="fab-item-zh">支持</span></a>
+  <div class="fab-menu-divider"></div>
+  <a class="fab-menu-item" href="./media.html">Media <span class="fab-item-zh">媒體</span></a>
+  <a class="fab-menu-item" href="./letters.html">Letters <span class="fab-item-zh">信件</span></a>
+  <a class="fab-menu-item" href="./canaan_record.html">Canaan <span class="fab-item-zh">历史</span></a>
+  <a class="fab-menu-item" href="./hymns.html">Hymns <span class="fab-item-zh">讚美詩</span></a>
+</nav>
+
+<button class="fab-btn" id="fabBtn" aria-label="Open navigation menu" aria-expanded="false">
+  <div class="fab-icon">
+    <span></span>
+    <span></span>
+    <span></span>
+  </div>
+</button>
+
+<script>
+(function() {
+  var btn   = document.getElementById('fabBtn');
+  var menu  = document.getElementById('fabMenu');
+  var scrim = document.getElementById('fabScrim');
+  var items = menu.querySelectorAll('.fab-menu-item');
+  var isOpen = false;
+
+  function toggle() {
+    isOpen = !isOpen;
+    btn.classList.toggle('open', isOpen);
+    menu.classList.toggle('open', isOpen);
+    scrim.classList.toggle('open', isOpen);
+    btn.setAttribute('aria-expanded', isOpen ? 'true' : 'false');
+
+    // Stagger item entrance — One UI cascading deceleration
+    for (var i = 0; i < items.length; i++) {
+      if (isOpen) {
+        items[i].style.transitionDelay = (i * 30) + 'ms';
+      } else {
+        items[i].style.transitionDelay = '0ms';
+      }
+    }
+
+    // Prevent background scroll when open
+    document.body.style.overflow = isOpen ? 'hidden' : '';
+  }
+
+  function close() {
+    if (isOpen) toggle();
+  }
+
+  btn.addEventListener('click', function(e) {
+    e.stopPropagation();
+    toggle();
+  });
+
+  scrim.addEventListener('click', close);
+
+  document.addEventListener('keydown', function(e) {
+    if (e.key === 'Escape') close();
+  });
+})();
+</script>
 
 </body>
 </html>
