@@ -142,6 +142,32 @@
       word-wrap: break-word;
     }
 
+    /* --- SPA loading bar (One UI style) --- */
+    .spa-loader {
+      position: fixed;
+      top: 0;
+      left: 0;
+      height: 3px;
+      background: #CC0000;
+      z-index: 99999;
+      width: 0%;
+      opacity: 0;
+      transition: none;
+    }
+    .spa-loader.loading {
+      opacity: 1;
+      width: 70%;
+      transition: width 1.2s cubic-bezier(0.22, 0.61, 0.36, 1);
+    }
+    .spa-loader.done {
+      width: 100%;
+      transition: width 0.15s ease-out;
+    }
+    .spa-loader.hide {
+      opacity: 0;
+      transition: opacity 0.3s ease-out;
+    }
+
     /* --- Footer --- */
     .site-footer-divider { border: 0; border-top: 1px solid #999; margin: 16px 0; }
     .site-footer {
@@ -439,6 +465,9 @@
 
 </div>
 
+<!-- SPA loading bar -->
+<div class="spa-loader" id="spaLoader"></div>
+
 <!-- One UI FAB Navigation -->
 <div class="fab-scrim" id="fabScrim"></div>
 
@@ -509,6 +538,9 @@
     if (isOpen) toggle();
   }
 
+  // Expose close so SPA router can call it
+  window._fabClose = close;
+
   btn.addEventListener('click', function(e) {
     e.stopPropagation();
     toggle();
@@ -519,6 +551,153 @@
   document.addEventListener('keydown', function(e) {
     if (e.key === 'Escape') close();
   });
+})();
+</script>
+
+<!-- SPA Client-Side Router -->
+<script>
+(function() {
+  // Route map: URL filename → content fragment file
+  var routes = {
+    'index.html':         'wmpc_s_home.html',
+    'mission.html':       'wmpc_s_mission_cn.html',
+    'sermons.html':       'wmpc_s_sermons.html',
+    'testimony.html':     'wmpc_s_testimonies.html',
+    'request.html':       'wmpc_s_prayerrequest.html',
+    '24hrhop.html':       'wmpc_s_24hrhop.html',
+    'support.html':       'wmpc_s_ministrysupport.html',
+    'media.html':         'wmpc_s_media.html',
+    'letters.html':       'wmpc_s_letters.html',
+    'canaan_record.html': 'canaan_chapel_record.html',
+    'hymns.html':         'hymns.html',
+    'prayer.html':        'wmpc_s_focus_prayer_week_04_09v2.html'
+  };
+
+  var mainEl = document.querySelector('.site-main');
+  var loader = document.getElementById('spaLoader');
+  var cache  = {};  // fragment cache: avoid refetching same page
+
+  // Extract filename from any href
+  function routeKey(href) {
+    try {
+      var url = new URL(href, window.location.origin);
+      var parts = url.pathname.split('/');
+      return parts[parts.length - 1] || '';
+    } catch(e) { return ''; }
+  }
+
+  // --- Loading bar ---
+  function loaderStart() {
+    loader.className = 'spa-loader';
+    void loader.offsetWidth;           // force reflow
+    loader.classList.add('loading');
+  }
+  function loaderDone() {
+    loader.classList.remove('loading');
+    loader.classList.add('done');
+    setTimeout(function() {
+      loader.classList.add('hide');
+    }, 200);
+    setTimeout(function() {
+      loader.className = 'spa-loader';
+    }, 600);
+  }
+
+  // --- Execute scripts inside injected HTML ---
+  function runScripts(container) {
+    var scripts = container.querySelectorAll('script');
+    for (var i = 0; i < scripts.length; i++) {
+      var old = scripts[i];
+      var s = document.createElement('script');
+      // Copy all attributes (src, async, type, etc.)
+      for (var j = 0; j < old.attributes.length; j++) {
+        s.setAttribute(old.attributes[j].name, old.attributes[j].value);
+      }
+      if (!old.src) {
+        s.textContent = old.textContent;
+      }
+      old.parentNode.replaceChild(s, old);
+    }
+  }
+
+  // --- Load a content fragment and swap it in ---
+  function navigate(fragmentFile, displayUrl, pushState) {
+    loaderStart();
+
+    // Use cache if available
+    var done = function(html) {
+      // Signal old content to clean up (timers etc.)
+      mainEl.dispatchEvent(new Event('spa:unload'));
+
+      mainEl.innerHTML = html;
+      runScripts(mainEl);
+
+      if (pushState && displayUrl) {
+        history.pushState({ fragment: fragmentFile }, '', displayUrl);
+      }
+
+      // Smooth scroll to top of content area
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+
+      loaderDone();
+    };
+
+    if (cache[fragmentFile]) {
+      done(cache[fragmentFile]);
+      return;
+    }
+
+    fetch(fragmentFile)
+      .then(function(res) {
+        if (!res.ok) throw new Error(res.status);
+        return res.text();
+      })
+      .then(function(html) {
+        cache[fragmentFile] = html;
+        done(html);
+      })
+      .catch(function() {
+        // Fallback: full page navigation
+        loaderDone();
+        if (displayUrl) window.location.href = displayUrl;
+      });
+  }
+
+  // --- Intercept clicks on any internal link ---
+  document.addEventListener('click', function(e) {
+    var link = e.target.closest('a');
+    if (!link) return;
+
+    // Skip external, new-tab, download, hash-only links
+    if (link.target === '_blank' || link.target === '_new') return;
+    if (link.hasAttribute('download')) return;
+    if (link.hostname && link.hostname !== window.location.hostname) return;
+
+    var key = routeKey(link.href);
+    var fragment = routes[key];
+    if (!fragment) return;
+
+    e.preventDefault();
+
+    // Close FAB if open
+    if (window._fabClose) window._fabClose();
+
+    navigate(fragment, link.href, true);
+  });
+
+  // --- Handle browser back / forward ---
+  window.addEventListener('popstate', function(e) {
+    if (e.state && e.state.fragment) {
+      navigate(e.state.fragment, null, false);
+    }
+  });
+
+  // --- Seed initial history entry so back works ---
+  var initKey = routeKey(window.location.href);
+  var initFragment = routes[initKey];
+  if (initFragment) {
+    history.replaceState({ fragment: initFragment }, '', window.location.href);
+  }
 })();
 </script>
 
