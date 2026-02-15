@@ -573,8 +573,17 @@
       }
     }
 
-    // Note: no body overflow lock — the scrim blocks interaction and
-    // hiding the scrollbar causes a jarring layout shift.
+    // Block background touch-scrolling on mobile while sheet is open
+    if (isOpen) {
+      document.addEventListener('touchmove', preventBgScroll, { passive: false });
+    } else {
+      document.removeEventListener('touchmove', preventBgScroll);
+    }
+  }
+
+  // Allow touch-scroll only inside the menu; block everywhere else
+  function preventBgScroll(e) {
+    if (!menu.contains(e.target)) e.preventDefault();
   }
 
   function close() {
@@ -632,7 +641,7 @@
     var progress = Math.min(dy / (menu.offsetHeight * 0.5), 1);
     scrim.style.opacity = 1 - progress;
 
-    if (dy > 0) e.preventDefault(); // prevent page scroll while dragging
+    e.preventDefault(); // prevent page scroll in all directions during drag
   }, { passive: false });
 
   menu.addEventListener('touchend', function(e) {
