@@ -413,7 +413,7 @@
       $files['mi_taiwan']        = "wmpc_s_taiwan040809.html";
       $files['mi_letters']       = "wmpc_s_letters.html";
       $files['mi_canaan_record'] = "canaan_chapel_record.html";
-      $files['hymns']            = "hymns.html";
+      $files['hymns']            = "wmpc_s_hymns.html";
 
       $menuItem = $_GET["page"];
       $fname = $files[$menuItem];
@@ -518,19 +518,14 @@
       }
     }
 
-    // Prevent background scroll while keeping scrollbar visible (no layout shift)
+    // Prevent background scroll — compensate scrollbar width to avoid layout shift
     if (isOpen) {
-      document.body.style.overflowY = 'scroll';
-      document.body.style.position = 'fixed';
-      document.body.style.width = '100%';
-      document.body.style.top = '-' + window.scrollY + 'px';
+      var sbw = window.innerWidth - document.documentElement.clientWidth;
+      document.body.style.overflow = 'hidden';
+      document.body.style.paddingRight = sbw + 'px';
     } else {
-      var scrollY = Math.abs(parseInt(document.body.style.top || '0'));
-      document.body.style.position = '';
-      document.body.style.width = '';
-      document.body.style.top = '';
-      document.body.style.overflowY = '';
-      window.scrollTo(0, scrollY);
+      document.body.style.overflow = '';
+      document.body.style.paddingRight = '';
     }
   }
 
@@ -569,7 +564,7 @@
     'media.html':         'wmpc_s_media.html',
     'letters.html':       'wmpc_s_letters.html',
     'canaan_record.html': 'canaan_chapel_record.html',
-    'hymns.html':         'hymns.html',
+    'hymns.html':         'wmpc_s_hymns.html',
     'prayer.html':        'wmpc_s_focus_prayer_week_04_09v2.html'
   };
 
@@ -584,6 +579,25 @@
       var parts = url.pathname.split('/');
       return parts[parts.length - 1] || '';
     } catch(e) { return ''; }
+  }
+
+  // Strip full-document wrappers (<!DOCTYPE>, <html>, <head>, <body>)
+  // so fragment files with full HTML structure inject cleanly.
+  function extractContent(html) {
+    // If there's a <body>, extract just its inner content
+    var m = html.match(/<body[^>]*>([\s\S]*?)<\/body>/i);
+    var content = m ? m[1] : html;
+    // Preserve <style> and <link> from <head> — move them into the content
+    var head = html.match(/<head[^>]*>([\s\S]*?)<\/head>/i);
+    if (head) {
+      var styles = [];
+      // Grab <style> blocks
+      head[1].replace(/<style[\s\S]*?<\/style>/gi, function(s) { styles.push(s); return ''; });
+      // Grab <link rel="stylesheet"> tags
+      head[1].replace(/<link[^>]*rel=["']stylesheet["'][^>]*>/gi, function(s) { styles.push(s); return ''; });
+      if (styles.length) content = styles.join('\n') + '\n' + content;
+    }
+    return content;
   }
 
   // --- Loading bar ---
@@ -624,19 +638,17 @@
   function navigate(fragmentFile, displayUrl, pushState) {
     loaderStart();
 
-    // Use cache if available
     var done = function(html) {
-      // Signal old content to clean up (timers etc.)
-      mainEl.dispatchEvent(new Event('spa:unload'));
+      var content = extractContent(html);
 
-      mainEl.innerHTML = html;
+      mainEl.innerHTML = content;
       runScripts(mainEl);
 
       if (pushState && displayUrl) {
         history.pushState({ fragment: fragmentFile }, '', displayUrl);
       }
 
-      // Smooth scroll to top of content area
+      // Smooth momentum scroll to top
       window.scrollTo({ top: 0, behavior: 'smooth' });
 
       loaderDone();
@@ -657,8 +669,8 @@
         done(html);
       })
       .catch(function() {
-        // Fallback: full page navigation
         loaderDone();
+        // Fallback: full page navigation
         if (displayUrl) window.location.href = displayUrl;
       });
   }
@@ -679,10 +691,11 @@
 
     e.preventDefault();
 
-    // Close FAB if open
+    // Close FAB first, then navigate after its animation settles
     if (window._fabClose) window._fabClose();
-
-    navigate(fragment, link.href, true);
+    setTimeout(function() {
+      navigate(fragment, link.href, true);
+    }, 80);
   });
 
   // --- Handle browser back / forward ---
