@@ -10,12 +10,31 @@
   <style>
     /* --- Reset & Base --- */
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html {
+      overflow-x: hidden;          /* hard stop: no horizontal scroll */
+    }
     body {
       background-color: #EDE0BB;
       color: #212121;
       font-family: Arial, "Helvetica Neue", Helvetica, sans-serif;
       font-size: 16px;
       line-height: 1.5;
+      overflow-x: hidden;
+      overflow-wrap: break-word;   /* wrap long URLs/strings globally */
+      word-break: break-word;
+    }
+    img {                          /* global safety net for all images */
+      max-width: 100%;
+      height: auto;
+    }
+    table {                        /* force tables to respect viewport */
+      max-width: 100%;
+      width: 100%;
+      table-layout: fixed;
+    }
+    td, th {
+      overflow-wrap: break-word;
+      word-break: break-word;
     }
 
     /* --- Site shell: centered, fluid with max --- */
@@ -315,7 +334,9 @@
         font-size: 12px;
         padding: 5px 6px;
       }
-      .site-info-bar { font-size: 12px; }
+      .site-info-bar { font-size: 12px; word-break: keep-all; }
+      table { table-layout: auto; }
+      td, th { width: auto !important; }
       .site-footer {
         flex-direction: column;
         text-align: center;
@@ -356,7 +377,7 @@
 
   <!-- Service times -->
   <div class="site-info-bar">
-    全年無休 &nbsp;&nbsp;|&nbsp;&nbsp; 晨禱禮拜：6:30am - 8:00am &nbsp;&nbsp;|&nbsp;&nbsp; 晚禱禮拜：8:00pm - 9:00pm &nbsp;&nbsp;|&nbsp;&nbsp; 主日崇拜 周日：10:00am 開始
+    全年無休 | 晨禱禮拜：6:30am - 8:00am | 晚禱禮拜：8:00pm - 9:00pm | 主日崇拜 周日：10:00am 開始
   </div>
 
   <!-- Sidebar + Page content -->
