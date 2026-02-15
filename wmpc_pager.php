@@ -193,6 +193,9 @@
   <div class="site-content">
 
     <aside class="site-sidebar">
+      <a href="https://allworldmissionprayercenterinc-321.my.webex.com/meet/awmpc"><img src="./resources/images/awmpc_webex_join_banner.png" alt="AWMPC Webex Join Banner" /></a>
+      <a href="https://info.flagcounter.com/u2K3"><img src="https://s11.flagcounter.com/count2/u2K3/bg_FFFFFF/txt_000000/border_CCCCCC/columns_2/maxflags_10/viewers_0/labels_0/pageviews_0/flags_0/percent_0/" alt="Flag Counter" loading="lazy" /></a>
+      <div><script type="text/javascript" src="https://rf.revolvermaps.com/0/0/2.js?i=536ikush1dr&amp;m=7&amp;s=178&amp;c=ff0000&amp;t=1" async="async"></script></div>
       <a href="./24hrhop.html"><img src="./resources/images/building_front_compressed_09_05_2020_mini.jpg" alt="Church Building" /></a>
       <a href="./prayer.html"><img src="./webData/components/adwindow_prayermeeting.jpg" alt="Prayer Meeting" /></a>
       <a href="./sermons.html"><img src="./webData/components/adwindow_dailysermon.jpg" alt="Daily Sermon" /></a>
