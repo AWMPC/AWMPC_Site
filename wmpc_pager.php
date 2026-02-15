@@ -65,32 +65,34 @@
       font-size: 14px;
     }
 
-    /* --- Banner carousel (replaces sidebar + main banner) --- */
-    .banner-carousel {
-      position: relative;
-      width: 100%;
+    /* --- Main banner GIF --- */
+    .site-main-banner {
+      text-align: center;
       overflow: hidden;
-      background: #111;
     }
-    .banner-carousel-track {
-      display: flex;
-      transition: transform 0.6s ease-in-out;
-      will-change: transform;
-    }
-    .banner-carousel-slide {
-      min-width: 100%;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-    }
-    .banner-carousel-slide a {
-      display: block;
-      width: 100%;
-    }
-    .banner-carousel-slide img {
+    .site-main-banner img {
       width: 100%;
       height: auto;
       display: block;
+    }
+
+    /* --- Footer image links (former sidebar) --- */
+    .footer-images {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: center;
+      gap: 10px;
+      padding: 16px 0;
+    }
+    .footer-images a {
+      display: block;
+      flex: 0 1 150px;
+    }
+    .footer-images img {
+      width: 100%;
+      height: auto;
+      display: block;
+      border-radius: 4px;
     }
 
     /* --- Content area (single column now) --- */
@@ -324,16 +326,9 @@
     <img src="./resources/images/wmpc_topbanner_transparent.png" alt="All World Mission Prayer Center" />
   </div>
 
-  <!-- Banner carousel (main banner + former sidebar images) -->
-  <div class="banner-carousel" id="bannerCarousel">
-    <div class="banner-carousel-track" id="bannerTrack">
-      <div class="banner-carousel-slide"><img src="./webData/components/wmpc_mainbanner2.gif" alt="AWMPC Church Banner" /></div>
-      <div class="banner-carousel-slide"><a href="./24hrhop.html"><img src="./resources/images/building_front_compressed_09_05_2020_mini.jpg" alt="Church Building" /></a></div>
-      <div class="banner-carousel-slide"><a href="./prayer.html"><img src="./webData/components/adwindow_prayermeeting.jpg" alt="Prayer Meeting" /></a></div>
-      <div class="banner-carousel-slide"><a href="./sermons.html"><img src="./webData/components/adwindow_dailysermon.jpg" alt="Daily Sermon" /></a></div>
-      <div class="banner-carousel-slide"><a href="./request.html"><img src="./webData/components/adwindow_prayerrequest.jpg" alt="Prayer Request" /></a></div>
-      <div class="banner-carousel-slide"><a href="./mission.html"><img src="./resources/images/sidebar_mission.jpg" alt="Mission" /></a></div>
-    </div>
+  <!-- Main banner image -->
+  <div class="site-main-banner">
+    <img src="./webData/components/wmpc_mainbanner2.gif" alt="AWMPC Church Banner" />
   </div>
 
   <!-- Page content -->
@@ -370,6 +365,15 @@
 
     </main>
 
+  </div>
+
+  <!-- Quick links (former sidebar images) -->
+  <div class="footer-images">
+    <a href="./24hrhop.html"><img src="./resources/images/building_front_compressed_09_05_2020_mini.jpg" alt="Church Building" loading="lazy" /></a>
+    <a href="./prayer.html"><img src="./webData/components/adwindow_prayermeeting.jpg" alt="Prayer Meeting" loading="lazy" /></a>
+    <a href="./sermons.html"><img src="./webData/components/adwindow_dailysermon.jpg" alt="Daily Sermon" loading="lazy" /></a>
+    <a href="./request.html"><img src="./webData/components/adwindow_prayerrequest.jpg" alt="Prayer Request" loading="lazy" /></a>
+    <a href="./mission.html"><img src="./resources/images/sidebar_mission.jpg" alt="Mission" loading="lazy" /></a>
   </div>
 
   <!-- Footer -->
@@ -480,23 +484,6 @@
   document.addEventListener('keydown', function(e) {
     if (e.key === 'Escape') close();
   });
-})();
-</script>
-
-<script>
-(function() {
-  var track = document.getElementById('bannerTrack');
-  var slides = track.querySelectorAll('.banner-carousel-slide');
-  var total = slides.length;
-  var idx = 0;
-  var INTERVAL = 5000;
-
-  function advance() {
-    idx = (idx + 1) % total;
-    track.style.transform = 'translateX(-' + (idx * 100) + '%)';
-  }
-
-  setInterval(advance, INTERVAL);
 })();
 </script>
 
