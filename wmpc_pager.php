@@ -621,6 +621,7 @@
     velocityY = 0;
     dragging = true;
     menu.style.transition = 'none';
+    scrim.style.transition = 'none';
   }, { passive: true });
 
   menu.addEventListener('touchmove', function(e) {
@@ -637,9 +638,8 @@
     lastTime = now;
 
     menu.style.transform = 'translateY(' + dy + 'px)';
-    // Fade scrim proportionally
-    var progress = Math.min(dy / (menu.offsetHeight * 0.5), 1);
-    scrim.style.opacity = 1 - progress;
+    // Fade scrim in direct 1:1 proportion with sheet position
+    scrim.style.opacity = Math.max(0, 1 - (dy / menu.offsetHeight));
 
     e.preventDefault(); // prevent page scroll in all directions during drag
   }, { passive: false });
