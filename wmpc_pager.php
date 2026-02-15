@@ -65,10 +65,15 @@
       font-size: 14px;
     }
 
-    /* --- Main banner GIF --- */
+    /* --- Main banner GIF (One UI card) --- */
     .site-main-banner {
       text-align: center;
       overflow: hidden;
+      border-radius: 16px;
+      margin: 16px 0;
+      box-shadow:
+        0 1px 3px rgba(0,0,0,0.08),
+        0 4px 12px rgba(0,0,0,0.10);
     }
     .site-main-banner img {
       width: 100%;
@@ -76,26 +81,56 @@
       display: block;
     }
 
-    /* --- Footer image links (former sidebar) --- */
+    /* --- One UI media defaults inside content --- */
+    .site-main img {
+      border-radius: 16px;
+      box-shadow:
+        0 1px 2px rgba(0,0,0,0.06),
+        0 4px 12px rgba(0,0,0,0.08);
+      margin-bottom: 16px;
+    }
+    .site-main video {
+      border-radius: 16px;
+      box-shadow:
+        0 1px 2px rgba(0,0,0,0.06),
+        0 4px 12px rgba(0,0,0,0.08);
+      margin-bottom: 16px;
+    }
+
+    /* --- Footer image links (One UI cards) --- */
     .footer-images {
       display: flex;
       flex-wrap: wrap;
       justify-content: center;
-      gap: 10px;
+      gap: 16px;
       padding: 16px 0;
     }
     .footer-images a {
       display: block;
       flex: 0 1 150px;
+      border-radius: 16px;
+      overflow: hidden;
+      box-shadow:
+        0 1px 2px rgba(0,0,0,0.06),
+        0 4px 12px rgba(0,0,0,0.08);
+      transition: box-shadow 0.2s, transform 0.2s;
+    }
+    .footer-images a:hover {
+      box-shadow:
+        0 2px 4px rgba(0,0,0,0.10),
+        0 8px 20px rgba(0,0,0,0.14);
+      transform: translateY(-2px);
     }
     .footer-images img {
       width: 100%;
       height: auto;
       display: block;
-      border-radius: 4px;
+      border-radius: 0;       /* parent handles radius via overflow:hidden */
+      box-shadow: none;        /* parent handles shadow */
+      margin-bottom: 0;
     }
 
-    /* --- Content area (single column now) --- */
+    /* --- Content area (single column) --- */
     .site-content {
       padding: 16px 0;
     }
