@@ -6,7 +6,8 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <meta name="keywords" content="awmpc,wmpc,awmpc.org,All World Mission Prayer Center,World Mission Prayer Center,prayer,mission" />
-  <meta name="theme-color" content="#e3d5aa">
+  <meta name="theme-color" content="#EDE0BB" id="metaThemeColor">
+  <meta name="color-scheme" content="light dark">
   <style>
     /* --- Reset & Base --- */
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
@@ -560,7 +561,7 @@
 </head>
 
 <body>
-<script>(function(){var t=localStorage.getItem('theme');if(t==='dark'||(!t&&matchMedia('(prefers-color-scheme:dark)').matches))document.body.classList.add('dark-mode')})()</script>
+<script>(function(){var t=localStorage.getItem('theme');var d=t==='dark'||(!t&&matchMedia('(prefers-color-scheme:dark)').matches);if(d){document.body.classList.add('dark-mode');var m=document.getElementById('metaThemeColor');if(m)m.setAttribute('content','#0D1B2A')}})()</script>
 
 <div class="site-wrap">
 
@@ -667,10 +668,31 @@
 <script>
 (function() {
   var btn = document.getElementById('themeToggle');
+  var metaTC = document.getElementById('metaThemeColor');
+
+  function applyTheme(dark) {
+    document.body.classList.toggle('dark-mode', dark);
+    if (metaTC) metaTC.setAttribute('content', dark ? '#0D1B2A' : '#EDE0BB');
+  }
+
+  // Manual toggle — saves explicit preference
   btn.addEventListener('click', function() {
-    document.body.classList.toggle('dark-mode');
-    localStorage.setItem('theme', document.body.classList.contains('dark-mode') ? 'dark' : 'light');
+    var nowDark = !document.body.classList.contains('dark-mode');
+    applyTheme(nowDark);
+    localStorage.setItem('theme', nowDark ? 'dark' : 'light');
   });
+
+  // Listen for OS/system theme changes at runtime
+  var mq = window.matchMedia('(prefers-color-scheme: dark)');
+  mq.addEventListener('change', function(e) {
+    // Only follow system if user hasn't set a manual preference
+    if (!localStorage.getItem('theme')) {
+      applyTheme(e.matches);
+    }
+  });
+
+  // Set initial theme-color meta to match current state
+  applyTheme(document.body.classList.contains('dark-mode'));
 })();
 </script>
 
@@ -684,24 +706,25 @@
   var timer = null;
 
   function cycle() {
-    var overflow = text.scrollWidth - bar.clientWidth;
+    // Account for left+right padding (16px each) so last characters are visible
+    var overflow = text.scrollWidth - bar.clientWidth + 32;
     if (overflow <= 0) { text.style.transform = ''; return; }
 
-    // Speed: ~50px/s for a comfortable read
-    var scrollDur = overflow / 50;
-    var returnDur = overflow / 80;
+    // Slow linear scroll (~28px/s) for comfortable reading mid-travel
+    var scrollDur = overflow / 28;
+    var returnDur = overflow / 70;
 
     // 1. Hold at start
     text.style.transition = 'none';
     text.style.transform = 'translateX(0)';
 
     timer = setTimeout(function() {
-      // 2. Scroll left to show end
-      text.style.transition = 'transform ' + scrollDur + 's ease-in-out';
+      // 2. Scroll left — linear for constant readable speed
+      text.style.transition = 'transform ' + scrollDur + 's linear';
       text.style.transform = 'translateX(-' + overflow + 'px)';
 
       timer = setTimeout(function() {
-        // 3. Hold at end, then scroll back
+        // 3. Hold at end, then ease back to start
         text.style.transition = 'transform ' + returnDur + 's ease-in-out';
         text.style.transform = 'translateX(0)';
 
