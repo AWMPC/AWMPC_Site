@@ -125,6 +125,15 @@
       border-radius: 4px;
       box-shadow: none;
       margin: 0;
+      animation: webex-bounce 8s ease-in-out infinite;
+      animation-delay: 4s;
+    }
+    @keyframes webex-bounce {
+      0%, 88%, 100% { transform: translateY(0) scaleY(1) scaleX(1); }
+      90%           { transform: translateY(-6px) scaleY(1.08) scaleX(0.94); }
+      93%           { transform: translateY(1px) scaleY(0.88) scaleX(1.08); }
+      95.5%         { transform: translateY(-2px) scaleY(1.04) scaleX(0.97); }
+      97%           { transform: translateY(0) scaleY(0.96) scaleX(1.03); }
     }
 
     /* --- Top row icon buttons (One UI contained, circular) --- */
