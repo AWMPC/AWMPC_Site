@@ -120,20 +120,21 @@
     .info-bar-webex:hover { background: #A80000; }
     .info-bar-webex:active { background: #900000; }
     .info-bar-webex img {
-      width: 20px;
-      height: 20px;
+      width: 26px;
+      height: 26px;
       border-radius: 4px;
       box-shadow: none;
       margin: 0;
-      animation: webex-bounce 8s ease-in-out infinite;
-      animation-delay: 4s;
+      animation: webex-bounce 5s ease-in-out infinite;
+      animation-delay: 1s;
     }
     @keyframes webex-bounce {
-      0%, 88%, 100% { transform: translateY(0) scaleY(1) scaleX(1); }
-      90%           { transform: translateY(-6px) scaleY(1.08) scaleX(0.94); }
-      93%           { transform: translateY(1px) scaleY(0.88) scaleX(1.08); }
-      95.5%         { transform: translateY(-2px) scaleY(1.04) scaleX(0.97); }
-      97%           { transform: translateY(0) scaleY(0.96) scaleX(1.03); }
+      0%, 82%, 100% { transform: translateY(0) scaleY(1) scaleX(1); }
+      85%           { transform: translateY(2px) scaleY(0.82) scaleX(1.16); }
+      89%           { transform: translateY(-10px) scaleY(1.14) scaleX(0.88); }
+      93%           { transform: translateY(2px) scaleY(0.82) scaleX(1.16); }
+      96%           { transform: translateY(-3px) scaleY(1.06) scaleX(0.95); }
+      98%           { transform: translateY(0) scaleY(0.95) scaleX(1.04); }
     }
 
     /* --- Top row icon buttons (One UI contained, circular) --- */
@@ -171,8 +172,8 @@
     /* Theme toggle — 3D card-flip between sun and moon */
     #themeToggle { perspective: 300px; }
     .theme-icon-flip {
-      width: 18px;
-      height: 18px;
+      width: 22px;
+      height: 22px;
       position: relative;
       transform-style: preserve-3d;
       transition: transform 0.6s cubic-bezier(0.22, 0.61, 0.36, 1);
@@ -627,8 +628,8 @@
     </div>
     <button class="site-top-btn" id="themeToggle" type="button" aria-label="Toggle dark mode">
       <div class="theme-icon-flip">
-        <svg class="icon-sun" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="5"/><path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/></svg>
-        <svg class="icon-moon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+        <svg class="icon-sun" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="5"/><path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/></svg>
+        <svg class="icon-moon" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
       </div>
     </button>
   </div>
