@@ -56,7 +56,7 @@
       transition: background 0.15s;
     }
     .site-nav a:hover { background: rgba(255,255,255,0.15); }
-    .site-nav a.highlight { color: #FFFF00; }
+    .site-nav a.highlight { color: #FFFF00; font-weight: bold; }
 
     /* --- Main banner GIF --- */
     .site-main-banner {
@@ -171,9 +171,9 @@
     <a href="./sermons.html">講道<br>Sermons</a>
     <a href="./testimony.html">見證<br>Testimony</a>
     <a href="./request.html">代禱<br>Prayers</a>
-    <a class="highlight" href="./24hrhop.html">建堂<br>Church</a>
-    <a href="./support.html">支持<br>Donations</a>
-    <a class="highlight" href="./media.html">媒體<br>Media</a>
+    <a href="./24hrhop.html">建堂<br>Church</a>
+    <a class="highlight" href="./support.html">支持<br>Donations</a>
+    <a href="./media.html">媒體<br>Media</a>
     <a href="./letters.html">信件<br>Letters</a>
     <a href="./canaan_record.html">历史<br>Canaan</a>
     <a href="./hymns.html">讚美詩<br>Hymns</a>
