@@ -129,12 +129,14 @@
       animation-delay: 1s;
     }
     @keyframes webex-bounce {
-      0%, 82%, 100% { transform: translateY(0) scaleY(1) scaleX(1); }
-      85%           { transform: translateY(2px) scaleY(0.82) scaleX(1.16); }
-      89%           { transform: translateY(-10px) scaleY(1.14) scaleX(0.88); }
-      93%           { transform: translateY(2px) scaleY(0.82) scaleX(1.16); }
-      96%           { transform: translateY(-3px) scaleY(1.06) scaleX(0.95); }
-      98%           { transform: translateY(0) scaleY(0.95) scaleX(1.04); }
+      0%, 80%, 100% { transform: translateY(0) scaleY(1) scaleX(1); }
+      83%           { transform: translateY(2px) scaleY(0.82) scaleX(1.16); }
+      86%           { transform: translateY(-5px) scaleY(1.12) scaleX(0.90); }
+      88.5%         { transform: translateY(-5px) scaleY(1.10) scaleX(0.91); }
+      91%           { transform: translateY(-4px) scaleY(1.08) scaleX(0.92); }
+      94%           { transform: translateY(2px) scaleY(0.84) scaleX(1.14); }
+      97%           { transform: translateY(-1px) scaleY(1.04) scaleX(0.97); }
+      99%           { transform: translateY(0) scaleY(0.97) scaleX(1.02); }
     }
 
     /* --- Top row icon buttons (One UI contained, circular) --- */
