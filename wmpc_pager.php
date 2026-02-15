@@ -345,11 +345,12 @@
       padding-left: 12px;
       white-space: nowrap;
     }
-    .fab-menu-item.fab-highlight {
+    .fab-menu-item.fab-active {
+      background: rgba(204, 0, 0, 0.08);
       color: #CC0000;
-      font-weight: 700;
+      font-weight: 600;
     }
-    .fab-menu-item.fab-highlight .fab-item-zh {
+    .fab-menu-item.fab-active .fab-item-zh {
       color: #CC0000;
     }
     .fab-item-icon {
@@ -369,6 +370,51 @@
         text-align: center;
       }
       .footer-left, .footer-center, .footer-right { text-align: center; }
+    }
+
+    /* --- One UI Bottom Sheet for small screens --- */
+    @media (max-width: 600px) {
+      .fab-menu {
+        bottom: 0;
+        right: 0;
+        left: 0;
+        border-radius: 26px 26px 0 0;
+        min-width: unset;
+        max-height: 70dvh;
+        transform: translateY(100%);
+        transform-origin: bottom center;
+        padding: 8px 16px;
+        padding-bottom: max(24px, env(safe-area-inset-bottom));
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 2px;
+      }
+      .fab-menu::before {
+        content: '';
+        display: block;
+        width: 40px;
+        height: 4px;
+        background: #ddd;
+        border-radius: 2px;
+        margin: 4px auto 8px;
+        grid-column: 1 / -1;
+      }
+      .fab-menu.open {
+        transform: translateY(0);
+      }
+      .fab-menu-item {
+        padding: 10px 14px;
+        font-size: 14px;
+        border-radius: 12px;
+        gap: 8px;
+      }
+      .fab-menu-item .fab-item-zh {
+        font-size: 11px;
+        padding-left: 4px;
+      }
+      .fab-menu-webex {
+        grid-column: 1 / -1;
+      }
     }
   </style>
 </head>
@@ -472,18 +518,18 @@
 <div class="fab-scrim" id="fabScrim"></div>
 
 <nav class="fab-menu" id="fabMenu" aria-label="Quick navigation">
+  <a class="fab-menu-item fab-menu-webex" href="https://allworldmissionprayercenterinc-321.my.webex.com/meet/awmpc" target="_blank" rel="noopener"><img class="fab-item-icon" src="https://www.google.com/s2/favicons?domain=webex.com&sz=32" alt="" width="20" height="20" />Join Webex</a>
   <a class="fab-menu-item" href="./index.html">Homepage <span class="fab-item-zh">首頁</span></a>
   <a class="fab-menu-item" href="./mission.html">Mission <span class="fab-item-zh">使命</span></a>
   <a class="fab-menu-item" href="./sermons.html">Sermons <span class="fab-item-zh">講道</span></a>
   <a class="fab-menu-item" href="./testimony.html">Testimony <span class="fab-item-zh">見證</span></a>
   <a class="fab-menu-item" href="./request.html">Prayers <span class="fab-item-zh">代禱</span></a>
   <a class="fab-menu-item" href="./24hrhop.html">Church <span class="fab-item-zh">建堂</span></a>
-  <a class="fab-menu-item fab-highlight" href="./support.html">Donations <span class="fab-item-zh">支持</span></a>
+  <a class="fab-menu-item" href="./support.html">Donations <span class="fab-item-zh">支持</span></a>
   <a class="fab-menu-item" href="./media.html">Media <span class="fab-item-zh">媒體</span></a>
   <a class="fab-menu-item" href="./letters.html">Letters <span class="fab-item-zh">信件</span></a>
   <a class="fab-menu-item" href="./canaan_record.html">Canaan <span class="fab-item-zh">历史</span></a>
   <a class="fab-menu-item" href="./hymns.html">Hymns <span class="fab-item-zh">讚美詩</span></a>
-  <a class="fab-menu-item fab-menu-webex" href="https://allworldmissionprayercenterinc-321.my.webex.com/meet/awmpc" target="_blank" rel="noopener"><img class="fab-item-icon" src="https://www.google.com/s2/favicons?domain=webex.com&sz=32" alt="" width="20" height="20" />Join Webex</a>
 </nav>
 
 <button class="fab-btn" id="fabBtn" aria-label="Open navigation menu" aria-expanded="false">
@@ -598,6 +644,14 @@
     }, 600);
   }
 
+  // --- Highlight active page in FAB menu ---
+  function updateActiveNav(activeKey) {
+    var items = document.querySelectorAll('.fab-menu-item');
+    for (var i = 0; i < items.length; i++) {
+      items[i].classList.toggle('fab-active', routeKey(items[i].href) === activeKey);
+    }
+  }
+
   // --- Execute scripts inside injected HTML ---
   function runScripts(container) {
     var scripts = container.querySelectorAll('script');
@@ -628,6 +682,9 @@
 
       // Smooth momentum scroll to top
       window.scrollTo({ top: 0, behavior: 'smooth' });
+
+      // Update active page indicator in FAB
+      updateActiveNav(routeKey(displayUrl || window.location.href));
 
       loaderDone();
     };
@@ -689,6 +746,9 @@
   if (initFragment) {
     history.replaceState({ fragment: initFragment }, '', window.location.href);
   }
+
+  // --- Highlight current page on initial load ---
+  updateActiveNav(initKey);
 })();
 </script>
 
