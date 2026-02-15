@@ -397,7 +397,7 @@
         transform: translateY(100%);
         transform-origin: bottom center;
         padding: 8px 16px;
-        padding-bottom: max(24px, env(safe-area-inset-bottom));
+        padding-bottom: calc(96px + env(safe-area-inset-bottom, 0px));
         display: grid;
         grid-template-columns: 1fr 1fr;
         gap: 2px;
@@ -407,7 +407,7 @@
         display: block;
         width: 40px;
         height: 4px;
-        background: #ddd;
+        background: #ccc;
         border-radius: 2px;
         margin: 4px auto 8px;
         grid-column: 1 / -1;
@@ -593,6 +593,80 @@
 
   document.addEventListener('keydown', function(e) {
     if (e.key === 'Escape') close();
+  });
+
+  // --- One UI drag-to-dismiss for mobile bottom sheet ---
+  var dragStartY = 0;
+  var lastY = 0;
+  var lastTime = 0;
+  var velocityY = 0;
+  var dragging = false;
+
+  menu.addEventListener('touchstart', function(e) {
+    if (!isOpen) return;
+    // Only allow drag when sheet is scrolled to the very top
+    if (menu.scrollTop > 0) return;
+    dragStartY = e.touches[0].clientY;
+    lastY = dragStartY;
+    lastTime = Date.now();
+    velocityY = 0;
+    dragging = true;
+    menu.style.transition = 'none';
+  }, { passive: true });
+
+  menu.addEventListener('touchmove', function(e) {
+    if (!dragging) return;
+    var touchY = e.touches[0].clientY;
+    var dy = touchY - dragStartY;
+    if (dy < 0) dy = 0; // only allow downward drag
+
+    // Track velocity for flick detection
+    var now = Date.now();
+    var dt = now - lastTime;
+    if (dt > 0) velocityY = (touchY - lastY) / dt;
+    lastY = touchY;
+    lastTime = now;
+
+    menu.style.transform = 'translateY(' + dy + 'px)';
+    // Fade scrim proportionally
+    var progress = Math.min(dy / (menu.offsetHeight * 0.5), 1);
+    scrim.style.opacity = 1 - progress;
+
+    if (dy > 0) e.preventDefault(); // prevent page scroll while dragging
+  }, { passive: false });
+
+  menu.addEventListener('touchend', function(e) {
+    if (!dragging) return;
+    dragging = false;
+    var dy = e.changedTouches[0].clientY - dragStartY;
+
+    // Dismiss if dragged past threshold OR flicked downward fast
+    if (dy > 80 || velocityY > 0.4) {
+      // Animate sheet off-screen from current position
+      menu.style.transition = 'transform 0.25s cubic-bezier(0.22, 0.61, 0.36, 1)';
+      menu.style.transform = 'translateY(100%)';
+      scrim.style.transition = 'opacity 0.25s';
+      scrim.style.opacity = '0';
+      setTimeout(function() {
+        // Clean up inline styles, then run normal close logic
+        menu.style.transition = '';
+        menu.style.transform = '';
+        scrim.style.transition = '';
+        scrim.style.opacity = '';
+        if (isOpen) toggle();
+      }, 260);
+    } else {
+      // Snap back to open position
+      menu.style.transition = 'transform 0.25s cubic-bezier(0.22, 0.61, 0.36, 1)';
+      menu.style.transform = 'translateY(0)';
+      scrim.style.transition = 'opacity 0.25s';
+      scrim.style.opacity = '';
+      setTimeout(function() {
+        menu.style.transition = '';
+        menu.style.transform = '';
+        scrim.style.transition = '';
+      }, 260);
+    }
   });
 })();
 </script>
