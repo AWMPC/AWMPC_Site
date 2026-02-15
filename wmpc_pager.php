@@ -243,33 +243,33 @@
     /* Latin cross icon */
     .fab-icon {
       width: 22px;
-      height: 28px;
+      height: 26px;
       position: relative;
-      transition: transform 0.5s cubic-bezier(0.22, 0.61, 0.36, 1);
+      transition: transform 0.35s cubic-bezier(0.22, 0.61, 0.36, 1);
     }
     .fab-btn.open .fab-icon {
-      transform: rotate(360deg);
+      transform: scale(1.22);
     }
     .fab-icon::before,
     .fab-icon::after {
       content: '';
       position: absolute;
       background: #CC0000;
-      border-radius: 1.5px;
+      border-radius: 2px;
     }
     /* Vertical bar — full height */
     .fab-icon::before {
-      width: 3.5px;
+      width: 4.5px;
       height: 100%;
       left: 50%;
       top: 0;
       transform: translateX(-50%);
     }
-    /* Horizontal bar — shorter, positioned at upper third */
+    /* Horizontal bar — positioned slightly below upper third */
     .fab-icon::after {
-      width: 16px;
-      height: 3.5px;
-      top: 28%;
+      width: 17px;
+      height: 4.5px;
+      top: 36%;
       left: 50%;
       transform: translate(-50%, -50%);
     }
