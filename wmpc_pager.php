@@ -6,7 +6,7 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <meta name="keywords" content="awmpc,wmpc,awmpc.org,All World Mission Prayer Center,World Mission Prayer Center,prayer,mission" />
-  <meta name="theme-color" content="#E3F2FD" id="metaThemeColor">
+  <meta name="theme-color" content="#A8D4F5" id="metaThemeColor">
   <meta name="color-scheme" content="light dark">
   <style>
     /* --- Reset & Base --- */
@@ -15,7 +15,7 @@
       overflow-x: hidden;          /* hard stop: no horizontal scroll */
     }
     body {
-      background-color: #E3F2FD;
+      background-color: #A8D4F5;
       color: #212121;
       font-family: Arial, "Helvetica Neue", Helvetica, sans-serif;
       font-size: 16px;
@@ -727,7 +727,7 @@
 
   function applyTheme(dark) {
     document.body.classList.toggle('dark-mode', dark);
-    if (metaTC) metaTC.setAttribute('content', dark ? '#162842' : '#E3F2FD');
+    if (metaTC) metaTC.setAttribute('content', dark ? '#162842' : '#A8D4F5');
   }
 
   // Manual toggle — saves explicit preference
