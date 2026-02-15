@@ -483,8 +483,20 @@
       }
     }
 
-    // Prevent background scroll when open
-    document.body.style.overflow = isOpen ? 'hidden' : '';
+    // Prevent background scroll while keeping scrollbar visible (no layout shift)
+    if (isOpen) {
+      document.body.style.overflowY = 'scroll';
+      document.body.style.position = 'fixed';
+      document.body.style.width = '100%';
+      document.body.style.top = '-' + window.scrollY + 'px';
+    } else {
+      var scrollY = Math.abs(parseInt(document.body.style.top || '0'));
+      document.body.style.position = '';
+      document.body.style.width = '';
+      document.body.style.top = '';
+      document.body.style.overflowY = '';
+      window.scrollTo(0, scrollY);
+    }
   }
 
   function close() {
