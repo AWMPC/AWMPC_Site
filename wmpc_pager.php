@@ -91,15 +91,15 @@
       width: 36px;
       height: 36px;
       border-radius: 50%;
-      background: rgba(255, 255, 255, 0.15);
+      background: #212121;
       transition: background 0.15s;
       -webkit-tap-highlight-color: transparent;
     }
     .site-info-bar-webex:hover {
-      background: rgba(255, 255, 255, 0.28);
+      background: #333;
     }
     .site-info-bar-webex:active {
-      background: rgba(255, 255, 255, 0.36);
+      background: #444;
     }
     .site-info-bar-webex img {
       width: 20px;
