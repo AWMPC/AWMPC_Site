@@ -546,12 +546,12 @@
 
     /* === Dark mode: deep night blue + starry yellow === */
     body.dark-mode {
-      background-color: #162842;
-      color: #FFD54F;
+      background-color: #0E1C30;
+      color: #FFE082;
     }
     body.dark-mode .info-bar-text {
       background: #4A3768;
-      color: #FFD54F;
+      color: #FFE082;
       box-shadow: 0 1px 3px rgba(0,0,0,0.25), 0 4px 12px rgba(0,0,0,0.30);
     }
     body.dark-mode .info-bar-webex {
@@ -576,9 +576,9 @@
       box-shadow: 0 1px 3px rgba(0,0,0,0.25), 0 4px 12px rgba(0,0,0,0.30);
     }
     body.dark-mode .site-footer-divider { border-top-color: #2A4060; }
-    body.dark-mode .site-footer { color: #C8A840; }
-    body.dark-mode .site-footer a { color: #FFD54F; }
-    body.dark-mode .spa-loader { background: #FFD54F; }
+    body.dark-mode .site-footer { color: #D4BA5C; }
+    body.dark-mode .site-footer a { color: #FFE082; }
+    body.dark-mode .spa-loader { background: #FFE082; }
 
     /* FAB — cross becomes white-on-red */
     body.dark-mode .fab-btn {
@@ -600,21 +600,21 @@
     }
     body.dark-mode .fab-menu::before { background: #3A5068; }
     body.dark-mode .fab-menu::-webkit-scrollbar-thumb { background: #3A5068; }
-    body.dark-mode .fab-menu-item { color: #FFD54F; }
+    body.dark-mode .fab-menu-item { color: #FFE082; }
     body.dark-mode .fab-menu-item:hover { background: #1E3450; }
     body.dark-mode .fab-menu-item:active { background: #2A4565; }
-    body.dark-mode .fab-menu-item .fab-item-zh { color: #C8A840; }
+    body.dark-mode .fab-menu-item .fab-item-zh { color: #D4BA5C; }
     body.dark-mode .fab-menu-item.fab-active {
       background: rgba(255, 213, 79, 0.12);
-      color: #FFD54F;
+      color: #FFE082;
     }
-    body.dark-mode .fab-menu-item.fab-active .fab-item-zh { color: #FFD54F; }
+    body.dark-mode .fab-menu-item.fab-active .fab-item-zh { color: #FFE082; }
     body.dark-mode .fab-scrim { background: rgba(0, 0, 0, 0.65); }
   </style>
 </head>
 
 <body>
-<script>(function(){var t=localStorage.getItem('theme');var d=t==='dark'||(!t&&matchMedia('(prefers-color-scheme:dark)').matches);if(d){document.body.classList.add('dark-mode');var m=document.getElementById('metaThemeColor');if(m)m.setAttribute('content','#162842')}})()</script>
+<script>(function(){var t=localStorage.getItem('theme');var d=t==='dark'||(!t&&matchMedia('(prefers-color-scheme:dark)').matches);if(d){document.body.classList.add('dark-mode');var m=document.getElementById('metaThemeColor');if(m)m.setAttribute('content','#0E1C30')}})()</script>
 
 <div class="site-wrap">
 
@@ -727,7 +727,7 @@
 
   function applyTheme(dark) {
     document.body.classList.toggle('dark-mode', dark);
-    if (metaTC) metaTC.setAttribute('content', dark ? '#162842' : '#F5F7F8');
+    if (metaTC) metaTC.setAttribute('content', dark ? '#0E1C30' : '#F5F7F8');
   }
 
   // Manual toggle — saves explicit preference
