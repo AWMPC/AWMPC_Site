@@ -618,7 +618,17 @@
 
 <div class="site-wrap">
 
-  <!-- Service times + action buttons — topmost row -->
+  <!-- Top banner -->
+  <div class="site-banner">
+    <img src="./resources/images/wmpc_topbanner_transparent.png" alt="All World Mission Prayer Center" />
+  </div>
+
+  <!-- Main banner image -->
+  <div class="site-main-banner">
+    <img src="./webData/components/wmpc_mainbanner2.gif" alt="AWMPC Church Banner" />
+  </div>
+
+  <!-- Service times + action buttons -->
   <div class="site-top-row">
     <div class="site-info-bar">
       <div class="info-bar-text">
@@ -634,16 +644,6 @@
         <svg class="icon-moon" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
       </div>
     </button>
-  </div>
-
-  <!-- Top banner -->
-  <div class="site-banner">
-    <img src="./resources/images/wmpc_topbanner_transparent.png" alt="All World Mission Prayer Center" />
-  </div>
-
-  <!-- Main banner image -->
-  <div class="site-main-banner">
-    <img src="./webData/components/wmpc_mainbanner2.gif" alt="AWMPC Church Banner" />
   </div>
 
   <!-- Page content -->
