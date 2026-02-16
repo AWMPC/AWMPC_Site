@@ -225,17 +225,17 @@
       margin-bottom: 16px;
     }
 
-    /* --- Footer image links (One UI cards) --- */
-    .footer-images {
+    /* --- Quick link image grid (One UI cards) --- */
+    .quick-links {
       display: flex;
-      flex-wrap: wrap;
-      justify-content: center;
-      gap: 16px;
-      padding: 16px 0;
+      gap: 10px;
+      padding: 12px 0;
+      height: 120px;
     }
-    .footer-images a {
+    .quick-links a {
       display: block;
-      flex: 0 1 150px;
+      flex: 1 1 0;
+      min-width: 0;
       border-radius: 16px;
       overflow: hidden;
       box-shadow:
@@ -243,19 +243,32 @@
         0 4px 12px rgba(0,0,0,0.08);
       transition: box-shadow 0.2s, transform 0.2s;
     }
-    .footer-images a:hover {
+    .quick-links a:hover {
       box-shadow:
         0 2px 4px rgba(0,0,0,0.10),
         0 8px 20px rgba(0,0,0,0.14);
       transform: translateY(-2px);
     }
-    .footer-images img {
+    .quick-links img {
       width: 100%;
-      height: auto;
+      height: 100%;
+      object-fit: cover;
       display: block;
-      border-radius: 0;       /* parent handles radius via overflow:hidden */
-      box-shadow: none;        /* parent handles shadow */
+      border-radius: 0;
+      box-shadow: none;
       margin-bottom: 0;
+    }
+    @media (max-width: 768px) {
+      .quick-links {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        grid-template-rows: 1fr 1fr 1fr;
+        gap: 8px;
+        height: auto;
+      }
+      .quick-links a {
+        aspect-ratio: 16 / 9;
+      }
     }
 
     /* --- Content area (single column) --- */
@@ -572,7 +585,7 @@
     body.dark-mode .site-main video {
       box-shadow: 0 1px 3px rgba(0,0,0,0.25), 0 4px 12px rgba(0,0,0,0.30);
     }
-    body.dark-mode .footer-images a {
+    body.dark-mode .quick-links a {
       box-shadow: 0 1px 3px rgba(0,0,0,0.25), 0 4px 12px rgba(0,0,0,0.30);
     }
     body.dark-mode .site-footer-divider { border-top-color: #2A4060; }
@@ -646,6 +659,16 @@
     </button>
   </div>
 
+  <!-- Quick links grid -->
+  <div class="quick-links">
+    <a href="./24hrhop.html"><img src="./resources/images/building_front_compressed_09_05_2020_mini.jpg" alt="Church Building" loading="lazy" /></a>
+    <a href="./prayer.html"><img src="./webData/components/adwindow_prayermeeting.jpg" alt="Prayer Meeting" loading="lazy" /></a>
+    <a href="./sermons.html"><img src="./webData/components/adwindow_dailysermon.jpg" alt="Daily Sermon" loading="lazy" /></a>
+    <a href="./request.html"><img src="./webData/components/adwindow_prayerrequest.jpg" alt="Prayer Request" loading="lazy" /></a>
+    <a href="./mission.html"><img src="./resources/images/sidebar_mission.jpg" alt="Mission" loading="lazy" /></a>
+    <a href="https://allworldmissionprayercenterinc-321.my.webex.com/meet/awmpc" target="_blank" rel="noopener"><img src="./resources/images/awmpc_webex_join_banner.png" alt="Join Webex" loading="lazy" /></a>
+  </div>
+
   <!-- Page content -->
   <div class="site-content">
 
@@ -682,14 +705,6 @@
 
   </div>
 
-  <!-- Quick links (former sidebar images) -->
-  <div class="footer-images">
-    <a href="./24hrhop.html"><img src="./resources/images/building_front_compressed_09_05_2020_mini.jpg" alt="Church Building" loading="lazy" /></a>
-    <a href="./prayer.html"><img src="./webData/components/adwindow_prayermeeting.jpg" alt="Prayer Meeting" loading="lazy" /></a>
-    <a href="./sermons.html"><img src="./webData/components/adwindow_dailysermon.jpg" alt="Daily Sermon" loading="lazy" /></a>
-    <a href="./request.html"><img src="./webData/components/adwindow_prayerrequest.jpg" alt="Prayer Request" loading="lazy" /></a>
-    <a href="./mission.html"><img src="./resources/images/sidebar_mission.jpg" alt="Mission" loading="lazy" /></a>
-  </div>
 
   <!-- Footer -->
   <hr class="site-footer-divider">
