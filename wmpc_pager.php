@@ -354,9 +354,36 @@
       }
     }
 
+    /* --- One UI Section Cards --- */
+    .section-card {
+      background: #FFFFFF;
+      border-radius: 16px;
+      margin: 12px 0;
+      box-shadow:
+        0 1px 2px rgba(0,0,0,0.05),
+        0 4px 12px rgba(0,0,0,0.07);
+      overflow: hidden;
+      transition: background-color 0.5s ease, box-shadow 0.5s ease;
+    }
+    .section-card-label {
+      display: block;
+      font-size: 13px;
+      font-weight: 600;
+      color: #5C6B7A;
+      padding: 14px 20px 0;
+      letter-spacing: 0.02em;
+      transition: color 0.5s ease;
+    }
+    .section-card-body {
+      padding: 12px 20px 16px;
+    }
+    .section-card .quick-links {
+      padding: 12px 16px 16px;
+    }
+
     /* --- Content area (single column) --- */
     .site-content {
-      padding: 16px 0;
+      padding: 0;
     }
 
     /* Main content column */
@@ -364,6 +391,7 @@
       min-width: 0;
       overflow-wrap: break-word;
       word-wrap: break-word;
+      padding: 4px 20px 16px;
     }
 
     /* --- SPA loading bar (One UI style) --- */
@@ -645,6 +673,13 @@
       background-color: #0E1C30;
       color: #FFE082;
     }
+    body.dark-mode .section-card {
+      background: #162844;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.25), 0 4px 12px rgba(0,0,0,0.30);
+    }
+    body.dark-mode .section-card-label {
+      color: #A0B8D0;
+    }
     body.dark-mode .info-bar-text {
       background: #4A3768;
       color: #FFE082;
@@ -743,28 +778,52 @@
   </div>
 
   <!-- Quick links grid -->
-  <div class="quick-links">
-    <a href="./24hrhop.html"><img src="./resources/images/building_front_compressed_09_05_2020_mini.jpg" alt="Church Building" loading="lazy" /></a>
-    <a href="./prayer.html"><img src="./webData/components/adwindow_prayermeeting.jpg" alt="Prayer Meeting" loading="lazy" /></a>
-    <a href="./sermons.html"><img src="./webData/components/adwindow_dailysermon.jpg" alt="Daily Sermon" loading="lazy" /></a>
-    <a href="./request.html"><img src="./webData/components/adwindow_prayerrequest.jpg" alt="Prayer Request" loading="lazy" /></a>
-    <a href="./mission.html"><img src="./resources/images/sidebar_mission.jpg" alt="Mission" loading="lazy" /></a>
-    <a href="https://allworldmissionprayercenterinc-321.my.webex.com/meet/awmpc" target="_blank" rel="noopener" class="webex-card-link">
-      <span class="webex-card">
-        <span class="webex-card-left">
-          <img src="https://developer.webex.com/images/webex-logo-icon-non-contained.svg" alt="" class="webex-card-logo" />
+  <div class="section-card">
+    <span class="section-card-label">Site Links</span>
+    <div class="quick-links">
+      <a href="./24hrhop.html"><img src="./resources/images/building_front_compressed_09_05_2020_mini.jpg" alt="Church Building" loading="lazy" /></a>
+      <a href="./prayer.html"><img src="./webData/components/adwindow_prayermeeting.jpg" alt="Prayer Meeting" loading="lazy" /></a>
+      <a href="./sermons.html"><img src="./webData/components/adwindow_dailysermon.jpg" alt="Daily Sermon" loading="lazy" /></a>
+      <a href="./request.html"><img src="./webData/components/adwindow_prayerrequest.jpg" alt="Prayer Request" loading="lazy" /></a>
+      <a href="./mission.html"><img src="./resources/images/sidebar_mission.jpg" alt="Mission" loading="lazy" /></a>
+      <a href="https://allworldmissionprayercenterinc-321.my.webex.com/meet/awmpc" target="_blank" rel="noopener" class="webex-card-link">
+        <span class="webex-card">
+          <span class="webex-card-left">
+            <img src="https://developer.webex.com/images/webex-logo-icon-non-contained.svg" alt="" class="webex-card-logo" />
+          </span>
+          <span class="webex-card-divider"></span>
+          <span class="webex-card-right">
+            <span class="webex-card-line1">Join on</span>
+            <span class="webex-card-line2">Webex!</span>
+          </span>
         </span>
-        <span class="webex-card-divider"></span>
-        <span class="webex-card-right">
-          <span class="webex-card-line1">Join on</span>
-          <span class="webex-card-line2">Webex!</span>
-        </span>
-      </span>
-    </a>
+      </a>
+    </div>
   </div>
 
   <!-- Page content -->
-  <div class="site-content">
+  <div class="section-card" id="contentCard">
+    <span class="section-card-label" id="contentCardLabel"><?php
+      $pageNames = array(
+        'mi_home' => 'Homepage',
+        'mi_prayer' => 'Prayer',
+        'mi_events' => 'Events',
+        'mi_contact' => 'Contact',
+        'mi_media' => 'Media',
+        'mi_support' => 'Donations',
+        'mi_mission' => 'Mission',
+        'mi_reply' => 'Prayer Reply',
+        'mi_request' => 'Prayers',
+        'mi_sermons' => 'Sermons',
+        'mi_testimony' => 'Testimony',
+        'mi_24hrhop' => 'Church',
+        'mi_taiwan' => 'Taiwan',
+        'mi_letters' => 'Letters',
+        'mi_canaan_record' => 'Canaan',
+        'hymns' => 'Hymns'
+      );
+      echo isset($pageNames[$menuItem]) ? $pageNames[$menuItem] : 'Homepage';
+    ?></span>
 
     <main class="site-main">
 
@@ -1085,8 +1144,24 @@
     'prayer.html':        'wmpc_s_focus_prayer_week_04_09v2.html'
   };
 
+  var pageNames = {
+    'index.html': 'Homepage',
+    'mission.html': 'Mission',
+    'sermons.html': 'Sermons',
+    'testimony.html': 'Testimony',
+    'request.html': 'Prayers',
+    '24hrhop.html': 'Church',
+    'support.html': 'Donations',
+    'media.html': 'Media',
+    'letters.html': 'Letters',
+    'canaan_record.html': 'Canaan',
+    'hymns.html': 'Hymns',
+    'prayer.html': 'Prayer'
+  };
+
   var mainEl = document.querySelector('.site-main');
   var loader = document.getElementById('spaLoader');
+  var contentLabel = document.getElementById('contentCardLabel');
   var cache  = {};  // fragment cache: avoid refetching same page
 
   // Extract filename from any href
@@ -1154,8 +1229,10 @@
       // Smooth momentum scroll to top
       window.scrollTo({ top: 0, behavior: 'smooth' });
 
-      // Update active page indicator in FAB
-      updateActiveNav(routeKey(displayUrl || window.location.href));
+      // Update active page indicator in FAB and content card label
+      var activeKey = routeKey(displayUrl || window.location.href);
+      updateActiveNav(activeKey);
+      if (contentLabel) contentLabel.textContent = pageNames[activeKey] || 'Homepage';
 
       loaderDone();
     };
