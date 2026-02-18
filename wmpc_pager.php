@@ -72,13 +72,12 @@
       margin: 12px 0;
     }
 
-    /* --- Info bar (service times) — Google Play split pill --- */
+    /* --- Info bar (service times) --- */
     .site-info-bar {
       display: flex;
       align-items: stretch;
       flex: 1;
       min-width: 0;
-      gap: 3px;
     }
     .info-bar-text {
       flex: 1;
@@ -89,7 +88,7 @@
       text-align: center;
       padding: 10px 16px;
       font-size: 14px;
-      border-radius: 26px 6px 6px 26px;
+      border-radius: 26px;
       box-shadow:
         0 1px 3px rgba(0,0,0,0.08),
         0 4px 12px rgba(0,0,0,0.10);
@@ -98,45 +97,6 @@
     .info-bar-scroll {
       display: inline-block;
       white-space: nowrap;
-    }
-    .info-bar-webex {
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      flex-shrink: 0;
-      width: 48px;
-      background: #CC0000;
-      border: none;
-      border-radius: 6px 26px 26px 6px;
-      color: #fff;
-      text-decoration: none;
-      cursor: pointer;
-      box-shadow:
-        0 1px 3px rgba(0,0,0,0.08),
-        0 4px 12px rgba(0,0,0,0.10);
-      transition: background-color 0.15s, box-shadow 0.5s ease;
-      -webkit-tap-highlight-color: transparent;
-    }
-    .info-bar-webex:hover { background: #A80000; }
-    .info-bar-webex:active { background: #900000; }
-    .info-bar-webex img {
-      width: 26px;
-      height: 26px;
-      border-radius: 4px;
-      box-shadow: none;
-      margin: 0;
-      animation: webex-bounce 5s ease-in-out infinite;
-      animation-delay: 1s;
-    }
-    @keyframes webex-bounce {
-      0%, 80%, 100% { transform: translateY(0) scaleY(1) scaleX(1); }
-      83%           { transform: translateY(2px) scaleY(0.82) scaleX(1.16); }
-      86%           { transform: translateY(-5px) scaleY(1.12) scaleX(0.90); }
-      88.5%         { transform: translateY(-5px) scaleY(1.10) scaleX(0.91); }
-      91%           { transform: translateY(-4px) scaleY(1.08) scaleX(0.92); }
-      94%           { transform: translateY(2px) scaleY(0.84) scaleX(1.14); }
-      97%           { transform: translateY(-1px) scaleY(1.04) scaleX(0.97); }
-      99%           { transform: translateY(0) scaleY(0.97) scaleX(1.02); }
     }
 
     /* --- Top row icon buttons (One UI contained, circular) --- */
@@ -685,12 +645,6 @@
       color: #FFE082;
       box-shadow: 0 1px 3px rgba(0,0,0,0.25), 0 4px 12px rgba(0,0,0,0.30);
     }
-    body.dark-mode .info-bar-webex {
-      background: #4A3768;
-      box-shadow: 0 1px 3px rgba(0,0,0,0.25), 0 4px 12px rgba(0,0,0,0.30);
-    }
-    body.dark-mode .info-bar-webex:hover { background: #5A4878; }
-    body.dark-mode .info-bar-webex:active { background: #3D2D5C; }
     body.dark-mode .site-top-btn {
       background: #1E3450;
     }
@@ -765,9 +719,6 @@
       <div class="info-bar-text">
         <span class="info-bar-scroll">全年無休 | 晨禱禮拜：6:30am - 8:00am | 晚禱禮拜：8:00pm - 9:00pm | 主日崇拜 周日：10:00am 開始</span>
       </div>
-      <a class="info-bar-webex" href="https://allworldmissionprayercenterinc-321.my.webex.com/meet/awmpc" target="_blank" rel="noopener" aria-label="Join Webex">
-        <img src="https://www.google.com/s2/favicons?domain=webex.com&sz=32" alt="Webex" />
-      </a>
     </div>
     <button class="site-top-btn" id="themeToggle" type="button" aria-label="Toggle dark mode">
       <div class="theme-icon-flip">
