@@ -270,21 +270,21 @@
     }
     .webex-card-left {
       flex: 0 0 40%;
-      display: flex;
-      align-items: center;
-      justify-content: flex-end;
+      position: relative;
       overflow: hidden;
-      padding-right: 0;
     }
     .webex-card-logo {
+      position: absolute !important;
+      top: 50%;
+      right: -30%;
+      transform: translateY(-50%);
       width: auto !important;
       height: 385% !important;
+      max-width: none !important;
       object-fit: contain !important;
       border-radius: 0 !important;
       box-shadow: none !important;
-      margin-bottom: 0 !important;
-      margin-right: -30%;
-      position: relative;
+      margin: 0 !important;
       z-index: 0;
     }
     .webex-card-divider {
