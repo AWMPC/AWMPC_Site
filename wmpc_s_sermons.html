@@ -1,4 +1,41 @@
 <style>
+.sermon-search {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: #E8ECF0;
+  border-radius: 26px;
+  padding: 10px 18px;
+  margin-bottom: 16px;
+  transition: background-color 0.5s ease, box-shadow 0.2s ease;
+}
+.sermon-search:focus-within {
+  box-shadow: 0 0 0 2px #5B9BD5;
+}
+.sermon-search-icon {
+  flex-shrink: 0;
+  width: 20px;
+  height: 20px;
+  opacity: 0.45;
+}
+.sermon-search input {
+  flex: 1;
+  border: none;
+  outline: none;
+  background: transparent;
+  font-size: 15px;
+  color: inherit;
+  font-family: inherit;
+}
+.sermon-search input::placeholder {
+  color: inherit;
+  opacity: 0.45;
+}
+.sermon-count {
+  font-size: 12px;
+  opacity: 0.5;
+  margin-bottom: 12px;
+}
 .sermon-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
@@ -7,14 +44,16 @@
 .sermon-card {
   border-radius: 16px;
   overflow: hidden;
-  background: rgba(0,0,0,0.03);
-  box-shadow: 0 1px 2px rgba(0,0,0,0.04), 0 2px 8px rgba(0,0,0,0.06);
-  transition: box-shadow 0.2s, transform 0.2s;
+  background: #EDF0F4;
+  border: 1px solid rgba(0,0,0,0.06);
+  box-shadow: 0 1px 3px rgba(0,0,0,0.06), 0 3px 10px rgba(0,0,0,0.08);
+  transition: box-shadow 0.2s, transform 0.2s, background-color 0.5s ease, border-color 0.5s ease;
 }
 .sermon-card:hover {
-  box-shadow: 0 2px 4px rgba(0,0,0,0.08), 0 6px 16px rgba(0,0,0,0.12);
+  box-shadow: 0 2px 6px rgba(0,0,0,0.10), 0 8px 20px rgba(0,0,0,0.14);
   transform: translateY(-2px);
 }
+.sermon-card.hidden { display: none; }
 .sermon-card video,
 .sermon-card iframe {
   width: 100%;
@@ -41,11 +80,28 @@
   line-height: 1.3;
   margin: 0;
 }
+body.dark-mode .sermon-search {
+  background: #1A2D4A;
+}
+body.dark-mode .sermon-card {
+  background: #1A2D4A;
+  border-color: rgba(255,255,255,0.08);
+  box-shadow: 0 1px 3px rgba(0,0,0,0.20), 0 3px 10px rgba(0,0,0,0.25);
+}
+body.dark-mode .sermon-card:hover {
+  box-shadow: 0 2px 6px rgba(0,0,0,0.25), 0 8px 20px rgba(0,0,0,0.35);
+}
 </style>
 
 <h2 style="color:#CC0000; margin: 0 0 12px;">AWMPC Sermons</h2>
 
-<div class="sermon-grid">
+<div class="sermon-search">
+  <svg class="sermon-search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+  <input type="text" id="sermonSearch" placeholder="Search sermons..." />
+</div>
+<div class="sermon-count" id="sermonCount"></div>
+
+<div class="sermon-grid" id="sermonGrid">
   <div class="sermon-card">
     <video   controls preload="none"
                     poster="./videos/201109/DVD Video Recording-8.jpg">
@@ -1541,3 +1597,34 @@
   </div>
 
 </div>
+
+<script>
+(function() {
+  var input = document.getElementById('sermonSearch');
+  var grid = document.getElementById('sermonGrid');
+  var countEl = document.getElementById('sermonCount');
+  if (!input || !grid) return;
+
+  var cards = grid.querySelectorAll('.sermon-card');
+  var total = cards.length;
+
+  function update() {
+    var q = input.value.toLowerCase().trim();
+    var visible = 0;
+    for (var i = 0; i < cards.length; i++) {
+      var title = cards[i].querySelector('.sermon-card-title');
+      var desc = cards[i].querySelector('.sermon-card-desc');
+      var text = (title ? title.textContent : '') + ' ' + (desc ? desc.textContent : '');
+      var match = !q || text.toLowerCase().indexOf(q) !== -1;
+      cards[i].classList.toggle('hidden', !match);
+      if (match) visible++;
+    }
+    if (countEl) {
+      countEl.textContent = q ? visible + ' of ' + total + ' sermons' : total + ' sermons';
+    }
+  }
+
+  input.addEventListener('input', update);
+  update();
+})();
+</script>
