@@ -217,10 +217,11 @@
       min-width: 0;
       border-radius: 16px;
       overflow: hidden;
+      background: #E8ECF0;
       box-shadow:
         0 1px 2px rgba(0,0,0,0.06),
         0 4px 12px rgba(0,0,0,0.08);
-      transition: box-shadow 0.2s, transform 0.2s;
+      transition: box-shadow 0.2s, transform 0.2s, background-color 0.5s ease;
     }
     .quick-links a:hover {
       box-shadow:
@@ -231,7 +232,7 @@
     .quick-links img {
       width: 100%;
       height: 100%;
-      object-fit: cover;
+      object-fit: contain;
       display: block;
       border-radius: 0;
       box-shadow: none;
@@ -269,7 +270,7 @@
     }
     .webex-card-link:hover .webex-card-logo,
     .webex-card-link:active .webex-card-logo {
-      left: -6px;
+      left: 0px;
     }
     .webex-card-divider {
       flex-shrink: 0;
@@ -693,6 +694,7 @@
       box-shadow: 0 1px 3px rgba(0,0,0,0.25), 0 4px 12px rgba(0,0,0,0.30);
     }
     body.dark-mode .quick-links a {
+      background: #1A2D4A;
       box-shadow: 0 1px 3px rgba(0,0,0,0.25), 0 4px 12px rgba(0,0,0,0.30);
     }
     body.dark-mode .site-footer-divider { border-top-color: #2A4060; }
