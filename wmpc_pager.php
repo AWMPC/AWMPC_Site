@@ -279,7 +279,7 @@
       right: -30%;
       transform: translateY(-50%);
       width: auto !important;
-      height: 385% !important;
+      height: 85% !important;
       max-width: none !important;
       object-fit: contain !important;
       border-radius: 0 !important;
