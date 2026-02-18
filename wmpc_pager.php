@@ -732,14 +732,14 @@
 <div class="site-wrap">
 
   <!-- Top banner -->
-  <div class="site-banner">
+  <a href="./index.html" class="site-banner">
     <img src="./resources/images/wmpc_topbanner_transparent.png" alt="All World Mission Prayer Center" />
-  </div>
+  </a>
 
   <!-- Main banner image -->
-  <div class="site-main-banner">
+  <a href="./index.html" class="site-main-banner">
     <img src="./webData/components/wmpc_mainbanner2.gif" alt="AWMPC Church Banner" />
-  </div>
+  </a>
 
 
   <!-- Quick links grid -->
