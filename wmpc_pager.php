@@ -258,6 +258,41 @@
       box-shadow: none;
       margin-bottom: 0;
     }
+    .webex-card {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      width: 100%;
+      height: 100%;
+      background: #EDF1F5;
+      transition: background-color 0.5s ease, color 0.5s ease;
+    }
+    .webex-card-logo {
+      width: 40px !important;
+      height: 40px !important;
+      object-fit: contain !important;
+      border-radius: 0 !important;
+      box-shadow: none !important;
+      margin-bottom: 0 !important;
+      flex-shrink: 0;
+    }
+    .webex-card-text {
+      font-size: 13px;
+      font-weight: 600;
+      color: #1A1A1A;
+      text-align: center;
+      line-height: 1.2;
+      transition: color 0.5s ease;
+    }
+    body.dark-mode .webex-card {
+      background: #1E3450;
+    }
+    body.dark-mode .webex-card-text {
+      color: #E0E8F0;
+    }
+
     @media (max-width: 768px) {
       .quick-links {
         display: grid;
@@ -666,7 +701,12 @@
     <a href="./sermons.html"><img src="./webData/components/adwindow_dailysermon.jpg" alt="Daily Sermon" loading="lazy" /></a>
     <a href="./request.html"><img src="./webData/components/adwindow_prayerrequest.jpg" alt="Prayer Request" loading="lazy" /></a>
     <a href="./mission.html"><img src="./resources/images/sidebar_mission.jpg" alt="Mission" loading="lazy" /></a>
-    <a href="https://allworldmissionprayercenterinc-321.my.webex.com/meet/awmpc" target="_blank" rel="noopener"><img src="./resources/images/awmpc_webex_join_banner.png" alt="Join Webex" loading="lazy" /></a>
+    <a href="https://allworldmissionprayercenterinc-321.my.webex.com/meet/awmpc" target="_blank" rel="noopener" class="webex-card-link">
+      <span class="webex-card">
+        <img src="https://www.google.com/s2/favicons?domain=webex.com&sz=128" alt="" class="webex-card-logo" />
+        <span class="webex-card-text">Join on Webex!</span>
+      </span>
+    </a>
   </div>
 
   <!-- Page content -->
