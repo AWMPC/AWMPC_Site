@@ -264,36 +264,40 @@
       width: 100%;
       height: 100%;
       background:
-        radial-gradient(circle at 100% 0%, rgba(0,0,0,0.10) 0%, transparent 70%),
-        #D8E0EA;
-      transition: background-color 0.5s ease;
+        linear-gradient(135deg, rgba(255,255,255,0.12) 0%, transparent 40%, rgba(0,0,0,0.22) 100%),
+        #D0D8E4;
+      transition: background 0.5s ease;
     }
     .webex-card-left {
       flex: 0 0 40%;
       display: flex;
       align-items: center;
-      justify-content: center;
+      justify-content: flex-end;
       overflow: hidden;
+      padding-right: 0;
     }
     .webex-card-logo {
       width: auto !important;
-      height: 80% !important;
+      height: 88% !important;
       object-fit: contain !important;
       border-radius: 0 !important;
       box-shadow: none !important;
       margin-bottom: 0 !important;
-      margin-right: -6px;
+      margin-right: -15%;
       position: relative;
+      z-index: 0;
     }
     .webex-card-divider {
       flex-shrink: 0;
-      width: 3px;
+      width: 4px;
       align-self: center;
-      height: 70%;
-      background: rgba(0,0,0,0.13);
-      border-radius: 3px;
-      mask-image: radial-gradient(ellipse 3px 50% at center, black 0%, transparent 100%);
-      -webkit-mask-image: radial-gradient(ellipse 3px 50% at center, black 0%, transparent 100%);
+      height: 80%;
+      background: rgba(0,0,0,0.15);
+      border-radius: 4px;
+      position: relative;
+      z-index: 1;
+      mask-image: radial-gradient(ellipse 4px 50% at center, black 0%, transparent 100%);
+      -webkit-mask-image: radial-gradient(ellipse 4px 50% at center, black 0%, transparent 100%);
     }
     .webex-card-right {
       flex: 1 1 0;
@@ -301,30 +305,34 @@
       flex-direction: column;
       align-items: center;
       justify-content: center;
-      padding: 0 6px;
+      padding: 0 8px;
       min-width: 0;
+      position: relative;
+      z-index: 1;
     }
     .webex-card-line1 {
-      font-size: 11px;
+      font-size: 0.85em;
       font-weight: 500;
       color: #3A3A3A;
-      line-height: 1.3;
+      line-height: 1.2;
       transition: color 0.5s ease;
+      white-space: nowrap;
     }
     .webex-card-line2 {
-      font-size: 15px;
+      font-size: 1.25em;
       font-weight: 700;
       color: #1A1A1A;
-      line-height: 1.3;
+      line-height: 1.2;
       transition: color 0.5s ease;
+      white-space: nowrap;
     }
     body.dark-mode .webex-card {
       background:
-        radial-gradient(circle at 100% 0%, rgba(0,0,0,0.25) 0%, transparent 70%),
+        linear-gradient(135deg, rgba(255,255,255,0.04) 0%, transparent 40%, rgba(0,0,0,0.35) 100%),
         #1E3450;
     }
     body.dark-mode .webex-card-divider {
-      background: rgba(255,255,255,0.15);
+      background: rgba(255,255,255,0.18);
     }
     body.dark-mode .webex-card-line1 {
       color: #B0C4D8;
