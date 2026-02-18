@@ -276,7 +276,7 @@
     .webex-card-logo {
       position: absolute !important;
       top: 50%;
-      right: -30%;
+      left: 6px;
       transform: translateY(-50%);
       width: auto !important;
       height: 92% !important;
@@ -305,7 +305,7 @@
       flex-direction: column;
       align-items: center;
       justify-content: center;
-      padding: 0 14px;
+      padding: 0 10px 0 6px;
       min-width: 0;
       position: relative;
       z-index: 1;
