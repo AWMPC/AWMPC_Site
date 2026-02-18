@@ -313,7 +313,7 @@
     .webex-card-line1 {
       font-size: 1.05em;
       font-weight: 600;
-      color: #2A2A2A;
+      color: #1A1A1A;
       line-height: 1.15;
       transition: color 0.5s ease;
       white-space: nowrap;
@@ -335,7 +335,7 @@
       background: rgba(255,255,255,0.50);
     }
     body.dark-mode .webex-card-line1 {
-      color: #B0C4D8;
+      color: #E0E8F0;
     }
     body.dark-mode .webex-card-line2 {
       color: #E0E8F0;
@@ -752,7 +752,7 @@
     <a href="https://allworldmissionprayercenterinc-321.my.webex.com/meet/awmpc" target="_blank" rel="noopener" class="webex-card-link">
       <span class="webex-card">
         <span class="webex-card-left">
-          <img src="https://logo.clearbit.com/webex.com" alt="" class="webex-card-logo" />
+          <img src="https://developer.webex.com/images/webex-logo-icon-non-contained.svg" alt="" class="webex-card-logo" />
         </span>
         <span class="webex-card-divider"></span>
         <span class="webex-card-right">
