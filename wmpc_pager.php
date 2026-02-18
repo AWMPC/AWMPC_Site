@@ -45,6 +45,7 @@
       width: 100%;
       margin: 0 auto;
       padding: 0 12px;
+      padding-bottom: calc(66px + env(safe-area-inset-bottom, 0px));
     }
 
     /* --- Top banner (One UI focus block) --- */
@@ -64,12 +65,23 @@
       height: auto;
     }
 
-    /* --- Top row: info bar + action buttons --- */
-    .site-top-row {
+    /* --- Bottom bar: info bar + action buttons (sticky) --- */
+    .site-bottom-bar {
+      position: fixed;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      z-index: 10000;
       display: flex;
       align-items: center;
-      gap: 8px;
-      margin: 12px 0;
+      gap: 6px;
+      padding: 8px 12px;
+      padding-bottom: calc(8px + env(safe-area-inset-bottom, 0px));
+      background: rgba(245, 247, 248, 0.88);
+      backdrop-filter: blur(20px) saturate(1.8);
+      -webkit-backdrop-filter: blur(20px) saturate(1.8);
+      box-shadow: 0 -1px 3px rgba(0,0,0,0.06), 0 -4px 12px rgba(0,0,0,0.08);
+      transition: background-color 0.5s ease, box-shadow 0.5s ease;
     }
 
     /* --- Info bar (service times) --- */
@@ -86,8 +98,8 @@
       background: #CC0000;
       color: #fff;
       text-align: center;
-      padding: 10px 16px;
-      font-size: 14px;
+      padding: 8px 16px;
+      font-size: 13px;
       border-radius: 26px;
       box-shadow:
         0 1px 3px rgba(0,0,0,0.08),
@@ -99,14 +111,14 @@
       white-space: nowrap;
     }
 
-    /* --- Top row icon buttons (One UI contained, circular) --- */
+    /* --- Bottom bar icon buttons (One UI contained, circular) --- */
     .site-top-btn {
       display: flex;
       align-items: center;
       justify-content: center;
       flex-shrink: 0;
-      width: 40px;
-      height: 40px;
+      width: 42px;
+      height: 42px;
       border-radius: 50%;
       border: none;
       background: #212121;
@@ -414,12 +426,9 @@
     }
 
     .fab-btn {
-      position: fixed;
-      bottom: 24px;
-      right: 24px;
-      z-index: 10000;
-      width: 56px;
-      height: 56px;
+      flex-shrink: 0;
+      width: 42px;
+      height: 42px;
       border-radius: 50%;
       border: none;
       background: #fff;
@@ -429,7 +438,7 @@
       justify-content: center;
       box-shadow:
         0 1px 3px rgba(0,0,0,0.10),
-        0 6px 20px rgba(0,0,0,0.14);
+        0 4px 12px rgba(0,0,0,0.12);
       transition:
         box-shadow 0.35s cubic-bezier(0.22, 0.61, 0.36, 1),
         background-color 0.5s ease;
@@ -439,7 +448,7 @@
     .fab-btn:hover {
       box-shadow:
         0 2px 6px rgba(0,0,0,0.14),
-        0 10px 28px rgba(0,0,0,0.18);
+        0 8px 20px rgba(0,0,0,0.16);
     }
     .fab-btn:active {
       background: #f5f5f5;
@@ -447,7 +456,7 @@
     .fab-btn.open {
       box-shadow:
         0 1px 3px rgba(0,0,0,0.10),
-        0 6px 20px rgba(0,0,0,0.14),
+        0 4px 12px rgba(0,0,0,0.12),
         0 0 0 2.5px rgba(204, 0, 0, 0.3);
     }
     .fab-btn.open:active {
@@ -456,8 +465,8 @@
 
     /* Latin cross icon */
     .fab-icon {
-      width: 26px;
-      height: 32px;
+      width: 20px;
+      height: 24px;
       position: relative;
       transition: transform 0.35s cubic-bezier(0.22, 0.61, 0.36, 1);
     }
@@ -473,7 +482,7 @@
     }
     /* Vertical bar — full height */
     .fab-icon::before {
-      width: 5px;
+      width: 4px;
       height: 100%;
       left: 50%;
       top: 0;
@@ -481,8 +490,8 @@
     }
     /* Horizontal bar — positioned slightly below upper third */
     .fab-icon::after {
-      width: 20px;
-      height: 5px;
+      width: 16px;
+      height: 4px;
       top: 36%;
       left: 50%;
       transform: translate(-50%, -50%);
@@ -491,8 +500,8 @@
     /* Expanded menu sheet */
     .fab-menu {
       position: fixed;
-      bottom: 92px;
-      right: 24px;
+      bottom: calc(58px + env(safe-area-inset-bottom, 0px));
+      right: 12px;
       z-index: 9999;
       background: #fff;
       border-radius: 26px;
@@ -588,16 +597,16 @@
     /* --- One UI Bottom Sheet for small screens --- */
     @media (max-width: 600px) {
       .fab-menu {
-        bottom: 0;
+        bottom: calc(58px + env(safe-area-inset-bottom, 0px));
         right: 0;
         left: 0;
         border-radius: 26px 26px 0 0;
         min-width: unset;
-        max-height: 70dvh;
+        max-height: calc(70dvh - 58px);
         transform: translateY(100%);
         transform-origin: bottom center;
         padding: 8px 16px;
-        padding-bottom: calc(96px + env(safe-area-inset-bottom, 0px));
+        padding-bottom: 12px;
         display: grid;
         grid-template-columns: 1fr 1fr;
         gap: 2px;
@@ -625,7 +634,6 @@
         font-size: 11px;
         padding-left: 4px;
       }
-
     }
 
     /* === Dark mode: deep night blue + starry yellow === */
@@ -639,6 +647,10 @@
     }
     body.dark-mode .section-card-label {
       color: #A0B8D0;
+    }
+    body.dark-mode .site-bottom-bar {
+      background: rgba(14, 28, 48, 0.90);
+      box-shadow: 0 -1px 3px rgba(0,0,0,0.25), 0 -4px 12px rgba(0,0,0,0.30);
     }
     body.dark-mode .info-bar-text {
       background: #4A3768;
@@ -713,20 +725,6 @@
     <img src="./webData/components/wmpc_mainbanner2.gif" alt="AWMPC Church Banner" />
   </div>
 
-  <!-- Service times + action buttons -->
-  <div class="site-top-row">
-    <div class="site-info-bar">
-      <div class="info-bar-text">
-        <span class="info-bar-scroll">全年無休 | 晨禱禮拜：6:30am - 8:00am | 晚禱禮拜：8:00pm - 9:00pm | 主日崇拜 周日：10:00am 開始</span>
-      </div>
-    </div>
-    <button class="site-top-btn" id="themeToggle" type="button" aria-label="Toggle dark mode">
-      <div class="theme-icon-flip">
-        <svg class="icon-sun" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="5"/><path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/></svg>
-        <svg class="icon-moon" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
-      </div>
-    </button>
-  </div>
 
   <!-- Quick links grid -->
   <div class="section-card">
@@ -838,6 +836,24 @@
 
 </div>
 
+<!-- Sticky bottom bar: marquee + theme toggle + FAB -->
+<div class="site-bottom-bar">
+  <div class="site-info-bar">
+    <div class="info-bar-text">
+      <span class="info-bar-scroll">全年無休 | 晨禱禮拜：6:30am - 8:00am | 晚禱禮拜：8:00pm - 9:00pm | 主日崇拜 周日：10:00am 開始</span>
+    </div>
+  </div>
+  <button class="site-top-btn" id="themeToggle" type="button" aria-label="Toggle dark mode">
+    <div class="theme-icon-flip">
+      <svg class="icon-sun" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="5"/><path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/></svg>
+      <svg class="icon-moon" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+    </div>
+  </button>
+  <button class="fab-btn" id="fabBtn" aria-label="Open navigation menu" aria-expanded="false">
+    <div class="fab-icon"></div>
+  </button>
+</div>
+
 <!-- Theme toggle -->
 <script>
 (function() {
@@ -939,9 +955,6 @@
   <a class="fab-menu-item" href="./hymns.html">Hymns <span class="fab-item-zh">讚美詩</span></a>
 </nav>
 
-<button class="fab-btn" id="fabBtn" aria-label="Open navigation menu" aria-expanded="false">
-  <div class="fab-icon"></div>
-</button>
 
 <script>
 (function() {
