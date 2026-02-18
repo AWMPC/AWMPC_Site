@@ -269,7 +269,7 @@
       transition: background 0.5s ease;
     }
     .webex-card-left {
-      flex: 0 0 30%;
+      flex: 0 0 35%;
       position: relative;
       overflow: hidden;
     }
@@ -305,7 +305,7 @@
       flex-direction: column;
       align-items: center;
       justify-content: center;
-      padding: 0 10px 0 6px;
+      padding: 0 10px 0 2px;
       min-width: 0;
       position: relative;
       z-index: 1;
