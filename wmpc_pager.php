@@ -602,16 +602,16 @@
     /* --- One UI Bottom Sheet for small screens --- */
     @media (max-width: 600px) {
       .fab-menu {
-        bottom: calc(58px + env(safe-area-inset-bottom, 0px));
+        bottom: 0;
         right: 0;
         left: 0;
         border-radius: 26px 26px 0 0;
         min-width: unset;
-        max-height: calc(70dvh - 58px);
+        max-height: 70dvh;
         transform: translateY(100%);
         transform-origin: bottom center;
         padding: 8px 16px;
-        padding-bottom: 12px;
+        padding-bottom: calc(66px + env(safe-area-inset-bottom, 0px));
         display: grid;
         grid-template-columns: 1fr 1fr;
         gap: 2px;
