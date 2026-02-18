@@ -223,41 +223,14 @@
       border: 2px solid rgba(0,0,0,0.22);
       box-shadow:
         0 1px 2px rgba(0,0,0,0.06),
-        0 4px 12px rgba(0,0,0,0.08),
-        0 0 0 0 rgba(204,0,0,0);
+        0 4px 12px rgba(0,0,0,0.08);
       transition: box-shadow 0.3s, transform 0.2s, background-color 0.5s ease, border-color 0.5s ease;
-      animation: link-glow 8s ease-in-out infinite;
-    }
-    .quick-links a:nth-child(1) { animation-delay: 0s; }
-    .quick-links a:nth-child(2) { animation-delay: 0.6s; }
-    .quick-links a:nth-child(3) { animation-delay: 1.2s; }
-    .quick-links a:nth-child(4) { animation-delay: 1.8s; }
-    .quick-links a:nth-child(5) { animation-delay: 2.4s; }
-    .quick-links a:nth-child(6) { animation-delay: 3.0s; }
-    @keyframes link-glow {
-      0%, 12%, 100% {
-        box-shadow:
-          0 1px 2px rgba(0,0,0,0.06),
-          0 4px 12px rgba(0,0,0,0.08),
-          0 0 0 0 rgba(204,0,0,0);
-        border-color: rgba(0,0,0,0.22);
-      }
-      6% {
-        box-shadow:
-          0 1px 2px rgba(0,0,0,0.06),
-          0 4px 12px rgba(0,0,0,0.08),
-          0 0 12px 2px rgba(204,0,0,0.18);
-        border-color: rgba(204,0,0,0.35);
-      }
     }
     .quick-links a:hover {
       box-shadow:
         0 2px 4px rgba(0,0,0,0.10),
-        0 8px 20px rgba(0,0,0,0.14),
-        0 0 14px 3px rgba(204,0,0,0.20);
-      border-color: rgba(204,0,0,0.4);
+        0 8px 20px rgba(0,0,0,0.14);
       transform: translateY(-2px);
-      animation: none;
     }
     .quick-links img {
       width: 100%;
