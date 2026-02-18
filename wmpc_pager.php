@@ -215,10 +215,12 @@
       display: block;
       flex: 1 1 0;
       min-width: 0;
+      height: 100%;
+      position: relative;
       border-radius: 16px;
       overflow: hidden;
       background: #E8ECF0;
-      border: 2px solid rgba(0,0,0,0.12);
+      border: 2px solid rgba(0,0,0,0.22);
       box-shadow:
         0 1px 2px rgba(0,0,0,0.06),
         0 4px 12px rgba(0,0,0,0.08),
@@ -238,7 +240,7 @@
           0 1px 2px rgba(0,0,0,0.06),
           0 4px 12px rgba(0,0,0,0.08),
           0 0 0 0 rgba(204,0,0,0);
-        border-color: rgba(0,0,0,0.12);
+        border-color: rgba(0,0,0,0.22);
       }
       6% {
         box-shadow:
@@ -265,6 +267,26 @@
       border-radius: 0;
       box-shadow: none;
       margin-bottom: 0;
+      background: inherit;
+    }
+    .quick-links a::after {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(110deg, transparent 30%, rgba(255,255,255,0.35) 50%, transparent 70%);
+      background-size: 250% 100%;
+      animation: skeleton-shimmer 1.8s ease-in-out infinite;
+      pointer-events: none;
+      z-index: 1;
+      opacity: 1;
+      transition: opacity 0.3s ease;
+    }
+    .quick-links a.loaded::after {
+      opacity: 0;
+    }
+    @keyframes skeleton-shimmer {
+      0% { background-position: 200% 0; }
+      100% { background-position: -50% 0; }
     }
     .webex-card {
       display: flex;
@@ -723,8 +745,12 @@
     }
     body.dark-mode .quick-links a {
       background: #1A2D4A;
-      border-color: rgba(255,255,255,0.15);
+      border-color: rgba(255,255,255,0.25);
       box-shadow: 0 1px 3px rgba(0,0,0,0.25), 0 4px 12px rgba(0,0,0,0.30);
+    }
+    body.dark-mode .quick-links a::after {
+      background: linear-gradient(110deg, transparent 30%, rgba(255,255,255,0.08) 50%, transparent 70%);
+      background-size: 250% 100%;
     }
     body.dark-mode .site-footer-divider { border-top-color: #2A4060; }
     body.dark-mode .site-footer { color: #D4BA5C; }
@@ -907,6 +933,20 @@
     <div class="fab-icon"></div>
   </button>
 </div>
+
+<!-- Quick-links skeleton → loaded transition -->
+<script>
+(function() {
+  var links = document.querySelectorAll('.quick-links a');
+  links.forEach(function(a) {
+    var img = a.querySelector('img');
+    if (!img) { a.classList.add('loaded'); return; }
+    if (img.complete) { a.classList.add('loaded'); return; }
+    img.addEventListener('load', function() { a.classList.add('loaded'); });
+    img.addEventListener('error', function() { a.classList.add('loaded'); });
+  });
+})();
+</script>
 
 <!-- Theme toggle -->
 <script>
