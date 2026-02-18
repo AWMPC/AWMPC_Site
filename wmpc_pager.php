@@ -50,6 +50,7 @@
 
     /* --- Top banner (One UI focus block) --- */
     .site-banner {
+      display: block;
       text-align: center;
       padding: 12px 0;
       background-color: #BDA58B;
@@ -172,6 +173,7 @@
 
     /* --- Main banner GIF (One UI card) --- */
     .site-main-banner {
+      display: block;
       text-align: center;
       overflow: hidden;
       border-radius: 16px;
