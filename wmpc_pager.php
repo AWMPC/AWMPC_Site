@@ -65,23 +65,28 @@
       height: auto;
     }
 
-    /* --- Bottom bar: info bar + action buttons (sticky) --- */
+    /* --- Bottom bar: floating pill with glazed glass --- */
     .site-bottom-bar {
       position: fixed;
-      bottom: 0;
-      left: 0;
-      right: 0;
+      bottom: calc(8px + env(safe-area-inset-bottom, 0px));
+      left: 12px;
+      right: 12px;
+      max-width: 1100px;
+      margin: 0 auto;
       z-index: 10000;
       display: flex;
       align-items: center;
       gap: 6px;
-      padding: 8px 12px;
-      padding-bottom: calc(8px + env(safe-area-inset-bottom, 0px));
-      background: rgba(245, 247, 248, 0.88);
-      backdrop-filter: blur(20px) saturate(1.8);
-      -webkit-backdrop-filter: blur(20px) saturate(1.8);
-      box-shadow: 0 -1px 3px rgba(0,0,0,0.06), 0 -4px 12px rgba(0,0,0,0.08);
-      transition: background-color 0.5s ease, box-shadow 0.5s ease;
+      padding: 6px;
+      border-radius: 50px;
+      background: rgba(255, 255, 255, 0.45);
+      backdrop-filter: blur(24px) saturate(1.8);
+      -webkit-backdrop-filter: blur(24px) saturate(1.8);
+      border: 1px solid rgba(255, 255, 255, 0.55);
+      box-shadow:
+        0 2px 8px rgba(0,0,0,0.06),
+        0 8px 24px rgba(0,0,0,0.10);
+      transition: background-color 0.5s ease, box-shadow 0.5s ease, border-color 0.5s ease;
     }
 
     /* --- Info bar (service times) --- */
@@ -649,8 +654,11 @@
       color: #A0B8D0;
     }
     body.dark-mode .site-bottom-bar {
-      background: rgba(14, 28, 48, 0.90);
-      box-shadow: 0 -1px 3px rgba(0,0,0,0.25), 0 -4px 12px rgba(0,0,0,0.30);
+      background: rgba(14, 28, 48, 0.50);
+      border-color: rgba(255, 255, 255, 0.10);
+      box-shadow:
+        0 2px 8px rgba(0,0,0,0.20),
+        0 8px 24px rgba(0,0,0,0.30);
     }
     body.dark-mode .info-bar-text {
       background: #4A3768;
