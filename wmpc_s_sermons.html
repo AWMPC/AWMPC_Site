@@ -1,2073 +1,1543 @@
 <style>
-        /* video overlay */
-
-        .overlay {
-            background-image: url(new_website/images/white.png);
-            padding: 40px;
-            width: 100%;
-            max-width: 576px;
-            display: none;
-        }
-
-        .close {
-            background: url(new_website/images/close.png) no-repeat;
-            position: absolute;
-            top: 2px;
-            right: 5px;
-            display: block;
-            width: 35px;
-            height: 35px;
-            cursor: pointer;
-        }
-
-        a.player {
-            display: block;
-            height: 450px;
-        }
-
-        /* some styling for triggers */
-        img.trigger {
-            cursor: pointer;
-            border-style: solid;
-            border-color: blue;
-            border-width: 2px;
-        }
+.sermon-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: 16px;
+}
+.sermon-card {
+  border-radius: 16px;
+  overflow: hidden;
+  background: rgba(0,0,0,0.03);
+  box-shadow: 0 1px 2px rgba(0,0,0,0.04), 0 2px 8px rgba(0,0,0,0.06);
+  transition: box-shadow 0.2s, transform 0.2s;
+}
+.sermon-card:hover {
+  box-shadow: 0 2px 4px rgba(0,0,0,0.08), 0 6px 16px rgba(0,0,0,0.12);
+  transform: translateY(-2px);
+}
+.sermon-card video,
+.sermon-card iframe {
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  display: block;
+  border-radius: 0;
+  box-shadow: none;
+  margin: 0;
+}
+.sermon-card-body {
+  padding: 12px 14px;
+}
+.sermon-card-title {
+  font-size: 14px;
+  font-weight: 600;
+  line-height: 1.4;
+  margin: 0 0 4px;
+  color: inherit;
+}
+.sermon-card-desc {
+  font-size: 13px;
+  font-weight: 400;
+  opacity: 0.7;
+  line-height: 1.3;
+  margin: 0;
+}
 </style>
 
+<h2 style="color:#CC0000; margin: 0 0 12px;">AWMPC Sermons</h2>
 
-    <table border="1">
-        <caption style="text-align:left; color:red">
-            <h2>AWMPC Sermons</h2>
-        </caption>
-
-        <!-- Header line for the table -->
-        <tr>
-            <th height="24">Number</th>
-            <th>Date</th>
-            <th>Topic</th>
-            <th>Keywords</th>
-            <th>Bible Verses</th>
-            <th>Video</th>
-        </tr>
-
-        <!-- Table contents -->
-        <!-- Cut and paste one block below and change the contents and links for new additions -->
-        <tr>
-            <td>150</td>
-            <td>2011-08-25.8</td>
-            <td>主日崇拜</td>
-            <td>&nbsp;</td>
-            <td>&nbsp;</td>
-            <td>
-                <video width="320" height="180" controls preload="none"
+<div class="sermon-grid">
+  <div class="sermon-card">
+    <video   controls preload="none"
                     poster="./videos/201109/DVD Video Recording-8.jpg">
                     <source src="./videos/201109/DVD Video Recording-8.mp4" type="video/mp4">
                 </video>
-            </td>
-        </tr>
+    <div class="sermon-card-body">
+      <p class="sermon-card-title">150 | 2011-08-25.8 | 主日崇拜</p>
+    </div>
+  </div>
 
-        <tr>
-            <td>149</td>
-            <td>2011-08-25.7</td>
-            <td>主日崇拜</td>
-            <td>&nbsp;</td>
-            <td>&nbsp;</td>
-            <td>
-                <video width="320" height="180" controls preload="none"
+  <div class="sermon-card">
+    <video   controls preload="none"
                     poster="./videos/201109/DVD Video Recording-7.jpg">
                     <source src="./videos/201109/DVD Video Recording-7.mp4" type="video/mp4">
                 </video>
-            </td>
-        </tr>
+    <div class="sermon-card-body">
+      <p class="sermon-card-title">149 | 2011-08-25.7 | 主日崇拜</p>
+    </div>
+  </div>
 
-        <tr>
-            <td>148</td>
-            <td>2011-08-25.6</td>
-            <td>晨禱</td>
-            <td>&nbsp;</td>
-            <td>&nbsp;</td>
-            <td>
-                <video width="320" height="180" controls preload="none"
+  <div class="sermon-card">
+    <video   controls preload="none"
                     poster="./videos/201109/DVD Video Recording-6.jpg">
                     <source src="./videos/201109/DVD Video Recording-6.mp4" type="video/mp4">
                 </video>
-            </td>
-        </tr>
+    <div class="sermon-card-body">
+      <p class="sermon-card-title">148 | 2011-08-25.6 | 晨禱</p>
+    </div>
+  </div>
 
-        <tr>
-            <td>147</td>
-            <td>2011-08-25.5</td>
-            <td>晨禱</td>
-            <td>&nbsp;</td>
-            <td>&nbsp;</td>
-            <td>
-                <video width="320" height="180" controls preload="none"
+  <div class="sermon-card">
+    <video   controls preload="none"
                     poster="./videos/201109/DVD Video Recording-5.jpg">
                     <source src="./videos/201109/DVD Video Recording-5.mp4" type="video/mp4">
                 </video>
-            </td>
-        </tr>
+    <div class="sermon-card-body">
+      <p class="sermon-card-title">147 | 2011-08-25.5 | 晨禱</p>
+    </div>
+  </div>
 
-        <tr>
-            <td>146</td>
-            <td>2011-08-25.4</td>
-            <td>晨禱</td>
-            <td>&nbsp;</td>
-            <td>&nbsp;</td>
-            <td>
-                <video width="320" height="180" controls preload="none"
+  <div class="sermon-card">
+    <video   controls preload="none"
                     poster="./videos/201109/DVD Video Recording-4.jpg">
                     <source src="./videos/201109/DVD Video Recording-4.mp4" type="video/mp4">
                 </video>
-            </td>
-        </tr>
+    <div class="sermon-card-body">
+      <p class="sermon-card-title">146 | 2011-08-25.4 | 晨禱</p>
+    </div>
+  </div>
 
-        <tr>
-            <td>145</td>
-            <td>2011-08-25.3</td>
-            <td>晨禱</td>
-            <td>&nbsp;</td>
-            <td>&nbsp;</td>
-            <td>
-                <video width="320" height="180" controls preload="none"
+  <div class="sermon-card">
+    <video   controls preload="none"
                     poster="./videos/201109/DVD Video Recording-3.jpg">
                     <source src="./videos/201109/DVD Video Recording-3.mp4" type="video/mp4">
                 </video>
-            </td>
-        </tr>
+    <div class="sermon-card-body">
+      <p class="sermon-card-title">145 | 2011-08-25.3 | 晨禱</p>
+    </div>
+  </div>
 
-        <tr>
-            <td>144</td>
-            <td>2011-08-25.2</td>
-            <td>晨禱</td>
-            <td>&nbsp;</td>
-            <td>&nbsp;</td>
-            <td>
-                <video width="320" height="180" controls preload="none"
+  <div class="sermon-card">
+    <video   controls preload="none"
                     poster="./videos/201109/DVD Video Recording-2.jpg">
                     <source src="./videos/201109/DVD Video Recording-2.mp4" type="video/mp4">
                 </video>
-            </td>
-        </tr>
+    <div class="sermon-card-body">
+      <p class="sermon-card-title">144 | 2011-08-25.2 | 晨禱</p>
+    </div>
+  </div>
 
-        <tr>
-            <td>143</td>
-            <td>2011-08-25.1</td>
-            <td>主日崇拜</td>
-            <td>&nbsp;</td>
-            <td>&nbsp;</td>
-            <td>
-                <video width="320" height="180" controls preload="none"
+  <div class="sermon-card">
+    <video   controls preload="none"
                     poster="./videos/201109/DVD Video Recording-1.jpg">
                     <source src="./videos/201109/DVD Video Recording-1.mp4" type="video/mp4">
                 </video>
-            </td>
-        </tr>
+    <div class="sermon-card-body">
+      <p class="sermon-card-title">143 | 2011-08-25.1 | 主日崇拜</p>
+    </div>
+  </div>
 
-        <tr>
-            <td>142</td>
-            <td>2011-08-1.10</td>
-            <td>晨禱</td>
-            <td>&nbsp;</td>
-            <td>&nbsp;</td>
-            <td>
-                <video width="320" height="180" controls preload="none"
+  <div class="sermon-card">
+    <video   controls preload="none"
                     poster="./videos/201108/DVD Video Recording-12.jpg">
                     <source src="./videos/201108/DVD Video Recording-12.mp4" type="video/mp4">
                 </video>
-            </td>
-        </tr>
+    <div class="sermon-card-body">
+      <p class="sermon-card-title">142 | 2011-08-1.10 | 晨禱</p>
+    </div>
+  </div>
 
-        <tr>
-            <td>141</td>
-            <td>2011-08-1.9</td>
-            <td>主日崇拜</td>
-            <td>&nbsp;</td>
-            <td>&nbsp;</td>
-            <td>
-                <video width="320" height="180" controls preload="none"
+  <div class="sermon-card">
+    <video   controls preload="none"
                     poster="./videos/201108/DVD Video Recording-11.jpg">
                     <source src="./videos/201108/DVD Video Recording-11.mp4" type="video/mp4">
                 </video>
-            </td>
-        </tr>
+    <div class="sermon-card-body">
+      <p class="sermon-card-title">141 | 2011-08-1.9 | 主日崇拜</p>
+    </div>
+  </div>
 
-        <tr>
-            <td>140</td>
-            <td>2011-08-1.8</td>
-            <td>主日崇拜</td>
-            <td>&nbsp;</td>
-            <td>&nbsp;</td>
-            <td>
-                <video width="320" height="180" controls preload="none"
+  <div class="sermon-card">
+    <video   controls preload="none"
                     poster="./videos/201108/DVD Video Recording-10.jpg">
                     <source src="./videos/201108/DVD Video Recording-10.mp4" type="video/mp4">
                 </video>
-            </td>
-        </tr>
+    <div class="sermon-card-body">
+      <p class="sermon-card-title">140 | 2011-08-1.8 | 主日崇拜</p>
+    </div>
+  </div>
 
-        <tr>
-            <td>139</td>
-            <td>2011-08-1.7</td>
-            <td>晨禱</td>
-            <td>&nbsp;</td>
-            <td>&nbsp;</td>
-            <td>
-                <video width="320" height="180" controls preload="none"
+  <div class="sermon-card">
+    <video   controls preload="none"
                     poster="./videos/201108/DVD Video Recording-9.jpg">
                     <source src="./videos/201108/DVD Video Recording-9.mp4" type="video/mp4">
                 </video>
-            </td>
-        </tr>
+    <div class="sermon-card-body">
+      <p class="sermon-card-title">139 | 2011-08-1.7 | 晨禱</p>
+    </div>
+  </div>
 
-        <tr>
-            <td>138</td>
-            <td>2011-08-1.6</td>
-            <td>主日崇拜</td>
-            <td>&nbsp;</td>
-            <td>&nbsp;</td>
-            <td>
-                <video width="320" height="180" controls preload="none"
+  <div class="sermon-card">
+    <video   controls preload="none"
                     poster="./videos/201108/DVD Video Recording-8.jpg">
                     <source src="./videos/201108/DVD Video Recording-8.mp4" type="video/mp4">
                 </video>
-            </td>
-        </tr>
+    <div class="sermon-card-body">
+      <p class="sermon-card-title">138 | 2011-08-1.6 | 主日崇拜</p>
+    </div>
+  </div>
 
-        <tr>
-            <td>137</td>
-            <td>2011-08-1.5</td>
-            <td>主日崇拜</td>
-            <td>&nbsp;</td>
-            <td>&nbsp;</td>
-            <td>
-                <video width="320" height="180" controls preload="none"
+  <div class="sermon-card">
+    <video   controls preload="none"
                     poster="./videos/201108/DVD Video Recording-6.jpg">
                     <source src="./videos/201108/DVD Video Recording-6.mp4" type="video/mp4">
                 </video>
-            </td>
-        </tr>
+    <div class="sermon-card-body">
+      <p class="sermon-card-title">137 | 2011-08-1.5 | 主日崇拜</p>
+    </div>
+  </div>
 
-        <tr>
-            <td>136</td>
-            <td>2011-08-1.4</td>
-            <td>晨禱</td>
-            <td>&nbsp;</td>
-            <td>&nbsp;</td>
-            <td>
-                <video width="320" height="180" controls preload="none"
+  <div class="sermon-card">
+    <video   controls preload="none"
                     poster="./videos/201108/DVD Video Recording-5.jpg">
                     <source src="./videos/201108/DVD Video Recording-5.mp4" type="video/mp4">
                 </video>
-            </td>
-        </tr>
+    <div class="sermon-card-body">
+      <p class="sermon-card-title">136 | 2011-08-1.4 | 晨禱</p>
+    </div>
+  </div>
 
-        <tr>
-            <td>135</td>
-            <td>2011-08-1.3</td>
-            <td>晨禱</td>
-            <td>&nbsp;</td>
-            <td>&nbsp;</td>
-            <td>
-                <video width="320" height="180" controls preload="none"
+  <div class="sermon-card">
+    <video   controls preload="none"
                     poster="./videos/201108/DVD Video Recording-4.jpg">
                     <source src="./videos/201108/DVD Video Recording-4.mp4" type="video/mp4">
                 </video>
-            </td>
-        </tr>
+    <div class="sermon-card-body">
+      <p class="sermon-card-title">135 | 2011-08-1.3 | 晨禱</p>
+    </div>
+  </div>
 
-        <tr>
-            <td>134</td>
-            <td>2011-08-1.2</td>
-            <td>晨禱</td>
-            <td>&nbsp;</td>
-            <td>&nbsp;</td>
-            <td>
-                <video width="320" height="180" controls preload="none"
+  <div class="sermon-card">
+    <video   controls preload="none"
                     poster="./videos/201108/DVD Video Recording-3.jpg">
                     <source src="./videos/201108/DVD Video Recording-3.mp4" type="video/mp4">
                 </video>
-            </td>
-        </tr>
+    <div class="sermon-card-body">
+      <p class="sermon-card-title">134 | 2011-08-1.2 | 晨禱</p>
+    </div>
+  </div>
 
-        <tr>
-            <td>133</td>
-            <td>2011-08-1.1</td>
-            <td>晨禱</td>
-            <td>&nbsp;</td>
-            <td>&nbsp;</td>
-            <td>
-                <video width="320" height="180" controls preload="none"
+  <div class="sermon-card">
+    <video   controls preload="none"
                     poster="./videos/201108/DVD Video Recording-1.jpg">
                     <source src="./videos/201108/DVD Video Recording-1.mp4" type="video/mp4">
                 </video>
-            </td>
-        </tr>
+    <div class="sermon-card-body">
+      <p class="sermon-card-title">133 | 2011-08-1.1 | 晨禱</p>
+    </div>
+  </div>
 
-        <tr>
-            <td>132</td>
-            <td>2010-04-1.12</td>
-            <td>要好好地遇見有信心的朋友</td>
-            <td>&nbsp;</td>
-            <td>歌羅西書 第1章</td>
-            <td>
-                <video width="320" height="240" controls preload="none" poster="./videos/201004/thumbnail13.jpg">
+  <div class="sermon-card">
+    <video   controls preload="none" poster="./videos/201004/thumbnail13.jpg">
                     <source src="./videos/201004/DVD_VIDEO_RECORDER-13.mp4" type="video/mp4">
                 </video>
-            </td>
-        </tr>
+    <div class="sermon-card-body">
+      <p class="sermon-card-title">132 | 2010-04-1.12 | 要好好地遇見有信心的朋友</p>
+      <p class="sermon-card-desc">歌羅西書 第1章</p>
+    </div>
+  </div>
 
-        <tr>
-            <td>131</td>
-            <td>2010-04-1.11</td>
-            <td>耶穌的名就是耶穌</td>
-            <td>&nbsp;</td>
-            <td>使徒行傳 第4章</td>
-            <td>
-                <video width="320" height="240" controls preload="none" poster="./videos/201004/thumbnail12.jpg">
+  <div class="sermon-card">
+    <video   controls preload="none" poster="./videos/201004/thumbnail12.jpg">
                     <source src="./videos/201004/DVD_VIDEO_RECORDER-12.mp4" type="video/mp4">
                 </video>
-            </td>
-        </tr>
+    <div class="sermon-card-body">
+      <p class="sermon-card-title">131 | 2010-04-1.11 | 耶穌的名就是耶穌</p>
+      <p class="sermon-card-desc">使徒行傳 第4章</p>
+    </div>
+  </div>
 
-        <tr>
-            <td>130</td>
-            <td>2010-04-1.10</td>
-            <td>要好好地遇見有信心的朋友</td>
-            <td>&nbsp;</td>
-            <td>使徒行傳 第3章</td>
-            <td>
-                <video width="320" height="240" controls preload="none" poster="./videos/201004/thumbnail11.jpg">
+  <div class="sermon-card">
+    <video   controls preload="none" poster="./videos/201004/thumbnail11.jpg">
                     <source src="./videos/201004/DVD_VIDEO_RECORDER-11.mp4" type="video/mp4">
                 </video>
-            </td>
-        </tr>
+    <div class="sermon-card-body">
+      <p class="sermon-card-title">130 | 2010-04-1.10 | 要好好地遇見有信心的朋友</p>
+      <p class="sermon-card-desc">使徒行傳 第3章</p>
+    </div>
+  </div>
 
-        <tr>
-            <td>129</td>
-            <td>2010-04-1.9</td>
-            <td>正統教會的本質</td>
-            <td>&nbsp;</td>
-            <td>使徒行傳 第2章</td>
-            <td>
-                <video width="320" height="240" controls preload="none" poster="./videos/201004/thumbnail10.jpg">
+  <div class="sermon-card">
+    <video   controls preload="none" poster="./videos/201004/thumbnail10.jpg">
                     <source src="./videos/201004/DVD_VIDEO_RECORDER-10.mp4" type="video/mp4">
                 </video>
-            </td>
-        </tr>
+    <div class="sermon-card-body">
+      <p class="sermon-card-title">129 | 2010-04-1.9 | 正統教會的本質</p>
+      <p class="sermon-card-desc">使徒行傳 第2章</p>
+    </div>
+  </div>
 
-        <tr>
-            <td>128</td>
-            <td>2010-04-1.8</td>
-            <td>有剛強壯膽信心的方法</td>
-            <td>&nbsp;</td>
-            <td>使徒行傳 第1章</td>
-            <td>
-                <video width="320" height="240" controls preload="none" poster="./videos/201004/thumbnail09.jpg">
+  <div class="sermon-card">
+    <video   controls preload="none" poster="./videos/201004/thumbnail09.jpg">
                     <source src="./videos/201004/DVD_VIDEO_RECORDER-9.mp4" type="video/mp4">
                 </video>
-            </td>
-        </tr>
+    <div class="sermon-card-body">
+      <p class="sermon-card-title">128 | 2010-04-1.8 | 有剛強壯膽信心的方法</p>
+      <p class="sermon-card-desc">使徒行傳 第1章</p>
+    </div>
+  </div>
 
-        <tr>
-            <td>127</td>
-            <td>2010-04-1.7</td>
-            <td>神想要的聖潔的旨意</td>
-            <td>&nbsp;</td>
-            <td>以賽亞書 第5章</td>
-            <td>
-                <video width="320" height="240" controls preload="none" poster="./videos/201004/thumbnail08.jpg">
+  <div class="sermon-card">
+    <video   controls preload="none" poster="./videos/201004/thumbnail08.jpg">
                     <source src="./videos/201004/DVD_VIDEO_RECORDER-8.mp4" type="video/mp4">
                 </video>
-            </td>
-        </tr>
+    <div class="sermon-card-body">
+      <p class="sermon-card-title">127 | 2010-04-1.7 | 神想要的聖潔的旨意</p>
+      <p class="sermon-card-desc">以賽亞書 第5章</p>
+    </div>
+  </div>
 
-        <tr>
-            <td>126</td>
-            <td>2010-04-1.6</td>
-            <td>在患難中禱告的約拿</td>
-            <td>&nbsp;</td>
-            <td>約拿書 第2章</td>
-            <td>
-                <video width="320" height="240" controls preload="none" poster="./videos/201004/thumbnail07.jpg">
+  <div class="sermon-card">
+    <video   controls preload="none" poster="./videos/201004/thumbnail07.jpg">
                     <source src="./videos/201004/DVD_VIDEO_RECORDER-7.mp4" type="video/mp4">
                 </video>
-            </td>
-        </tr>
+    <div class="sermon-card-body">
+      <p class="sermon-card-title">126 | 2010-04-1.6 | 在患難中禱告的約拿</p>
+      <p class="sermon-card-desc">約拿書 第2章</p>
+    </div>
+  </div>
 
-        <tr>
-            <td>125</td>
-            <td>2010-04-1.5</td>
-            <td>我們的主耶穌饒恕我們的罪孽過犯</td>
-            <td>&nbsp;</td>
-            <td>以賽亞書 第53章</td>
-            <td>
-                <video width="320" height="240" controls preload="none" poster="./videos/201004/thumbnail05.jpg">
+  <div class="sermon-card">
+    <video   controls preload="none" poster="./videos/201004/thumbnail05.jpg">
                     <source src="./videos/201004/DVD_VIDEO_RECORDER-5.mp4" type="video/mp4">
                 </video>
-            </td>
-        </tr>
+    <div class="sermon-card-body">
+      <p class="sermon-card-title">125 | 2010-04-1.5 | 我們的主耶穌饒恕我們的罪孽過犯</p>
+      <p class="sermon-card-desc">以賽亞書 第53章</p>
+    </div>
+  </div>
 
-        <tr>
-            <td>124</td>
-            <td>2010-04-1.4</td>
-            <td>大衛是禱告的人</td>
-            <td>&nbsp;</td>
-            <td>詩篇 第72章</td>
-            <td>
-                <video width="320" height="240" controls preload="none" poster="./videos/201004/thumbnail04.jpg">
+  <div class="sermon-card">
+    <video   controls preload="none" poster="./videos/201004/thumbnail04.jpg">
                     <source src="./videos/201004/DVD_VIDEO_RECORDER-4.mp4" type="video/mp4">
                 </video>
-            </td>
-        </tr>
+    <div class="sermon-card-body">
+      <p class="sermon-card-title">124 | 2010-04-1.4 | 大衛是禱告的人</p>
+      <p class="sermon-card-desc">詩篇 第72章</p>
+    </div>
+  </div>
 
-        <tr>
-            <td>123</td>
-            <td>2010-04-1.3</td>
-            <td>神垂聽我們的禱告</td>
-            <td>&nbsp;</td>
-            <td>但以理書 第9章</td>
-            <td>
-                <video width="320" height="240" controls preload="none" poster="./videos/201004/thumbnail03.jpg">
+  <div class="sermon-card">
+    <video   controls preload="none" poster="./videos/201004/thumbnail03.jpg">
                     <source src="./videos/201004/DVD_VIDEO_RECORDER-3.mp4" type="video/mp4">
                 </video>
-            </td>
-        </tr>
+    <div class="sermon-card-body">
+      <p class="sermon-card-title">123 | 2010-04-1.3 | 神垂聽我們的禱告</p>
+      <p class="sermon-card-desc">但以理書 第9章</p>
+    </div>
+  </div>
 
-        <tr>
-            <td>122</td>
-            <td>2010-04-1.2</td>
-            <td>魔鬼,撒旦會說話</td>
-            <td>&nbsp;</td>
-            <td>約伯記 第1章</td>
-            <td>
-                <video width="320" height="240" controls preload="none" poster="./videos/201004/thumbnail02.jpg">
+  <div class="sermon-card">
+    <video   controls preload="none" poster="./videos/201004/thumbnail02.jpg">
                     <source src="./videos/201004/DVD_VIDEO_RECORDER-2.mp4" type="video/mp4">
                 </video>
-            </td>
-        </tr>
+    <div class="sermon-card-body">
+      <p class="sermon-card-title">122 | 2010-04-1.2 | 魔鬼,撒旦會說話</p>
+      <p class="sermon-card-desc">約伯記 第1章</p>
+    </div>
+  </div>
 
-        <tr>
-            <td>121</td>
-            <td>2010-04-1.1</td>
-            <td>讓死人復活的神</td>
-            <td>&nbsp;</td>
-            <td>約翰福音 第11章</td>
-            <td>
-                <video width="320" height="240" controls preload="none" poster="./videos/201004/thumbnail01.jpg">
+  <div class="sermon-card">
+    <video   controls preload="none" poster="./videos/201004/thumbnail01.jpg">
                     <source src="./videos/201004/DVD_VIDEO_RECORDER-1.mp4" type="video/mp4">
                 </video>
-            </td>
-        </tr>
+    <div class="sermon-card-body">
+      <p class="sermon-card-title">121 | 2010-04-1.1 | 讓死人復活的神</p>
+      <p class="sermon-card-desc">約翰福音 第11章</p>
+    </div>
+  </div>
 
-        <tr>
-            <td>120</td>
-            <td>2010-03-1.9</td>
-            <td>看了奇蹟也不信的人和信的人</td>
-            <td>&nbsp;</td>
-            <td>出埃及記 第4章</td>
-            <td>
-                <video width="320" height="240" controls preload="none" poster="./videos/201003/video09.jpg">
+  <div class="sermon-card">
+    <video   controls preload="none" poster="./videos/201003/video09.jpg">
                     <source src="./videos/201003/DVD_VIDEO_RECORDER-9.mp4" type="video/mp4">
                 </video>
-            </td>
-        </tr>
+    <div class="sermon-card-body">
+      <p class="sermon-card-title">120 | 2010-03-1.9 | 看了奇蹟也不信的人和信的人</p>
+      <p class="sermon-card-desc">出埃及記 第4章</p>
+    </div>
+  </div>
 
-        <tr>
-            <td>119</td>
-            <td>2010-03-1.8</td>
-            <td>神向我們應許必要與我們在一起</td>
-            <td>&nbsp;</td>
-            <td>出埃及記 第3章</td>
-            <td>
-                <video width="320" height="240" controls preload="none" poster="./videos/201003/video08.jpg">
+  <div class="sermon-card">
+    <video   controls preload="none" poster="./videos/201003/video08.jpg">
                     <source src="./videos/201003/DVD_VIDEO_RECORDER-8.mp4" type="video/mp4">
                 </video>
-            </td>
-        </tr>
+    <div class="sermon-card-body">
+      <p class="sermon-card-title">119 | 2010-03-1.8 | 神向我們應許必要與我們在一起</p>
+      <p class="sermon-card-desc">出埃及記 第3章</p>
+    </div>
+  </div>
 
-        <tr>
-            <td>118</td>
-            <td>2010-03-1.7</td>
-            <td>神所在的地方</td>
-            <td>&nbsp;</td>
-            <td>出埃及記 第2章</td>
-            <td>
-                <video width="320" height="240" controls preload="none" poster="./videos/201003/video07.jpg">
+  <div class="sermon-card">
+    <video   controls preload="none" poster="./videos/201003/video07.jpg">
                     <source src="./videos/201003/DVD_VIDEO_RECORDER-7.mp4" type="video/mp4">
                 </video>
-            </td>
-        </tr>
+    <div class="sermon-card-body">
+      <p class="sermon-card-title">118 | 2010-03-1.7 | 神所在的地方</p>
+      <p class="sermon-card-desc">出埃及記 第2章</p>
+    </div>
+  </div>
 
-        <tr>
-            <td>117</td>
-            <td>2010-03-1.6</td>
-            <td>向主呼求的時候</td>
-            <td>&nbsp;</td>
-            <td>詩篇 第66章</td>
-            <td>
-                <video width="320" height="240" controls preload="none" poster="./videos/201003/video06.jpg">
+  <div class="sermon-card">
+    <video   controls preload="none" poster="./videos/201003/video06.jpg">
                     <source src="./videos/201003/DVD_VIDEO_RECORDER-6.mp4" type="video/mp4">
                 </video>
-            </td>
-        </tr>
+    <div class="sermon-card-body">
+      <p class="sermon-card-title">117 | 2010-03-1.6 | 向主呼求的時候</p>
+      <p class="sermon-card-desc">詩篇 第66章</p>
+    </div>
+  </div>
 
-        <tr>
-            <td>116</td>
-            <td>2010-03-1.5</td>
-            <td>刑罰是為褻慢人預備</td>
-            <td>&nbsp;</td>
-            <td>箴言第19章</td>
-            <td>
-                <video width="320" height="240" controls preload="none" poster="./videos/201003/video05.jpg">
+  <div class="sermon-card">
+    <video   controls preload="none" poster="./videos/201003/video05.jpg">
                     <source src="./videos/201003/DVD_VIDEO_RECORDER-5.mp4" type="video/mp4">
                 </video>
-            </td>
-        </tr>
+    <div class="sermon-card-body">
+      <p class="sermon-card-title">116 | 2010-03-1.5 | 刑罰是為褻慢人預備</p>
+      <p class="sermon-card-desc">箴言第19章</p>
+    </div>
+  </div>
 
-        <tr>
-            <td>115</td>
-            <td>2010-03-1.4</td>
-            <td>有智慧嘴唇的人 </td>
-            <td>&nbsp;</td>
-            <td>箴言第17章</td>
-            <td>
-                <video width="320" height="240" controls preload="none" poster="./videos/201003/video04.jpg">
+  <div class="sermon-card">
+    <video   controls preload="none" poster="./videos/201003/video04.jpg">
                     <source src="./videos/201003/DVD_VIDEO_RECORDER-4.mp4" type="video/mp4">
                 </video>
-            </td>
-        </tr>
+    <div class="sermon-card-body">
+      <p class="sermon-card-title">115 | 2010-03-1.4 | 有智慧嘴唇的人</p>
+      <p class="sermon-card-desc">箴言第17章</p>
+    </div>
+  </div>
 
-        <tr>
-            <td>114</td>
-            <td>2010-03-1.3</td>
-            <td>清晨的禱告是重要的</td>
-            <td>&nbsp;</td>
-            <td>詩篇 第88章</td>
-            <td>
-                <video width="320" height="240" controls preload="none" poster="./videos/201003/video03.jpg">
+  <div class="sermon-card">
+    <video   controls preload="none" poster="./videos/201003/video03.jpg">
                     <source src="./videos/201003/DVD_VIDEO_RECORDER-3.mp4" type="video/mp4">
                 </video>
-            </td>
-        </tr>
+    <div class="sermon-card-body">
+      <p class="sermon-card-title">114 | 2010-03-1.3 | 清晨的禱告是重要的</p>
+      <p class="sermon-card-desc">詩篇 第88章</p>
+    </div>
+  </div>
 
-        <tr>
-            <td>113</td>
-            <td>2010-03-1.2</td>
-            <td>我們的失手</td>
-            <td>&nbsp;</td>
-            <td>箴言第16章</td>
-            <td>
-                <video width="320" height="240" controls preload="none" poster="./videos/201003/video02.jpg">
+  <div class="sermon-card">
+    <video   controls preload="none" poster="./videos/201003/video02.jpg">
                     <source src="./videos/201003/DVD_VIDEO_RECORDER-2.mp4" type="video/mp4">
                 </video>
-            </td>
-        </tr>
+    <div class="sermon-card-body">
+      <p class="sermon-card-title">113 | 2010-03-1.2 | 我們的失手</p>
+      <p class="sermon-card-desc">箴言第16章</p>
+    </div>
+  </div>
 
-        <tr>
-            <td>112</td>
-            <td>2010-03-1.1</td>
-            <td>敬畏耶和華的人必享亨通</td>
-            <td>&nbsp;</td>
-            <td>箴言第14章</td>
-            <td>
-                <video width="320" height="240" controls preload="none" poster="./videos/201003/video01.jpg">
+  <div class="sermon-card">
+    <video   controls preload="none" poster="./videos/201003/video01.jpg">
                     <source src="./videos/201003/DVD_VIDEO_RECORDER-1.mp4" type="video/mp4">
                 </video>
-            </td>
-        </tr>
+    <div class="sermon-card-body">
+      <p class="sermon-card-title">112 | 2010-03-1.1 | 敬畏耶和華的人必享亨通</p>
+      <p class="sermon-card-desc">箴言第14章</p>
+    </div>
+  </div>
 
-        <tr>
-            <td>111</td>
-            <td>2010-01-15.11</td>
-            <td>&#25105;&#20497;&#24517;&#38920;&#35201;&#33945;&#21463;&#24724;&#25913;&#30340;&#27927;</td>
-            <td>&nbsp;</td>
-            <td>&#39340;&#22826;&#31119;&#38899; &#31532;3&#31456;</td>
-            <td>
-                <video width="320" height="240" controls preload="none" poster="./videos/201002/thumb13.gif">
+  <div class="sermon-card">
+    <video   controls preload="none" poster="./videos/201002/thumb13.gif">
                     <source src="./videos/201002/13.mp4" type="video/mp4">
                 </video>
-            </td>
-        </tr>
+    <div class="sermon-card-body">
+      <p class="sermon-card-title">111 | 2010-01-15.11 | &#25105;&#20497;&#24517;&#38920;&#35201;&#33945;&#21463;&#24724;&#25913;&#30340;&#27927;</p>
+      <p class="sermon-card-desc">&#39340;&#22826;&#31119;&#38899; &#31532;3&#31456;</p>
+    </div>
+  </div>
 
-        <tr>
-            <td>110</td>
-            <td>2010-01-15.10</td>
-            <td>&#31070;&#22312;&#30475;</td>
-            <td>&nbsp;</td>
-            <td>&#20986;&#22467;&#21450;&#35352; &#31532;32&#31456;</td>
-            <td>
-                <video width="320" height="240" controls preload="none" poster="./videos/201002/thumb12.gif">
+  <div class="sermon-card">
+    <video   controls preload="none" poster="./videos/201002/thumb12.gif">
                     <source src="./videos/201002/12.mp4" type="video/mp4">
                 </video>
-            </td>
-        </tr>
+    <div class="sermon-card-body">
+      <p class="sermon-card-title">110 | 2010-01-15.10 | &#31070;&#22312;&#30475;</p>
+      <p class="sermon-card-desc">&#20986;&#22467;&#21450;&#35352; &#31532;32&#31456;</p>
+    </div>
+  </div>
 
-        <tr>
-            <td>109</td>
-            <td>2010-01-15.09</td>
-            <td>&#20449;&#20208;&#30340;&#22522;&#26412;</td>
-            <td>&nbsp;</td>
-            <td>&#32004;&#32752;&#31119;&#38899; &#31532;17&#31456;</td>
-            <td>
-                <video width="320" height="240" controls preload="none" poster="./videos/201002/thumb11.gif">
+  <div class="sermon-card">
+    <video   controls preload="none" poster="./videos/201002/thumb11.gif">
                     <source src="./videos/201002/11.mp4" type="video/mp4">
                 </video>
-            </td>
-        </tr>
+    <div class="sermon-card-body">
+      <p class="sermon-card-title">109 | 2010-01-15.09 | &#20449;&#20208;&#30340;&#22522;&#26412;</p>
+      <p class="sermon-card-desc">&#32004;&#32752;&#31119;&#38899; &#31532;17&#31456;</p>
+    </div>
+  </div>
 
-        <tr>
-            <td>108</td>
-            <td>2010-01-15.8</td>
-            <td>&#31070;&#24819;&#35201;&#30340;&#20449;&#24515;</td>
-            <td>&nbsp;</td>
-            <td>&#32645;&#39340;&#26360; &#31532;4&#31456;</td>
-            <td>
-                <video width="320" height="240" controls preload="none" poster="./videos/201002/thumb9.gif">
+  <div class="sermon-card">
+    <video   controls preload="none" poster="./videos/201002/thumb9.gif">
                     <source src="./videos/201002/9.mp4" type="video/mp4">
                 </video>
-            </td>
-        </tr>
+    <div class="sermon-card-body">
+      <p class="sermon-card-title">108 | 2010-01-15.8 | &#31070;&#24819;&#35201;&#30340;&#20449;&#24515;</p>
+      <p class="sermon-card-desc">&#32645;&#39340;&#26360; &#31532;4&#31456;</p>
+    </div>
+  </div>
 
-        <tr>
-            <td>107</td>
-            <td>2010-01-15.7</td>
-            <td>&#32822;&#21644;&#33775;&#22402;&#32893;&#25105;&#20497;&#30340;&#31153;&#21578;</td>
-            <td>&nbsp;</td>
-            <td>&#31668;&#35328; &#31532;15&#31456;</td>
-            <td>
-                <video width="320" height="240" controls preload="none" poster="./videos/201002/thumb7.gif">
+  <div class="sermon-card">
+    <video   controls preload="none" poster="./videos/201002/thumb7.gif">
                     <source src="./videos/201002/7.mp4" type="video/mp4">
                 </video>
-            </td>
-        </tr>
+    <div class="sermon-card-body">
+      <p class="sermon-card-title">107 | 2010-01-15.7 | &#32822;&#21644;&#33775;&#22402;&#32893;&#25105;&#20497;&#30340;&#31153;&#21578;</p>
+      <p class="sermon-card-desc">&#31668;&#35328; &#31532;15&#31456;</p>
+    </div>
+  </div>
 
-        <tr>
-            <td>106</td>
-            <td>2010-01-15.6</td>
-            <td>&#31070;&#32854;&#28500;&#30340;&#26088;&#24847;</td>
-            <td>&nbsp;</td>
-            <td>&#20197;&#36093;&#20126;&#26360; &#31532;58&#31456;</td>
-            <td>
-                <video width="320" height="240" controls preload="none" poster="./videos/201002/thumb6.gif">
+  <div class="sermon-card">
+    <video   controls preload="none" poster="./videos/201002/thumb6.gif">
                     <source src="./videos/201002/6.mp4" type="video/mp4">
                 </video>
-            </td>
-        </tr>
+    <div class="sermon-card-body">
+      <p class="sermon-card-title">106 | 2010-01-15.6 | &#31070;&#32854;&#28500;&#30340;&#26088;&#24847;</p>
+      <p class="sermon-card-desc">&#20197;&#36093;&#20126;&#26360; &#31532;58&#31456;</p>
+    </div>
+  </div>
 
-        <tr>
-            <td>105</td>
-            <td>2010-01-15.5</td>
-            <td>&#37027;&#20123;&#23432;&#31042;&#30340;&#32004;&#65292;&#35352;&#24565;&#31042;&#30340;&#35347;&#35422;&#30340;&#20154;&#26377;&#31119;&#20102;
-            </td>
-            <td>&nbsp;</td>
-            <td>&#35433;&#31687; &#31532;103&#31456;</td>
-            <td>
-                <video width="320" height="240" controls preload="none" poster="./videos/201002/thumb5.gif">
+  <div class="sermon-card">
+    <video   controls preload="none" poster="./videos/201002/thumb5.gif">
                     <source src="./videos/201002/5.mp4" type="video/mp4">
                 </video>
-            </td>
-        </tr>
+    <div class="sermon-card-body">
+      <p class="sermon-card-title">105 | 2010-01-15.5 | &#37027;&#20123;&#23432;&#31042;&#30340;&#32004;&#65292;&#35352;&#24565;&#31042;&#30340;&#35347;&#35422;&#30340;&#20154;&#26377;&#31119;&#20102;</p>
+      <p class="sermon-card-desc">&#35433;&#31687; &#31532;103&#31456;</p>
+    </div>
+  </div>
 
-        <tr>
-            <td>104</td>
-            <td>2010-01-15.4</td>
-            <td>&#19981;&#26159;&#21839;&#20320;&#30693;&#36947;&#20160;&#40636;&#65292;&#32780;&#26159;&#21839;&#20320;&#33021;&#20570;&#20160;&#40636;&#30340;&#32822;&#31308;
-            </td>
-            <td>&nbsp;</td>
-            <td>&#39340;&#22826;&#31119;&#38899; &#31532;10&#31456;</td>
-            <td>
-                <video width="320" height="240" controls preload="none" poster="./videos/201002/thumb4.gif">
+  <div class="sermon-card">
+    <video   controls preload="none" poster="./videos/201002/thumb4.gif">
                     <source src="./videos/201002/4.mp4" type="video/mp4">
                 </video>
-            </td>
-        </tr>
+    <div class="sermon-card-body">
+      <p class="sermon-card-title">104 | 2010-01-15.4 | &#19981;&#26159;&#21839;&#20320;&#30693;&#36947;&#20160;&#40636;&#65292;&#32780;&#26159;&#21839;&#20320;&#33021;&#20570;&#20160;&#40636;&#30340;&#32822;&#31308;</p>
+      <p class="sermon-card-desc">&#39340;&#22826;&#31119;&#38899; &#31532;10&#31456;</p>
+    </div>
+  </div>
 
-        <tr>
-            <td>103</td>
-            <td>2010-01-15.3</td>
-            <td>&#25964;&#30031;&#31070;&#30340;&#20154;</td>
-            <td>&nbsp;</td>
-            <td>&#31668;&#35328; &#31532;1&#31456;</td>
-            <td>
-                <video width="320" height="240" controls preload="none" poster="./videos/201002/thumb3.gif">
+  <div class="sermon-card">
+    <video   controls preload="none" poster="./videos/201002/thumb3.gif">
                     <source src="./videos/201002/3.mp4" type="video/mp4">
                 </video>
-            </td>
-        </tr>
+    <div class="sermon-card-body">
+      <p class="sermon-card-title">103 | 2010-01-15.3 | &#25964;&#30031;&#31070;&#30340;&#20154;</p>
+      <p class="sermon-card-desc">&#31668;&#35328; &#31532;1&#31456;</p>
+    </div>
+  </div>
 
-        <tr>
-            <td>102</td>
-            <td>2010-01-15.2</td>
-            <td>&#21644;&#25105;&#22312;&#19968;&#36215;&#30340;&#31070;</td>
-            <td>&nbsp;</td>
-            <td>&#35433;&#31687; &#31532;91&#31456;</td>
-            <td>
-                <video width="320" height="240" controls preload="none" poster="./videos/201002/thumb2.gif">
+  <div class="sermon-card">
+    <video   controls preload="none" poster="./videos/201002/thumb2.gif">
                     <source src="./videos/201002/2.mp4" type="video/mp4">
                 </video>
-            </td>
-        </tr>
+    <div class="sermon-card-body">
+      <p class="sermon-card-title">102 | 2010-01-15.2 | &#21644;&#25105;&#22312;&#19968;&#36215;&#30340;&#31070;</p>
+      <p class="sermon-card-desc">&#35433;&#31687; &#31532;91&#31456;</p>
+    </div>
+  </div>
 
-        <tr>
-            <td>101</td>
-            <td>2010-01-15.1</td>
-            <td>&#21512;&#31070;&#24515;&#24847;&#30340;&#31153;&#21578;</td>
-            <td>&nbsp;</td>
-            <td>&#21015;&#29579;&#32000;&#19978; &#31532;3&#31456;</td>
-            <td>
-                <video width="320" height="240" controls preload="none" poster="./videos/201002/thumb1.gif">
+  <div class="sermon-card">
+    <video   controls preload="none" poster="./videos/201002/thumb1.gif">
                     <source src="./videos/201002/1.mp4" type="video/mp4">
                 </video>
-            </td>
-        </tr>
+    <div class="sermon-card-body">
+      <p class="sermon-card-title">101 | 2010-01-15.1 | &#21512;&#31070;&#24515;&#24847;&#30340;&#31153;&#21578;</p>
+      <p class="sermon-card-desc">&#21015;&#29579;&#32000;&#19978; &#31532;3&#31456;</p>
+    </div>
+  </div>
 
-        <tr>
-            <td>100</td>
-            <td>2010-01-01.1</td>
-            <td>將聖靈澆灌給我們的神</td>
-            <td>&nbsp;</td>
-            <td>使徒行傳 第2章</td>
-            <td>
-                <video width="320" height="240" controls preload="none" poster="./videos/201001/video01.jpg">
+  <div class="sermon-card">
+    <video   controls preload="none" poster="./videos/201001/video01.jpg">
                     <source src="./videos/201001/DVD_VIDEO_RECORDER-1.mp4" type="video/mp4">
                 </video>
-            </td>
-        </tr>
+    <div class="sermon-card-body">
+      <p class="sermon-card-title">100 | 2010-01-01.1 | 將聖靈澆灌給我們的神</p>
+      <p class="sermon-card-desc">使徒行傳 第2章</p>
+    </div>
+  </div>
 
-        <tr>
-            <td>99</td>
-            <td>2010-01-01.2</td>
-            <td>是有鬼,魔鬼,撒旦的</td>
-            <td>&nbsp;</td>
-            <td>約翰福音 第13章</td>
-            <td>
-                <video width="320" height="240" controls preload="none" poster="./videos/201001/video02.jpg">
+  <div class="sermon-card">
+    <video   controls preload="none" poster="./videos/201001/video02.jpg">
                     <source src="./videos/201001/DVD_VIDEO_RECORDER-2.mp4" type="video/mp4">
                 </video>
-            </td>
-        </tr>
+    <div class="sermon-card-body">
+      <p class="sermon-card-title">99 | 2010-01-01.2 | 是有鬼,魔鬼,撒旦的</p>
+      <p class="sermon-card-desc">約翰福音 第13章</p>
+    </div>
+  </div>
 
-        <tr>
-            <td>98</td>
-            <td>2010-01-01.3</td>
-            <td>我們的神昨天今天直到永遠都是一樣的</td>
-            <td>&nbsp;</td>
-            <td>使徒行傳 第3章</td>
-            <td>
-                <video width="320" height="240" controls preload="none" poster="./videos/201001/video03.jpg">
+  <div class="sermon-card">
+    <video   controls preload="none" poster="./videos/201001/video03.jpg">
                     <source src="./videos/201001/DVD_VIDEO_RECORDER-3.mp4" type="video/mp4">
                 </video>
-            </td>
-        </tr>
+    <div class="sermon-card-body">
+      <p class="sermon-card-title">98 | 2010-01-01.3 | 我們的神昨天今天直到永遠都是一樣的</p>
+      <p class="sermon-card-desc">使徒行傳 第3章</p>
+    </div>
+  </div>
 
-        <tr>
-            <td>97</td>
-            <td>2010-01-01.4</td>
-            <td>神是忌妒的神</td>
-            <td>&nbsp;</td>
-            <td>出埃及記 第20章</td>
-            <td>
-                <video width="320" height="240" controls preload="none" poster="./videos/201001/video04.jpg">
+  <div class="sermon-card">
+    <video   controls preload="none" poster="./videos/201001/video04.jpg">
                     <source src="./videos/201001/DVD_VIDEO_RECORDER-4.mp4" type="video/mp4">
                 </video>
-            </td>
-        </tr>
+    <div class="sermon-card-body">
+      <p class="sermon-card-title">97 | 2010-01-01.4 | 神是忌妒的神</p>
+      <p class="sermon-card-desc">出埃及記 第20章</p>
+    </div>
+  </div>
 
-        <tr>
-            <td>96</td>
-            <td>2010-01-01.5</td>
-            <td>我們是有福的人</td>
-            <td>&nbsp;</td>
-            <td>申命 記 第28章</td>
-            <td>
-                <video width="320" height="240" controls preload="none" poster="./videos/201001/video05.jpg">
+  <div class="sermon-card">
+    <video   controls preload="none" poster="./videos/201001/video05.jpg">
                     <source src="./videos/201001/DVD_VIDEO_RECORDER-5.mp4" type="video/mp4">
                 </video>
-            </td>
-        </tr>
+    <div class="sermon-card-body">
+      <p class="sermon-card-title">96 | 2010-01-01.5 | 我們是有福的人</p>
+      <p class="sermon-card-desc">申命 記 第28章</p>
+    </div>
+  </div>
 
-        <tr>
-            <td>95</td>
-            <td>2010-01-01.6</td>
-            <td>領我們出苦難的神</td>
-            <td>&nbsp;</td>
-            <td>詩篇 第23章</td>
-            <td>
-                <video width="320" height="240" controls preload="none" poster="./videos/201001/video06.jpg">
+  <div class="sermon-card">
+    <video   controls preload="none" poster="./videos/201001/video06.jpg">
                     <source src="./videos/201001/DVD_VIDEO_RECORDER-6.mp4" type="video/mp4">
                 </video>
-            </td>
-        </tr>
+    <div class="sermon-card-body">
+      <p class="sermon-card-title">95 | 2010-01-01.6 | 領我們出苦難的神</p>
+      <p class="sermon-card-desc">詩篇 第23章</p>
+    </div>
+  </div>
 
-        <tr>
-            <td>94</td>
-            <td>2010-01-01.7</td>
-            <td>我們的神是無瑕疵的</td>
-            <td>&nbsp;</td>
-            <td>腓立比書 第2章</td>
-            <td>
-                <video width="320" height="240" controls preload="none" poster="./videos/201001/video07.jpg">
+  <div class="sermon-card">
+    <video   controls preload="none" poster="./videos/201001/video07.jpg">
                     <source src="./videos/201001/DVD_VIDEO_RECORDER-7.mp4" type="video/mp4">
                 </video>
-            </td>
-        </tr>
+    <div class="sermon-card-body">
+      <p class="sermon-card-title">94 | 2010-01-01.7 | 我們的神是無瑕疵的</p>
+      <p class="sermon-card-desc">腓立比書 第2章</p>
+    </div>
+  </div>
 
-        <tr>
-            <td>93</td>
-            <td>2010-01-01.8</td>
-            <td>你們說我們是誰</td>
-            <td>&nbsp;</td>
-            <td>馬太福音 第16章</td>
-            <td>
-                <video width="320" height="240" controls preload="none" poster="./videos/201001/video08.jpg">
+  <div class="sermon-card">
+    <video   controls preload="none" poster="./videos/201001/video08.jpg">
                     <source src="./videos/201001/DVD_VIDEO_RECORDER-8.mp4" type="video/mp4">
                 </video>
-            </td>
-        </tr>
+    <div class="sermon-card-body">
+      <p class="sermon-card-title">93 | 2010-01-01.8 | 你們說我們是誰</p>
+      <p class="sermon-card-desc">馬太福音 第16章</p>
+    </div>
+  </div>
 
-        <tr>
-            <td>92</td>
-            <td>2010-01-01.9</td>
-            <td>主耶穌來到這地上的目的</td>
-            <td>&nbsp;</td>
-            <td>馬太福音 第15章</td>
-            <td>
-                <video width="320" height="240" controls preload="none" poster="./videos/201001/video09.jpg">
+  <div class="sermon-card">
+    <video   controls preload="none" poster="./videos/201001/video09.jpg">
                     <source src="./videos/201001/DVD_VIDEO_RECORDER-9.mp4" type="video/mp4">
                 </video>
-            </td>
-        </tr>
+    <div class="sermon-card-body">
+      <p class="sermon-card-title">92 | 2010-01-01.9 | 主耶穌來到這地上的目的</p>
+      <p class="sermon-card-desc">馬太福音 第15章</p>
+    </div>
+  </div>
 
-        <tr>
-            <td>91</td>
-            <td>2010-01-01.10</td>
-            <td>民族悔改的道路</td>
-            <td>&nbsp;</td>
-            <td>撒母耳記上 第7章</td>
-            <td>
-                <video width="320" height="240" controls preload="none" poster="./videos/201001/video10.jpg">
+  <div class="sermon-card">
+    <video   controls preload="none" poster="./videos/201001/video10.jpg">
                     <source src="./videos/201001/DVD_VIDEO_RECORDER-10.mp4" type="video/mp4">
                 </video>
-            </td>
-        </tr>
+    <div class="sermon-card-body">
+      <p class="sermon-card-title">91 | 2010-01-01.10 | 民族悔改的道路</p>
+      <p class="sermon-card-desc">撒母耳記上 第7章</p>
+    </div>
+  </div>
 
-        <tr>
-            <td>90</td>
-            <td>2010-01-01.11</td>
-            <td>神的旨意</td>
-            <td>&nbsp;</td>
-            <td>馬太福音 第22章</td>
-            <td>
-                <video width="320" height="240" controls preload="none" poster="./videos/201001/video11.jpg">
+  <div class="sermon-card">
+    <video   controls preload="none" poster="./videos/201001/video11.jpg">
                     <source src="./videos/201001/DVD_VIDEO_RECORDER-11.mp4" type="video/mp4">
                 </video>
-            </td>
-        </tr>
+    <div class="sermon-card-body">
+      <p class="sermon-card-title">90 | 2010-01-01.11 | 神的旨意</p>
+      <p class="sermon-card-desc">馬太福音 第22章</p>
+    </div>
+  </div>
 
-        <tr>
-            <td>89</td>
-            <td>2010-01-01.12</td>
-            <td>有福的人他們思念約耶和華的律法</td>
-            <td>&nbsp;</td>
-            <td>詩篇 第1章</td>
-            <td>
-                <video width="320" height="240" controls preload="none" poster="./videos/201001/video12.jpg">
+  <div class="sermon-card">
+    <video   controls preload="none" poster="./videos/201001/video12.jpg">
                     <source src="./videos/201001/DVD_VIDEO_RECORDER-12.mp4" type="video/mp4">
                 </video>
-            </td>
-        </tr>
+    <div class="sermon-card-body">
+      <p class="sermon-card-title">89 | 2010-01-01.12 | 有福的人他們思念約耶和華的律法</p>
+      <p class="sermon-card-desc">詩篇 第1章</p>
+    </div>
+  </div>
 
-        <tr>
-            <td>88</td>
-            <td>2009-12-30.1</td>
-            <td>耶穌初臨的理由</td>
-            <td>&nbsp;</td>
-            <td>瑪拉基書 第1章</td>
-            <td>
-                <video width="320" height="240" controls preload="none" poster="./videos/200912_2/video01.jpg">
+  <div class="sermon-card">
+    <video   controls preload="none" poster="./videos/200912_2/video01.jpg">
                     <source src="./videos/200912_2/DVD_VIDEO_RECORDER-1.mp4" type="video/mp4">
                 </video>
-            </td>
-        </tr>
+    <div class="sermon-card-body">
+      <p class="sermon-card-title">88 | 2009-12-30.1 | 耶穌初臨的理由</p>
+      <p class="sermon-card-desc">瑪拉基書 第1章</p>
+    </div>
+  </div>
 
-        <tr>
-            <td>87</td>
-            <td>2009-12-30.2</td>
-            <td>我們的神是愛我們的</td>
-            <td>&nbsp;</td>
-            <td>瑪拉基書 第2章</td>
-            <td>
-                <video width="320" height="240" controls preload="none" poster="./videos/200912_2/video02.jpg">
+  <div class="sermon-card">
+    <video   controls preload="none" poster="./videos/200912_2/video02.jpg">
                     <source src="./videos/200912_2/DVD_VIDEO_RECORDER-2.mp4" type="video/mp4">
                 </video>
-            </td>
-        </tr>
+    <div class="sermon-card-body">
+      <p class="sermon-card-title">87 | 2009-12-30.2 | 我們的神是愛我們的</p>
+      <p class="sermon-card-desc">瑪拉基書 第2章</p>
+    </div>
+  </div>
 
-        <tr>
-            <td>86</td>
-            <td>2009-12-30.3</td>
-            <td>神要施行審判</td>
-            <td>&nbsp;</td>
-            <td>瑪拉基書 第3章</td>
-            <td>
-                <video width="320" height="240" controls preload="none" poster="./videos/200912_2/video03.jpg">
+  <div class="sermon-card">
+    <video   controls preload="none" poster="./videos/200912_2/video03.jpg">
                     <source src="./videos/200912_2/DVD_VIDEO_RECORDER-3.mp4" type="video/mp4">
                 </video>
-            </td>
-        </tr>
+    <div class="sermon-card-body">
+      <p class="sermon-card-title">86 | 2009-12-30.3 | 神要施行審判</p>
+      <p class="sermon-card-desc">瑪拉基書 第3章</p>
+    </div>
+  </div>
 
-        <tr>
-            <td>85</td>
-            <td>2009-12-30.4</td>
-            <td>耶和華的靈來到這地上</td>
-            <td>&nbsp;</td>
-            <td>以賽亞書 第11章</td>
-            <td>
-                <video width="320" height="240" controls preload="none" poster="./videos/200912_2/video04.jpg">
+  <div class="sermon-card">
+    <video   controls preload="none" poster="./videos/200912_2/video04.jpg">
                     <source src="./videos/200912_2/DVD_VIDEO_RECORDER-4.mp4" type="video/mp4">
                 </video>
-            </td>
-        </tr>
+    <div class="sermon-card-body">
+      <p class="sermon-card-title">85 | 2009-12-30.4 | 耶和華的靈來到這地上</p>
+      <p class="sermon-card-desc">以賽亞書 第11章</p>
+    </div>
+  </div>
 
-        <tr>
-            <td>84</td>
-            <td>2009-12-30.5</td>
-            <td>禱告就是能力</td>
-            <td>&nbsp;</td>
-            <td>使徒行傳 第16章</td>
-            <td>
-                <video width="320" height="240" controls preload="none" poster="./videos/200912_2/video05.jpg">
+  <div class="sermon-card">
+    <video   controls preload="none" poster="./videos/200912_2/video05.jpg">
                     <source src="./videos/200912_2/DVD_VIDEO_RECORDER-5.mp4" type="video/mp4">
                 </video>
-            </td>
-        </tr>
+    <div class="sermon-card-body">
+      <p class="sermon-card-title">84 | 2009-12-30.5 | 禱告就是能力</p>
+      <p class="sermon-card-desc">使徒行傳 第16章</p>
+    </div>
+  </div>
 
-        <tr>
-            <td>83</td>
-            <td>2009-12-30.6</td>
-            <td>神的應許必要成就</td>
-            <td>&nbsp;</td>
-            <td>路加福音 第2章</td>
-            <td>
-                <video width="320" height="240" controls preload="none" poster="./videos/200912_2/video06.jpg">
+  <div class="sermon-card">
+    <video   controls preload="none" poster="./videos/200912_2/video06.jpg">
                     <source src="./videos/200912_2/DVD_VIDEO_RECORDER-6.mp4" type="video/mp4">
                 </video>
-            </td>
-        </tr>
+    <div class="sermon-card-body">
+      <p class="sermon-card-title">83 | 2009-12-30.6 | 神的應許必要成就</p>
+      <p class="sermon-card-desc">路加福音 第2章</p>
+    </div>
+  </div>
 
-        <tr>
-            <td>82</td>
-            <td>2009-12-30.7</td>
-            <td>公義的神</td>
-            <td>&nbsp;</td>
-            <td>約翰福音 第7章</td>
-            <td>
-                <video width="320" height="240" controls preload="none" poster="./videos/200912_2/video07.jpg">
+  <div class="sermon-card">
+    <video   controls preload="none" poster="./videos/200912_2/video07.jpg">
                     <source src="./videos/200912_2/DVD_VIDEO_RECORDER-7.mp4" type="video/mp4">
                 </video>
-            </td>
-        </tr>
+    <div class="sermon-card-body">
+      <p class="sermon-card-title">82 | 2009-12-30.7 | 公義的神</p>
+      <p class="sermon-card-desc">約翰福音 第7章</p>
+    </div>
+  </div>
 
-        <tr>
-            <td>81</td>
-            <td>2009-12-15.1</td>
-            <td>神愛我們, 神安慰我們</td>
-            <td>&nbsp;</td>
-            <td>加 拉 太 書 第3章</td>
-            <td>
-                <video width="320" height="240" controls preload="none" poster="./videos/200912/video01.jpg">
+  <div class="sermon-card">
+    <video   controls preload="none" poster="./videos/200912/video01.jpg">
                     <source src="./videos/200912/DVD_VIDEO_RECORDER-1.mp4" type="video/mp4">
                 </video>
-            </td>
-        </tr>
+    <div class="sermon-card-body">
+      <p class="sermon-card-title">81 | 2009-12-15.1 | 神愛我們, 神安慰我們</p>
+      <p class="sermon-card-desc">加 拉 太 書 第3章</p>
+    </div>
+  </div>
 
-        <tr>
-            <td>80</td>
-            <td>2009-12-15.2</td>
-            <td>神特別愛我們</td>
-            <td>&nbsp;</td>
-            <td>&nbsp;</td>
-            <td>
-                <video width="320" height="240" controls preload="none" poster="./videos/200912/video02.jpg">
+  <div class="sermon-card">
+    <video   controls preload="none" poster="./videos/200912/video02.jpg">
                     <source src="./videos/200912/DVD_VIDEO_RECORDER-2.mp4" type="video/mp4">
                 </video>
-            </td>
-        </tr>
+    <div class="sermon-card-body">
+      <p class="sermon-card-title">80 | 2009-12-15.2 | 神特別愛我們</p>
+    </div>
+  </div>
 
-        <tr>
-            <td>79</td>
-            <td>2009-12-15.3</td>
-            <td>教導禱告的耶穌</td>
-            <td>&nbsp;</td>
-            <td>第26章</td>
-            <td>
-                <video width="320" height="240" controls preload="none" poster="./videos/200912/video03.jpg">
+  <div class="sermon-card">
+    <video   controls preload="none" poster="./videos/200912/video03.jpg">
                     <source src="./videos/200912/DVD_VIDEO_RECORDER-3.mp4" type="video/mp4">
                 </video>
-            </td>
-        </tr>
+    <div class="sermon-card-body">
+      <p class="sermon-card-title">79 | 2009-12-15.3 | 教導禱告的耶穌</p>
+      <p class="sermon-card-desc">第26章</p>
+    </div>
+  </div>
 
-        <tr>
-            <td>78</td>
-            <td>2009-12-15.4</td>
-            <td>神賜給我們的自由意志</td>
-            <td>&nbsp;</td>
-            <td>申 命 記 第30章</td>
-            <td>
-                <video width="320" height="240" controls preload="none" poster="./videos/200912/video04.jpg">
+  <div class="sermon-card">
+    <video   controls preload="none" poster="./videos/200912/video04.jpg">
                     <source src="./videos/200912/DVD_VIDEO_RECORDER-4.mp4" type="video/mp4">
                 </video>
-            </td>
-        </tr>
+    <div class="sermon-card-body">
+      <p class="sermon-card-title">78 | 2009-12-15.4 | 神賜給我們的自由意志</p>
+      <p class="sermon-card-desc">申 命 記 第30章</p>
+    </div>
+  </div>
 
-        <tr>
-            <td>77</td>
-            <td>2009-12-15.5</td>
-            <td>耶穌所講的末日的徵兆</td>
-            <td>&nbsp;</td>
-            <td>馬 太 福 音 第24章 </td>
-            <td>
-                <video width="320" height="240" controls preload="none" poster="./videos/200912/video05.jpg">
+  <div class="sermon-card">
+    <video   controls preload="none" poster="./videos/200912/video05.jpg">
                     <source src="./videos/200912/DVD_VIDEO_RECORDER-5.mp4" type="video/mp4">
                 </video>
-            </td>
-        </tr>
+    <div class="sermon-card-body">
+      <p class="sermon-card-title">77 | 2009-12-15.5 | 耶穌所講的末日的徵兆</p>
+      <p class="sermon-card-desc">馬 太 福 音 第24章</p>
+    </div>
+  </div>
 
-        <tr>
-            <td>76</td>
-            <td>2009-12-15.6</td>
-            <td>今天神也賜給我豐盛恩典</td>
-            <td>&nbsp;</td>
-            <td>詩 篇 第86章</td>
-            <td>
-                <video width="320" height="240" controls preload="none" poster="./videos/200912/video06.jpg">
+  <div class="sermon-card">
+    <video   controls preload="none" poster="./videos/200912/video06.jpg">
                     <source src="./videos/200912/DVD_VIDEO_RECORDER-6.mp4" type="video/mp4">
                 </video>
-            </td>
-        </tr>
+    <div class="sermon-card-body">
+      <p class="sermon-card-title">76 | 2009-12-15.6 | 今天神也賜給我豐盛恩典</p>
+      <p class="sermon-card-desc">詩 篇 第86章</p>
+    </div>
+  </div>
 
-        <tr>
-            <td>75</td>
-            <td>2009-12-15.7</td>
-            <td>做能力伺俸所需要的東西</td>
-            <td>&nbsp;</td>
-            <td>約 翰 福 音 第2章</td>
-            <td>
-                <video width="320" height="240" controls preload="none" poster="./videos/200912/video07.jpg">
+  <div class="sermon-card">
+    <video   controls preload="none" poster="./videos/200912/video07.jpg">
                     <source src="./videos/200912/DVD_VIDEO_RECORDER-7.mp4" type="video/mp4">
                 </video>
-            </td>
-        </tr>
+    <div class="sermon-card-body">
+      <p class="sermon-card-title">75 | 2009-12-15.7 | 做能力伺俸所需要的東西</p>
+      <p class="sermon-card-desc">約 翰 福 音 第2章</p>
+    </div>
+  </div>
 
-        <tr>
-            <td>74</td>
-            <td>2009-12-15.8</td>
-            <td>沒有人可以予我抵擋</td>
-            <td>&nbsp;</td>
-            <td>羅 馬 書 第8章</td>
-            <td>
-                <video width="320" height="240" controls preload="none" poster="./videos/200912/video08.jpg">
+  <div class="sermon-card">
+    <video   controls preload="none" poster="./videos/200912/video08.jpg">
                     <source src="./videos/200912/DVD_VIDEO_RECORDER-8.mp4" type="video/mp4">
                 </video>
-            </td>
-        </tr>
+    <div class="sermon-card-body">
+      <p class="sermon-card-title">74 | 2009-12-15.8 | 沒有人可以予我抵擋</p>
+      <p class="sermon-card-desc">羅 馬 書 第8章</p>
+    </div>
+  </div>
 
-        <tr>
-            <td>73</td>
-            <td>2009-12-15.9</td>
-            <td>神的話語讓我們走在正道上</td>
-            <td>&nbsp;</td>
-            <td>提 摩 太 後 書 第3章</td>
-            <td>
-                <video width="320" height="240" controls preload="none" poster="./videos/200912/video09.jpg">
+  <div class="sermon-card">
+    <video   controls preload="none" poster="./videos/200912/video09.jpg">
                     <source src="./videos/200912/DVD_VIDEO_RECORDER-9.mp4" type="video/mp4">
                 </video>
-            </td>
-        </tr>
+    <div class="sermon-card-body">
+      <p class="sermon-card-title">73 | 2009-12-15.9 | 神的話語讓我們走在正道上</p>
+      <p class="sermon-card-desc">提 摩 太 後 書 第3章</p>
+    </div>
+  </div>
 
-        <tr>
-            <td>72</td>
-            <td>2009-12-01.1</td>
-            <td>我們要正確了解神的話語</td>
-            <td>&nbsp;</td>
-            <td>以 弗 所 書 第5章</td>
-            <td>
-                <video width="320" height="240" controls preload="none" poster="./videos/200911/video01.jpg">
+  <div class="sermon-card">
+    <video   controls preload="none" poster="./videos/200911/video01.jpg">
                     <source src="./videos/200911/DVD_VIDEO_RECORDER-1.mp4" type="video/mp4">
                 </video>
-            </td>
-        </tr>
+    <div class="sermon-card-body">
+      <p class="sermon-card-title">72 | 2009-12-01.1 | 我們要正確了解神的話語</p>
+      <p class="sermon-card-desc">以 弗 所 書 第5章</p>
+    </div>
+  </div>
 
-        <tr>
-            <td>71</td>
-            <td>2009-12-01.2</td>
-            <td>有福的人</td>
-            <td>&nbsp;</td>
-            <td>詩 篇 第119章</td>
-            <td>
-                <video width="320" height="240" controls preload="none" poster="./videos/200911/video02.jpg">
+  <div class="sermon-card">
+    <video   controls preload="none" poster="./videos/200911/video02.jpg">
                     <source src="./videos/200911/DVD_VIDEO_RECORDER-2.mp4" type="video/mp4">
                 </video>
-            </td>
-        </tr>
+    <div class="sermon-card-body">
+      <p class="sermon-card-title">71 | 2009-12-01.2 | 有福的人</p>
+      <p class="sermon-card-desc">詩 篇 第119章</p>
+    </div>
+  </div>
 
-        <tr>
-            <td>70</td>
-            <td>2009-12-01.3</td>
-            <td>主所教導的信仰的基礎</td>
-            <td>&nbsp;</td>
-            <td>馬 太 福 音 第18章</td>
-            <td>
-                <video width="320" height="240" controls preload="none" poster="./videos/200911/video03.jpg">
+  <div class="sermon-card">
+    <video   controls preload="none" poster="./videos/200911/video03.jpg">
                     <source src="./videos/200911/DVD_VIDEO_RECORDER-3.mp4" type="video/mp4">
                 </video>
-            </td>
-        </tr>
+    <div class="sermon-card-body">
+      <p class="sermon-card-title">70 | 2009-12-01.3 | 主所教導的信仰的基礎</p>
+      <p class="sermon-card-desc">馬 太 福 音 第18章</p>
+    </div>
+  </div>
 
-        <tr>
-            <td>69</td>
-            <td>2009-12-01.4</td>
-            <td>神全都可以做</td>
-            <td>&nbsp;</td>
-            <td>馬 太 福 音 第19章</td>
-            <td>
-                <video width="320" height="240" controls preload="none" poster="./videos/200911/video04.jpg">
+  <div class="sermon-card">
+    <video   controls preload="none" poster="./videos/200911/video04.jpg">
                     <source src="./videos/200911/DVD_VIDEO_RECORDER-4.mp4" type="video/mp4">
                 </video>
-            </td>
-        </tr>
+    <div class="sermon-card-body">
+      <p class="sermon-card-title">69 | 2009-12-01.4 | 神全都可以做</p>
+      <p class="sermon-card-desc">馬 太 福 音 第19章</p>
+    </div>
+  </div>
 
-        <tr>
-            <td>68</td>
-            <td>2009-12-01.5</td>
-            <td>耶穌所說的福音的內容</td>
-            <td>&nbsp;</td>
-            <td>馬 太 福 音 第28章</td>
-            <td>
-                <video width="320" height="240" controls preload="none" poster="./videos/200911/video05.jpg">
+  <div class="sermon-card">
+    <video   controls preload="none" poster="./videos/200911/video05.jpg">
                     <source src="./videos/200911/DVD_VIDEO_RECORDER-5.mp4" type="video/mp4">
                 </video>
-            </td>
-        </tr>
+    <div class="sermon-card-body">
+      <p class="sermon-card-title">68 | 2009-12-01.5 | 耶穌所說的福音的內容</p>
+      <p class="sermon-card-desc">馬 太 福 音 第28章</p>
+    </div>
+  </div>
 
-        <tr>
-            <td>67</td>
-            <td>2009-11-01.1</td>
-            <td>舊約所說的人是怎樣生活的呢?</td>
-            <td>&nbsp;</td>
-            <td>希 伯 來 書 第11章</td>
-            <td>
-                <video width="320" height="240" controls preload="none" poster="./videos/200909/video02.jpg">
+  <div class="sermon-card">
+    <video   controls preload="none" poster="./videos/200909/video02.jpg">
                     <source src="./videos/200909/DVD_VIDEO_RECORDER-2.mp4" type="video/mp4">
                 </video>
-            </td>
-        </tr>
+    <div class="sermon-card-body">
+      <p class="sermon-card-title">67 | 2009-11-01.1 | 舊約所說的人是怎樣生活的呢?</p>
+      <p class="sermon-card-desc">希 伯 來 書 第11章</p>
+    </div>
+  </div>
 
-        <tr>
-            <td>66</td>
-            <td>2009-11-01.2</td>
-            <td>我們的神是好的神</td>
-            <td>&nbsp;</td>
-            <td>希 伯 來 書 第11章</td>
-            <td>
-                <video width="320" height="240" controls preload="none" poster="./videos/200909/video03.jpg">
+  <div class="sermon-card">
+    <video   controls preload="none" poster="./videos/200909/video03.jpg">
                     <source src="./videos/200909/DVD_VIDEO_RECORDER-3.mp4" type="video/mp4">
                 </video>
-            </td>
-        </tr>
+    <div class="sermon-card-body">
+      <p class="sermon-card-title">66 | 2009-11-01.2 | 我們的神是好的神</p>
+      <p class="sermon-card-desc">希 伯 來 書 第11章</p>
+    </div>
+  </div>
 
-        <tr>
-            <td>65</td>
-            <td>2009-11-01.3</td>
-            <td>應許的神</td>
-            <td>&nbsp;</td>
-            <td>撒 母 耳 記 下 第3章</td>
-            <td>
-                <video width="320" height="240" controls preload="none" poster="./videos/200909/video04.jpg">
+  <div class="sermon-card">
+    <video   controls preload="none" poster="./videos/200909/video04.jpg">
                     <source src="./videos/200909/DVD_VIDEO_RECORDER-4.mp4" type="video/mp4">
                 </video>
-            </td>
-        </tr>
+    <div class="sermon-card-body">
+      <p class="sermon-card-title">65 | 2009-11-01.3 | 應許的神</p>
+      <p class="sermon-card-desc">撒 母 耳 記 下 第3章</p>
+    </div>
+  </div>
 
-        <tr>
-            <td>64</td>
-            <td>2009-11-01.4</td>
-            <td>神是能力的神</td>
-            <td>&nbsp;</td>
-            <td>約 書 亞 記 第6章</td>
-            <td>
-                <video width="320" height="240" controls preload="none" poster="./videos/200909/video05.jpg">
+  <div class="sermon-card">
+    <video   controls preload="none" poster="./videos/200909/video05.jpg">
                     <source src="./videos/200909/DVD_VIDEO_RECORDER-5.mp4" type="video/mp4">
                 </video>
-            </td>
-        </tr>
+    <div class="sermon-card-body">
+      <p class="sermon-card-title">64 | 2009-11-01.4 | 神是能力的神</p>
+      <p class="sermon-card-desc">約 書 亞 記 第6章</p>
+    </div>
+  </div>
 
-        <tr>
-            <td>63</td>
-            <td>2009-11-01.5</td>
-            <td>神是審判的神</td>
-            <td>&nbsp;</td>
-            <td>約 書 亞 記 第6章</td>
-            <td>
-                <video width="320" height="240" controls preload="none" poster="./videos/200909/video06.jpg">
+  <div class="sermon-card">
+    <video   controls preload="none" poster="./videos/200909/video06.jpg">
                     <source src="./videos/200909/DVD_VIDEO_RECORDER-6.mp4" type="video/mp4">
                 </video>
-            </td>
-        </tr>
+    <div class="sermon-card-body">
+      <p class="sermon-card-title">63 | 2009-11-01.5 | 神是審判的神</p>
+      <p class="sermon-card-desc">約 書 亞 記 第6章</p>
+    </div>
+  </div>
 
-        <tr>
-            <td>62</td>
-            <td>2009-11-01.6</td>
-            <td>&nbsp;</td>
-            <td>&nbsp;</td>
-            <td>雅 歌</td>
-            <td>
-                <video width="320" height="240" controls preload="none" poster="./videos/200909/video07.jpg">
+  <div class="sermon-card">
+    <video   controls preload="none" poster="./videos/200909/video07.jpg">
                     <source src="./videos/200909/DVD_VIDEO_RECORDER-7.mp4" type="video/mp4">
                 </video>
-            </td>
-        </tr>
+    <div class="sermon-card-body">
+      <p class="sermon-card-title">62 | 2009-11-01.6</p>
+      <p class="sermon-card-desc">雅 歌</p>
+    </div>
+  </div>
 
-        <tr>
-            <td>61</td>
-            <td>2009-11-01.7</td>
-            <td>我們必須被神的話語有所開啟</td>
-            <td>&nbsp;</td>
-            <td>馬 太 福 音 第15章</td>
-            <td>
-                <video width="320" height="240" controls preload="none" poster="./videos/200909/video08.jpg">
+  <div class="sermon-card">
+    <video   controls preload="none" poster="./videos/200909/video08.jpg">
                     <source src="./videos/200909/DVD_VIDEO_RECORDER-8.mp4" type="video/mp4">
                 </video>
-            </td>
-        </tr>
+    <div class="sermon-card-body">
+      <p class="sermon-card-title">61 | 2009-11-01.7 | 我們必須被神的話語有所開啟</p>
+      <p class="sermon-card-desc">馬 太 福 音 第15章</p>
+    </div>
+  </div>
 
-        <tr>
-            <td>60</td>
-            <td>2009-11-01.8</td>
-            <td>凡求告主名 心裡相信就必得救</td>
-            <td>&nbsp;</td>
-            <td>&nbsp;</td>
-            <td>
-                <video width="320" height="240" controls preload="none" poster="./videos/200909/video11.jpg">
+  <div class="sermon-card">
+    <video   controls preload="none" poster="./videos/200909/video11.jpg">
                     <source src="./videos/200909/DVD_VIDEO_RECORDER-11.mp4" type="video/mp4">
                 </video>
-            </td>
-        </tr>
+    <div class="sermon-card-body">
+      <p class="sermon-card-title">60 | 2009-11-01.8 | 凡求告主名 心裡相信就必得救</p>
+    </div>
+  </div>
 
-        <tr>
-            <td>59</td>
-            <td>2009-11-01.9</td>
-            <td>&nbsp;</td>
-            <td>&nbsp;</td>
-            <td>&nbsp;</td>
-            <td>
-                <video width="320" height="240" controls preload="none" poster="./videos/200909/video13.jpg">
+  <div class="sermon-card">
+    <video   controls preload="none" poster="./videos/200909/video13.jpg">
                     <source src="./videos/200909/DVD_VIDEO_RECORDER-13.mp4" type="video/mp4">
                 </video>
-            </td>
-        </tr>
+    <div class="sermon-card-body">
+      <p class="sermon-card-title">59 | 2009-11-01.9</p>
+    </div>
+  </div>
 
-        <tr>
-            <td>58</td>
-            <td>2009-11-01.10</td>
-            <td>&nbsp;</td>
-            <td>&nbsp;</td>
-            <td>&nbsp;</td>
-            <td>
-                <video width="320" height="240" controls preload="none" poster="./videos/200909/video14.jpg">
+  <div class="sermon-card">
+    <video   controls preload="none" poster="./videos/200909/video14.jpg">
                     <source src="./videos/200909/DVD_VIDEO_RECORDER-14.mp4" type="video/mp4">
                 </video>
-            </td>
-        </tr>
+    <div class="sermon-card-body">
+      <p class="sermon-card-title">58 | 2009-11-01.10</p>
+    </div>
+  </div>
 
-        <tr>
-            <td>57</td>
-            <td>2009-11-01.11</td>
-            <td>神傳給我們的</td>
-            <td>&nbsp;</td>
-            <td>&nbsp;</td>
-            <td>
-                <video width="320" height="240" controls preload="none" poster="./videos/200909/video15.jpg">
+  <div class="sermon-card">
+    <video   controls preload="none" poster="./videos/200909/video15.jpg">
                     <source src="./videos/200909/DVD_VIDEO_RECORDER-15.mp4" type="video/mp4">
                 </video>
-            </td>
-        </tr>
+    <div class="sermon-card-body">
+      <p class="sermon-card-title">57 | 2009-11-01.11 | 神傳給我們的</p>
+    </div>
+  </div>
 
-        <tr>
-            <td>56</td>
-            <td>2009-11-01.12</td>
-            <td>神的國是喜樂的國</td>
-            <td>&nbsp;</td>
-            <td>路 加 福 音 第10章</td>
-            <td>
-                <video width="320" height="240" controls preload="none" poster="./videos/200909/video16.jpg">
+  <div class="sermon-card">
+    <video   controls preload="none" poster="./videos/200909/video16.jpg">
                     <source src="./videos/200909/DVD_VIDEO_RECORDER-16.mp4" type="video/mp4">
                 </video>
-            </td>
-        </tr>
+    <div class="sermon-card-body">
+      <p class="sermon-card-title">56 | 2009-11-01.12 | 神的國是喜樂的國</p>
+      <p class="sermon-card-desc">路 加 福 音 第10章</p>
+    </div>
+  </div>
 
-        <tr>
-            <td>55</td>
-            <td>2009-08-26.13</td>
-            <td>以色列的百姓信神時候所做的事</td>
-            <td>&nbsp;</td>
-            <td>使 徒 行 傳 第7章</td>
-            <td>
-                <video width="320" height="240" controls preload="none" poster="./images/thumbnails/200908/video13.jpg">
+  <div class="sermon-card">
+    <video   controls preload="none" poster="./images/thumbnails/200908/video13.jpg">
                     <source src="./videos/200908/video13.mp4" type="video/mp4">
                 </video>
-            </td>
-        </tr>
+    <div class="sermon-card-body">
+      <p class="sermon-card-title">55 | 2009-08-26.13 | 以色列的百姓信神時候所做的事</p>
+      <p class="sermon-card-desc">使 徒 行 傳 第7章</p>
+    </div>
+  </div>
 
-        <tr>
-            <td>54</td>
-            <td>2009-08-26.12</td>
-            <td>神想要的信心</td>
-            <td>&nbsp;</td>
-            <td>希 伯 來 書 第11章</td>
-            <td>
-                <video width="320" height="240" controls preload="none" poster="./images/thumbnails/200908/video12.jpg">
+  <div class="sermon-card">
+    <video   controls preload="none" poster="./images/thumbnails/200908/video12.jpg">
                     <source src="./videos/200908/video12.mp4" type="video/mp4">
                 </video>
-            </td>
-        </tr>
+    <div class="sermon-card-body">
+      <p class="sermon-card-title">54 | 2009-08-26.12 | 神想要的信心</p>
+      <p class="sermon-card-desc">希 伯 來 書 第11章</p>
+    </div>
+  </div>
 
-        <tr>
-            <td>53</td>
-            <td>2009-08-26.11</td>
-            <td>靠禱告得勝的人-但以理</td>
-            <td>&nbsp;</td>
-            <td>但 以 理 書 第6章</td>
-            <td>
-                <video width="320" height="240" controls preload="none" poster="./images/thumbnails/200908/video11.jpg">
+  <div class="sermon-card">
+    <video   controls preload="none" poster="./images/thumbnails/200908/video11.jpg">
                     <source src="./videos/200908/video11.mp4" type="video/mp4">
                 </video>
-            </td>
-        </tr>
+    <div class="sermon-card-body">
+      <p class="sermon-card-title">53 | 2009-08-26.11 | 靠禱告得勝的人-但以理</p>
+      <p class="sermon-card-desc">但 以 理 書 第6章</p>
+    </div>
+  </div>
 
-        <tr>
-            <td>52</td>
-            <td>2009-08-26.10</td>
-            <td>得勝於撒旦的方法</td>
-            <td>&nbsp;</td>
-            <td>&nbsp;</td>
-            <td>
-                <video width="320" height="240" controls preload="none" poster="./images/thumbnails/200908/video10.jpg">
+  <div class="sermon-card">
+    <video   controls preload="none" poster="./images/thumbnails/200908/video10.jpg">
                     <source src="./videos/200908/video10.mp4" type="video/mp4">
                 </video>
-            </td>
-        </tr>
+    <div class="sermon-card-body">
+      <p class="sermon-card-title">52 | 2009-08-26.10 | 得勝於撒旦的方法</p>
+    </div>
+  </div>
 
-        <tr>
-            <td>51</td>
-            <td>2009-08-26.9</td>
-            <td>堅忍的使徒以利亞的禱告</td>
-            <td>&nbsp;</td>
-            <td>列 王 記 下 第2章</td>
-            <td>
-                <video width="320" height="240" controls preload="none" poster="./images/thumbnails/200908/video09.jpg">
+  <div class="sermon-card">
+    <video   controls preload="none" poster="./images/thumbnails/200908/video09.jpg">
                     <source src="./videos/200908/video09.mp4" type="video/mp4">
                 </video>
-            </td>
-        </tr>
+    <div class="sermon-card-body">
+      <p class="sermon-card-title">51 | 2009-08-26.9 | 堅忍的使徒以利亞的禱告</p>
+      <p class="sermon-card-desc">列 王 記 下 第2章</p>
+    </div>
+  </div>
 
-        <tr>
-            <td>50</td>
-            <td>2009-08-26.8</td>
-            <td>體驗主能力的方法</td>
-            <td>&nbsp;</td>
-            <td>列 王 記 上 第18章</td>
-            <td>
-                <video width="320" height="240" controls preload="none" poster="./images/thumbnails/200908/video08.jpg">
+  <div class="sermon-card">
+    <video   controls preload="none" poster="./images/thumbnails/200908/video08.jpg">
                     <source src="./videos/200908/video08.mp4" type="video/mp4">
                 </video>
-            </td>
-        </tr>
+    <div class="sermon-card-body">
+      <p class="sermon-card-title">50 | 2009-08-26.8 | 體驗主能力的方法</p>
+      <p class="sermon-card-desc">列 王 記 上 第18章</p>
+    </div>
+  </div>
 
-        <tr>
-            <td>49</td>
-            <td>2009-08-26.7</td>
-            <td>禱告是勝利和奇蹟的延續</td>
-            <td>&nbsp;</td>
-            <td>&nbsp;</td>
-            <td>
-                <video width="320" height="240" controls preload="none" poster="./images/thumbnails/200908/video07.jpg">
+  <div class="sermon-card">
+    <video   controls preload="none" poster="./images/thumbnails/200908/video07.jpg">
                     <source src="./videos/200908/video07.mp4" type="video/mp4">
                 </video>
-            </td>
-        </tr>
+    <div class="sermon-card-body">
+      <p class="sermon-card-title">49 | 2009-08-26.7 | 禱告是勝利和奇蹟的延續</p>
+    </div>
+  </div>
 
-        <tr>
-            <td>48</td>
-            <td>2009-08-26.6</td>
-            <td>禱告是勝利和奇蹟的延續</td>
-            <td>&nbsp;</td>
-            <td>&nbsp;</td>
-            <td>
-                <video width="320" height="240" controls preload="none" poster="./images/thumbnails/200908/video06.jpg">
+  <div class="sermon-card">
+    <video   controls preload="none" poster="./images/thumbnails/200908/video06.jpg">
                     <source src="./videos/200908/video06.mp4" type="video/mp4">
                 </video>
-            </td>
-        </tr>
+    <div class="sermon-card-body">
+      <p class="sermon-card-title">48 | 2009-08-26.6 | 禱告是勝利和奇蹟的延續</p>
+    </div>
+  </div>
 
-        <tr>
-            <td>47</td>
-            <td>2009-08-26.5</td>
-            <td>合心禱告的偉大力量</td>
-            <td>&nbsp;</td>
-            <td>出 埃 及 記 第17章</td>
-            <td>
-                <video width="320" height="240" controls preload="none" poster="./images/thumbnails/200908/video05.jpg">
+  <div class="sermon-card">
+    <video   controls preload="none" poster="./images/thumbnails/200908/video05.jpg">
                     <source src="./videos/200908/video05.mp4" type="video/mp4">
                 </video>
-            </td>
-        </tr>
+    <div class="sermon-card-body">
+      <p class="sermon-card-title">47 | 2009-08-26.5 | 合心禱告的偉大力量</p>
+      <p class="sermon-card-desc">出 埃 及 記 第17章</p>
+    </div>
+  </div>
 
-        <tr>
-            <td>46</td>
-            <td>2009-08-26.4</td>
-            <td>在禱告蒙應允的事上要有確信</td>
-            <td>&nbsp;</td>
-            <td>雅 各 書 第1章</td>
-            <td>
-                <video width="320" height="240" controls preload="none" poster="./images/thumbnails/200908/video04.jpg">
+  <div class="sermon-card">
+    <video   controls preload="none" poster="./images/thumbnails/200908/video04.jpg">
                     <source src="./videos/200908/video04.mp4" type="video/mp4">
                 </video>
-            </td>
-        </tr>
+    <div class="sermon-card-body">
+      <p class="sermon-card-title">46 | 2009-08-26.4 | 在禱告蒙應允的事上要有確信</p>
+      <p class="sermon-card-desc">雅 各 書 第1章</p>
+    </div>
+  </div>
 
-        <tr>
-            <td>45</td>
-            <td>2009-08-26.3</td>
-            <td>成功者和失敗者</td>
-            <td>&nbsp;</td>
-            <td>創 世 紀 第32章</td>
-            <td>
-                <video width="320" height="240" controls preload="none" poster="./images/thumbnails/200908/video03.jpg">
+  <div class="sermon-card">
+    <video   controls preload="none" poster="./images/thumbnails/200908/video03.jpg">
                     <source src="./videos/200908/video03.mp4" type="video/mp4">
                 </video>
-            </td>
-        </tr>
+    <div class="sermon-card-body">
+      <p class="sermon-card-title">45 | 2009-08-26.3 | 成功者和失敗者</p>
+      <p class="sermon-card-desc">創 世 紀 第32章</p>
+    </div>
+  </div>
 
-        <tr>
-            <td>44</td>
-            <td>2009-08-26.2</td>
-            <td>只要照著神的話語呼求禱告 神的應允就要來臨</td>
-            <td>&nbsp;</td>
-            <td>耶 利 米 書 第29章</td>
-            <td>
-                <video width="320" height="240" controls preload="none" poster="./images/thumbnails/200908/video02.jpg">
+  <div class="sermon-card">
+    <video   controls preload="none" poster="./images/thumbnails/200908/video02.jpg">
                     <source src="./videos/200908/video02.mp4" type="video/mp4">
                 </video>
-            </td>
-        </tr>
+    <div class="sermon-card-body">
+      <p class="sermon-card-title">44 | 2009-08-26.2 | 只要照著神的話語呼求禱告 神的應允就要來臨</p>
+      <p class="sermon-card-desc">耶 利 米 書 第29章</p>
+    </div>
+  </div>
 
-        <tr>
-            <td>43</td>
-            <td>2009-08-26.1</td>
-            <td>禱告的人 神就賜他分辨諸靈的恩賜</td>
-            <td>&nbsp;</td>
-            <td>加 拉 太 書 第1章</td>
-            <td>
-                <video width="320" height="240" controls preload="none" poster="./images/thumbnails/200908/video01.jpg">
+  <div class="sermon-card">
+    <video   controls preload="none" poster="./images/thumbnails/200908/video01.jpg">
                     <source src="./videos/200908/video01.mp4" type="video/mp4">
                 </video>
-            </td>
-            <!-- <td><video controls preload="none" poster="./images/thumbnails/200908/video01.jpg"><source src="./videos/200908/video01.mp4" type="video/mp4"></video></td> -->
-        </tr>
+    <div class="sermon-card-body">
+      <p class="sermon-card-title">43 | 2009-08-26.1 | 禱告的人 神就賜他分辨諸靈的恩賜</p>
+      <p class="sermon-card-desc">加 拉 太 書 第1章</p>
+    </div>
+  </div>
 
-        <tr>
-            <td>42</td>
-            <td>2009-07-02.6</td>
-            <td>&#20840;&#33021;&#30340;&#31070;&#33287;&#20320;&#30456;&#26371;</td>
-            <td>&nbsp;</td>
-            <td>&#24076;&#20271;&#20358;&#26360;11:1-40</td>
-            <td>
-                <video width="320" height="240" controls preload="none" poster="./videos/1-3.jpg">
+  <div class="sermon-card">
+    <video   controls preload="none" poster="./videos/1-3.jpg">
                     <source src="./videos/video1-3.mp4" type="video/mp4">
                 </video>
-            </td>
-        </tr>
+    <div class="sermon-card-body">
+      <p class="sermon-card-title">42 | 2009-07-02.6 | &#20840;&#33021;&#30340;&#31070;&#33287;&#20320;&#30456;&#26371;</p>
+      <p class="sermon-card-desc">&#24076;&#20271;&#20358;&#26360;11:1-40</p>
+    </div>
+  </div>
 
-        <tr>
-            <td>41</td>
-            <td>2009-07-02.5</td>
-            <td>&#25105;&#20497;&#35201;&#35242;&#36817;&#31070;</td>
-            <td>&nbsp;</td>
-            <td>&#24076;&#20271;&#20358;&#26360;10: 22-29</td>
-            <td>
-                <video width="320" height="240" controls preload="none" poster="./videos/1-1.jpg">
+  <div class="sermon-card">
+    <video   controls preload="none" poster="./videos/1-1.jpg">
                     <source src="./videos/video1-1.mp4" type="video/mp4">
                 </video>
-            </td>
-        </tr>
+    <div class="sermon-card-body">
+      <p class="sermon-card-title">41 | 2009-07-02.5 | &#25105;&#20497;&#35201;&#35242;&#36817;&#31070;</p>
+      <p class="sermon-card-desc">&#24076;&#20271;&#20358;&#26360;10: 22-29</p>
+    </div>
+  </div>
 
-        <tr>
-            <td>40</td>
-            <td>2009-07-02.4</td>
-            <td>&#34987;&#31070;&#30340;&#38728;&#22823;&#22823;&#24863;&#21205;</td>
-            <td>&nbsp;</td>
-            <td>&#22763;&#24107;&#35352;15 1:20</td>
-            <td>
-                <video width="320" height="240" controls preload="none" poster="./videos/1-2.jpg">
+  <div class="sermon-card">
+    <video   controls preload="none" poster="./videos/1-2.jpg">
                     <source src="./videos/video1-2.mp4" type="video/mp4">
                 </video>
-            </td>
-        </tr>
+    <div class="sermon-card-body">
+      <p class="sermon-card-title">40 | 2009-07-02.4 | &#34987;&#31070;&#30340;&#38728;&#22823;&#22823;&#24863;&#21205;</p>
+      <p class="sermon-card-desc">&#22763;&#24107;&#35352;15 1:20</p>
+    </div>
+  </div>
 
-        <tr>
-            <td>39</td>
-            <td>2009-07-02.3</td>
-            <td>&#31070;&#32854;&#28500;&#30340;&#26088;&#24847;</td>
-            <td>&nbsp;</td>
-            <td>&#20986;&#22467;&#21450;&#35352;29:1-46</td>
-            <td>
-                <video width="320" height="240" controls preload="none" poster="./videos/1-4.jpg">
+  <div class="sermon-card">
+    <video   controls preload="none" poster="./videos/1-4.jpg">
                     <source src="./videos/video1-4.mp4" type="video/mp4">
                 </video>
-            </td>
-        </tr>
+    <div class="sermon-card-body">
+      <p class="sermon-card-title">39 | 2009-07-02.3 | &#31070;&#32854;&#28500;&#30340;&#26088;&#24847;</p>
+      <p class="sermon-card-desc">&#20986;&#22467;&#21450;&#35352;29:1-46</p>
+    </div>
+  </div>
 
-        <tr>
-            <td>38</td>
-            <td>2009-07-02.2</td>
-            <td>&#31070;&#30340;&#24037;&#37117;&#26159;&#30001;&#31070;&#20358;&#20316;</td>
-            <td>&nbsp;</td>
-            <td>&#20986;&#22467;&#21450;&#35352;36: 1 &ndash; 38</td>
-            <td>
-                <video width="320" height="240" controls preload="none" poster="./videos/1-5.jpg">
+  <div class="sermon-card">
+    <video   controls preload="none" poster="./videos/1-5.jpg">
                     <source src="./videos/video1-5.mp4" type="video/mp4">
                 </video>
-            </td>
-        </tr>
+    <div class="sermon-card-body">
+      <p class="sermon-card-title">38 | 2009-07-02.2 | &#31070;&#30340;&#24037;&#37117;&#26159;&#30001;&#31070;&#20358;&#20316;</p>
+      <p class="sermon-card-desc">&#20986;&#22467;&#21450;&#35352;36: 1 &ndash; 38</p>
+    </div>
+  </div>
 
-        <tr>
-            <td>37</td>
-            <td>2009-07-02.1</td>
-            <td>&#21463;&#20102;&#32854;&#38728;&#27927;&#24471;&#33879;&#20027;&#30340;&#33021;&#21147;</td>
-            <td>&nbsp;</td>
-            <td>&#20351;&#24466;&#34892;&#20659;18: 24 - 19: 1-9</td>
-            <td>
-                <video width="320" height="240" controls preload="none" poster="./videos/1-9.jpg">
+  <div class="sermon-card">
+    <video   controls preload="none" poster="./videos/1-9.jpg">
                     <source src="./videos/video1-9.mp4" type="video/mp4">
                 </video>
-            </td>
-        </tr>
+    <div class="sermon-card-body">
+      <p class="sermon-card-title">37 | 2009-07-02.1 | &#21463;&#20102;&#32854;&#38728;&#27927;&#24471;&#33879;&#20027;&#30340;&#33021;&#21147;</p>
+      <p class="sermon-card-desc">&#20351;&#24466;&#34892;&#20659;18: 24 - 19: 1-9</p>
+    </div>
+  </div>
 
-        <tr>
-            <td>36</td>
-            <td>2009-01-15.9</td>
-            <td>Misunderstanding Can Kill</td>
-            <td>&nbsp;</td>
-            <td>&nbsp;</td>
-            <td>
-                <video width="320" height="240" controls preload="none"
+  <div class="sermon-card">
+    <video   controls preload="none"
                     poster="./videos/wmpc_20090115_09_MisunderstandingCanKill.jpg">
                     <source src="./videos/wmpc_20090115_09_MisunderstandingCanKill.mp4" type="video/mp4">
                 </video>
-            </td>
-        </tr>
+    <div class="sermon-card-body">
+      <p class="sermon-card-title">36 | 2009-01-15.9 | Misunderstanding Can Kill</p>
+    </div>
+  </div>
 
-        <tr>
-            <td>35</td>
-            <td>2009-01-15.8</td>
-            <td>God Based Vs Man Based Ideology</td>
-            <td>&nbsp;</td>
-            <td>&nbsp;</td>
-            <td>
-                <video width="320" height="240" controls preload="none"
+  <div class="sermon-card">
+    <video   controls preload="none"
                     poster="./videos/wmpc_20090115_08_GodBasedVsManBasedIdeology.jpg">
                     <source src="./videos/wmpc_20090115_08_GodBasedVsManBasedIdeology.mp4" type="video/mp4">
                 </video>
-            </td>
-        </tr>
+    <div class="sermon-card-body">
+      <p class="sermon-card-title">35 | 2009-01-15.8 | God Based Vs Man Based Ideology</p>
+    </div>
+  </div>
 
-        <tr>
-            <td>34</td>
-            <td>2009-01-15.7</td>
-            <td>Did We Live Spiritually In 2008?</td>
-            <td>&nbsp;</td>
-            <td>&nbsp;</td>
-            <td>
-                <video width="320" height="240" controls preload="none"
+  <div class="sermon-card">
+    <video   controls preload="none"
                     poster="./videos/wmpc_20090115_07_DidWeLiveSpirituallyIn2008.jpg">
                     <source src="./videos/wmpc_20090115_07_DidWeLiveSpirituallyIn2008.mp4" type="video/mp4">
                 </video>
-            </td>
-        </tr>
+    <div class="sermon-card-body">
+      <p class="sermon-card-title">34 | 2009-01-15.7 | Did We Live Spiritually In 2008?</p>
+    </div>
+  </div>
 
-        <tr>
-            <td>33</td>
-            <td>2009-01-15.6</td>
-            <td>Living In Light</td>
-            <td>&nbsp;</td>
-            <td>&nbsp;</td>
-            <td>
-                <video width="320" height="240" controls preload="none"
+  <div class="sermon-card">
+    <video   controls preload="none"
                     poster="./videos/wmpc_20090115_06_LivingInLight.jpg">
                     <source src="./videos/wmpc_20090115_06_LivingInLight.mp4" type="video/mp4">
                 </video>
-            </td>
-        </tr>
+    <div class="sermon-card-body">
+      <p class="sermon-card-title">33 | 2009-01-15.6 | Living In Light</p>
+    </div>
+  </div>
 
-        <tr>
-            <td>32</td>
-            <td>2009-01-15.5</td>
-            <td>Appearance And Essence</td>
-            <td>&nbsp;</td>
-            <td>&nbsp;</td>
-            <td>
-                <video width="320" height="240" controls preload="none"
+  <div class="sermon-card">
+    <video   controls preload="none"
                     poster="./videos/wmpc_20090115_05_AppearanceAndEssence.jpg">
                     <source src="./videos/wmpc_20090115_05_AppearanceAndEssence.mp4" type="video/mp4">
                 </video>
-            </td>
-        </tr>
+    <div class="sermon-card-body">
+      <p class="sermon-card-title">32 | 2009-01-15.5 | Appearance And Essence</p>
+    </div>
+  </div>
 
-        <tr>
-            <td>31</td>
-            <td>2009-01-15.4</td>
-            <td>Have You Met The Real Servants of God?</td>
-            <td>&nbsp;</td>
-            <td>&nbsp;</td>
-            <td>
-                <video width="320" height="240" controls preload="none"
+  <div class="sermon-card">
+    <video   controls preload="none"
                     poster="./videos/wmpc_20090115_04_HaveYouMetTheRealServantsOfGod.jpg">
                     <source src="./videos/wmpc_20090115_04_HaveYouMetTheRealServantsOfGod.mp4" type="video/mp4">
                 </video>
-            </td>
-        </tr>
+    <div class="sermon-card-body">
+      <p class="sermon-card-title">31 | 2009-01-15.4 | Have You Met The Real Servants of God?</p>
+    </div>
+  </div>
 
-        <tr>
-            <td>30</td>
-            <td>2009-01-15.3</td>
-            <td>Dreams Will Come True</td>
-            <td>&nbsp;</td>
-            <td>&nbsp;</td>
-            <td>
-                <video width="320" height="240" controls preload="none"
+  <div class="sermon-card">
+    <video   controls preload="none"
                     poster="./videos/wmpc_20090115_03_DreamsWillComeTrue.jpg">
                     <source src="./videos/wmpc_20090115_03_DreamsWillComeTrue.mp4" type="video/mp4">
                 </video>
-            </td>
-        </tr>
+    <div class="sermon-card-body">
+      <p class="sermon-card-title">30 | 2009-01-15.3 | Dreams Will Come True</p>
+    </div>
+  </div>
 
-        <tr>
-            <td>29</td>
-            <td>2009-01-15.2</td>
-            <td>Merry Christmas</td>
-            <td>&nbsp;</td>
-            <td>&nbsp;</td>
-            <td>
-                <video width="320" height="240" controls preload="none"
+  <div class="sermon-card">
+    <video   controls preload="none"
                     poster="./videos/wmpc_20090115_02_MerryChristmas.jpg">
                     <source src="./videos/wmpc_20090115_02_MerryChristmas.mp4" type="video/mp4">
                 </video>
-            </td>
-        </tr>
+    <div class="sermon-card-body">
+      <p class="sermon-card-title">29 | 2009-01-15.2 | Merry Christmas</p>
+    </div>
+  </div>
 
-        <tr>
-            <td>28</td>
-            <td>2009-01-15.1</td>
-            <td>Historic Proof Of Christ's Coming</td>
-            <td>&nbsp;</td>
-            <td>&nbsp;</td>
-            <td>
-                <video width="320" height="240" controls preload="none"
+  <div class="sermon-card">
+    <video   controls preload="none"
                     poster="./videos/wmpc_20090115_01_HistoricProofOfChristsComing.jpg">
                     <source src="./videos/wmpc_20090115_01_HistoricProofOfChristsComing.mp4" type="video/mp4">
                 </video>
-            </td>
-        </tr>
+    <div class="sermon-card-body">
+      <p class="sermon-card-title">28 | 2009-01-15.1 | Historic Proof Of Christ's Coming</p>
+    </div>
+  </div>
 
-        <tr>
-            <td>27</td>
-            <td>2008-10-15.6</td>
-            <td>What The Lord Says About Leaders</td>
-            <td>&nbsp;</td>
-            <td>&nbsp;</td>
-            <td>
-                <video width="320" height="240" controls preload="none"
+  <div class="sermon-card">
+    <video   controls preload="none"
                     poster="./videos/wmpc_20081015_06_WhatTheLordSaysAboutLeaders.jpg">
                     <source src="./videos/wmpc_20081015_06_WhatTheLordSaysAboutLeaders.mp4" type="video/mp4">
                 </video>
-            </td>
-        </tr>
+    <div class="sermon-card-body">
+      <p class="sermon-card-title">27 | 2008-10-15.6 | What The Lord Says About Leaders</p>
+    </div>
+  </div>
 
-        <tr>
-            <td>26</td>
-            <td>2008-10-15.5</td>
-            <td>Those Who Know You Would Respect You</td>
-            <td>&nbsp;</td>
-            <td>&nbsp;</td>
-            <td>
-                <video width="320" height="240" controls preload="none"
+  <div class="sermon-card">
+    <video   controls preload="none"
                     poster="./videos/wmpc_20081015_05_ThoseWhoKnowYouWouldRespect.jpg">
                     <source src="./videos/wmpc_20081015_05_ThoseWhoKnowYouWouldRespect.mp4" type="video/mp4">
                 </video>
-            </td>
-        </tr>
+    <div class="sermon-card-body">
+      <p class="sermon-card-title">26 | 2008-10-15.5 | Those Who Know You Would Respect You</p>
+    </div>
+  </div>
 
-        <tr>
-            <td>25</td>
-            <td>2008-10-15.4</td>
-            <td>Teachings Of Jesus</td>
-            <td>&nbsp;</td>
-            <td>&nbsp;</td>
-            <td>
-                <video width="320" height="240" controls preload="none"
+  <div class="sermon-card">
+    <video   controls preload="none"
                     poster="./videos/wmpc_20081015_04_TeachingsOfJesus.jpg">
                     <source src="./videos/wmpc_20081015_04_TeachingsOfJesus.mp4" type="video/mp4">
                 </video>
-            </td>
-        </tr>
+    <div class="sermon-card-body">
+      <p class="sermon-card-title">25 | 2008-10-15.4 | Teachings Of Jesus</p>
+    </div>
+  </div>
 
-        <tr>
-            <td>24</td>
-            <td>2008-10-15.3</td>
-            <td>Our Eyes Need To See</td>
-            <td>&nbsp;</td>
-            <td>&nbsp;</td>
-            <td>
-                <video width="320" height="240" controls preload="none"
+  <div class="sermon-card">
+    <video   controls preload="none"
                     poster="./videos/wmpc_20081015_03_OurEyesNeedToSee.jpg">
                     <source src="./videos/wmpc_20081015_03_OurEyesNeedToSee.mp4" type="video/mp4">
                 </video>
-            </td>
-        </tr>
+    <div class="sermon-card-body">
+      <p class="sermon-card-title">24 | 2008-10-15.3 | Our Eyes Need To See</p>
+    </div>
+  </div>
 
-        <tr>
-            <td>23</td>
-            <td>2008-10-15.2</td>
-            <td>God Especially Loves Us</td>
-            <td>&nbsp;</td>
-            <td>&nbsp;</td>
-            <td>
-                <video width="320" height="240" controls preload="none"
+  <div class="sermon-card">
+    <video   controls preload="none"
                     poster="./videos/wmpc_20081015_02_GodEspeciallyLovesUs.jpg">
                     <source src="./videos/wmpc_20081015_02_GodEspeciallyLovesUs.mp4" type="video/mp4">
                 </video>
-            </td>
-        </tr>
+    <div class="sermon-card-body">
+      <p class="sermon-card-title">23 | 2008-10-15.2 | God Especially Loves Us</p>
+    </div>
+  </div>
 
-        <tr>
-            <td>22</td>
-            <td>2008-10-15.1</td>
-            <td>The Fruits Of God</td>
-            <td>&nbsp;</td>
-            <td>&nbsp;</td>
-            <td>
-                <video width="320" height="240" controls preload="none"
+  <div class="sermon-card">
+    <video   controls preload="none"
                     poster="./videos/wmpc_20081015_01_TheFruitsOfGod.jpg">
                     <source src="./videos/wmpc_20081015_01_TheFruitsOfGod.mp4" type="video/mp4">
                 </video>
-            </td>
-        </tr>
+    <div class="sermon-card-body">
+      <p class="sermon-card-title">22 | 2008-10-15.1 | The Fruits Of God</p>
+    </div>
+  </div>
 
-        <tr>
-            <td>21</td>
-            <td>2008-10-02.5</td>
-            <td>The God Who Shields Us With Grace</td>
-            <td>&nbsp;</td>
-            <td>&nbsp;</td>
-            <td>
-                <video width="320" height="240" controls preload="none"
+  <div class="sermon-card">
+    <video   controls preload="none"
                     poster="./videos/wmpc_20081002_05_TheGodWhoShieldsUsWithGrace.jpg">
                     <source src="./videos/wmpc_20081002_05_TheGodWhoShieldsUsWithGrace.mp4" type="video/mp4">
                 </video>
-            </td>
-        </tr>
+    <div class="sermon-card-body">
+      <p class="sermon-card-title">21 | 2008-10-02.5 | The God Who Shields Us With Grace</p>
+    </div>
+  </div>
 
-        <tr>
-            <td>20</td>
-            <td>2008-10-02.4</td>
-            <td>Don't Just Look At Circumstances</td>
-            <td>&nbsp;</td>
-            <td>&nbsp;</td>
-            <td>
-                <video width="320" height="240" controls preload="none"
+  <div class="sermon-card">
+    <video   controls preload="none"
                     poster="./videos/wmpc_20081002_04_DontJustLookAtCircumstances.jpg">
                     <source src="./videos/wmpc_20081002_04_DontJustLookAtCircumstances.mp4" type="video/mp4">
                 </video>
-            </td>
-        </tr>
+    <div class="sermon-card-body">
+      <p class="sermon-card-title">20 | 2008-10-02.4 | Don't Just Look At Circumstances</p>
+    </div>
+  </div>
 
-        <tr>
-            <td>19</td>
-            <td>2008-10-02.3</td>
-            <td>Our View And God's View</td>
-            <td>&nbsp;</td>
-            <td>&nbsp;</td>
-            <td>
-                <video width="320" height="240" controls preload="none"
+  <div class="sermon-card">
+    <video   controls preload="none"
                     poster="./videos/wmpc_20081002_03_OurViewAndGodsView.jpg">
                     <source src="./videos/wmpc_20081002_03_OurViewAndGodsView.mp4" type="video/mp4">
                 </video>
-            </td>
-        </tr>
+    <div class="sermon-card-body">
+      <p class="sermon-card-title">19 | 2008-10-02.3 | Our View And God's View</p>
+    </div>
+  </div>
 
-        <tr>
-            <td>18</td>
-            <td>2008-10-02.2</td>
-            <td>Things That God Hates</td>
-            <td>&nbsp;</td>
-            <td>&nbsp;</td>
-            <td>
-                <video width="320" height="240" controls preload="none"
+  <div class="sermon-card">
+    <video   controls preload="none"
                     poster="./videos/wmpc_20081002_02_ThingsThatGodHates.jpg">
                     <source src="./videos/wmpc_20081002_02_ThingsThatGodHates.mp4" type="video/mp4">
                 </video>
-            </td>
-        </tr>
+    <div class="sermon-card-body">
+      <p class="sermon-card-title">18 | 2008-10-02.2 | Things That God Hates</p>
+    </div>
+  </div>
 
-        <tr>
-            <td>17</td>
-            <td>2008-10-02.1</td>
-            <td>God Is Looking For One Obedient Person</td>
-            <td>&nbsp;</td>
-            <td>&nbsp;</td>
-            <td>
-                <video width="320" height="240" controls preload="none"
+  <div class="sermon-card">
+    <video   controls preload="none"
                     poster="./videos/wmpc_20081002_01_GodIsLookingForOneObedientPerson.jpg">
                     <source src="./videos/wmpc_20081002_01_GodIsLookingForOneObedientPerson.mp4" type="video/mp4">
                 </video>
-            </td>
-        </tr>
+    <div class="sermon-card-body">
+      <p class="sermon-card-title">17 | 2008-10-02.1 | God Is Looking For One Obedient Person</p>
+    </div>
+  </div>
 
-        <tr>
-            <td>16</td>
-            <td>2008-10-01.7</td>
-            <td>Faith Of The Patient and Power Of Jesus</td>
-            <td>&nbsp;</td>
-            <td>&nbsp;</td>
-            <td>
-                <video width="320" height="240" controls preload="none"
+  <div class="sermon-card">
+    <video   controls preload="none"
                     poster="./videos/wmpc_20081001_07_FaithOfThePatientAndPowerOfJesus.jpg">
                     <source src="./videos/wmpc_20081001_07_FaithOfThePatientAndPowerOfJesus.mp4" type="video/mp4">
                 </video>
-            </td>
-        </tr>
+    <div class="sermon-card-body">
+      <p class="sermon-card-title">16 | 2008-10-01.7 | Faith Of The Patient and Power Of Jesus</p>
+    </div>
+  </div>
 
-        <tr>
-            <td>15</td>
-            <td>2008-10-01.6</td>
-            <td>The Jesus Within You</td>
-            <td>&nbsp;</td>
-            <td>&nbsp;</td>
-            <td>
-                <video width="320" height="240" controls preload="none"
+  <div class="sermon-card">
+    <video   controls preload="none"
                     poster="./videos/wmpc_20081001_06_TheJesusWithinYou.jpg">
                     <source src="./videos/wmpc_20081001_06_TheJesusWithinYou.mp4" type="video/mp4">
                 </video>
-            </td>
-        </tr>
+    <div class="sermon-card-body">
+      <p class="sermon-card-title">15 | 2008-10-01.6 | The Jesus Within You</p>
+    </div>
+  </div>
 
-        <tr>
-            <td>14</td>
-            <td>2008-10-01.5</td>
-            <td>God's People Have Power</td>
-            <td>&nbsp;</td>
-            <td>&nbsp;</td>
-            <td>
-                <video width="320" height="240" controls preload="none"
+  <div class="sermon-card">
+    <video   controls preload="none"
                     poster="./videos/wmpc_20081001_05_GodsPeopleHavePower.jpg">
                     <source src="./videos/wmpc_20081001_05_GodsPeopleHavePower.mp4" type="video/mp4">
                 </video>
-            </td>
-        </tr>
+    <div class="sermon-card-body">
+      <p class="sermon-card-title">14 | 2008-10-01.5 | God's People Have Power</p>
+    </div>
+  </div>
 
-        <tr>
-            <td>13</td>
-            <td>2008-10-01.4</td>
-            <td>The Lord Who Knows Our Hearts and Minds</td>
-            <td>&nbsp;</td>
-            <td>&nbsp;</td>
-            <td>
-                <video width="320" height="240" controls preload="none"
+  <div class="sermon-card">
+    <video   controls preload="none"
                     poster="./videos/wmpc_20081001_04_TheLordWhoKnowsOurHeartsAndMinds.jpg">
                     <source src="./videos/wmpc_20081001_04_TheLordWhoKnowsOurHeartsAndMinds.mp4" type="video/mp4">
                 </video>
-            </td>
-        </tr>
+    <div class="sermon-card-body">
+      <p class="sermon-card-title">13 | 2008-10-01.4 | The Lord Who Knows Our Hearts and Minds</p>
+    </div>
+  </div>
 
-        <tr>
-            <td>12</td>
-            <td>2008-10-01.3</td>
-            <td>Jesus Controls Everything</td>
-            <td>&nbsp;</td>
-            <td>&nbsp;</td>
-            <td>
-                <video width="320" height="240" controls preload="none"
+  <div class="sermon-card">
+    <video   controls preload="none"
                     poster="./videos/wmpc_20081001_03_JesusControlsEverything.jpg">
                     <source src="./videos/wmpc_20081001_03_JesusControlsEverything.mp4" type="video/mp4">
                 </video>
-            </td>
-        </tr>
+    <div class="sermon-card-body">
+      <p class="sermon-card-title">12 | 2008-10-01.3 | Jesus Controls Everything</p>
+    </div>
+  </div>
 
-        <tr>
-            <td>11</td>
-            <td>2008-10-01.2</td>
-            <td>How Jesus Drives Out Demons</td>
-            <td>&nbsp;</td>
-            <td>&nbsp;</td>
-            <td>
-                <video width="320" height="240" controls preload="none"
+  <div class="sermon-card">
+    <video   controls preload="none"
                     poster="./videos/wmpc_20081001_02_HowJesusDrivesOutDemons.jpg">
                     <source src="./videos/wmpc_20081001_02_HowJesusDrivesOutDemons.mp4" type="video/mp4">
                 </video>
-            </td>
-        </tr>
+    <div class="sermon-card-body">
+      <p class="sermon-card-title">11 | 2008-10-01.2 | How Jesus Drives Out Demons</p>
+    </div>
+  </div>
 
-        <tr>
-            <td>10</td>
-            <td>2008-10-01.1</td>
-            <td>Christians Who Are Fruitful</td>
-            <td>&nbsp;</td>
-            <td>&nbsp;</td>
-            <td>
-                <video width="320" height="240" controls preload="none"
+  <div class="sermon-card">
+    <video   controls preload="none"
                     poster="./videos/wmpc_20081001_01_ChristiansWhoAreFruitful.jpg">
                     <source src="./videos/wmpc_20081001_01_ChristiansWhoAreFruitful.mp4" type="video/mp4">
                 </video>
-            </td>
-        </tr>
+    <div class="sermon-card-body">
+      <p class="sermon-card-title">10 | 2008-10-01.1 | Christians Who Are Fruitful</p>
+    </div>
+  </div>
 
-        <tr>
-            <td>9</td>
-            <td>2008-08-20.7</td>
-            <td>Nothing Can Harm Us</td>
-            <td>&nbsp;</td>
-            <td>&nbsp;</td>
-            <td>
-                <video width="320" height="240" controls preload="none"
+  <div class="sermon-card">
+    <video   controls preload="none"
                     poster="./videos/wmpc_20080820_07_NothingCanHarmUs.jpg">
                     <source src="./videos/wmpc_20080820_07_NothingCanHarmUs.mp4" type="video/mp4">
                 </video>
-            </td>
-        </tr>
+    <div class="sermon-card-body">
+      <p class="sermon-card-title">9 | 2008-08-20.7 | Nothing Can Harm Us</p>
+    </div>
+  </div>
 
-        <tr>
-            <td>8</td>
-            <td>2008-08-20.6</td>
-            <td>Freely You Have Received, Freely Give</td>
-            <td>&nbsp;</td>
-            <td>&nbsp;</td>
-            <td>
-                <video width="320" height="240" controls preload="none"
+  <div class="sermon-card">
+    <video   controls preload="none"
                     poster="./videos/wmpc_20080820_06_FreelyReceivedFreelyGive.jpg">
                     <source src="./videos/wmpc_20080820_06_FreelyReceivedFreelyGive.mp4" type="video/mp4">
                 </video>
-            </td>
-        </tr>
+    <div class="sermon-card-body">
+      <p class="sermon-card-title">8 | 2008-08-20.6 | Freely You Have Received, Freely Give</p>
+    </div>
+  </div>
 
-        <tr>
-            <td>7</td>
-            <td>2008-08-20.5</td>
-            <td>God's Temple is a House of Prayers</td>
-            <td>&nbsp;</td>
-            <td>&nbsp;</td>
-            <td>
-                <video width="320" height="240" controls preload="none"
+  <div class="sermon-card">
+    <video   controls preload="none"
                     poster="./videos/wmpc_20080820_05_GodsHouseOfPrayers.jpg">
                     <source src="./videos/wmpc_20080820_05_GodsHouseOfPrayers.mp4" type="video/mp4">
                 </video>
-            </td>
-        </tr>
+    <div class="sermon-card-body">
+      <p class="sermon-card-title">7 | 2008-08-20.5 | God's Temple is a House of Prayers</p>
+    </div>
+  </div>
 
-        <tr>
-            <td>6</td>
-            <td>2008-08-20.4</td>
-            <td>The God Who Speaks Even Today</td>
-            <td>&nbsp;</td>
-            <td>&nbsp;</td>
-            <td>
-                <video width="320" height="240" controls preload="none"
+  <div class="sermon-card">
+    <video   controls preload="none"
                     poster="./videos/wmpc_20080820_04_TheGodWhosSpeaksToday.jpg">
                     <source src="./videos/wmpc_20080820_04_TheGodWhosSpeaksToday.mp4" type="video/mp4">
                 </video>
-            </td>
-        </tr>
+    <div class="sermon-card-body">
+      <p class="sermon-card-title">6 | 2008-08-20.4 | The God Who Speaks Even Today</p>
+    </div>
+  </div>
 
-        <tr>
-            <td>5</td>
-            <td>2008-08-20.3</td>
-            <td>Works Of The Living God</td>
-            <td>&nbsp;</td>
-            <td>&nbsp;</td>
-            <td>
-                <video width="320" height="240" controls preload="none"
+  <div class="sermon-card">
+    <video   controls preload="none"
                     poster="./videos/wmpc_20080820_03_WorksOfTheLivingGod.jpg">
                     <source src="./videos/wmpc_20080820_03_WorksOfTheLivingGod.mp4" type="video/mp4">
                 </video>
-            </td>
-        </tr>
+    <div class="sermon-card-body">
+      <p class="sermon-card-title">5 | 2008-08-20.3 | Works Of The Living God</p>
+    </div>
+  </div>
 
-        <tr>
-            <td>4</td>
-            <td>2008-08-20.2</td>
-            <td>God Always Appears To Me</td>
-            <td>&nbsp;</td>
-            <td>&nbsp;</td>
-            <td>
-                <video width="320" height="240" controls preload="none"
+  <div class="sermon-card">
+    <video   controls preload="none"
                     poster="./videos/wmpc_20080820_02_GodAlwaysAppearsToMe.jpg">
                     <source src="./videos/wmpc_20080820_02_GodAlwaysAppearsToMe.mp4" type="video/mp4">
                 </video>
-            </td>
-        </tr>
+    <div class="sermon-card-body">
+      <p class="sermon-card-title">4 | 2008-08-20.2 | God Always Appears To Me</p>
+    </div>
+  </div>
 
-        <tr>
-            <td>3</td>
-            <td>2008-08-20.1</td>
-            <td>Come, Follow Me.</td>
-            <td>&nbsp;</td>
-            <td>&nbsp;</td>
-            <td>
-                <video width="320" height="240" controls preload="none"
+  <div class="sermon-card">
+    <video   controls preload="none"
                     poster="./videos/wmpc_20080820_01_ComeFollowMe.jpg">
                     <source src="./videos/wmpc_20080820_01_ComeFollowMe.mp4" type="video/mp4">
                 </video>
-            </td>
-        </tr>
+    <div class="sermon-card-body">
+      <p class="sermon-card-title">3 | 2008-08-20.1 | Come, Follow Me.</p>
+    </div>
+  </div>
 
-        <tr>
-            <td>2</td>
-            <td>2008-03-22</td>
-            <td>Taiwan Conference: Sermon</td>
-            <td>&nbsp;</td>
-            <td>&nbsp;</td>
-            <td>
-                <video width="320" height="240" controls preload="none" poster="./videos/wmpc_20080322_tw_sermon.jpg">
+  <div class="sermon-card">
+    <video   controls preload="none" poster="./videos/wmpc_20080322_tw_sermon.jpg">
                     <source src="./videos/wmpc_20080322_tw_sermon.mp4" type="video/mp4">
                 </video>
-            </td>
-        </tr>
+    <div class="sermon-card-body">
+      <p class="sermon-card-title">2 | 2008-03-22 | Taiwan Conference: Sermon</p>
+    </div>
+  </div>
 
-        <tr>
-            <td>1</td>
-            <td>2008-03-22</td>
-            <td>Taiwan Conference: Healing</td>
-            <td>&nbsp;</td>
-            <td>&nbsp;</td>
-            <td>
-                <!-- <video width="320" height="240" controls preload="none" poster="./videos/wmpc_20080322_tw_healing.jpg">
+  <div class="sermon-card">
+    <!-- <video   controls preload="none" poster="./videos/wmpc_20080322_tw_healing.jpg">
                     <source src="./videos/wmpc_20080322_tw_healing.mp4" type="video/mp4">
                 </video> -->
-                <iframe width="320" height="240" src="https://www.youtube.com/embed/Sr3EX0ADiqE"
+                <iframe   src="https://www.youtube.com/embed/Sr3EX0ADiqE"
                     title="YouTube video player" frameborder="0"
                     allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
                     allowfullscreen></iframe>
-            </td>
-        </tr>
+    <div class="sermon-card-body">
+      <p class="sermon-card-title">1 | 2008-03-22 | Taiwan Conference: Healing</p>
+    </div>
+  </div>
 
-        <!--
-<tr>
-<td>2007-11-28</td>
-<td>Turn to the right way</td>
-<td>Cry out<br>Great Faith<br>Request Granted<br>Right Way<br>Traditional Way</td>
-<td><a href="https://bbintl.org/bible/b5niv/b5nivMat15.html" target="_blank"> Matthew 15:21-28</a></td>
-<td><a href="./videos/wmpc_20071128.mpg"><img src="./videos/wmpc_20071128.jpg"></a></td>
-</tr>
--->
-    </table>
+</div>
