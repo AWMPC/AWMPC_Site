@@ -753,28 +753,29 @@
   </div>
 
   <!-- Page content -->
+  <?php
+    $menuItem = $_GET["page"];
+    $pageNames = array(
+      'mi_home' => 'Homepage',
+      'mi_prayer' => 'Prayer',
+      'mi_events' => 'Events',
+      'mi_contact' => 'Contact',
+      'mi_media' => 'Media',
+      'mi_support' => 'Donations',
+      'mi_mission' => 'Mission',
+      'mi_reply' => 'Prayer Reply',
+      'mi_request' => 'Prayers',
+      'mi_sermons' => 'Sermons',
+      'mi_testimony' => 'Testimony',
+      'mi_24hrhop' => 'Church',
+      'mi_taiwan' => 'Taiwan',
+      'mi_letters' => 'Letters',
+      'mi_canaan_record' => 'Canaan',
+      'hymns' => 'Hymns'
+    );
+  ?>
   <div class="section-card" id="contentCard">
-    <span class="section-card-label" id="contentCardLabel"><?php
-      $pageNames = array(
-        'mi_home' => 'Homepage',
-        'mi_prayer' => 'Prayer',
-        'mi_events' => 'Events',
-        'mi_contact' => 'Contact',
-        'mi_media' => 'Media',
-        'mi_support' => 'Donations',
-        'mi_mission' => 'Mission',
-        'mi_reply' => 'Prayer Reply',
-        'mi_request' => 'Prayers',
-        'mi_sermons' => 'Sermons',
-        'mi_testimony' => 'Testimony',
-        'mi_24hrhop' => 'Church',
-        'mi_taiwan' => 'Taiwan',
-        'mi_letters' => 'Letters',
-        'mi_canaan_record' => 'Canaan',
-        'hymns' => 'Hymns'
-      );
-      echo isset($pageNames[$menuItem]) ? $pageNames[$menuItem] : 'Homepage';
-    ?></span>
+    <span class="section-card-label" id="contentCardLabel"><?php echo isset($pageNames[$menuItem]) ? $pageNames[$menuItem] : 'Homepage'; ?></span>
 
     <main class="site-main">
 
@@ -796,7 +797,6 @@
       $files['mi_canaan_record'] = "canaan_chapel_record.html";
       $files['hymns']            = "wmpc_s_hymns.html";
 
-      $menuItem = $_GET["page"];
       $fname = $files[$menuItem];
       $file = fopen($fname, "r") or exit("Unable to open file!");
       while (!feof($file)) {
