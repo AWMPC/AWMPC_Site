@@ -278,12 +278,12 @@
     }
     .webex-card-logo {
       width: auto !important;
-      height: 120% !important;
+      height: 220% !important;
       object-fit: contain !important;
       border-radius: 0 !important;
       box-shadow: none !important;
       margin-bottom: 0 !important;
-      margin-right: -40%;
+      margin-right: -30%;
       position: relative;
       z-index: 0;
     }
@@ -292,7 +292,7 @@
       width: 2px;
       align-self: center;
       height: 92%;
-      background: rgba(0,0,0,0.08);
+      background: rgba(0,0,0,0.45);
       border-radius: 2px;
       position: relative;
       z-index: 1;
@@ -311,7 +311,7 @@
       z-index: 1;
     }
     .webex-card-line1 {
-      font-size: 1.3em;
+      font-size: 1.05em;
       font-weight: 600;
       color: #2A2A2A;
       line-height: 1.15;
@@ -319,7 +319,7 @@
       white-space: nowrap;
     }
     .webex-card-line2 {
-      font-size: 1.3em;
+      font-size: 1.6em;
       font-weight: 700;
       color: #1A1A1A;
       line-height: 1.15;
@@ -332,7 +332,7 @@
         #1E3450;
     }
     body.dark-mode .webex-card-divider {
-      background: rgba(255,255,255,0.12);
+      background: rgba(255,255,255,0.50);
     }
     body.dark-mode .webex-card-line1 {
       color: #B0C4D8;
@@ -752,7 +752,7 @@
     <a href="https://allworldmissionprayercenterinc-321.my.webex.com/meet/awmpc" target="_blank" rel="noopener" class="webex-card-link">
       <span class="webex-card">
         <span class="webex-card-left">
-          <img src="https://www.google.com/s2/favicons?domain=webex.com&sz=128" alt="" class="webex-card-logo" />
+          <img src="https://logo.clearbit.com/webex.com" alt="" class="webex-card-logo" />
         </span>
         <span class="webex-card-divider"></span>
         <span class="webex-card-right">
