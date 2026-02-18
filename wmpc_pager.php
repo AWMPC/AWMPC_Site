@@ -278,7 +278,7 @@
     }
     .webex-card-logo {
       width: auto !important;
-      height: 220% !important;
+      height: 385% !important;
       object-fit: contain !important;
       border-radius: 0 !important;
       box-shadow: none !important;
@@ -305,7 +305,7 @@
       flex-direction: column;
       align-items: center;
       justify-content: center;
-      padding: 0 8px;
+      padding: 0 14px;
       min-width: 0;
       position: relative;
       z-index: 1;
@@ -319,7 +319,7 @@
       white-space: nowrap;
     }
     .webex-card-line2 {
-      font-size: 1.6em;
+      font-size: 1.35em;
       font-weight: 700;
       color: #1A1A1A;
       line-height: 1.15;
