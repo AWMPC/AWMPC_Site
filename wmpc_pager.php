@@ -265,6 +265,11 @@
       box-shadow: none !important;
       margin: 0 !important;
       z-index: 0;
+      transition: left 0.35s cubic-bezier(0.22, 0.61, 0.36, 1);
+    }
+    .webex-card-link:hover .webex-card-logo,
+    .webex-card-link:active .webex-card-logo {
+      left: -6px;
     }
     .webex-card-divider {
       flex-shrink: 0;
