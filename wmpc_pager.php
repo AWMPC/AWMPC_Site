@@ -397,6 +397,14 @@
       transition: opacity 0.3s ease-out;
     }
 
+    /* SPA content fade transition */
+    .site-main {
+      transition: opacity 0.2s ease;
+    }
+    .site-main.fade-out {
+      opacity: 0;
+    }
+
     /* --- Footer --- */
     .site-footer-divider { border: 0; border-top: 1px solid #999; margin: 16px 0; transition: border-color 0.5s ease; }
     .site-footer {
@@ -1187,26 +1195,39 @@
   }
 
   // --- Load a content fragment and swap it in ---
+  var contentCard = document.getElementById('contentCard');
+
   function navigate(fragmentFile, displayUrl, pushState) {
     loaderStart();
 
     var done = function(html) {
-      mainEl.innerHTML = html;
-      runScripts(mainEl);
+      // Fade out current content
+      mainEl.classList.add('fade-out');
 
-      if (pushState && displayUrl) {
-        history.pushState({ fragment: fragmentFile }, '', displayUrl);
-      }
+      setTimeout(function() {
+        mainEl.innerHTML = html;
+        runScripts(mainEl);
 
-      // Smooth momentum scroll to top
-      window.scrollTo({ top: 0, behavior: 'smooth' });
+        if (pushState && displayUrl) {
+          history.pushState({ fragment: fragmentFile }, '', displayUrl);
+        }
 
-      // Update active page indicator in FAB and content card label
-      var activeKey = routeKey(displayUrl || window.location.href);
-      updateActiveNav(activeKey);
-      if (contentLabel) contentLabel.textContent = pageNames[activeKey] || 'Homepage';
+        // Update active page indicator in FAB and content card label
+        var activeKey = routeKey(displayUrl || window.location.href);
+        updateActiveNav(activeKey);
+        if (contentLabel) contentLabel.textContent = pageNames[activeKey] || 'Homepage';
 
-      loaderDone();
+        // Scroll to top of content card
+        if (contentCard) {
+          contentCard.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
+
+        // Fade in new content
+        void mainEl.offsetWidth;
+        mainEl.classList.remove('fade-out');
+
+        loaderDone();
+      }, 200);
     };
 
     if (cache[fragmentFile]) {
