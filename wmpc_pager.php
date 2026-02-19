@@ -14,27 +14,64 @@
   <style>
     /* --- Design system tokens (default = Samsung One UI) --- */
     :root {
+      /* Typography */
       --ds-font: Arial, "Helvetica Neue", Helvetica, sans-serif;
+      /* Shape */
       --ds-radius-sm: 16px;
       --ds-radius-md: 26px;
       --ds-radius-pill: 50px;
       --ds-radius-card: 16px;
+      --ds-radius-btn: 50%;
+      /* Elevation */
       --ds-shadow-sm: 0 1px 2px rgba(0,0,0,0.06), 0 4px 12px rgba(0,0,0,0.08);
       --ds-shadow-md: 0 1px 3px rgba(0,0,0,0.08), 0 4px 12px rgba(0,0,0,0.10);
       --ds-shadow-lg: 0 2px 8px rgba(0,0,0,0.08), 0 12px 40px rgba(0,0,0,0.18);
       --ds-shadow-btn: 0 1px 3px rgba(0,0,0,0.08), 0 4px 12px rgba(0,0,0,0.10);
+      /* Material */
       --ds-blur: blur(24px) saturate(1.8);
       --ds-bar-bg: rgba(255,255,255,0.45);
       --ds-bar-border: 1px solid rgba(255,255,255,0.55);
       --ds-bar-shadow: 0 2px 8px rgba(0,0,0,0.06), 0 8px 24px rgba(0,0,0,0.10);
+      /* Motion */
       --ds-transition: 0.35s cubic-bezier(0.22,0.61,0.36,1);
       --ds-motion: 0.3s cubic-bezier(0.22,0.61,0.36,1);
+      /* Spacing */
+      --ds-gap: 10px;
+      --ds-padding-sm: 12px;
+      --ds-padding-md: 20px;
+      /* Colors — surfaces */
       --ds-bg: #F5F7F8;
       --ds-text: #212121;
+      --ds-text-secondary: #666666;
       --ds-card-bg: #FFFFFF;
       --ds-label-color: #5C6B7A;
       --ds-border: 2px solid rgba(0,0,0,0.22);
+      --ds-divider: #999999;
+      --ds-link-bg: #E8ECF0;
+      /* Colors — accent & info bar */
       --ds-accent: #CC0000;
+      --ds-info-bg: #CC0000;
+      --ds-info-text: #FFFFFF;
+      /* Colors — buttons */
+      --ds-btn-bg: #212121;
+      --ds-btn-hover: #333333;
+      --ds-btn-active: #444444;
+      /* Colors — FAB */
+      --ds-fab-bg: #FFFFFF;
+      --ds-fab-cross: #CC0000;
+      --ds-fab-open-ring: 0 0 0 2.5px rgba(204,0,0,0.3);
+      /* Colors — menu */
+      --ds-menu-text: #1a1a1a;
+      --ds-menu-hover: #f2f2f2;
+      --ds-menu-active-bg: rgba(204,0,0,0.08);
+      --ds-menu-active-text: #CC0000;
+      /* Colors — footer */
+      --ds-footer-text: #212121;
+      --ds-footer-link: #212121;
+      /* Colors — loader */
+      --ds-loader: #CC0000;
+      /* Colors — scrim */
+      --ds-scrim: rgba(0,0,0,0.42);
     }
 
     /* --- Reset & Base --- */
@@ -125,8 +162,8 @@
       flex: 1;
       min-width: 0;
       overflow: hidden;
-      background: var(--ds-accent);
-      color: #fff;
+      background: var(--ds-info-bg);
+      color: var(--ds-info-text);
       text-align: center;
       padding: 8px 16px;
       font-size: 13px;
@@ -147,18 +184,18 @@
       flex-shrink: 0;
       width: 42px;
       height: 42px;
-      border-radius: 50%;
+      border-radius: var(--ds-radius-btn);
       border: none;
-      background: #212121;
+      background: var(--ds-btn-bg);
       color: #fff;
       cursor: pointer;
       text-decoration: none;
       box-shadow: var(--ds-shadow-btn);
-      transition: background-color 0.15s, box-shadow 0.5s ease;
+      transition: background-color 0.15s, box-shadow 0.5s ease, border-radius 0.4s ease;
       -webkit-tap-highlight-color: transparent;
     }
-    .site-top-btn:hover { background: #333; }
-    .site-top-btn:active { background: #444; }
+    .site-top-btn:hover { background: var(--ds-btn-hover); }
+    .site-top-btn:active { background: var(--ds-btn-active); }
     .site-top-btn img {
       width: 20px;
       height: 20px;
@@ -221,8 +258,8 @@
     /* --- Quick link image grid (One UI cards) --- */
     .quick-links {
       display: flex;
-      gap: 10px;
-      padding: 12px 0;
+      gap: var(--ds-gap);
+      padding: var(--ds-padding-sm) 0;
       height: 120px;
     }
     .quick-links a {
@@ -233,7 +270,7 @@
       position: relative;
       border-radius: var(--ds-radius-sm);
       overflow: hidden;
-      background: #E8ECF0;
+      background: var(--ds-link-bg);
       border: var(--ds-border);
       box-shadow: var(--ds-shadow-sm);
       transition: box-shadow 0.3s, transform 0.2s, background-color 0.5s ease, border-color 0.5s ease, border-radius 0.4s ease;
@@ -388,15 +425,15 @@
       font-size: 13px;
       font-weight: 600;
       color: var(--ds-label-color);
-      padding: 14px 20px 0;
+      padding: 14px var(--ds-padding-md) 0;
       letter-spacing: 0.02em;
       transition: color 0.5s ease;
     }
     .section-card-body {
-      padding: 12px 20px 16px;
+      padding: var(--ds-padding-sm) var(--ds-padding-md) 16px;
     }
     .section-card .quick-links {
-      padding: 12px 16px 16px;
+      padding: var(--ds-padding-sm) 16px 16px;
     }
 
     /* --- Content area (single column) --- */
@@ -409,7 +446,7 @@
       min-width: 0;
       overflow-wrap: break-word;
       word-wrap: break-word;
-      padding: 4px 20px 16px;
+      padding: 4px var(--ds-padding-md) 16px;
     }
 
     /* --- SPA loading bar (One UI style) --- */
@@ -418,7 +455,7 @@
       top: 0;
       left: 0;
       height: 3px;
-      background: #CC0000;
+      background: var(--ds-loader);
       z-index: 99999;
       width: 0%;
       opacity: 0;
@@ -447,7 +484,7 @@
     }
 
     /* --- Footer --- */
-    .site-footer-divider { border: 0; border-top: 1px solid #999; margin: 16px 0; transition: border-color 0.5s ease; }
+    .site-footer-divider { border: 0; border-top: 1px solid var(--ds-divider); margin: 16px 0; transition: border-color 0.5s ease; }
     .site-footer {
       display: flex;
       flex-wrap: wrap;
@@ -455,11 +492,12 @@
       gap: 16px;
       padding: 12px 0 24px;
       font-size: 13px;
+      color: var(--ds-footer-text);
       transition: color 0.5s ease;
     }
-    .site-footer a { color: #212121; transition: color 0.5s ease; }
+    .site-footer a { color: var(--ds-footer-link); transition: color 0.5s ease; }
     .footer-left   { flex: 1; min-width: 160px; }
-    .footer-center { flex: 2; min-width: 200px; text-align: center; font-family: Arial, sans-serif; font-size: 15px; }
+    .footer-center { flex: 2; min-width: 200px; text-align: center; font-size: 15px; }
     .footer-right  { flex: 1; min-width: 200px; text-align: right; }
     .footer-right a { display: block; margin-bottom: 2px; }
 
@@ -467,7 +505,7 @@
     .fab-scrim {
       position: fixed;
       inset: 0;
-      background: rgba(0, 0, 0, 0.42);
+      background: var(--ds-scrim);
       z-index: 9998;
       opacity: 0;
       pointer-events: none;
@@ -483,9 +521,9 @@
       flex-shrink: 0;
       width: 42px;
       height: 42px;
-      border-radius: 50%;
+      border-radius: var(--ds-radius-btn);
       border: none;
-      background: #fff;
+      background: var(--ds-fab-bg);
       cursor: pointer;
       display: flex;
       align-items: center;
@@ -493,7 +531,8 @@
       box-shadow: var(--ds-shadow-btn);
       transition:
         box-shadow var(--ds-transition),
-        background-color 0.5s ease;
+        background-color 0.5s ease,
+        border-radius 0.4s ease;
       -webkit-tap-highlight-color: transparent;
       outline: none;
     }
@@ -503,16 +542,13 @@
         0 8px 20px rgba(0,0,0,0.16);
     }
     .fab-btn:active {
-      background: #f5f5f5;
+      background: var(--ds-menu-hover);
     }
     .fab-btn.open {
-      box-shadow:
-        0 1px 3px rgba(0,0,0,0.10),
-        0 4px 12px rgba(0,0,0,0.12),
-        0 0 0 2.5px rgba(204, 0, 0, 0.3);
+      box-shadow: var(--ds-shadow-btn), var(--ds-fab-open-ring);
     }
     .fab-btn.open:active {
-      background: #f5f5f5;
+      background: var(--ds-menu-hover);
     }
 
     /* Latin cross icon */
@@ -529,7 +565,7 @@
     .fab-icon::after {
       content: '';
       position: absolute;
-      background: #CC0000;
+      background: var(--ds-fab-cross);
       transition: background-color 0.5s ease;
     }
     /* Vertical bar — full height */
@@ -590,7 +626,7 @@
       gap: 14px;
       padding: 12px 24px;
       text-decoration: none;
-      color: #1a1a1a;
+      color: var(--ds-menu-text);
       font-size: 15px;
       font-weight: 500;
       line-height: 1.35;
@@ -601,10 +637,10 @@
       transform: translateY(8px);
     }
     .fab-menu-item:hover {
-      background: #f2f2f2;
+      background: var(--ds-menu-hover);
     }
     .fab-menu-item:active {
-      background: #e5e5e5;
+      background: var(--ds-menu-hover);
     }
     .fab-menu.open .fab-menu-item {
       opacity: 1;
@@ -616,19 +652,19 @@
     }
     .fab-menu-item .fab-item-zh {
       font-size: 13px;
-      color: #666;
+      color: var(--ds-text-secondary);
       font-weight: 400;
       margin-left: auto;
       padding-left: 12px;
       white-space: nowrap;
     }
     .fab-menu-item.fab-active {
-      background: rgba(204, 0, 0, 0.08);
-      color: #CC0000;
+      background: var(--ds-menu-active-bg);
+      color: var(--ds-menu-active-text);
       font-weight: 600;
     }
     .fab-menu-item.fab-active .fab-item-zh {
-      color: #CC0000;
+      color: var(--ds-menu-active-text);
     }
 
 
@@ -688,15 +724,19 @@
 
     /* ===== Design System Theme Overrides ===== */
 
-    /* Samsung One UI — default, no override needed (values in :root) */
+    /* Samsung One UI — default (values in :root) */
 
-    /* Apple Liquid Glass */
+    /* ---- Apple Liquid Glass ---- */
     body.ds-liquid-glass {
       --ds-font: -apple-system, BlinkMacSystemFont, "SF Pro Display", "Helvetica Neue", Helvetica, Arial, sans-serif;
       --ds-radius-sm: 20px;
       --ds-radius-md: 22px;
       --ds-radius-pill: 50px;
       --ds-radius-card: 20px;
+      --ds-radius-btn: 50%;
+      --ds-gap: 8px;
+      --ds-padding-sm: 10px;
+      --ds-padding-md: 16px;
       --ds-shadow-sm: 0 0.5px 1px rgba(0,0,0,0.04), 0 2px 8px rgba(0,0,0,0.06);
       --ds-shadow-md: 0 1px 4px rgba(0,0,0,0.06), 0 4px 16px rgba(0,0,0,0.08);
       --ds-shadow-lg: 0 2px 10px rgba(0,0,0,0.06), 0 16px 48px rgba(0,0,0,0.12);
@@ -708,11 +748,30 @@
       --ds-transition: 0.4s cubic-bezier(0.25,0.1,0.25,1);
       --ds-motion: 0.35s cubic-bezier(0.25,0.1,0.25,1);
       --ds-bg: #F2F2F7;
-      --ds-text: #1C1C1E;
-      --ds-card-bg: rgba(255,255,255,0.70);
+      --ds-text: #000000;
+      --ds-text-secondary: #8E8E93;
+      --ds-card-bg: rgba(255,255,255,0.65);
       --ds-label-color: #8E8E93;
+      --ds-link-bg: rgba(0,0,0,0.03);
       --ds-border: 1px solid rgba(0,0,0,0.08);
+      --ds-divider: rgba(0,0,0,0.15);
       --ds-accent: #CC0000;
+      --ds-info-bg: #CC0000;
+      --ds-info-text: #FFFFFF;
+      --ds-btn-bg: rgba(0,0,0,0.50);
+      --ds-btn-hover: rgba(0,0,0,0.60);
+      --ds-btn-active: rgba(0,0,0,0.70);
+      --ds-fab-bg: rgba(255,255,255,0.70);
+      --ds-fab-cross: #CC0000;
+      --ds-fab-open-ring: 0 0 0 2px rgba(0,0,0,0.12);
+      --ds-menu-text: #000000;
+      --ds-menu-hover: rgba(0,0,0,0.04);
+      --ds-menu-active-bg: rgba(0,122,255,0.08);
+      --ds-menu-active-text: #007AFF;
+      --ds-footer-text: #3C3C43;
+      --ds-footer-link: #000000;
+      --ds-loader: #007AFF;
+      --ds-scrim: rgba(0,0,0,0.40);
     }
     body.ds-liquid-glass .section-card {
       backdrop-filter: blur(30px) saturate(1.6);
@@ -726,13 +785,17 @@
       border: 1px solid rgba(255,255,255,0.50);
     }
 
-    /* Google Material Design (Material You / M3) */
+    /* ---- Google Material Design 3 (Material You) ---- */
     body.ds-material {
       --ds-font: "Google Sans", "Roboto", "Noto Sans", Arial, sans-serif;
       --ds-radius-sm: 12px;
       --ds-radius-md: 16px;
       --ds-radius-pill: 50px;
       --ds-radius-card: 12px;
+      --ds-radius-btn: 50%;
+      --ds-gap: 12px;
+      --ds-padding-sm: 12px;
+      --ds-padding-md: 24px;
       --ds-shadow-sm: 0 1px 2px rgba(0,0,0,0.10), 0 1px 3px rgba(0,0,0,0.08);
       --ds-shadow-md: 0 1px 3px rgba(0,0,0,0.12), 0 4px 8px rgba(0,0,0,0.08);
       --ds-shadow-lg: 0 2px 6px rgba(0,0,0,0.12), 0 8px 24px rgba(0,0,0,0.14);
@@ -743,35 +806,47 @@
       --ds-bar-shadow: 0 1px 3px rgba(0,0,0,0.08), 0 4px 12px rgba(0,0,0,0.06);
       --ds-transition: 0.3s cubic-bezier(0.2,0,0,1);
       --ds-motion: 0.3s cubic-bezier(0.2,0,0,1);
-      --ds-bg: #FFFBFE;
-      --ds-text: #1C1B1F;
-      --ds-card-bg: #FEF7FF;
+      --ds-bg: #FEF7FF;
+      --ds-text: #1D1B20;
+      --ds-text-secondary: #49454F;
+      --ds-card-bg: #FFFBFE;
       --ds-label-color: #49454F;
-      --ds-border: 1px solid rgba(0,0,0,0.10);
+      --ds-link-bg: #F3EDF7;
+      --ds-border: 1px solid #CAC4D0;
+      --ds-divider: #CAC4D0;
       --ds-accent: #B3261E;
+      --ds-info-bg: #B3261E;
+      --ds-info-text: #FFFFFF;
+      --ds-btn-bg: #1D1B20;
+      --ds-btn-hover: #49454F;
+      --ds-btn-active: #605D66;
+      --ds-fab-bg: #FFFBFE;
+      --ds-fab-cross: #B3261E;
+      --ds-fab-open-ring: 0 0 0 2px rgba(103,80,164,0.25);
+      --ds-menu-text: #1D1B20;
+      --ds-menu-hover: rgba(29,27,32,0.08);
+      --ds-menu-active-bg: rgba(103,80,164,0.08);
+      --ds-menu-active-text: #6750A4;
+      --ds-footer-text: #49454F;
+      --ds-footer-link: #1D1B20;
+      --ds-loader: #6750A4;
+      --ds-scrim: rgba(0,0,0,0.50);
     }
     body.ds-material .section-card {
-      border: 1px solid rgba(0,0,0,0.08);
-    }
-    body.ds-material .info-bar-text {
-      background: var(--ds-accent);
-    }
-    body.ds-material .fab-icon::before,
-    body.ds-material .fab-icon::after {
-      background: var(--ds-accent);
-    }
-    body.ds-material .fab-menu-item.fab-active {
-      background: rgba(179,38,30,0.08);
-      color: var(--ds-accent);
+      border: 1px solid #CAC4D0;
     }
 
-    /* Windows Fluent Design */
+    /* ---- Windows Fluent Design 2 ---- */
     body.ds-fluent {
       --ds-font: "Segoe UI Variable", "Segoe UI", system-ui, sans-serif;
       --ds-radius-sm: 8px;
       --ds-radius-md: 8px;
       --ds-radius-pill: 8px;
       --ds-radius-card: 8px;
+      --ds-radius-btn: 8px;
+      --ds-gap: 6px;
+      --ds-padding-sm: 10px;
+      --ds-padding-md: 16px;
       --ds-shadow-sm: 0 2px 4px rgba(0,0,0,0.04), 0 0 2px rgba(0,0,0,0.06);
       --ds-shadow-md: 0 2px 8px rgba(0,0,0,0.06), 0 0 2px rgba(0,0,0,0.04);
       --ds-shadow-lg: 0 4px 16px rgba(0,0,0,0.08), 0 0 2px rgba(0,0,0,0.04);
@@ -784,10 +859,29 @@
       --ds-motion: 0.25s cubic-bezier(0.1,0.9,0.2,1);
       --ds-bg: #F3F3F3;
       --ds-text: #1A1A1A;
+      --ds-text-secondary: #616161;
       --ds-card-bg: #FFFFFF;
       --ds-label-color: #616161;
+      --ds-link-bg: #F0F0F0;
       --ds-border: 1px solid rgba(0,0,0,0.06);
+      --ds-divider: #E0E0E0;
       --ds-accent: #CC0000;
+      --ds-info-bg: #CC0000;
+      --ds-info-text: #FFFFFF;
+      --ds-btn-bg: #1A1A1A;
+      --ds-btn-hover: #333333;
+      --ds-btn-active: #444444;
+      --ds-fab-bg: #FFFFFF;
+      --ds-fab-cross: #CC0000;
+      --ds-fab-open-ring: 0 0 0 2px rgba(0,95,184,0.25);
+      --ds-menu-text: #1A1A1A;
+      --ds-menu-hover: rgba(0,0,0,0.04);
+      --ds-menu-active-bg: rgba(0,95,184,0.06);
+      --ds-menu-active-text: #005FB8;
+      --ds-footer-text: #1A1A1A;
+      --ds-footer-link: #1A1A1A;
+      --ds-loader: #005FB8;
+      --ds-scrim: rgba(0,0,0,0.45);
     }
     body.ds-fluent .section-card {
       border: 1px solid rgba(0,0,0,0.06);
@@ -797,19 +891,18 @@
       border: 1px solid rgba(0,0,0,0.06);
       border-bottom: 1px solid rgba(0,0,0,0.10);
     }
-    body.ds-fluent .fab-btn,
-    body.ds-fluent .site-top-btn,
-    body.ds-fluent .ds-picker-btn {
-      border-radius: 8px;
-    }
 
-    /* IBM Carbon */
+    /* ---- IBM Carbon ---- */
     body.ds-carbon {
       --ds-font: "IBM Plex Sans", "Helvetica Neue", Arial, sans-serif;
       --ds-radius-sm: 0px;
       --ds-radius-md: 0px;
       --ds-radius-pill: 0px;
       --ds-radius-card: 0px;
+      --ds-radius-btn: 0px;
+      --ds-gap: 8px;
+      --ds-padding-sm: 16px;
+      --ds-padding-md: 16px;
       --ds-shadow-sm: 0 2px 6px rgba(0,0,0,0.12);
       --ds-shadow-md: 0 2px 6px rgba(0,0,0,0.16);
       --ds-shadow-lg: 0 4px 16px rgba(0,0,0,0.16);
@@ -822,10 +915,29 @@
       --ds-motion: 0.15s ease;
       --ds-bg: #F4F4F4;
       --ds-text: #161616;
+      --ds-text-secondary: #525252;
       --ds-card-bg: #FFFFFF;
       --ds-label-color: #525252;
+      --ds-link-bg: #E0E0E0;
       --ds-border: 1px solid #E0E0E0;
+      --ds-divider: #E0E0E0;
       --ds-accent: #DA1E28;
+      --ds-info-bg: #DA1E28;
+      --ds-info-text: #FFFFFF;
+      --ds-btn-bg: #161616;
+      --ds-btn-hover: #333333;
+      --ds-btn-active: #525252;
+      --ds-fab-bg: #FFFFFF;
+      --ds-fab-cross: #DA1E28;
+      --ds-fab-open-ring: 0 0 0 2px rgba(15,98,254,0.30);
+      --ds-menu-text: #161616;
+      --ds-menu-hover: #E8E8E8;
+      --ds-menu-active-bg: rgba(15,98,254,0.10);
+      --ds-menu-active-text: #0F62FE;
+      --ds-footer-text: #161616;
+      --ds-footer-link: #161616;
+      --ds-loader: #0F62FE;
+      --ds-scrim: rgba(0,0,0,0.55);
     }
     body.ds-carbon .section-card {
       border: 1px solid #E0E0E0;
@@ -833,163 +945,218 @@
     body.ds-carbon .fab-menu {
       border: 1px solid #E0E0E0;
     }
-    body.ds-carbon .fab-btn,
-    body.ds-carbon .site-top-btn,
-    body.ds-carbon .ds-picker-btn {
-      border-radius: 0;
-    }
-    body.ds-carbon .info-bar-text {
-      background: var(--ds-accent);
-    }
-    body.ds-carbon .fab-icon::before,
-    body.ds-carbon .fab-icon::after {
-      background: var(--ds-accent);
-    }
     body.ds-carbon .site-bottom-bar {
       backdrop-filter: none;
       -webkit-backdrop-filter: none;
     }
 
-    /* ===== Dark mode overrides per design system ===== */
-
-    /* === Dark mode: deep night blue + starry yellow === */
+    /* ===== Dark mode — Samsung One UI (default) ===== */
     body.dark-mode {
-      background-color: #0E1C30;
-      color: #FFE082;
-    }
-    body.dark-mode .section-card {
-      background: #162844;
-      box-shadow: 0 1px 3px rgba(0,0,0,0.25), 0 4px 12px rgba(0,0,0,0.30);
-    }
-    body.dark-mode .section-card-label {
-      color: #A0B8D0;
-    }
-    body.dark-mode .site-bottom-bar {
-      background: rgba(14, 28, 48, 0.50);
-      border-color: rgba(255, 255, 255, 0.10);
-      box-shadow:
-        0 2px 8px rgba(0,0,0,0.20),
-        0 8px 24px rgba(0,0,0,0.30);
-    }
-    body.dark-mode .info-bar-text {
-      background: #4A3768;
-      color: #FFE082;
-      box-shadow: 0 1px 3px rgba(0,0,0,0.25), 0 4px 12px rgba(0,0,0,0.30);
-    }
-    body.dark-mode .site-top-btn {
-      background: #1E3450;
-    }
-    body.dark-mode .site-top-btn:hover { background: #2A4565; }
-    body.dark-mode .site-top-btn:active { background: #345575; }
-    body.dark-mode .site-main-banner {
-      box-shadow: 0 1px 3px rgba(0,0,0,0.25), 0 4px 12px rgba(0,0,0,0.30);
-    }
-    body.dark-mode .site-main img,
-    body.dark-mode .site-main video {
-      box-shadow: 0 1px 3px rgba(0,0,0,0.25), 0 4px 12px rgba(0,0,0,0.30);
-    }
-    body.dark-mode .quick-links a {
-      background: #1A2D4A;
-      border-color: rgba(255,255,255,0.25);
-      box-shadow: 0 1px 3px rgba(0,0,0,0.25), 0 4px 12px rgba(0,0,0,0.30);
+      --ds-bg: #0E1C30;
+      --ds-text: #FFE082;
+      --ds-text-secondary: #D4BA5C;
+      --ds-card-bg: #162844;
+      --ds-label-color: #A0B8D0;
+      --ds-link-bg: #1A2D4A;
+      --ds-info-bg: #4A3768;
+      --ds-info-text: #FFE082;
+      --ds-btn-bg: #1E3450;
+      --ds-btn-hover: #2A4565;
+      --ds-btn-active: #345575;
+      --ds-fab-bg: #CC0000;
+      --ds-fab-cross: #FFFFFF;
+      --ds-fab-open-ring: 0 0 0 2.5px rgba(255,255,255,0.30);
+      --ds-menu-text: #FFE082;
+      --ds-menu-hover: #1E3450;
+      --ds-menu-active-bg: rgba(255,213,79,0.12);
+      --ds-menu-active-text: #FFE082;
+      --ds-footer-text: #D4BA5C;
+      --ds-footer-link: #FFE082;
+      --ds-divider: #2A4060;
+      --ds-loader: #FFE082;
+      --ds-scrim: rgba(0,0,0,0.65);
+      --ds-border: 2px solid rgba(255,255,255,0.25);
+      --ds-shadow-sm: 0 1px 3px rgba(0,0,0,0.25), 0 4px 12px rgba(0,0,0,0.30);
+      --ds-shadow-md: 0 1px 3px rgba(0,0,0,0.25), 0 4px 12px rgba(0,0,0,0.30);
+      --ds-shadow-lg: 0 2px 8px rgba(0,0,0,0.30), 0 12px 40px rgba(0,0,0,0.40);
+      --ds-shadow-btn: 0 1px 3px rgba(0,0,0,0.25), 0 6px 20px rgba(0,0,0,0.35);
+      --ds-bar-bg: rgba(14,28,48,0.50);
+      --ds-bar-border: 1px solid rgba(255,255,255,0.10);
+      --ds-bar-shadow: 0 2px 8px rgba(0,0,0,0.20), 0 8px 24px rgba(0,0,0,0.30);
     }
     body.dark-mode .quick-links a::after {
       background: linear-gradient(110deg, transparent 30%, rgba(255,255,255,0.08) 50%, transparent 70%);
       background-size: 250% 100%;
     }
-    body.dark-mode .site-footer-divider { border-top-color: #2A4060; }
-    body.dark-mode .site-footer { color: #D4BA5C; }
-    body.dark-mode .site-footer a { color: #FFE082; }
-    body.dark-mode .spa-loader { background: #FFE082; }
-
-    /* FAB — cross becomes white-on-red */
-    body.dark-mode .fab-btn {
-      background: #CC0000;
-      box-shadow: 0 1px 3px rgba(0,0,0,0.25), 0 6px 20px rgba(0,0,0,0.35);
-    }
-    body.dark-mode .fab-btn:active { background: #A80000; }
-    body.dark-mode .fab-btn.open {
-      box-shadow: 0 1px 3px rgba(0,0,0,0.25), 0 6px 20px rgba(0,0,0,0.35),
-                  0 0 0 2.5px rgba(255,255,255,0.30);
-    }
-    body.dark-mode .fab-icon::before,
-    body.dark-mode .fab-icon::after { background: #fff; }
-
-    /* FAB menu sheet */
-    body.dark-mode .fab-menu {
-      background: #152238;
-      box-shadow: 0 2px 8px rgba(0,0,0,0.30), 0 12px 40px rgba(0,0,0,0.40);
-    }
     body.dark-mode .fab-menu::before { background: #3A5068; }
     body.dark-mode .fab-menu::-webkit-scrollbar-thumb { background: #3A5068; }
-    body.dark-mode .fab-menu-item { color: #FFE082; }
-    body.dark-mode .fab-menu-item:hover { background: #1E3450; }
-    body.dark-mode .fab-menu-item:active { background: #2A4565; }
-    body.dark-mode .fab-menu-item .fab-item-zh { color: #D4BA5C; }
-    body.dark-mode .fab-menu-item.fab-active {
-      background: rgba(255, 213, 79, 0.12);
-      color: #FFE082;
-    }
-    body.dark-mode .fab-menu-item.fab-active .fab-item-zh { color: #FFE082; }
-    body.dark-mode .fab-scrim { background: rgba(0, 0, 0, 0.65); }
 
-    /* Dark mode — Liquid Glass */
+    /* ===== Dark mode — Apple Liquid Glass ===== */
     body.dark-mode.ds-liquid-glass {
-      --ds-bg: #1C1C1E;
-      --ds-card-bg: rgba(44,44,46,0.65);
-      --ds-bar-bg: rgba(44,44,46,0.40);
-      --ds-bar-border: 1px solid rgba(255,255,255,0.10);
+      --ds-bg: #000000;
+      --ds-text: #FFFFFF;
+      --ds-text-secondary: #98989D;
+      --ds-card-bg: rgba(28,28,30,0.65);
+      --ds-label-color: #98989D;
+      --ds-link-bg: rgba(255,255,255,0.05);
+      --ds-info-bg: #CC0000;
+      --ds-info-text: #FFFFFF;
+      --ds-btn-bg: rgba(255,255,255,0.15);
+      --ds-btn-hover: rgba(255,255,255,0.20);
+      --ds-btn-active: rgba(255,255,255,0.25);
+      --ds-fab-bg: rgba(28,28,30,0.70);
+      --ds-fab-cross: #FFFFFF;
+      --ds-fab-open-ring: 0 0 0 2px rgba(255,255,255,0.20);
+      --ds-menu-text: #FFFFFF;
+      --ds-menu-hover: rgba(255,255,255,0.06);
+      --ds-menu-active-bg: rgba(255,255,255,0.10);
+      --ds-menu-active-text: #FFFFFF;
+      --ds-footer-text: #98989D;
+      --ds-footer-link: #FFFFFF;
+      --ds-divider: rgba(255,255,255,0.15);
+      --ds-loader: #0A84FF;
+      --ds-scrim: rgba(0,0,0,0.50);
+      --ds-border: 1px solid rgba(255,255,255,0.08);
+      --ds-bar-bg: rgba(28,28,30,0.40);
+      --ds-bar-border: 1px solid rgba(255,255,255,0.08);
+      --ds-shadow-sm: 0 0.5px 1px rgba(0,0,0,0.15), 0 2px 8px rgba(0,0,0,0.20);
+      --ds-shadow-md: 0 1px 4px rgba(0,0,0,0.20), 0 4px 16px rgba(0,0,0,0.25);
+      --ds-shadow-lg: 0 2px 10px rgba(0,0,0,0.25), 0 16px 48px rgba(0,0,0,0.35);
     }
     body.dark-mode.ds-liquid-glass .section-card {
-      border-color: rgba(255,255,255,0.08);
+      backdrop-filter: blur(30px) saturate(1.6);
+      -webkit-backdrop-filter: blur(30px) saturate(1.6);
+      border: 1px solid rgba(255,255,255,0.08);
     }
     body.dark-mode.ds-liquid-glass .fab-menu {
-      background: rgba(44,44,46,0.70);
-      border-color: rgba(255,255,255,0.10);
+      backdrop-filter: blur(40px) saturate(2);
+      -webkit-backdrop-filter: blur(40px) saturate(2);
+      border: 1px solid rgba(255,255,255,0.10);
     }
+    body.dark-mode.ds-liquid-glass .fab-menu::before { background: rgba(255,255,255,0.20); }
 
-    /* Dark mode — Material */
+    /* ===== Dark mode — Google Material 3 ===== */
     body.dark-mode.ds-material {
-      --ds-bg: #1C1B1F;
-      --ds-card-bg: #2B2930;
+      --ds-bg: #141218;
+      --ds-text: #E6E0E9;
+      --ds-text-secondary: #CAC4D0;
+      --ds-card-bg: #211F26;
       --ds-label-color: #CAC4D0;
+      --ds-link-bg: #2B2930;
+      --ds-info-bg: #CC0000;
+      --ds-info-text: #FFFFFF;
+      --ds-btn-bg: #2B2930;
+      --ds-btn-hover: #36343B;
+      --ds-btn-active: #48464C;
+      --ds-fab-bg: #211F26;
+      --ds-fab-cross: #E6E0E9;
+      --ds-fab-open-ring: 0 0 0 2px rgba(208,188,255,0.30);
+      --ds-menu-text: #E6E0E9;
+      --ds-menu-hover: rgba(230,224,233,0.08);
+      --ds-menu-active-bg: rgba(208,188,255,0.12);
+      --ds-menu-active-text: #D0BCFF;
+      --ds-footer-text: #CAC4D0;
+      --ds-footer-link: #E6E0E9;
+      --ds-divider: #49454F;
+      --ds-loader: #D0BCFF;
+      --ds-scrim: rgba(0,0,0,0.55);
+      --ds-border: 1px solid #49454F;
+      --ds-bar-bg: rgba(33,31,38,0.70);
+      --ds-bar-border: 1px solid rgba(255,255,255,0.06);
+      --ds-shadow-sm: 0 1px 2px rgba(0,0,0,0.30), 0 1px 3px rgba(0,0,0,0.25);
+      --ds-shadow-md: 0 1px 3px rgba(0,0,0,0.35), 0 4px 8px rgba(0,0,0,0.25);
+      --ds-shadow-lg: 0 2px 6px rgba(0,0,0,0.35), 0 8px 24px rgba(0,0,0,0.30);
     }
     body.dark-mode.ds-material .section-card {
-      border-color: rgba(255,255,255,0.06);
+      border: 1px solid #49454F;
     }
+    body.dark-mode.ds-material .fab-menu::before { background: #49454F; }
 
-    /* Dark mode — Fluent */
+    /* ===== Dark mode — Windows Fluent ===== */
     body.dark-mode.ds-fluent {
       --ds-bg: #202020;
+      --ds-text: #FFFFFF;
+      --ds-text-secondary: #9E9E9E;
       --ds-card-bg: #2D2D2D;
+      --ds-label-color: #9E9E9E;
+      --ds-link-bg: #333333;
+      --ds-info-bg: #CC0000;
+      --ds-info-text: #FFFFFF;
+      --ds-btn-bg: #2D2D2D;
+      --ds-btn-hover: #383838;
+      --ds-btn-active: #424242;
+      --ds-fab-bg: #2D2D2D;
+      --ds-fab-cross: #FFFFFF;
+      --ds-fab-open-ring: 0 0 0 2px rgba(96,205,255,0.30);
+      --ds-menu-text: #FFFFFF;
+      --ds-menu-hover: rgba(255,255,255,0.06);
+      --ds-menu-active-bg: rgba(96,205,255,0.10);
+      --ds-menu-active-text: #60CDFF;
+      --ds-footer-text: #9E9E9E;
+      --ds-footer-link: #FFFFFF;
+      --ds-divider: #383838;
+      --ds-loader: #60CDFF;
+      --ds-scrim: rgba(0,0,0,0.55);
+      --ds-border: 1px solid rgba(255,255,255,0.06);
       --ds-bar-bg: rgba(45,45,45,0.70);
       --ds-bar-border: 1px solid rgba(255,255,255,0.06);
+      --ds-shadow-sm: 0 2px 4px rgba(0,0,0,0.20), 0 0 2px rgba(0,0,0,0.18);
+      --ds-shadow-md: 0 2px 8px rgba(0,0,0,0.25), 0 0 2px rgba(0,0,0,0.18);
+      --ds-shadow-lg: 0 4px 16px rgba(0,0,0,0.30), 0 0 2px rgba(0,0,0,0.18);
     }
     body.dark-mode.ds-fluent .section-card {
-      border-color: rgba(255,255,255,0.06);
+      border: 1px solid rgba(255,255,255,0.06);
+      border-top: 1px solid rgba(255,255,255,0.08);
     }
     body.dark-mode.ds-fluent .fab-menu {
-      border-color: rgba(255,255,255,0.06);
+      border: 1px solid rgba(255,255,255,0.06);
     }
+    body.dark-mode.ds-fluent .fab-menu::before { background: #555; }
 
-    /* Dark mode — Carbon */
+    /* ===== Dark mode — IBM Carbon (Gray 100) ===== */
     body.dark-mode.ds-carbon {
       --ds-bg: #161616;
+      --ds-text: #F4F4F4;
+      --ds-text-secondary: #C6C6C6;
       --ds-card-bg: #262626;
+      --ds-label-color: #C6C6C6;
+      --ds-link-bg: #393939;
+      --ds-info-bg: #DA1E28;
+      --ds-info-text: #FFFFFF;
+      --ds-btn-bg: #393939;
+      --ds-btn-hover: #4C4C4C;
+      --ds-btn-active: #525252;
+      --ds-fab-bg: #262626;
+      --ds-fab-cross: #F4F4F4;
+      --ds-fab-open-ring: 0 0 0 2px rgba(120,169,255,0.30);
+      --ds-menu-text: #F4F4F4;
+      --ds-menu-hover: #353535;
+      --ds-menu-active-bg: rgba(120,169,255,0.15);
+      --ds-menu-active-text: #78A9FF;
+      --ds-footer-text: #C6C6C6;
+      --ds-footer-link: #F4F4F4;
+      --ds-divider: #393939;
+      --ds-loader: #78A9FF;
+      --ds-scrim: rgba(0,0,0,0.65);
+      --ds-border: 1px solid #393939;
       --ds-bar-bg: #262626;
       --ds-bar-border: 1px solid #393939;
-      --ds-border: 1px solid #393939;
+      --ds-bar-shadow: 0 2px 6px rgba(0,0,0,0.30);
+      --ds-shadow-sm: 0 2px 6px rgba(0,0,0,0.30);
+      --ds-shadow-md: 0 2px 6px rgba(0,0,0,0.40);
+      --ds-shadow-lg: 0 4px 16px rgba(0,0,0,0.40);
     }
     body.dark-mode.ds-carbon .section-card {
-      border-color: #393939;
+      border: 1px solid #393939;
     }
     body.dark-mode.ds-carbon .fab-menu {
-      border-color: #393939;
+      border: 1px solid #393939;
     }
     body.dark-mode.ds-carbon .site-bottom-bar {
       backdrop-filter: none;
       -webkit-backdrop-filter: none;
     }
+    body.dark-mode.ds-carbon .fab-menu::before { background: #525252; }
 
     /* --- Theme selector popup --- */
     .ds-picker-btn {
@@ -999,24 +1166,19 @@
       flex-shrink: 0;
       width: 42px;
       height: 42px;
-      border-radius: 50%;
+      border-radius: var(--ds-radius-btn);
       border: none;
-      background: #212121;
+      background: var(--ds-btn-bg);
       color: #fff;
       cursor: pointer;
       box-shadow: var(--ds-shadow-btn);
-      transition: background-color 0.15s, box-shadow 0.5s ease;
+      transition: background-color 0.15s, box-shadow 0.5s ease, border-radius 0.4s ease;
       -webkit-tap-highlight-color: transparent;
       font-size: 18px;
       line-height: 1;
     }
-    .ds-picker-btn:hover { background: #333; }
-    .ds-picker-btn:active { background: #444; }
-    body.dark-mode .ds-picker-btn {
-      background: #1E3450;
-    }
-    body.dark-mode .ds-picker-btn:hover { background: #2A4565; }
-    body.dark-mode .ds-picker-btn:active { background: #345575; }
+    .ds-picker-btn:hover { background: var(--ds-btn-hover); }
+    .ds-picker-btn:active { background: var(--ds-btn-active); }
 
     .ds-popup {
       position: fixed;
@@ -1042,17 +1204,13 @@
       opacity: 1;
       pointer-events: auto;
     }
-    body.dark-mode .ds-popup {
-      background: #152238;
-      box-shadow: 0 2px 8px rgba(0,0,0,0.30), 0 12px 40px rgba(0,0,0,0.40);
-    }
     .ds-popup-title {
       padding: 10px 20px 6px;
       font-size: 11px;
       font-weight: 700;
       text-transform: uppercase;
       letter-spacing: 0.06em;
-      color: var(--ds-label-color, #5C6B7A);
+      color: var(--ds-label-color);
     }
     .ds-popup-item {
       display: flex;
@@ -1062,25 +1220,19 @@
       cursor: pointer;
       font-size: 14px;
       font-weight: 500;
-      color: var(--ds-text, #212121);
+      color: var(--ds-menu-text);
       border: none;
       background: none;
       width: 100%;
       text-align: left;
       transition: background 0.15s;
     }
-    .ds-popup-item:hover { background: rgba(0,0,0,0.04); }
-    .ds-popup-item:active { background: rgba(0,0,0,0.08); }
-    body.dark-mode .ds-popup-item { color: #FFE082; }
-    body.dark-mode .ds-popup-item:hover { background: rgba(255,255,255,0.06); }
-    body.dark-mode .ds-popup-item:active { background: rgba(255,255,255,0.10); }
+    .ds-popup-item:hover { background: var(--ds-menu-hover); }
+    .ds-popup-item:active { background: var(--ds-menu-hover); }
     .ds-popup-item.active {
-      color: var(--ds-accent, #CC0000);
+      color: var(--ds-menu-active-text);
       font-weight: 600;
-    }
-    body.dark-mode .ds-popup-item.active {
-      color: #FFE082;
-      background: rgba(255,213,79,0.10);
+      background: var(--ds-menu-active-bg);
     }
     .ds-popup-item .ds-icon {
       width: 28px;
@@ -1095,11 +1247,8 @@
     .ds-popup-item .ds-desc {
       font-size: 11px;
       font-weight: 400;
-      color: var(--ds-label-color, #5C6B7A);
+      color: var(--ds-text-secondary);
       margin-top: 1px;
-    }
-    body.dark-mode .ds-popup-item .ds-desc {
-      color: #A0B8D0;
     }
   </style>
 </head>
@@ -1273,7 +1422,8 @@
 
   function applyTheme(dark) {
     document.body.classList.toggle('dark-mode', dark);
-    if (metaTC) metaTC.setAttribute('content', dark ? '#0E1C30' : '#F5F7F8');
+    var bg = getComputedStyle(document.body).getPropertyValue('--ds-bg').trim();
+    if (metaTC && bg) metaTC.setAttribute('content', bg);
   }
 
   // Manual toggle — saves explicit preference
@@ -1348,6 +1498,10 @@
     for (var i = 0; i < items.length; i++) {
       items[i].classList.toggle('active', items[i].getAttribute('data-ds') === key);
     }
+
+    var metaTC = document.getElementById('metaThemeColor');
+    var bg = getComputedStyle(document.body).getPropertyValue('--ds-bg').trim();
+    if (metaTC && bg) metaTC.setAttribute('content', bg);
   }
 
   function toggle() {
