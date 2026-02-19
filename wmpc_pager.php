@@ -1244,7 +1244,7 @@
     </div>
   </button>
   <button class="ds-picker-btn" id="dsPickerBtn" type="button" aria-label="Choose design system">
-    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
   </button>
   <button class="fab-btn" id="fabBtn" aria-label="Open navigation menu" aria-expanded="false">
     <div class="fab-icon"></div>
@@ -1296,6 +1296,31 @@
   applyTheme(document.body.classList.contains('dark-mode'));
 })();
 </script>
+
+<!-- Design system picker popup -->
+<div class="ds-popup" id="dsPopup">
+  <div class="ds-popup-title">Design System</div>
+  <button class="ds-popup-item active" data-ds="oneui">
+    <span class="ds-icon" style="background:#1428A0;color:#fff;">S</span>
+    <span><span>Samsung One UI</span><br><span class="ds-desc">Rounded, warm, bottom-focused</span></span>
+  </button>
+  <button class="ds-popup-item" data-ds="liquid-glass">
+    <span class="ds-icon" style="background:#A2AAAD;color:#fff;">&#63743;</span>
+    <span><span>Apple Liquid Glass</span><br><span class="ds-desc">Frosted glass, translucency, depth</span></span>
+  </button>
+  <button class="ds-popup-item" data-ds="material">
+    <span class="ds-icon" style="background:#1A73E8;color:#fff;">M</span>
+    <span><span>Google Material</span><br><span class="ds-desc">Elevation, color system, motion</span></span>
+  </button>
+  <button class="ds-popup-item" data-ds="fluent">
+    <span class="ds-icon" style="background:#0078D4;color:#fff;">F</span>
+    <span><span>Windows Fluent</span><br><span class="ds-desc">Acrylic, depth, subtle shadows</span></span>
+  </button>
+  <button class="ds-popup-item" data-ds="carbon">
+    <span class="ds-icon" style="background:#161616;color:#fff;">C</span>
+    <span><span>IBM Carbon</span><br><span class="ds-desc">Structured, grid-based, no radius</span></span>
+  </button>
+</div>
 
 <!-- Design system picker -->
 <script>
@@ -1406,31 +1431,6 @@
   start();
 })();
 </script>
-
-<!-- Design system picker popup -->
-<div class="ds-popup" id="dsPopup">
-  <div class="ds-popup-title">Design System</div>
-  <button class="ds-popup-item active" data-ds="oneui">
-    <span class="ds-icon" style="background:#1428A0;color:#fff;">S</span>
-    <span><span>Samsung One UI</span><br><span class="ds-desc">Rounded, warm, bottom-focused</span></span>
-  </button>
-  <button class="ds-popup-item" data-ds="liquid-glass">
-    <span class="ds-icon" style="background:#A2AAAD;color:#fff;">&#63743;</span>
-    <span><span>Apple Liquid Glass</span><br><span class="ds-desc">Frosted glass, translucency, depth</span></span>
-  </button>
-  <button class="ds-popup-item" data-ds="material">
-    <span class="ds-icon" style="background:#1A73E8;color:#fff;">M</span>
-    <span><span>Google Material</span><br><span class="ds-desc">Elevation, color system, motion</span></span>
-  </button>
-  <button class="ds-popup-item" data-ds="fluent">
-    <span class="ds-icon" style="background:#0078D4;color:#fff;">F</span>
-    <span><span>Windows Fluent</span><br><span class="ds-desc">Acrylic, depth, subtle shadows</span></span>
-  </button>
-  <button class="ds-popup-item" data-ds="carbon">
-    <span class="ds-icon" style="background:#161616;color:#fff;">C</span>
-    <span><span>IBM Carbon</span><br><span class="ds-desc">Structured, grid-based, no radius</span></span>
-  </button>
-</div>
 
 <!-- SPA loading bar -->
 <div class="spa-loader" id="spaLoader"></div>
