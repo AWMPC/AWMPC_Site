@@ -802,16 +802,7 @@
       background: rgba(255,255,255,0.52);
       border: 0.5px solid rgba(255,255,255,0.50);
     }
-    /* Keep element content above the WASM glass overlay canvas */
-    body.ds-liquid-glass .section-card > *:not(.lg-overlay),
-    body.ds-liquid-glass .site-bottom-bar > *:not(.lg-overlay),
-    body.ds-liquid-glass .fab-menu > *:not(.lg-overlay),
-    body.ds-liquid-glass .fab-btn > *:not(.lg-overlay),
-    body.ds-liquid-glass .ds-popup > *:not(.lg-overlay) {
-      position: relative;
-      z-index: 1;
-    }
-    .lg-overlay { z-index: 0; }
+
 
     /* ---- Google Material Design 3 (Material You) ----
        Ref: M3 design doc — tonal elevation (surface tint not shadows), shape scale
@@ -1362,7 +1353,6 @@
       margin-top: 1px;
     }
   </style>
-  <script src="liquid-glass/liquid_glass.js" defer></script>
 </head>
 
 <body>
@@ -1601,37 +1591,6 @@
     'carbon': 'ds-carbon'
   };
 
-  window._lg = null;
-
-  function _lgActivate() {
-    if (window._lg || typeof LiquidGlass === 'undefined') return;
-    var isDark = document.body.classList.contains('dark-mode');
-    window._lg = new LiquidGlass('liquid-glass/liquid_glass.wasm');
-    window._lg.init({
-      blurRadius: 20,
-      refractionStrength: 0.035,
-      ior: 1.45,
-      specular: isDark ? 0.15 : 0.25,
-      saturate: 1.35,
-      tint: isDark ? [0.11, 0.11, 0.12, 0.35] : [1, 1, 1, 0.08],
-      captureScale: 0.5
-    }).then(function() {
-      window._lg.register('.section-card');
-      window._lg.register('.site-bottom-bar');
-      window._lg.register('.fab-menu');
-      window._lg.register('.fab-btn');
-      window._lg.register('.ds-popup');
-      return window._lg.capture();
-    }).catch(function(e) {
-      console.warn('LiquidGlass WASM unavailable:', e);
-      if (window._lg) { window._lg.destroy(); window._lg = null; }
-    });
-  }
-
-  function _lgDeactivate() {
-    if (window._lg) { window._lg.destroy(); window._lg = null; }
-  }
-
   function applyDS(key) {
     dsClasses.forEach(function(c) { document.body.classList.remove(c); });
     var cls = dsMap[key];
@@ -1645,17 +1604,11 @@
     var metaTC = document.getElementById('metaThemeColor');
     var bg = getComputedStyle(document.body).getPropertyValue('--ds-bg').trim();
     if (metaTC && bg) metaTC.setAttribute('content', bg);
-
-    if (key === 'liquid-glass') _lgActivate();
-    else _lgDeactivate();
   }
 
   function toggle() {
     isOpen = !isOpen;
     popup.classList.toggle('open', isOpen);
-    if (isOpen && window._lg) {
-      setTimeout(function() { window._lg.refresh(popup); }, 350);
-    }
   }
 
   function close() {
@@ -1787,9 +1740,6 @@
       document.removeEventListener('touchmove', preventBgScroll);
     }
 
-    if (isOpen && window._lg) {
-      setTimeout(function() { window._lg.refresh(menu); }, 350);
-    }
   }
 
   // Allow touch-scroll only inside the menu; block everywhere else
