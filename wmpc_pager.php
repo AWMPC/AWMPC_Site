@@ -804,7 +804,10 @@
     }
     /* Keep element content above the WASM glass overlay canvas */
     body.ds-liquid-glass .section-card > *:not(.lg-overlay),
-    body.ds-liquid-glass .site-bottom-bar > *:not(.lg-overlay) {
+    body.ds-liquid-glass .site-bottom-bar > *:not(.lg-overlay),
+    body.ds-liquid-glass .fab-menu > *:not(.lg-overlay),
+    body.ds-liquid-glass .fab-btn > *:not(.lg-overlay),
+    body.ds-liquid-glass .ds-popup > *:not(.lg-overlay) {
       position: relative;
       z-index: 1;
     }
@@ -1598,13 +1601,13 @@
     'carbon': 'ds-carbon'
   };
 
-  var _lg = null;
+  window._lg = null;
 
   function _lgActivate() {
-    if (_lg || typeof LiquidGlass === 'undefined') return;
+    if (window._lg || typeof LiquidGlass === 'undefined') return;
     var isDark = document.body.classList.contains('dark-mode');
-    _lg = new LiquidGlass('liquid-glass/liquid_glass.wasm');
-    _lg.init({
+    window._lg = new LiquidGlass('liquid-glass/liquid_glass.wasm');
+    window._lg.init({
       blurRadius: 20,
       refractionStrength: 0.035,
       ior: 1.45,
@@ -1613,17 +1616,20 @@
       tint: isDark ? [0.11, 0.11, 0.12, 0.35] : [1, 1, 1, 0.08],
       captureScale: 0.5
     }).then(function() {
-      _lg.register('.section-card');
-      _lg.register('.site-bottom-bar');
-      return _lg.capture();
+      window._lg.register('.section-card');
+      window._lg.register('.site-bottom-bar');
+      window._lg.register('.fab-menu');
+      window._lg.register('.fab-btn');
+      window._lg.register('.ds-popup');
+      return window._lg.capture();
     }).catch(function(e) {
       console.warn('LiquidGlass WASM unavailable:', e);
-      if (_lg) { _lg.destroy(); _lg = null; }
+      if (window._lg) { window._lg.destroy(); window._lg = null; }
     });
   }
 
   function _lgDeactivate() {
-    if (_lg) { _lg.destroy(); _lg = null; }
+    if (window._lg) { window._lg.destroy(); window._lg = null; }
   }
 
   function applyDS(key) {
@@ -1647,6 +1653,9 @@
   function toggle() {
     isOpen = !isOpen;
     popup.classList.toggle('open', isOpen);
+    if (isOpen && window._lg) {
+      setTimeout(function() { window._lg.refresh(popup); }, 350);
+    }
   }
 
   function close() {
@@ -1776,6 +1785,10 @@
       document.addEventListener('touchmove', preventBgScroll, { passive: false });
     } else {
       document.removeEventListener('touchmove', preventBgScroll);
+    }
+
+    if (isOpen && window._lg) {
+      setTimeout(function() { window._lg.refresh(menu); }, 350);
     }
   }
 

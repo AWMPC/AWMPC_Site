@@ -240,6 +240,22 @@ class LiquidGlass {
   }
 
   /* ================================================================
+   *  Public: refresh specific element(s) using the existing screenshot
+   *  Useful for elements that appear dynamically (menus, popups).
+   * ================================================================ */
+
+  refresh(selectorOrEl) {
+    if (!this._alive || !this._pageCanvas) return;
+    const els = typeof selectorOrEl === 'string'
+      ? document.querySelectorAll(selectorOrEl)
+      : [selectorOrEl];
+    for (const el of els) {
+      const state = this._elements.get(el);
+      if (state) this._processElement(state);
+    }
+  }
+
+  /* ================================================================
    *  Scroll & resize handlers
    * ================================================================ */
 
