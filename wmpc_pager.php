@@ -1340,6 +1340,7 @@
       margin-top: 1px;
     }
   </style>
+  <script src="liquid-glass/liquid_glass.js" defer></script>
 </head>
 
 <body>
@@ -1578,6 +1579,8 @@
     'carbon': 'ds-carbon'
   };
 
+  var _lgInstance = null;
+
   function applyDS(key) {
     dsClasses.forEach(function(c) { document.body.classList.remove(c); });
     var cls = dsMap[key];
@@ -1591,6 +1594,28 @@
     var metaTC = document.getElementById('metaThemeColor');
     var bg = getComputedStyle(document.body).getPropertyValue('--ds-bg').trim();
     if (metaTC && bg) metaTC.setAttribute('content', bg);
+
+    /* WASM Liquid Glass: activate when Apple theme selected */
+    if (key === 'liquid-glass') {
+      if (!_lgInstance && typeof LiquidGlass !== 'undefined') {
+        _lgInstance = new LiquidGlass('liquid-glass/liquid_glass.wasm');
+        _lgInstance.init().then(function() {
+          var targets = document.querySelectorAll('.section-card');
+          var isDark = document.body.classList.contains('dark-mode');
+          var tint = isDark ? [0.11, 0.11, 0.12, 0.35] : [1, 1, 1, 0.08];
+          for (var t = 0; t < targets.length; t++) {
+            _lgInstance.apply(targets[t], {
+              blurRadius: 20, refractionStrength: 0.035,
+              ior: 1.45, specular: isDark ? 0.15 : 0.25,
+              saturate: 1.35, tint: tint, live: true, fps: 24
+            });
+          }
+        }).catch(function() { _lgInstance = null; });
+      }
+    } else if (_lgInstance) {
+      _lgInstance.destroy();
+      _lgInstance = null;
+    }
   }
 
   function toggle() {
