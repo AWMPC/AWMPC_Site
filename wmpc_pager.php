@@ -796,6 +796,13 @@
       backdrop-filter: blur(20px) saturate(1.6);
       -webkit-backdrop-filter: blur(20px) saturate(1.6);
     }
+    /* Keep element content above the WASM glass overlay canvas */
+    body.ds-liquid-glass .section-card > *:not(.lg-overlay),
+    body.ds-liquid-glass .site-bottom-bar > *:not(.lg-overlay) {
+      position: relative;
+      z-index: 1;
+    }
+    .lg-overlay { z-index: 0; }
 
     /* ---- Google Material Design 3 (Material You) ----
        Ref: M3 design doc — tonal elevation (surface tint not shadows), shape scale
@@ -1579,7 +1586,33 @@
     'carbon': 'ds-carbon'
   };
 
-  var _lgInstance = null;
+  var _lg = null;
+
+  function _lgActivate() {
+    if (_lg || typeof LiquidGlass === 'undefined') return;
+    var isDark = document.body.classList.contains('dark-mode');
+    _lg = new LiquidGlass('liquid-glass/liquid_glass.wasm');
+    _lg.init({
+      blurRadius: 20,
+      refractionStrength: 0.035,
+      ior: 1.45,
+      specular: isDark ? 0.15 : 0.25,
+      saturate: 1.35,
+      tint: isDark ? [0.11, 0.11, 0.12, 0.35] : [1, 1, 1, 0.08],
+      captureScale: 0.5
+    }).then(function() {
+      _lg.register('.section-card');
+      _lg.register('.site-bottom-bar');
+      return _lg.capture();
+    }).catch(function(e) {
+      console.warn('LiquidGlass WASM unavailable:', e);
+      if (_lg) { _lg.destroy(); _lg = null; }
+    });
+  }
+
+  function _lgDeactivate() {
+    if (_lg) { _lg.destroy(); _lg = null; }
+  }
 
   function applyDS(key) {
     dsClasses.forEach(function(c) { document.body.classList.remove(c); });
@@ -1595,27 +1628,8 @@
     var bg = getComputedStyle(document.body).getPropertyValue('--ds-bg').trim();
     if (metaTC && bg) metaTC.setAttribute('content', bg);
 
-    /* WASM Liquid Glass: activate when Apple theme selected */
-    if (key === 'liquid-glass') {
-      if (!_lgInstance && typeof LiquidGlass !== 'undefined') {
-        _lgInstance = new LiquidGlass('liquid-glass/liquid_glass.wasm');
-        _lgInstance.init().then(function() {
-          var targets = document.querySelectorAll('.section-card');
-          var isDark = document.body.classList.contains('dark-mode');
-          var tint = isDark ? [0.11, 0.11, 0.12, 0.35] : [1, 1, 1, 0.08];
-          for (var t = 0; t < targets.length; t++) {
-            _lgInstance.apply(targets[t], {
-              blurRadius: 20, refractionStrength: 0.035,
-              ior: 1.45, specular: isDark ? 0.15 : 0.25,
-              saturate: 1.35, tint: tint, live: true, fps: 24
-            });
-          }
-        }).catch(function() { _lgInstance = null; });
-      }
-    } else if (_lgInstance) {
-      _lgInstance.destroy();
-      _lgInstance = null;
-    }
+    if (key === 'liquid-glass') _lgActivate();
+    else _lgDeactivate();
   }
 
   function toggle() {
