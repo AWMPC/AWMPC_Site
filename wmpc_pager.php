@@ -1038,6 +1038,15 @@
       border: 1px solid #E0E0E0;
     }
     body.ds-carbon .fab-menu {
+      background: #FFFFFF;
+      backdrop-filter: none;
+      -webkit-backdrop-filter: none;
+      border: 1px solid #E0E0E0;
+    }
+    body.ds-carbon .ds-popup {
+      background: #FFFFFF;
+      backdrop-filter: none;
+      -webkit-backdrop-filter: none;
       border: 1px solid #E0E0E0;
     }
     body.ds-carbon .site-bottom-bar {
@@ -1319,6 +1328,15 @@
       border: 1px solid #393939;
     }
     body.dark-mode.ds-carbon .fab-menu {
+      background: #262626;
+      backdrop-filter: none;
+      -webkit-backdrop-filter: none;
+      border: 1px solid #393939;
+    }
+    body.dark-mode.ds-carbon .ds-popup {
+      background: #262626;
+      backdrop-filter: none;
+      -webkit-backdrop-filter: none;
       border: 1px solid #393939;
     }
     body.dark-mode.ds-carbon .site-bottom-bar {
