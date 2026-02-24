@@ -591,14 +591,14 @@
       bottom: calc(58px + env(safe-area-inset-bottom, 0px));
       right: 12px;
       z-index: 9999;
-      background: var(--ds-card-bg);
+      background: rgba(255,255,255,0.72);
+      backdrop-filter: var(--ds-blur);
+      -webkit-backdrop-filter: var(--ds-blur);
       border-radius: var(--ds-radius-md);
       box-shadow: var(--ds-shadow-lg);
       padding: 8px 0;
       min-width: 220px;
       max-height: calc(100dvh - 140px);
-      overflow-y: auto;
-      overscroll-behavior: contain;
       transform: translateY(16px) scale(0.92);
       opacity: 0;
       pointer-events: none;
@@ -608,6 +608,11 @@
         opacity 0.25s cubic-bezier(0.33, 0, 0.67, 1),
         background-color 0.5s ease;
     }
+    .fab-menu-scroll {
+      overflow-y: auto;
+      overscroll-behavior: contain;
+      max-height: inherit;
+    }
     .fab-menu.open {
       transform: translateY(0) scale(1);
       opacity: 1;
@@ -615,9 +620,9 @@
     }
 
     /* Scrollbar styling inside sheet */
-    .fab-menu::-webkit-scrollbar { width: 4px; }
-    .fab-menu::-webkit-scrollbar-track { background: transparent; }
-    .fab-menu::-webkit-scrollbar-thumb { background: #ccc; border-radius: 4px; }
+    .fab-menu-scroll::-webkit-scrollbar { width: 4px; }
+    .fab-menu-scroll::-webkit-scrollbar-track { background: transparent; }
+    .fab-menu-scroll::-webkit-scrollbar-thumb { background: #ccc; border-radius: 4px; }
 
     /* Menu items */
     .fab-menu-item {
@@ -693,9 +698,12 @@
         transform-origin: bottom center;
         padding: 8px 16px;
         padding-bottom: calc(66px + env(safe-area-inset-bottom, 0px));
+      }
+      .fab-menu-scroll {
         display: grid;
         grid-template-columns: 1fr 1fr;
         gap: 2px;
+        max-height: calc(70dvh - 80px);
       }
       .fab-menu::before {
         content: '';
@@ -705,7 +713,6 @@
         background: #ccc;
         border-radius: 2px;
         margin: 4px auto 8px;
-        grid-column: 1 / -1;
       }
       .fab-menu.open {
         transform: translateY(0);
@@ -865,6 +872,22 @@
     body.ds-material .section-card {
       border: 1px solid #CAC4D0;
     }
+    body.ds-material .fab-menu {
+      backdrop-filter: blur(16px) saturate(1.2);
+      -webkit-backdrop-filter: blur(16px) saturate(1.2);
+      background: rgba(247,242,250,0.80);
+      border: 1px solid #CAC4D0;
+    }
+    body.ds-material .fab-btn {
+      backdrop-filter: blur(12px) saturate(1.1);
+      -webkit-backdrop-filter: blur(12px) saturate(1.1);
+    }
+    body.ds-material .ds-popup {
+      backdrop-filter: blur(16px) saturate(1.2);
+      -webkit-backdrop-filter: blur(16px) saturate(1.2);
+      background: rgba(247,242,250,0.80);
+      border: 1px solid #CAC4D0;
+    }
 
     /* ---- Windows Fluent Design 2 ----
        Ref: Fluent 2 design doc — 4px base grid, Segoe UI Variable,
@@ -929,8 +952,21 @@
       border-bottom: 1px solid rgba(0,0,0,0.0837);
     }
     body.ds-fluent .fab-menu {
+      backdrop-filter: blur(30px) saturate(1.25);
+      -webkit-backdrop-filter: blur(30px) saturate(1.25);
+      background: rgba(255,255,255,0.70);
       border: 1px solid rgba(0,0,0,0.0578);
       border-bottom: 1px solid rgba(0,0,0,0.0837);
+    }
+    body.ds-fluent .fab-btn {
+      backdrop-filter: blur(20px) saturate(1.2);
+      -webkit-backdrop-filter: blur(20px) saturate(1.2);
+    }
+    body.ds-fluent .ds-popup {
+      backdrop-filter: blur(30px) saturate(1.25);
+      -webkit-backdrop-filter: blur(30px) saturate(1.25);
+      background: rgba(255,255,255,0.70);
+      border: 1px solid rgba(0,0,0,0.0578);
     }
     /* Fluent focus: thicker stroke, no color change */
     body.ds-fluent .fab-menu-item:focus-visible {
@@ -1052,8 +1088,14 @@
       background: linear-gradient(110deg, transparent 30%, rgba(255,255,255,0.08) 50%, transparent 70%);
       background-size: 250% 100%;
     }
+    body.dark-mode .fab-menu {
+      background: rgba(22,40,68,0.72);
+    }
+    body.dark-mode .ds-popup {
+      background: rgba(22,40,68,0.72);
+    }
     body.dark-mode .fab-menu::before { background: #3A5068; }
-    body.dark-mode .fab-menu::-webkit-scrollbar-thumb { background: #3A5068; }
+    body.dark-mode .fab-menu-scroll::-webkit-scrollbar-thumb { background: #3A5068; }
 
     /* ===== Dark mode — Apple Liquid Glass =====
        iOS dark: pure #000000 bg, #1C1C1E secondarySystemBackground,
@@ -1154,6 +1196,22 @@
     body.dark-mode.ds-material .section-card {
       border: 1px solid #49454F;
     }
+    body.dark-mode.ds-material .fab-menu {
+      backdrop-filter: blur(16px) saturate(1.2);
+      -webkit-backdrop-filter: blur(16px) saturate(1.2);
+      background: rgba(33,31,38,0.80);
+      border: 1px solid #49454F;
+    }
+    body.dark-mode.ds-material .fab-btn {
+      backdrop-filter: blur(12px) saturate(1.1);
+      -webkit-backdrop-filter: blur(12px) saturate(1.1);
+    }
+    body.dark-mode.ds-material .ds-popup {
+      backdrop-filter: blur(16px) saturate(1.2);
+      -webkit-backdrop-filter: blur(16px) saturate(1.2);
+      background: rgba(33,31,38,0.80);
+      border: 1px solid #49454F;
+    }
     body.dark-mode.ds-material .fab-menu::before { background: #49454F; }
 
     /* ===== Dark mode — Windows Fluent 2 =====
@@ -1198,6 +1256,19 @@
       border-top: 1px solid rgba(255,255,255,0.0837);
     }
     body.dark-mode.ds-fluent .fab-menu {
+      backdrop-filter: blur(30px) saturate(1.25);
+      -webkit-backdrop-filter: blur(30px) saturate(1.25);
+      background: rgba(41,41,41,0.70);
+      border: 1px solid rgba(255,255,255,0.0578);
+    }
+    body.dark-mode.ds-fluent .fab-btn {
+      backdrop-filter: blur(20px) saturate(1.2);
+      -webkit-backdrop-filter: blur(20px) saturate(1.2);
+    }
+    body.dark-mode.ds-fluent .ds-popup {
+      backdrop-filter: blur(30px) saturate(1.25);
+      -webkit-backdrop-filter: blur(30px) saturate(1.25);
+      background: rgba(41,41,41,0.70);
       border: 1px solid rgba(255,255,255,0.0578);
     }
     body.dark-mode.ds-fluent .fab-menu::before { background: #5C5C5C; }
@@ -1287,7 +1358,9 @@
       bottom: calc(66px + env(safe-area-inset-bottom, 0px));
       right: 12px;
       z-index: 10001;
-      background: var(--ds-card-bg, #fff);
+      background: rgba(255,255,255,0.72);
+      backdrop-filter: var(--ds-blur);
+      -webkit-backdrop-filter: var(--ds-blur);
       border-radius: var(--ds-radius-md, 26px);
       box-shadow: var(--ds-shadow-lg);
       padding: 8px 0;
@@ -1695,6 +1768,7 @@
 <div class="fab-scrim" id="fabScrim"></div>
 
 <nav class="fab-menu" id="fabMenu" aria-label="Quick navigation">
+  <div class="fab-menu-scroll">
   <a class="fab-menu-item" href="./index.html">Homepage <span class="fab-item-zh">首頁</span></a>
   <a class="fab-menu-item" href="./mission.html">Mission <span class="fab-item-zh">使命</span></a>
   <a class="fab-menu-item" href="./sermons.html">Sermons <span class="fab-item-zh">講道</span></a>
@@ -1706,6 +1780,7 @@
   <a class="fab-menu-item" href="./letters.html">Letters <span class="fab-item-zh">信件</span></a>
   <a class="fab-menu-item" href="./canaan_record.html">Canaan <span class="fab-item-zh">历史</span></a>
   <a class="fab-menu-item" href="./hymns.html">Hymns <span class="fab-item-zh">讚美詩</span></a>
+  </div>
 </nav>
 
 
@@ -1713,6 +1788,7 @@
 (function() {
   var btn   = document.getElementById('fabBtn');
   var menu  = document.getElementById('fabMenu');
+  var menuScroll = menu.querySelector('.fab-menu-scroll');
   var scrim = document.getElementById('fabScrim');
   var items = menu.querySelectorAll('.fab-menu-item');
   var isOpen = false;
@@ -1775,7 +1851,7 @@
   menu.addEventListener('touchstart', function(e) {
     if (!isOpen) return;
     // Only allow drag when sheet is scrolled to the very top
-    if (menu.scrollTop > 0) return;
+    if (menuScroll.scrollTop > 0) return;
     dragStartY = e.touches[0].clientY;
     lastY = dragStartY;
     lastTime = Date.now();
@@ -1984,8 +2060,9 @@
       })
       .catch(function() {
         loaderDone();
-        // Fallback: full page navigation
-        if (displayUrl) window.location.href = displayUrl;
+        mainEl.innerHTML = '<p style="text-align:center;padding:40px 20px;color:var(--ds-text-secondary);">' +
+          'This page is not available offline. Please reconnect and try again.</p>';
+        mainEl.classList.remove('fade-out');
       });
   }
 
@@ -2029,6 +2106,12 @@
   // --- Highlight current page on initial load ---
   updateActiveNav(initKey);
 })();
+</script>
+
+<script>
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.register('./sw.js').catch(function() {});
+}
 </script>
 
 </body>
