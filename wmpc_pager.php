@@ -726,193 +726,244 @@
 
     /* Samsung One UI — default (values in :root) */
 
-    /* ---- Apple Liquid Glass ---- */
+    /* ---- Apple Liquid Glass ----
+       Ref: Liquid Glass design doc — translucent refractive material, content-first,
+       hardware-concentric rounding, SF Pro, 44pt min targets, 11pt min text,
+       judicious color, scroll-edge legibility, fluid morphing motion */
     body.ds-liquid-glass {
-      --ds-font: -apple-system, BlinkMacSystemFont, "SF Pro Display", "Helvetica Neue", Helvetica, Arial, sans-serif;
-      --ds-radius-sm: 20px;
-      --ds-radius-md: 22px;
+      --ds-font: -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", "Helvetica Neue", Helvetica, Arial, sans-serif;
+      /* Concentric rounding: controls match hardware curvature */
+      --ds-radius-sm: 13px;
+      --ds-radius-md: 16px;
       --ds-radius-pill: 50px;
-      --ds-radius-card: 20px;
+      --ds-radius-card: 16px;
       --ds-radius-btn: 50%;
       --ds-gap: 8px;
-      --ds-padding-sm: 10px;
+      --ds-padding-sm: 11px;
       --ds-padding-md: 16px;
-      --ds-shadow-sm: 0 0.5px 1px rgba(0,0,0,0.04), 0 2px 8px rgba(0,0,0,0.06);
-      --ds-shadow-md: 0 1px 4px rgba(0,0,0,0.06), 0 4px 16px rgba(0,0,0,0.08);
-      --ds-shadow-lg: 0 2px 10px rgba(0,0,0,0.06), 0 16px 48px rgba(0,0,0,0.12);
-      --ds-shadow-btn: 0 1px 4px rgba(0,0,0,0.06), 0 4px 16px rgba(0,0,0,0.08);
-      --ds-blur: blur(40px) saturate(2.2);
-      --ds-bar-bg: rgba(255,255,255,0.32);
-      --ds-bar-border: 1px solid rgba(255,255,255,0.50);
-      --ds-bar-shadow: 0 1px 6px rgba(0,0,0,0.04), 0 6px 20px rgba(0,0,0,0.06), inset 0 0 0 0.5px rgba(255,255,255,0.40);
-      --ds-transition: 0.4s cubic-bezier(0.25,0.1,0.25,1);
-      --ds-motion: 0.35s cubic-bezier(0.25,0.1,0.25,1);
+      /* Liquid Glass: shadows are depth cues beneath elevated elements */
+      --ds-shadow-sm: 0 0.5px 1px rgba(0,0,0,0.03), 0 1px 6px rgba(0,0,0,0.05);
+      --ds-shadow-md: 0 1px 3px rgba(0,0,0,0.05), 0 4px 14px rgba(0,0,0,0.07);
+      --ds-shadow-lg: 0 2px 8px rgba(0,0,0,0.06), 0 12px 40px rgba(0,0,0,0.10);
+      --ds-shadow-btn: 0 0.5px 2px rgba(0,0,0,0.04), 0 2px 8px rgba(0,0,0,0.06);
+      /* Material: translucent glass with refraction & blur */
+      --ds-blur: blur(40px) saturate(2.0);
+      --ds-bar-bg: rgba(255,255,255,0.28);
+      --ds-bar-border: 0.5px solid rgba(255,255,255,0.55);
+      --ds-bar-shadow: 0 0.5px 4px rgba(0,0,0,0.03), 0 4px 16px rgba(0,0,0,0.05), inset 0 0 0 0.5px rgba(255,255,255,0.35);
+      /* Motion: fluid morphing, spring-like feel */
+      --ds-transition: 0.45s cubic-bezier(0.28,0.11,0.32,1);
+      --ds-motion: 0.4s cubic-bezier(0.28,0.11,0.32,1);
+      /* Colors: iOS systemGroupedBackground */
       --ds-bg: #F2F2F7;
       --ds-text: #000000;
-      --ds-text-secondary: #8E8E93;
-      --ds-card-bg: rgba(255,255,255,0.65);
+      --ds-text-secondary: #3C3C43;
+      --ds-card-bg: rgba(255,255,255,0.55);
       --ds-label-color: #8E8E93;
-      --ds-link-bg: rgba(0,0,0,0.03);
-      --ds-border: 1px solid rgba(0,0,0,0.08);
-      --ds-divider: rgba(0,0,0,0.15);
+      --ds-link-bg: rgba(120,120,128,0.04);
+      --ds-border: 0.5px solid rgba(60,60,67,0.12);
+      --ds-divider: rgba(60,60,67,0.18);
       --ds-accent: #CC0000;
       --ds-info-bg: #CC0000;
       --ds-info-text: #FFFFFF;
-      --ds-btn-bg: rgba(0,0,0,0.50);
-      --ds-btn-hover: rgba(0,0,0,0.60);
-      --ds-btn-active: rgba(0,0,0,0.70);
-      --ds-fab-bg: rgba(255,255,255,0.70);
+      --ds-btn-bg: rgba(60,60,67,0.45);
+      --ds-btn-hover: rgba(60,60,67,0.55);
+      --ds-btn-active: rgba(60,60,67,0.65);
+      --ds-fab-bg: rgba(255,255,255,0.60);
       --ds-fab-cross: #CC0000;
-      --ds-fab-open-ring: 0 0 0 2px rgba(0,0,0,0.12);
+      --ds-fab-open-ring: 0 0 0 1.5px rgba(0,0,0,0.10);
       --ds-menu-text: #000000;
-      --ds-menu-hover: rgba(0,0,0,0.04);
-      --ds-menu-active-bg: rgba(0,122,255,0.08);
+      --ds-menu-hover: rgba(120,120,128,0.06);
+      --ds-menu-active-bg: rgba(0,122,255,0.10);
       --ds-menu-active-text: #007AFF;
       --ds-footer-text: #3C3C43;
       --ds-footer-link: #000000;
       --ds-loader: #007AFF;
-      --ds-scrim: rgba(0,0,0,0.40);
+      --ds-scrim: rgba(0,0,0,0.32);
     }
     body.ds-liquid-glass .section-card {
-      backdrop-filter: blur(30px) saturate(1.6);
-      -webkit-backdrop-filter: blur(30px) saturate(1.6);
-      border: 1px solid rgba(255,255,255,0.55);
+      backdrop-filter: blur(30px) saturate(1.8);
+      -webkit-backdrop-filter: blur(30px) saturate(1.8);
+      border: 0.5px solid rgba(255,255,255,0.55);
     }
     body.ds-liquid-glass .fab-menu {
       backdrop-filter: blur(40px) saturate(2);
       -webkit-backdrop-filter: blur(40px) saturate(2);
-      background: rgba(255,255,255,0.60);
-      border: 1px solid rgba(255,255,255,0.50);
+      background: rgba(255,255,255,0.52);
+      border: 0.5px solid rgba(255,255,255,0.50);
+    }
+    body.ds-liquid-glass .fab-btn {
+      backdrop-filter: blur(20px) saturate(1.6);
+      -webkit-backdrop-filter: blur(20px) saturate(1.6);
     }
 
-    /* ---- Google Material Design 3 (Material You) ---- */
+    /* ---- Google Material Design 3 (Material You) ----
+       Ref: M3 design doc — tonal elevation (surface tint not shadows), shape scale
+       (None=0, XS=4, S=8, M=12, L=16, XL=28, Full=50%), Roboto, 48dp min touch,
+       standard easing cubic-bezier(0.2,0,0,1), emphasized easing for prominent,
+       M3 color roles: surface=#FEF7FF, onSurface=#1D1B20, outline=#79747E,
+       outlineVariant=#CAC4D0, primary=#6750A4, surfaceContainerLow=#F7F2FA,
+       surfaceContainer=#F3EDF7, surfaceContainerHigh=#ECE6F0 */
     body.ds-material {
-      --ds-font: "Google Sans", "Roboto", "Noto Sans", Arial, sans-serif;
+      --ds-font: "Roboto", "Noto Sans", "Google Sans", Arial, sans-serif;
+      /* M3 shape scale: cards=Medium(12dp), FAB=Large(16dp), sheets=XL(28dp) */
       --ds-radius-sm: 12px;
-      --ds-radius-md: 16px;
-      --ds-radius-pill: 50px;
+      --ds-radius-md: 28px;
+      --ds-radius-pill: 50%;
       --ds-radius-card: 12px;
       --ds-radius-btn: 50%;
-      --ds-gap: 12px;
-      --ds-padding-sm: 12px;
+      /* M3 grid: compact margins=16dp, gutters=8dp */
+      --ds-gap: 8px;
+      --ds-padding-sm: 16px;
       --ds-padding-md: 24px;
-      --ds-shadow-sm: 0 1px 2px rgba(0,0,0,0.10), 0 1px 3px rgba(0,0,0,0.08);
-      --ds-shadow-md: 0 1px 3px rgba(0,0,0,0.12), 0 4px 8px rgba(0,0,0,0.08);
-      --ds-shadow-lg: 0 2px 6px rgba(0,0,0,0.12), 0 8px 24px rgba(0,0,0,0.14);
-      --ds-shadow-btn: 0 1px 3px rgba(0,0,0,0.12), 0 4px 8px rgba(0,0,0,0.08);
-      --ds-blur: blur(20px) saturate(1.4);
-      --ds-bar-bg: rgba(255,255,255,0.60);
-      --ds-bar-border: 1px solid rgba(0,0,0,0.06);
-      --ds-bar-shadow: 0 1px 3px rgba(0,0,0,0.08), 0 4px 12px rgba(0,0,0,0.06);
+      /* M3 tonal elevation: minimal shadow, uses surfaceTint overlay instead */
+      --ds-shadow-sm: 0 1px 2px rgba(0,0,0,0.15), 0 1px 3px rgba(0,0,0,0.10);
+      --ds-shadow-md: 0 1px 2px rgba(0,0,0,0.15), 0 2px 6px rgba(0,0,0,0.10);
+      --ds-shadow-lg: 0 4px 8px rgba(0,0,0,0.12), 0 8px 16px rgba(0,0,0,0.10);
+      --ds-shadow-btn: 0 1px 2px rgba(0,0,0,0.15), 0 2px 6px rgba(0,0,0,0.10);
+      --ds-blur: blur(16px) saturate(1.2);
+      --ds-bar-bg: rgba(243,237,247,0.75);
+      --ds-bar-border: none;
+      --ds-bar-shadow: 0 1px 2px rgba(0,0,0,0.10), 0 2px 6px rgba(0,0,0,0.06);
+      /* M3 standard easing */
       --ds-transition: 0.3s cubic-bezier(0.2,0,0,1);
       --ds-motion: 0.3s cubic-bezier(0.2,0,0,1);
+      /* M3 light scheme color roles */
       --ds-bg: #FEF7FF;
       --ds-text: #1D1B20;
       --ds-text-secondary: #49454F;
-      --ds-card-bg: #FFFBFE;
+      --ds-card-bg: #F7F2FA;
       --ds-label-color: #49454F;
-      --ds-link-bg: #F3EDF7;
+      --ds-link-bg: #ECE6F0;
       --ds-border: 1px solid #CAC4D0;
       --ds-divider: #CAC4D0;
-      --ds-accent: #B3261E;
-      --ds-info-bg: #B3261E;
+      --ds-accent: #6750A4;
+      --ds-info-bg: #6750A4;
       --ds-info-text: #FFFFFF;
       --ds-btn-bg: #1D1B20;
       --ds-btn-hover: #49454F;
       --ds-btn-active: #605D66;
-      --ds-fab-bg: #FFFBFE;
-      --ds-fab-cross: #B3261E;
-      --ds-fab-open-ring: 0 0 0 2px rgba(103,80,164,0.25);
+      --ds-fab-bg: #ECE6F0;
+      --ds-fab-cross: #6750A4;
+      --ds-fab-open-ring: 0 0 0 2px rgba(103,80,164,0.30);
       --ds-menu-text: #1D1B20;
       --ds-menu-hover: rgba(29,27,32,0.08);
-      --ds-menu-active-bg: rgba(103,80,164,0.08);
+      --ds-menu-active-bg: rgba(103,80,164,0.12);
       --ds-menu-active-text: #6750A4;
       --ds-footer-text: #49454F;
-      --ds-footer-link: #1D1B20;
+      --ds-footer-link: #6750A4;
       --ds-loader: #6750A4;
-      --ds-scrim: rgba(0,0,0,0.50);
+      --ds-scrim: rgba(0,0,0,0.32);
     }
     body.ds-material .section-card {
       border: 1px solid #CAC4D0;
     }
 
-    /* ---- Windows Fluent Design 2 ---- */
+    /* ---- Windows Fluent Design 2 ----
+       Ref: Fluent 2 design doc — 4px base grid, Segoe UI Variable,
+       6-level shadow ramp (key+ambient composition, 14% base light / 28% dark),
+       standardized 4px corners, colorNeutralBackground1=#FFFFFF,
+       colorNeutralForeground1=#242424, interaction=darker on hover/press,
+       focus=thicker stroke not color change */
     body.ds-fluent {
       --ds-font: "Segoe UI Variable", "Segoe UI", system-ui, sans-serif;
-      --ds-radius-sm: 8px;
+      /* Fluent standardized corners: 4px for components, 8px for containers */
+      --ds-radius-sm: 4px;
       --ds-radius-md: 8px;
-      --ds-radius-pill: 8px;
-      --ds-radius-card: 8px;
-      --ds-radius-btn: 8px;
-      --ds-gap: 6px;
-      --ds-padding-sm: 10px;
+      --ds-radius-pill: 4px;
+      --ds-radius-card: 4px;
+      --ds-radius-btn: 4px;
+      /* Fluent 4px base grid spacing */
+      --ds-gap: 8px;
+      --ds-padding-sm: 8px;
       --ds-padding-md: 16px;
-      --ds-shadow-sm: 0 2px 4px rgba(0,0,0,0.04), 0 0 2px rgba(0,0,0,0.06);
-      --ds-shadow-md: 0 2px 8px rgba(0,0,0,0.06), 0 0 2px rgba(0,0,0,0.04);
-      --ds-shadow-lg: 0 4px 16px rgba(0,0,0,0.08), 0 0 2px rgba(0,0,0,0.04);
-      --ds-shadow-btn: 0 2px 4px rgba(0,0,0,0.04), 0 0 2px rgba(0,0,0,0.06);
-      --ds-blur: blur(30px) saturate(1.5);
+      /* Fluent shadow ramp: key (sharp) + ambient (soft) composition */
+      --ds-shadow-sm: 0 2px 4px rgba(0,0,0,0.14), 0 0 2px rgba(0,0,0,0.12);
+      --ds-shadow-md: 0 4px 8px rgba(0,0,0,0.14), 0 0 2px rgba(0,0,0,0.12);
+      --ds-shadow-lg: 0 8px 16px rgba(0,0,0,0.14), 0 0 2px rgba(0,0,0,0.12);
+      --ds-shadow-btn: 0 2px 4px rgba(0,0,0,0.14), 0 0 2px rgba(0,0,0,0.12);
+      /* Fluent Acrylic: uses strokes on Windows instead of key shadows */
+      --ds-blur: blur(30px) saturate(1.25);
       --ds-bar-bg: rgba(255,255,255,0.70);
-      --ds-bar-border: 1px solid rgba(0,0,0,0.06);
-      --ds-bar-shadow: 0 2px 8px rgba(0,0,0,0.04), 0 0 1px rgba(0,0,0,0.06);
-      --ds-transition: 0.25s cubic-bezier(0.1,0.9,0.2,1);
+      --ds-bar-border: 1px solid rgba(0,0,0,0.0578);
+      --ds-bar-shadow: 0 2px 4px rgba(0,0,0,0.04);
+      /* Fluent ease-out for entering elements */
+      --ds-transition: 0.2s cubic-bezier(0,0,0,1);
       --ds-motion: 0.25s cubic-bezier(0.1,0.9,0.2,1);
-      --ds-bg: #F3F3F3;
-      --ds-text: #1A1A1A;
+      /* Fluent neutral palette */
+      --ds-bg: #F5F5F5;
+      --ds-text: #242424;
       --ds-text-secondary: #616161;
       --ds-card-bg: #FFFFFF;
       --ds-label-color: #616161;
       --ds-link-bg: #F0F0F0;
-      --ds-border: 1px solid rgba(0,0,0,0.06);
-      --ds-divider: #E0E0E0;
+      --ds-border: 1px solid rgba(0,0,0,0.0578);
+      --ds-divider: rgba(0,0,0,0.0837);
       --ds-accent: #CC0000;
       --ds-info-bg: #CC0000;
       --ds-info-text: #FFFFFF;
-      --ds-btn-bg: #1A1A1A;
-      --ds-btn-hover: #333333;
-      --ds-btn-active: #444444;
+      --ds-btn-bg: #242424;
+      --ds-btn-hover: #424242;
+      --ds-btn-active: #4F4F4F;
       --ds-fab-bg: #FFFFFF;
       --ds-fab-cross: #CC0000;
-      --ds-fab-open-ring: 0 0 0 2px rgba(0,95,184,0.25);
-      --ds-menu-text: #1A1A1A;
+      --ds-fab-open-ring: 0 0 0 2px #000000;
+      --ds-menu-text: #242424;
       --ds-menu-hover: rgba(0,0,0,0.04);
-      --ds-menu-active-bg: rgba(0,95,184,0.06);
-      --ds-menu-active-text: #005FB8;
-      --ds-footer-text: #1A1A1A;
-      --ds-footer-link: #1A1A1A;
-      --ds-loader: #005FB8;
-      --ds-scrim: rgba(0,0,0,0.45);
+      --ds-menu-active-bg: rgba(0,0,0,0.06);
+      --ds-menu-active-text: #242424;
+      --ds-footer-text: #616161;
+      --ds-footer-link: #242424;
+      --ds-loader: #0F6CBD;
+      --ds-scrim: rgba(0,0,0,0.40);
     }
     body.ds-fluent .section-card {
-      border: 1px solid rgba(0,0,0,0.06);
-      border-bottom: 1px solid rgba(0,0,0,0.10);
+      border: 1px solid rgba(0,0,0,0.0578);
+      border-bottom: 1px solid rgba(0,0,0,0.0837);
     }
     body.ds-fluent .fab-menu {
-      border: 1px solid rgba(0,0,0,0.06);
-      border-bottom: 1px solid rgba(0,0,0,0.10);
+      border: 1px solid rgba(0,0,0,0.0578);
+      border-bottom: 1px solid rgba(0,0,0,0.0837);
+    }
+    /* Fluent focus: thicker stroke, no color change */
+    body.ds-fluent .fab-menu-item:focus-visible {
+      outline: 2px solid #000000;
+      outline-offset: -2px;
     }
 
-    /* ---- IBM Carbon ---- */
+    /* ---- IBM Carbon ----
+       Ref: Carbon design doc — 2x Grid with 8px mini-unit, zero corner radius,
+       IBM Plex Sans, spacing scale ($spacing-03=8px, $spacing-05=16px, $spacing-07=32px),
+       productive motion: standard=cubic-bezier(0.2,0,0.38,0.9), duration-fast-01=70ms,
+       duration-moderate-01=150ms, Gray 10 theme: bg=#f4f4f4, text=$text-primary=Gray100=#161616,
+       $border-subtle=#e0e0e0, $layer-01=#ffffff, Blue 60=#0f62fe as primary action,
+       $support-error=Red60=#da1e28, no blur/acrylic, condensed 1px borders */
     body.ds-carbon {
       --ds-font: "IBM Plex Sans", "Helvetica Neue", Arial, sans-serif;
+      /* Carbon: no corner radius anywhere */
       --ds-radius-sm: 0px;
       --ds-radius-md: 0px;
       --ds-radius-pill: 0px;
       --ds-radius-card: 0px;
       --ds-radius-btn: 0px;
-      --ds-gap: 8px;
+      /* Carbon 2x grid: 8px mini-unit, 16px column padding */
+      --ds-gap: 16px;
       --ds-padding-sm: 16px;
       --ds-padding-md: 16px;
+      /* Carbon: minimal elevation, borders over shadows */
       --ds-shadow-sm: 0 2px 6px rgba(0,0,0,0.12);
       --ds-shadow-md: 0 2px 6px rgba(0,0,0,0.16);
-      --ds-shadow-lg: 0 4px 16px rgba(0,0,0,0.16);
-      --ds-shadow-btn: 0 2px 6px rgba(0,0,0,0.12);
+      --ds-shadow-lg: 0 8px 16px rgba(0,0,0,0.16);
+      --ds-shadow-btn: none;
+      /* Carbon: no acrylic or blur effects */
       --ds-blur: none;
       --ds-bar-bg: #FFFFFF;
       --ds-bar-border: 1px solid #E0E0E0;
-      --ds-bar-shadow: 0 2px 6px rgba(0,0,0,0.10);
-      --ds-transition: 0.15s ease;
-      --ds-motion: 0.15s ease;
+      --ds-bar-shadow: 0 2px 6px rgba(0,0,0,0.12);
+      /* Carbon productive motion: standard easing */
+      --ds-transition: 0.15s cubic-bezier(0.2,0,0.38,0.9);
+      --ds-motion: 0.15s cubic-bezier(0.2,0,0.38,0.9);
+      /* Carbon Gray 10 theme */
       --ds-bg: #F4F4F4;
       --ds-text: #161616;
       --ds-text-secondary: #525252;
@@ -921,23 +972,24 @@
       --ds-link-bg: #E0E0E0;
       --ds-border: 1px solid #E0E0E0;
       --ds-divider: #E0E0E0;
+      /* Carbon: $support-error (Red 60) for danger, Blue 60 for primary actions */
       --ds-accent: #DA1E28;
       --ds-info-bg: #DA1E28;
       --ds-info-text: #FFFFFF;
       --ds-btn-bg: #161616;
-      --ds-btn-hover: #333333;
+      --ds-btn-hover: #353535;
       --ds-btn-active: #525252;
       --ds-fab-bg: #FFFFFF;
       --ds-fab-cross: #DA1E28;
-      --ds-fab-open-ring: 0 0 0 2px rgba(15,98,254,0.30);
+      --ds-fab-open-ring: 0 0 0 2px #0F62FE;
       --ds-menu-text: #161616;
       --ds-menu-hover: #E8E8E8;
       --ds-menu-active-bg: rgba(15,98,254,0.10);
       --ds-menu-active-text: #0F62FE;
-      --ds-footer-text: #161616;
-      --ds-footer-link: #161616;
+      --ds-footer-text: #525252;
+      --ds-footer-link: #0F62FE;
       --ds-loader: #0F62FE;
-      --ds-scrim: rgba(0,0,0,0.55);
+      --ds-scrim: rgba(22,22,22,0.50);
     }
     body.ds-carbon .section-card {
       border: 1px solid #E0E0E0;
@@ -948,6 +1000,11 @@
     body.ds-carbon .site-bottom-bar {
       backdrop-filter: none;
       -webkit-backdrop-filter: none;
+    }
+    /* Carbon focus: 2px Blue 60 border */
+    body.ds-carbon .fab-menu-item:focus-visible {
+      outline: 2px solid #0F62FE;
+      outline-offset: -2px;
     }
 
     /* ===== Dark mode — Samsung One UI (default) ===== */
@@ -991,78 +1048,92 @@
     body.dark-mode .fab-menu::before { background: #3A5068; }
     body.dark-mode .fab-menu::-webkit-scrollbar-thumb { background: #3A5068; }
 
-    /* ===== Dark mode — Apple Liquid Glass ===== */
+    /* ===== Dark mode — Apple Liquid Glass =====
+       iOS dark: pure #000000 bg, #1C1C1E secondarySystemBackground,
+       systemGray=#8E8E93, 0A84FF (dark blue), translucent glass persists,
+       reduce transparency makes opaque */
     body.dark-mode.ds-liquid-glass {
       --ds-bg: #000000;
       --ds-text: #FFFFFF;
-      --ds-text-secondary: #98989D;
-      --ds-card-bg: rgba(28,28,30,0.65);
-      --ds-label-color: #98989D;
-      --ds-link-bg: rgba(255,255,255,0.05);
+      --ds-text-secondary: #EBEBF5;
+      --ds-card-bg: rgba(28,28,30,0.55);
+      --ds-label-color: #8E8E93;
+      --ds-link-bg: rgba(120,120,128,0.12);
       --ds-info-bg: #CC0000;
       --ds-info-text: #FFFFFF;
-      --ds-btn-bg: rgba(255,255,255,0.15);
-      --ds-btn-hover: rgba(255,255,255,0.20);
-      --ds-btn-active: rgba(255,255,255,0.25);
-      --ds-fab-bg: rgba(28,28,30,0.70);
+      --ds-btn-bg: rgba(120,120,128,0.24);
+      --ds-btn-hover: rgba(120,120,128,0.32);
+      --ds-btn-active: rgba(120,120,128,0.40);
+      --ds-fab-bg: rgba(28,28,30,0.60);
       --ds-fab-cross: #FFFFFF;
-      --ds-fab-open-ring: 0 0 0 2px rgba(255,255,255,0.20);
+      --ds-fab-open-ring: 0 0 0 1.5px rgba(255,255,255,0.16);
       --ds-menu-text: #FFFFFF;
-      --ds-menu-hover: rgba(255,255,255,0.06);
-      --ds-menu-active-bg: rgba(255,255,255,0.10);
-      --ds-menu-active-text: #FFFFFF;
-      --ds-footer-text: #98989D;
+      --ds-menu-hover: rgba(120,120,128,0.12);
+      --ds-menu-active-bg: rgba(10,132,255,0.15);
+      --ds-menu-active-text: #0A84FF;
+      --ds-footer-text: #8E8E93;
       --ds-footer-link: #FFFFFF;
-      --ds-divider: rgba(255,255,255,0.15);
+      --ds-divider: rgba(84,84,88,0.65);
       --ds-loader: #0A84FF;
-      --ds-scrim: rgba(0,0,0,0.50);
-      --ds-border: 1px solid rgba(255,255,255,0.08);
-      --ds-bar-bg: rgba(28,28,30,0.40);
-      --ds-bar-border: 1px solid rgba(255,255,255,0.08);
-      --ds-shadow-sm: 0 0.5px 1px rgba(0,0,0,0.15), 0 2px 8px rgba(0,0,0,0.20);
-      --ds-shadow-md: 0 1px 4px rgba(0,0,0,0.20), 0 4px 16px rgba(0,0,0,0.25);
-      --ds-shadow-lg: 0 2px 10px rgba(0,0,0,0.25), 0 16px 48px rgba(0,0,0,0.35);
+      --ds-scrim: rgba(0,0,0,0.44);
+      --ds-border: 0.5px solid rgba(84,84,88,0.45);
+      --ds-bar-bg: rgba(28,28,30,0.35);
+      --ds-bar-border: 0.5px solid rgba(84,84,88,0.30);
+      --ds-shadow-sm: 0 0.5px 1px rgba(0,0,0,0.20), 0 2px 8px rgba(0,0,0,0.25);
+      --ds-shadow-md: 0 1px 3px rgba(0,0,0,0.25), 0 4px 14px rgba(0,0,0,0.30);
+      --ds-shadow-lg: 0 2px 8px rgba(0,0,0,0.30), 0 12px 40px rgba(0,0,0,0.40);
     }
     body.dark-mode.ds-liquid-glass .section-card {
       backdrop-filter: blur(30px) saturate(1.6);
       -webkit-backdrop-filter: blur(30px) saturate(1.6);
-      border: 1px solid rgba(255,255,255,0.08);
+      border: 0.5px solid rgba(84,84,88,0.35);
     }
     body.dark-mode.ds-liquid-glass .fab-menu {
       backdrop-filter: blur(40px) saturate(2);
       -webkit-backdrop-filter: blur(40px) saturate(2);
-      border: 1px solid rgba(255,255,255,0.10);
+      background: rgba(28,28,30,0.55);
+      border: 0.5px solid rgba(84,84,88,0.35);
     }
-    body.dark-mode.ds-liquid-glass .fab-menu::before { background: rgba(255,255,255,0.20); }
+    body.dark-mode.ds-liquid-glass .fab-btn {
+      backdrop-filter: blur(20px) saturate(1.6);
+      -webkit-backdrop-filter: blur(20px) saturate(1.6);
+    }
+    body.dark-mode.ds-liquid-glass .fab-menu::before { background: rgba(120,120,128,0.30); }
 
-    /* ===== Dark mode — Google Material 3 ===== */
+    /* ===== Dark mode — Google Material 3 =====
+       M3 dark scheme: surface=#141218, onSurface=#E6E0E9,
+       surfaceContainerLow=#1D1B20, surfaceContainer=#211F26,
+       surfaceContainerHigh=#2B2930, surfaceContainerHighest=#36343B,
+       outline=#938F99, outlineVariant=#49454F,
+       primary (dark)=#D0BCFF, onPrimary=#381E72,
+       primaryContainer=#4F378B, scrim=rgba(0,0,0,0.32) */
     body.dark-mode.ds-material {
       --ds-bg: #141218;
       --ds-text: #E6E0E9;
       --ds-text-secondary: #CAC4D0;
-      --ds-card-bg: #211F26;
+      --ds-card-bg: #1D1B20;
       --ds-label-color: #CAC4D0;
-      --ds-link-bg: #2B2930;
-      --ds-info-bg: #CC0000;
+      --ds-link-bg: #211F26;
+      --ds-info-bg: #6750A4;
       --ds-info-text: #FFFFFF;
       --ds-btn-bg: #2B2930;
       --ds-btn-hover: #36343B;
       --ds-btn-active: #48464C;
-      --ds-fab-bg: #211F26;
-      --ds-fab-cross: #E6E0E9;
-      --ds-fab-open-ring: 0 0 0 2px rgba(208,188,255,0.30);
+      --ds-fab-bg: #2B2930;
+      --ds-fab-cross: #D0BCFF;
+      --ds-fab-open-ring: 0 0 0 2px rgba(208,188,255,0.35);
       --ds-menu-text: #E6E0E9;
       --ds-menu-hover: rgba(230,224,233,0.08);
-      --ds-menu-active-bg: rgba(208,188,255,0.12);
+      --ds-menu-active-bg: rgba(208,188,255,0.16);
       --ds-menu-active-text: #D0BCFF;
       --ds-footer-text: #CAC4D0;
-      --ds-footer-link: #E6E0E9;
+      --ds-footer-link: #D0BCFF;
       --ds-divider: #49454F;
       --ds-loader: #D0BCFF;
-      --ds-scrim: rgba(0,0,0,0.55);
+      --ds-scrim: rgba(0,0,0,0.32);
       --ds-border: 1px solid #49454F;
-      --ds-bar-bg: rgba(33,31,38,0.70);
-      --ds-bar-border: 1px solid rgba(255,255,255,0.06);
+      --ds-bar-bg: rgba(29,27,32,0.75);
+      --ds-bar-border: none;
       --ds-shadow-sm: 0 1px 2px rgba(0,0,0,0.30), 0 1px 3px rgba(0,0,0,0.25);
       --ds-shadow-md: 0 1px 3px rgba(0,0,0,0.35), 0 4px 8px rgba(0,0,0,0.25);
       --ds-shadow-lg: 0 2px 6px rgba(0,0,0,0.35), 0 8px 24px rgba(0,0,0,0.30);
@@ -1072,48 +1143,62 @@
     }
     body.dark-mode.ds-material .fab-menu::before { background: #49454F; }
 
-    /* ===== Dark mode — Windows Fluent ===== */
+    /* ===== Dark mode — Windows Fluent 2 =====
+       Fluent dark: colorNeutralBackground1=#292929,
+       colorNeutralForeground1=#FFFFFF, 28% base shadow opacity,
+       strokes instead of key shadows, focus stroke=White,
+       interaction states: controls get *lighter* on Windows */
     body.dark-mode.ds-fluent {
-      --ds-bg: #202020;
+      --ds-bg: #1F1F1F;
       --ds-text: #FFFFFF;
-      --ds-text-secondary: #9E9E9E;
-      --ds-card-bg: #2D2D2D;
-      --ds-label-color: #9E9E9E;
+      --ds-text-secondary: #ADADAD;
+      --ds-card-bg: #292929;
+      --ds-label-color: #ADADAD;
       --ds-link-bg: #333333;
       --ds-info-bg: #CC0000;
       --ds-info-text: #FFFFFF;
-      --ds-btn-bg: #2D2D2D;
-      --ds-btn-hover: #383838;
-      --ds-btn-active: #424242;
-      --ds-fab-bg: #2D2D2D;
+      --ds-btn-bg: #333333;
+      --ds-btn-hover: #3D3D3D;
+      --ds-btn-active: #474747;
+      --ds-fab-bg: #292929;
       --ds-fab-cross: #FFFFFF;
-      --ds-fab-open-ring: 0 0 0 2px rgba(96,205,255,0.30);
+      --ds-fab-open-ring: 0 0 0 2px #FFFFFF;
       --ds-menu-text: #FFFFFF;
-      --ds-menu-hover: rgba(255,255,255,0.06);
-      --ds-menu-active-bg: rgba(96,205,255,0.10);
-      --ds-menu-active-text: #60CDFF;
-      --ds-footer-text: #9E9E9E;
+      --ds-menu-hover: rgba(255,255,255,0.0837);
+      --ds-menu-active-bg: rgba(255,255,255,0.0578);
+      --ds-menu-active-text: #FFFFFF;
+      --ds-footer-text: #ADADAD;
       --ds-footer-link: #FFFFFF;
-      --ds-divider: #383838;
+      --ds-divider: rgba(255,255,255,0.0837);
       --ds-loader: #60CDFF;
-      --ds-scrim: rgba(0,0,0,0.55);
-      --ds-border: 1px solid rgba(255,255,255,0.06);
-      --ds-bar-bg: rgba(45,45,45,0.70);
-      --ds-bar-border: 1px solid rgba(255,255,255,0.06);
-      --ds-shadow-sm: 0 2px 4px rgba(0,0,0,0.20), 0 0 2px rgba(0,0,0,0.18);
-      --ds-shadow-md: 0 2px 8px rgba(0,0,0,0.25), 0 0 2px rgba(0,0,0,0.18);
-      --ds-shadow-lg: 0 4px 16px rgba(0,0,0,0.30), 0 0 2px rgba(0,0,0,0.18);
+      --ds-scrim: rgba(0,0,0,0.50);
+      --ds-border: 1px solid rgba(255,255,255,0.0837);
+      --ds-bar-bg: rgba(41,41,41,0.75);
+      --ds-bar-border: 1px solid rgba(255,255,255,0.0578);
+      /* Fluent dark shadows: 28% base opacity */
+      --ds-shadow-sm: 0 2px 4px rgba(0,0,0,0.28), 0 0 2px rgba(0,0,0,0.24);
+      --ds-shadow-md: 0 4px 8px rgba(0,0,0,0.28), 0 0 2px rgba(0,0,0,0.24);
+      --ds-shadow-lg: 0 8px 16px rgba(0,0,0,0.28), 0 0 2px rgba(0,0,0,0.24);
     }
     body.dark-mode.ds-fluent .section-card {
-      border: 1px solid rgba(255,255,255,0.06);
-      border-top: 1px solid rgba(255,255,255,0.08);
+      border: 1px solid rgba(255,255,255,0.0578);
+      border-top: 1px solid rgba(255,255,255,0.0837);
     }
     body.dark-mode.ds-fluent .fab-menu {
-      border: 1px solid rgba(255,255,255,0.06);
+      border: 1px solid rgba(255,255,255,0.0578);
     }
-    body.dark-mode.ds-fluent .fab-menu::before { background: #555; }
+    body.dark-mode.ds-fluent .fab-menu::before { background: #5C5C5C; }
+    body.dark-mode.ds-fluent .fab-menu-item:focus-visible {
+      outline: 2px solid #FFFFFF;
+      outline-offset: -2px;
+    }
 
-    /* ===== Dark mode — IBM Carbon (Gray 100) ===== */
+    /* ===== Dark mode — IBM Carbon (Gray 100 theme) =====
+       Carbon Gray 100: $background=#161616, $text-primary=Gray10=#F4F4F4,
+       $text-secondary=Gray30=#C6C6C6, $layer-01=#262626,
+       $border-subtle-01=#393939, $interactive=Blue40=#78A9FF,
+       $support-error=Red50=#FA4D56, $focus=White #FFFFFF,
+       $link-primary=Blue40=#78A9FF */
     body.dark-mode.ds-carbon {
       --ds-bg: #161616;
       --ds-text: #F4F4F4;
@@ -1128,23 +1213,23 @@
       --ds-btn-active: #525252;
       --ds-fab-bg: #262626;
       --ds-fab-cross: #F4F4F4;
-      --ds-fab-open-ring: 0 0 0 2px rgba(120,169,255,0.30);
+      --ds-fab-open-ring: 0 0 0 2px #FFFFFF;
       --ds-menu-text: #F4F4F4;
       --ds-menu-hover: #353535;
-      --ds-menu-active-bg: rgba(120,169,255,0.15);
+      --ds-menu-active-bg: rgba(120,169,255,0.20);
       --ds-menu-active-text: #78A9FF;
       --ds-footer-text: #C6C6C6;
-      --ds-footer-link: #F4F4F4;
+      --ds-footer-link: #78A9FF;
       --ds-divider: #393939;
       --ds-loader: #78A9FF;
-      --ds-scrim: rgba(0,0,0,0.65);
+      --ds-scrim: rgba(22,22,22,0.70);
       --ds-border: 1px solid #393939;
       --ds-bar-bg: #262626;
       --ds-bar-border: 1px solid #393939;
       --ds-bar-shadow: 0 2px 6px rgba(0,0,0,0.30);
       --ds-shadow-sm: 0 2px 6px rgba(0,0,0,0.30);
       --ds-shadow-md: 0 2px 6px rgba(0,0,0,0.40);
-      --ds-shadow-lg: 0 4px 16px rgba(0,0,0,0.40);
+      --ds-shadow-lg: 0 8px 16px rgba(0,0,0,0.40);
     }
     body.dark-mode.ds-carbon .section-card {
       border: 1px solid #393939;
@@ -1157,6 +1242,10 @@
       -webkit-backdrop-filter: none;
     }
     body.dark-mode.ds-carbon .fab-menu::before { background: #525252; }
+    body.dark-mode.ds-carbon .fab-menu-item:focus-visible {
+      outline: 2px solid #FFFFFF;
+      outline-offset: -2px;
+    }
 
     /* --- Theme selector popup --- */
     .ds-picker-btn {
@@ -1452,23 +1541,23 @@
   <div class="ds-popup-title">Design System</div>
   <button class="ds-popup-item active" data-ds="oneui">
     <span class="ds-icon" style="background:#1428A0;color:#fff;">S</span>
-    <span><span>Samsung One UI</span><br><span class="ds-desc">Rounded, warm, bottom-focused</span></span>
+    <span><span>Samsung One UI</span><br><span class="ds-desc">Rounded, warm, bottom-focused interaction</span></span>
   </button>
   <button class="ds-popup-item" data-ds="liquid-glass">
     <span class="ds-icon" style="background:#A2AAAD;color:#fff;">&#63743;</span>
-    <span><span>Apple Liquid Glass</span><br><span class="ds-desc">Frosted glass, translucency, depth</span></span>
+    <span><span>Apple Liquid Glass</span><br><span class="ds-desc">Translucent glass, refraction, fluid morph</span></span>
   </button>
   <button class="ds-popup-item" data-ds="material">
-    <span class="ds-icon" style="background:#1A73E8;color:#fff;">M</span>
-    <span><span>Google Material</span><br><span class="ds-desc">Elevation, color system, motion</span></span>
+    <span class="ds-icon" style="background:#6750A4;color:#fff;">M</span>
+    <span><span>Google Material 3</span><br><span class="ds-desc">Tonal elevation, dynamic color, spring motion</span></span>
   </button>
   <button class="ds-popup-item" data-ds="fluent">
-    <span class="ds-icon" style="background:#0078D4;color:#fff;">F</span>
-    <span><span>Windows Fluent</span><br><span class="ds-desc">Acrylic, depth, subtle shadows</span></span>
+    <span class="ds-icon" style="background:#0F6CBD;color:#fff;">F</span>
+    <span><span>Windows Fluent 2</span><br><span class="ds-desc">4px grid, key+ambient shadows, Segoe UI</span></span>
   </button>
   <button class="ds-popup-item" data-ds="carbon">
     <span class="ds-icon" style="background:#161616;color:#fff;">C</span>
-    <span><span>IBM Carbon</span><br><span class="ds-desc">Structured, grid-based, no radius</span></span>
+    <span><span>IBM Carbon</span><br><span class="ds-desc">2x grid, zero radius, IBM Plex, structured</span></span>
   </button>
 </div>
 
