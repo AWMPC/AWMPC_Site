@@ -796,6 +796,12 @@
       backdrop-filter: blur(20px) saturate(1.6);
       -webkit-backdrop-filter: blur(20px) saturate(1.6);
     }
+    body.ds-liquid-glass .ds-popup {
+      backdrop-filter: blur(40px) saturate(2);
+      -webkit-backdrop-filter: blur(40px) saturate(2);
+      background: rgba(255,255,255,0.52);
+      border: 0.5px solid rgba(255,255,255,0.50);
+    }
     /* Keep element content above the WASM glass overlay canvas */
     body.ds-liquid-glass .section-card > *:not(.lg-overlay),
     body.ds-liquid-glass .site-bottom-bar > *:not(.lg-overlay) {
@@ -813,10 +819,10 @@
        surfaceContainer=#F3EDF7, surfaceContainerHigh=#ECE6F0 */
     body.ds-material {
       --ds-font: "Roboto", "Noto Sans", "Google Sans", Arial, sans-serif;
-      /* M3 shape scale: cards=Medium(12dp), FAB=Large(16dp), sheets=XL(28dp) */
-      --ds-radius-sm: 12px;
-      --ds-radius-md: 28px;
-      --ds-radius-pill: 50%;
+      /* M3 shape scale: S=8dp, M=12dp, L=16dp, XL=28dp, Full=50% */
+      --ds-radius-sm: 8px;
+      --ds-radius-md: 16px;
+      --ds-radius-pill: 28px;
       --ds-radius-card: 12px;
       --ds-radius-btn: 50%;
       /* M3 grid: compact margins=16dp, gutters=8dp */
@@ -1106,6 +1112,12 @@
       -webkit-backdrop-filter: blur(20px) saturate(1.6);
     }
     body.dark-mode.ds-liquid-glass .fab-menu::before { background: rgba(120,120,128,0.30); }
+    body.dark-mode.ds-liquid-glass .ds-popup {
+      backdrop-filter: blur(40px) saturate(2);
+      -webkit-backdrop-filter: blur(40px) saturate(2);
+      background: rgba(28,28,30,0.55);
+      border: 0.5px solid rgba(84,84,88,0.35);
+    }
 
     /* ===== Dark mode — Google Material 3 =====
        M3 dark scheme: surface=#141218, onSurface=#E6E0E9,
