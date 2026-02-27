@@ -1453,12 +1453,12 @@
 
   <!-- Top banner -->
   <a href="./index.html" class="site-banner">
-    <img src="./resources/images/wmpc_topbanner_transparent.png" alt="All World Mission Prayer Center" />
+    <img src="./resources/images/banners/wmpc_topbanner_transparent.png" alt="All World Mission Prayer Center" />
   </a>
 
   <!-- Main banner image -->
   <a href="./index.html" class="site-main-banner">
-    <img src="./webData/components/wmpc_mainbanner2.gif" alt="AWMPC Church Banner" />
+    <img src="./resources/images/banners/wmpc_mainbanner2.gif" alt="AWMPC Church Banner" />
   </a>
 
 
@@ -1467,9 +1467,9 @@
     <span class="section-card-label">Site Links</span>
     <div class="quick-links">
       <a href="./24hrhop.html"><img src="./resources/images/building_front_compressed_09_05_2020_mini.jpg" alt="Church Building" loading="lazy" /></a>
-      <a href="./prayer.html"><img src="./webData/components/adwindow_prayermeeting.jpg" alt="Prayer Meeting" loading="lazy" /></a>
-      <a href="./sermons.html"><img src="./webData/components/adwindow_dailysermon.jpg" alt="Daily Sermon" loading="lazy" /></a>
-      <a href="./request.html"><img src="./webData/components/adwindow_prayerrequest.jpg" alt="Prayer Request" loading="lazy" /></a>
+      <a href="./prayer.html"><img src="./resources/images/sidebar/adwindow_prayermeeting.jpg" alt="Prayer Meeting" loading="lazy" /></a>
+      <a href="./sermons.html"><img src="./resources/images/sidebar/adwindow_dailysermon.jpg" alt="Daily Sermon" loading="lazy" /></a>
+      <a href="./request.html"><img src="./resources/images/sidebar/adwindow_prayerrequest.jpg" alt="Prayer Request" loading="lazy" /></a>
       <a href="./mission.html"><img src="./resources/images/sidebar_mission.jpg" alt="Mission" loading="lazy" /></a>
       <a href="https://allworldmissionprayercenterinc-321.my.webex.com/meet/awmpc" target="_blank" rel="noopener" class="webex-card-link">
         <span class="webex-card">
