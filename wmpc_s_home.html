@@ -1,3 +1,5 @@
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/lightgallery/2.8.3/css/lightgallery-bundle.min.css" integrity="sha512-PXJwkFKgas/dcfeJkwMjDpMhR2JghRSPjQ7dCYtl/rii3bEME2XNRGz4oGCfEqKMBpIm+OB7LiIRhsBdOdFjg==" crossorigin="anonymous" referrerpolicy="no-referrer" />
+
 <style type="text/css">
 		.style5 { font-size: 24px }
 		.style7 { font-size: 28px; color: #FF0000; }
@@ -5,168 +7,46 @@
 		.style9 { font-size: 18px }
 		.style10 { font-size: 20px; color: #FF0000; text-align: center; }
 
-		/* --- Carousel (One UI) --- */
-		.carousel {
-			position: relative;
-			width: 100%;
-			margin: 16px 0;
-			overflow: hidden;
-			border-radius: 16px;
-			background: #000;
-			touch-action: pan-y;
-			-webkit-user-select: none;
-			user-select: none;
-			box-shadow:
-				0 1px 3px rgba(0,0,0,0.08),
-				0 4px 12px rgba(0,0,0,0.10);
-		}
-		.carousel-track {
-			display: flex;
-			transition: transform 0.45s ease-in-out;
-			will-change: transform;
-		}
-		.carousel-track.no-transition {
-			transition: none;
-		}
-		.carousel-slide {
-			min-width: 100%;
-			display: flex;
-			align-items: center;
-			justify-content: center;
-		}
-		.carousel-slide img {
-			width: 100%;
-			height: auto;
-			max-height: 600px;
-			object-fit: contain;
-			display: block;
-		}
-		/* Arrows (One UI pill) */
-		.carousel-btn {
-			position: absolute;
-			top: 50%;
-			transform: translateY(-50%);
-			background: rgba(0,0,0,0.35);
-			color: #fff;
-			border: none;
-			font-size: 24px;
-			line-height: 1;
-			padding: 14px 12px;
-			cursor: pointer;
-			z-index: 2;
-			border-radius: 50%;
-			width: 48px;
-			height: 48px;
-			display: flex;
-			align-items: center;
-			justify-content: center;
-			transition: background 0.2s;
-			-webkit-tap-highlight-color: transparent;
-		}
-		.carousel-btn:hover { background: rgba(0,0,0,0.55); }
-		.carousel-btn:active { background: rgba(0,0,0,0.65); }
-		.carousel-btn.prev { left: 12px; }
-		.carousel-btn.next { right: 12px; }
-		/* Dots (One UI indicator) */
-		.carousel-dots {
-			position: absolute;
-			bottom: 14px;
-			left: 50%;
-			transform: translateX(-50%);
-			display: flex;
+		#photoGallery {
+			display: grid;
+			grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
 			gap: 8px;
-			z-index: 2;
+			margin: 16px 0;
 		}
-		.carousel-dot {
-			width: 8px;
-			height: 8px;
-			border-radius: 4px;
-			background: rgba(255,255,255,0.4);
-			border: none;
-			cursor: pointer;
-			padding: 0;
-			transition: background 0.25s, width 0.25s cubic-bezier(0.22, 0.61, 0.36, 1);
+		#photoGallery a {
+			display: block;
+			border-radius: 12px;
+			overflow: hidden;
+			aspect-ratio: 1;
 		}
-		.carousel-dot.active {
-			background: #fff;
-			width: 20px;
-		}
-		/* Counter (One UI pill badge) */
-		.carousel-counter {
-			position: absolute;
-			top: 14px;
-			right: 14px;
-			background: rgba(0,0,0,0.35);
-			color: #fff;
-			font-size: 12px;
-			font-weight: 500;
-			padding: 4px 12px;
-			border-radius: 16px;
-			z-index: 2;
-		}
-		/* Progress bar */
-		.carousel-progress {
-			position: absolute;
-			bottom: 0;
-			left: 0;
-			height: 3px;
-			background: rgba(255,255,255,0.85);
-			z-index: 3;
-			width: 0%;
-			transition: none;
-			border-radius: 0 2px 2px 0;
-		}
-		/* Play/Pause (One UI pill) */
-		.carousel-playpause {
-			position: absolute;
-			top: 14px;
-			left: 14px;
-			background: rgba(0,0,0,0.35);
-			color: #fff;
-			border: none;
-			font-size: 14px;
-			line-height: 1;
-			padding: 6px 10px;
-			cursor: pointer;
-			z-index: 2;
-			border-radius: 16px;
-			transition: background 0.2s;
-			-webkit-tap-highlight-color: transparent;
-		}
-		.carousel-playpause:hover { background: rgba(0,0,0,0.55); }
-		.carousel-playpause:active { background: rgba(0,0,0,0.65); }
-		/* Carousel images should not inherit .site-main shadow */
-		.carousel img {
-			border-radius: 0 !important;
+		#photoGallery img {
+			width: 100%;
+			height: 100%;
+			object-fit: cover;
+			display: block;
+			border-radius: 12px !important;
 			box-shadow: none !important;
 			margin-bottom: 0 !important;
+			cursor: pointer;
+			transition: transform 0.2s ease;
 		}
-		@media (max-width: 600px) {
-			.carousel-btn { width: 40px; height: 40px; font-size: 18px; }
-			.carousel-slide img { max-height: 350px; }
+		#photoGallery a:hover img {
+			transform: scale(1.04);
 		}
 </style>
 
-	<!-- Photo Carousel -->
-	<div class="carousel" id="photoCarousel">
-		<div class="carousel-track" id="carouselTrack">
-			<div class="carousel-slide"><img src="./resources/images/christian_tribune_newsclip.jpg" alt="Christian Tribune Newsclip 2007-06" decoding="async"/></div>
-			<div class="carousel-slide"><img src="./resources/images/proof_of_servitude_jan_03_2022_01.jpg" alt="Proof of servitude document 1, January 2022" decoding="async"/></div>
-			<div class="carousel-slide"><img src="./resources/images/proof_of_servitude_jan_03_2022_02.jpg" alt="Proof of servitude document 2, January 2022" decoding="async"/></div>
-			<div class="carousel-slide"><img src="./resources/images/proof_of_servitude_jan_03_2022_03.jpg" alt="Proof of servitude document 3, January 2022" decoding="async"/></div>
-			<div class="carousel-slide"><img src="./resources/images/proof_of_servitude_jan_03_2022_04.jpg" alt="Proof of servitude document 4, January 2022" decoding="async"/></div>
-			<div class="carousel-slide"><img src="./resources/images/proof_of_servitude_jan_03_2022_05.jpg" alt="Proof of servitude document 5, January 2022" decoding="async"/></div>
-			<div class="carousel-slide"><img src="./resources/images/Pastor_Lee_Solo_Picture_2022_11_19.jpeg" alt="Pastor Lee, November 19 2022" decoding="async"/></div>
-			<div class="carousel-slide"><img src="./resources/images/thanksgiving_2021/thanksgiving_2021_02.jpeg" alt="Thanksgiving 2021 celebration photo 1" decoding="async"/></div>
-			<div class="carousel-slide"><img src="./resources/images/thanksgiving_2021/thanksgiving_2021_03.jpeg" alt="Thanksgiving 2021 celebration photo 2" decoding="async"/></div>
-			<div class="carousel-slide"><img src="./resources/images/thanksgiving_2021/thanksgiving_2021_04.jpeg" alt="Thanksgiving 2021 celebration photo 3" decoding="async"/></div>
-		</div>
-		<button class="carousel-btn prev" aria-label="Previous slide">&#10094;</button>
-		<button class="carousel-btn next" aria-label="Next slide">&#10095;</button>
-		<div class="carousel-counter"><span id="carouselCurrent">1</span> / <span id="carouselTotal">11</span></div>
-		<button class="carousel-playpause" id="carouselPlayPause" aria-label="Pause slideshow">&#9646;&#9646;</button>
-		<div class="carousel-dots" id="carouselDots"></div>
-		<div class="carousel-progress" id="carouselProgress"></div>
+	<!-- Photo Gallery -->
+	<div id="photoGallery">
+		<a href="./resources/images/christian_tribune_newsclip.jpg"><img src="./resources/images/christian_tribune_newsclip.jpg" alt="Christian Tribune Newsclip 2007-06" loading="lazy" decoding="async"/></a>
+		<a href="./resources/images/proof_of_servitude_jan_03_2022_01.jpg"><img src="./resources/images/proof_of_servitude_jan_03_2022_01.jpg" alt="Proof of servitude document 1, January 2022" loading="lazy" decoding="async"/></a>
+		<a href="./resources/images/proof_of_servitude_jan_03_2022_02.jpg"><img src="./resources/images/proof_of_servitude_jan_03_2022_02.jpg" alt="Proof of servitude document 2, January 2022" loading="lazy" decoding="async"/></a>
+		<a href="./resources/images/proof_of_servitude_jan_03_2022_03.jpg"><img src="./resources/images/proof_of_servitude_jan_03_2022_03.jpg" alt="Proof of servitude document 3, January 2022" loading="lazy" decoding="async"/></a>
+		<a href="./resources/images/proof_of_servitude_jan_03_2022_04.jpg"><img src="./resources/images/proof_of_servitude_jan_03_2022_04.jpg" alt="Proof of servitude document 4, January 2022" loading="lazy" decoding="async"/></a>
+		<a href="./resources/images/proof_of_servitude_jan_03_2022_05.jpg"><img src="./resources/images/proof_of_servitude_jan_03_2022_05.jpg" alt="Proof of servitude document 5, January 2022" loading="lazy" decoding="async"/></a>
+		<a href="./resources/images/Pastor_Lee_Solo_Picture_2022_11_19.jpeg"><img src="./resources/images/Pastor_Lee_Solo_Picture_2022_11_19.jpeg" alt="Pastor Lee, November 19 2022" loading="lazy" decoding="async"/></a>
+		<a href="./resources/images/thanksgiving_2021/thanksgiving_2021_02.jpeg"><img src="./resources/images/thanksgiving_2021/thanksgiving_2021_02.jpeg" alt="Thanksgiving 2021 celebration photo 1" loading="lazy" decoding="async"/></a>
+		<a href="./resources/images/thanksgiving_2021/thanksgiving_2021_03.jpeg"><img src="./resources/images/thanksgiving_2021/thanksgiving_2021_03.jpeg" alt="Thanksgiving 2021 celebration photo 2" loading="lazy" decoding="async"/></a>
+		<a href="./resources/images/thanksgiving_2021/thanksgiving_2021_04.jpeg"><img src="./resources/images/thanksgiving_2021/thanksgiving_2021_04.jpeg" alt="Thanksgiving 2021 celebration photo 3" loading="lazy" decoding="async"/></a>
 	</div>
 
 	<!-- Videos -->
@@ -712,114 +592,20 @@
 		40 使他們在祢賜給我們列祖之地上一生一世敬畏祢。
 	</p>
 
+<script src="https://cdnjs.cloudflare.com/ajax/libs/lightgallery/2.8.3/lightgallery.umd.min.js" integrity="sha512-dCpR12cLfm+n1oSgXfMsn/DxG1BjKxYJMARGMjKHzpCoU/sMq7b9hBGLg+dIjOpOXh6nOBQVnBnMKhYlg8JA==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/lightgallery/2.8.3/plugins/thumbnail/lg-thumbnail.umd.min.js" integrity="sha512-JOunE3xRgsYaJR8xccFgBE4OZ7GMEj0/hz7B32V7dmEfOPwbj0aoOqe2HYFG4rKDiwEkPH+N+ufENTYPbCCkg==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/lightgallery/2.8.3/plugins/zoom/lg-zoom.umd.min.js" integrity="sha512-4FvYIOBwnCGGIwZ0ISqmqbfpPGaJl385OJl3tEF0GM1FDsLUml2jelAjCYEr0BCHKGTW5e1JVTzGD5dqbiHkhQ==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
 <script>
 (function() {
-	var track = document.getElementById('carouselTrack');
-	var dotsBox = document.getElementById('carouselDots');
-	var counterEl = document.getElementById('carouselCurrent');
-	var progressBar = document.getElementById('carouselProgress');
-	var playPauseBtn = document.getElementById('carouselPlayPause');
-	var slides = track.querySelectorAll('.carousel-slide');
-	var total = slides.length;
-	var idx = 0;
-	var INTERVAL = 8000;
-	var timerId = 0;
-	var playing = true;
-	var startX = 0;
-	var dragging = false;
-
-	// Build dots
-	for (var i = 0; i < total; i++) {
-		var dot = document.createElement('button');
-		dot.className = 'carousel-dot' + (i === 0 ? ' active' : '');
-		dot.setAttribute('aria-label', 'Go to slide ' + (i + 1));
-		dot.setAttribute('data-idx', i);
-		dot.addEventListener('click', function() {
-			goTo(parseInt(this.getAttribute('data-idx')));
-			scheduleNext();
-		});
-		dotsBox.appendChild(dot);
-	}
-
-	function goTo(n) {
-		idx = ((n % total) + total) % total;
-		track.style.transform = 'translateX(-' + (idx * 100) + '%)';
-		counterEl.textContent = idx + 1;
-		var dots = dotsBox.querySelectorAll('.carousel-dot');
-		for (var j = 0; j < dots.length; j++) {
-			dots[j].className = 'carousel-dot' + (j === idx ? ' active' : '');
-		}
-	}
-
-	// --- Progress bar ---
-	// Uses requestAnimationFrame for a reliable reset-then-animate cycle.
-	function startProgress() {
-		// 1. Kill any running CSS transition and snap to 0
-		progressBar.style.transition = 'none';
-		progressBar.style.width = '0%';
-		// 2. On the next frame the browser has committed width:0,
-		//    so we can now set the transition and target width.
-		requestAnimationFrame(function() {
-			requestAnimationFrame(function() {
-				progressBar.style.transition = 'width ' + INTERVAL + 'ms linear';
-				progressBar.style.width = '100%';
-			});
-		});
-	}
-
-	function stopProgress() {
-		progressBar.style.transition = 'none';
-		progressBar.style.width = '0%';
-	}
-
-	// --- Single-timeout auto-advance (no setInterval, no stacking) ---
-	// Every call cancels any pending timeout, then (if playing) waits
-	// INTERVAL ms, advances one slide, and calls itself again.
-	function scheduleNext() {
-		clearTimeout(timerId);
-		if (!playing) { stopProgress(); return; }
-		startProgress();
-		timerId = setTimeout(function() {
-			goTo(idx + 1);
-			scheduleNext();
-		}, INTERVAL);
-	}
-
-	// --- Play / Pause ---
-	playPauseBtn.addEventListener('click', function() {
-		playing = !playing;
-		playPauseBtn.innerHTML = playing ? '&#9646;&#9646;' : '&#9654;';
-		playPauseBtn.setAttribute('aria-label', playing ? 'Pause slideshow' : 'Play slideshow');
-		scheduleNext();
+	var el = document.getElementById('photoGallery');
+	if (!el) return;
+	lightGallery(el, {
+		plugins: [lgZoom, lgThumbnail],
+		speed: 400,
+		autoplay: false,
+		download: false,
+		counter: true,
+		licenseKey: '0000-0000-000-0000'
 	});
-
-	// Arrow buttons — navigate then restart the full wait
-	document.querySelector('#photoCarousel .prev').addEventListener('click', function() { goTo(idx - 1); scheduleNext(); });
-	document.querySelector('#photoCarousel .next').addEventListener('click', function() { goTo(idx + 1); scheduleNext(); });
-
-	// Keyboard
-	document.getElementById('photoCarousel').addEventListener('keydown', function(e) {
-		if (e.key === 'ArrowLeft')  { goTo(idx - 1); scheduleNext(); }
-		if (e.key === 'ArrowRight') { goTo(idx + 1); scheduleNext(); }
-	});
-
-	// Touch / swipe (no hover pause per request)
-	var carousel = document.getElementById('photoCarousel');
-	carousel.addEventListener('touchstart', function(e) {
-		startX = e.touches[0].clientX;
-		dragging = true;
-	}, { passive: true });
-	carousel.addEventListener('touchend', function(e) {
-		if (!dragging) return;
-		var diff = e.changedTouches[0].clientX - startX;
-		if (Math.abs(diff) > 40) {
-			goTo(diff < 0 ? idx + 1 : idx - 1);
-			scheduleNext();
-		}
-		dragging = false;
-	}, { passive: true });
-
-	// Start
-	scheduleNext();
 })();
 </script>

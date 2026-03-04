@@ -145,7 +145,7 @@
     .site-banner-blend {
       width: 24px;
       flex-shrink: 0;
-      background: linear-gradient(to right, #BDA58B, #2C5E9E);
+      background: linear-gradient(to right, #BDA58B, #001B5B);
     }
 
     /* --- Top bar: floating pill with glazed glass --- */
