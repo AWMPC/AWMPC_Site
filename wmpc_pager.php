@@ -7,7 +7,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <meta name="keywords" content="awmpc,wmpc,awmpc.org,All World Mission Prayer Center,World Mission Prayer Center,prayer,mission" />
   <meta name="theme-color" content="#F5F7F8" id="metaThemeColor">
-  <meta name="color-scheme" content="light dark">
+  <meta name="color-scheme" content="light">
   <link rel="preconnect" href="https://fonts.googleapis.com" crossorigin>
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=Roboto:wght@400;500;700&display=swap" media="print" onload="this.media='all'">
@@ -110,7 +110,7 @@
       width: 100%;
       margin: 0 auto;
       padding: 0 12px;
-      padding-bottom: calc(66px + env(safe-area-inset-bottom, 0px));
+      padding-top: calc(62px + env(safe-area-inset-top, 0px));
     }
 
     /* --- Combined banner card (wraps both banners side-by-side) --- */
@@ -148,10 +148,10 @@
       background: linear-gradient(to right, #BDA58B, #2C5E9E);
     }
 
-    /* --- Bottom bar: floating pill with glazed glass --- */
-    .site-bottom-bar {
+    /* --- Top bar: floating pill with glazed glass --- */
+    .site-top-bar {
       position: fixed;
-      bottom: calc(8px + env(safe-area-inset-bottom, 0px));
+      top: calc(8px + env(safe-area-inset-top, 0px));
       left: 12px;
       right: 12px;
       max-width: 1100px;
@@ -224,27 +224,6 @@
     }
     .site-top-btn svg {
       display: block;
-    }
-    /* Theme toggle — 3D card-flip between sun and moon */
-    #themeToggle { perspective: 300px; }
-    .theme-icon-flip {
-      width: 22px;
-      height: 22px;
-      position: relative;
-      transform-style: preserve-3d;
-      transition: transform 0.6s cubic-bezier(0.22, 0.61, 0.36, 1);
-    }
-    body.dark-mode .theme-icon-flip {
-      transform: rotateY(180deg);
-    }
-    .icon-sun, .icon-moon {
-      position: absolute;
-      top: 0;
-      left: 0;
-      backface-visibility: hidden;
-    }
-    .icon-moon {
-      transform: rotateY(180deg);
     }
 
     /* --- Right banner GIF (inside combined card) --- */
@@ -403,21 +382,6 @@
       transition: color 0.5s ease;
       white-space: nowrap;
     }
-    body.dark-mode .webex-card {
-      background:
-        linear-gradient(135deg, rgba(255,255,255,0.04) 0%, transparent 40%, rgba(0,0,0,0.35) 100%),
-        #1E3450;
-    }
-    body.dark-mode .webex-card-divider {
-      background: rgba(255,255,255,0.50);
-    }
-    body.dark-mode .webex-card-line1 {
-      color: #E0E8F0;
-    }
-    body.dark-mode .webex-card-line2 {
-      color: #E0E8F0;
-    }
-
     @media (max-width: 768px) {
       .quick-links {
         display: grid;
@@ -608,7 +572,7 @@
     /* Expanded menu sheet */
     .fab-menu {
       position: fixed;
-      bottom: calc(58px + env(safe-area-inset-bottom, 0px));
+      top: calc(58px + env(safe-area-inset-top, 0px));
       right: 12px;
       z-index: 9999;
       background: rgba(255,255,255,0.72);
@@ -619,10 +583,10 @@
       padding: 8px 0;
       min-width: 220px;
       max-height: calc(100dvh - 140px);
-      transform: translateY(16px) scale(0.92);
+      transform: translateY(-16px) scale(0.92);
       opacity: 0;
       pointer-events: none;
-      transform-origin: bottom right;
+      transform-origin: top right;
       transition:
         transform var(--ds-motion),
         opacity 0.25s cubic-bezier(0.33, 0, 0.67, 1),
@@ -659,7 +623,7 @@
       -webkit-tap-highlight-color: transparent;
       /* Staggered entry */
       opacity: 0;
-      transform: translateY(8px);
+      transform: translateY(-8px);
     }
     .fab-menu-item:hover {
       background: var(--ds-menu-hover);
@@ -705,19 +669,19 @@
       .footer-left, .footer-center, .footer-right { text-align: center; }
     }
 
-    /* --- Bottom Sheet for small screens --- */
+    /* --- Top sheet for small screens --- */
     @media (max-width: 600px) {
       .fab-menu {
-        bottom: 0;
+        top: 0;
         right: 0;
         left: 0;
-        border-radius: var(--ds-radius-md) var(--ds-radius-md) 0 0;
+        border-radius: 0 0 var(--ds-radius-md) var(--ds-radius-md);
         min-width: unset;
         max-height: 70dvh;
-        transform: translateY(100%);
-        transform-origin: bottom center;
+        transform: translateY(-100%);
+        transform-origin: top center;
         padding: 8px 16px;
-        padding-bottom: calc(66px + env(safe-area-inset-bottom, 0px));
+        padding-top: calc(66px + env(safe-area-inset-top, 0px));
       }
       .fab-menu-scroll {
         display: grid;
@@ -725,14 +689,14 @@
         gap: 2px;
         max-height: calc(70dvh - 80px);
       }
-      .fab-menu::before {
+      .fab-menu::after {
         content: '';
         display: block;
         width: 40px;
         height: 4px;
         background: #ccc;
         border-radius: 2px;
-        margin: 4px auto 8px;
+        margin: 8px auto 4px;
       }
       .fab-menu.open {
         transform: translateY(0);
@@ -1069,303 +1033,13 @@
       -webkit-backdrop-filter: none;
       border: 1px solid #E0E0E0;
     }
-    body.ds-carbon .site-bottom-bar {
+    body.ds-carbon .site-top-bar {
       backdrop-filter: none;
       -webkit-backdrop-filter: none;
     }
     /* Carbon focus: 2px Blue 60 border */
     body.ds-carbon .fab-menu-item:focus-visible {
       outline: 2px solid #0F62FE;
-      outline-offset: -2px;
-    }
-
-    /* ===== Dark mode — Samsung One UI (default) ===== */
-    body.dark-mode {
-      --ds-bg: #0E1C30;
-      --ds-text: #FFE082;
-      --ds-text-secondary: #D4BA5C;
-      --ds-card-bg: #162844;
-      --ds-label-color: #A0B8D0;
-      --ds-link-bg: #1A2D4A;
-      --ds-info-bg: #4A3768;
-      --ds-info-text: #FFE082;
-      --ds-btn-bg: #1E3450;
-      --ds-btn-hover: #2A4565;
-      --ds-btn-active: #345575;
-      --ds-fab-bg: #CC0000;
-      --ds-fab-cross: #FFFFFF;
-      --ds-fab-open-ring: 0 0 0 2.5px rgba(255,255,255,0.30);
-      --ds-menu-text: #FFE082;
-      --ds-menu-hover: #1E3450;
-      --ds-menu-active-bg: rgba(255,213,79,0.12);
-      --ds-menu-active-text: #FFE082;
-      --ds-footer-text: #D4BA5C;
-      --ds-footer-link: #FFE082;
-      --ds-divider: #2A4060;
-      --ds-loader: #FFE082;
-      --ds-scrim: rgba(0,0,0,0.65);
-      --ds-border: 2px solid rgba(255,255,255,0.25);
-      --ds-shadow-sm: 0 1px 3px rgba(0,0,0,0.25), 0 4px 12px rgba(0,0,0,0.30);
-      --ds-shadow-md: 0 1px 3px rgba(0,0,0,0.25), 0 4px 12px rgba(0,0,0,0.30);
-      --ds-shadow-lg: 0 2px 8px rgba(0,0,0,0.30), 0 12px 40px rgba(0,0,0,0.40);
-      --ds-shadow-btn: 0 1px 3px rgba(0,0,0,0.25), 0 6px 20px rgba(0,0,0,0.35);
-      --ds-bar-bg: rgba(14,28,48,0.50);
-      --ds-bar-border: 1px solid rgba(255,255,255,0.10);
-      --ds-bar-shadow: 0 2px 8px rgba(0,0,0,0.20), 0 8px 24px rgba(0,0,0,0.30);
-    }
-    body.dark-mode .quick-links a::after {
-      background: linear-gradient(110deg, transparent 30%, rgba(255,255,255,0.08) 50%, transparent 70%);
-      background-size: 250% 100%;
-    }
-    body.dark-mode .fab-menu {
-      background: rgba(22,40,68,0.72);
-    }
-    body.dark-mode .ds-popup {
-      background: rgba(22,40,68,0.72);
-    }
-    body.dark-mode .fab-menu::before { background: #3A5068; }
-    body.dark-mode .fab-menu-scroll::-webkit-scrollbar-thumb { background: #3A5068; }
-
-    /* ===== Dark mode — Apple Liquid Glass =====
-       iOS dark: pure #000000 bg, #1C1C1E secondarySystemBackground,
-       systemGray=#8E8E93, 0A84FF (dark blue), translucent glass persists,
-       reduce transparency makes opaque */
-    body.dark-mode.ds-liquid-glass {
-      --ds-bg: #000000;
-      --ds-text: #FFFFFF;
-      --ds-text-secondary: #EBEBF5;
-      --ds-card-bg: rgba(28,28,30,0.55);
-      --ds-label-color: #8E8E93;
-      --ds-link-bg: rgba(120,120,128,0.12);
-      --ds-info-bg: #CC0000;
-      --ds-info-text: #FFFFFF;
-      --ds-btn-bg: rgba(120,120,128,0.24);
-      --ds-btn-hover: rgba(120,120,128,0.32);
-      --ds-btn-active: rgba(120,120,128,0.40);
-      --ds-fab-bg: rgba(28,28,30,0.60);
-      --ds-fab-cross: #FFFFFF;
-      --ds-fab-open-ring: 0 0 0 1.5px rgba(255,255,255,0.16);
-      --ds-menu-text: #FFFFFF;
-      --ds-menu-hover: rgba(120,120,128,0.12);
-      --ds-menu-active-bg: rgba(10,132,255,0.15);
-      --ds-menu-active-text: #0A84FF;
-      --ds-footer-text: #8E8E93;
-      --ds-footer-link: #FFFFFF;
-      --ds-divider: rgba(84,84,88,0.65);
-      --ds-loader: #0A84FF;
-      --ds-scrim: rgba(0,0,0,0.44);
-      --ds-border: 0.5px solid rgba(84,84,88,0.45);
-      --ds-bar-bg: rgba(28,28,30,0.35);
-      --ds-bar-border: 0.5px solid rgba(84,84,88,0.30);
-      --ds-shadow-sm: 0 0.5px 1px rgba(0,0,0,0.20), 0 2px 8px rgba(0,0,0,0.25);
-      --ds-shadow-md: 0 1px 3px rgba(0,0,0,0.25), 0 4px 14px rgba(0,0,0,0.30);
-      --ds-shadow-lg: 0 2px 8px rgba(0,0,0,0.30), 0 12px 40px rgba(0,0,0,0.40);
-    }
-    body.dark-mode.ds-liquid-glass .section-card {
-      backdrop-filter: blur(30px) saturate(1.6);
-      -webkit-backdrop-filter: blur(30px) saturate(1.6);
-      border: 0.5px solid rgba(84,84,88,0.35);
-    }
-    body.dark-mode.ds-liquid-glass .fab-menu {
-      backdrop-filter: blur(40px) saturate(2);
-      -webkit-backdrop-filter: blur(40px) saturate(2);
-      background: rgba(28,28,30,0.55);
-      border: 0.5px solid rgba(84,84,88,0.35);
-    }
-    body.dark-mode.ds-liquid-glass .fab-btn {
-      backdrop-filter: blur(20px) saturate(1.6);
-      -webkit-backdrop-filter: blur(20px) saturate(1.6);
-    }
-    body.dark-mode.ds-liquid-glass .fab-menu::before { background: rgba(120,120,128,0.30); }
-    body.dark-mode.ds-liquid-glass .ds-popup {
-      backdrop-filter: blur(40px) saturate(2);
-      -webkit-backdrop-filter: blur(40px) saturate(2);
-      background: rgba(28,28,30,0.55);
-      border: 0.5px solid rgba(84,84,88,0.35);
-    }
-
-    /* ===== Dark mode — Google Material 3 =====
-       M3 dark scheme: surface=#141218, onSurface=#E6E0E9,
-       surfaceContainerLow=#1D1B20, surfaceContainer=#211F26,
-       surfaceContainerHigh=#2B2930, surfaceContainerHighest=#36343B,
-       outline=#938F99, outlineVariant=#49454F,
-       primary (dark)=#D0BCFF, onPrimary=#381E72,
-       primaryContainer=#4F378B, scrim=rgba(0,0,0,0.32) */
-    body.dark-mode.ds-material {
-      --ds-bg: #141218;
-      --ds-text: #E6E0E9;
-      --ds-text-secondary: #CAC4D0;
-      --ds-card-bg: #1D1B20;
-      --ds-label-color: #CAC4D0;
-      --ds-link-bg: #211F26;
-      --ds-info-bg: #6750A4;
-      --ds-info-text: #FFFFFF;
-      --ds-btn-bg: #2B2930;
-      --ds-btn-hover: #36343B;
-      --ds-btn-active: #48464C;
-      --ds-fab-bg: #2B2930;
-      --ds-fab-cross: #D0BCFF;
-      --ds-fab-open-ring: 0 0 0 2px rgba(208,188,255,0.35);
-      --ds-menu-text: #E6E0E9;
-      --ds-menu-hover: rgba(230,224,233,0.08);
-      --ds-menu-active-bg: rgba(208,188,255,0.16);
-      --ds-menu-active-text: #D0BCFF;
-      --ds-footer-text: #CAC4D0;
-      --ds-footer-link: #D0BCFF;
-      --ds-divider: #49454F;
-      --ds-loader: #D0BCFF;
-      --ds-scrim: rgba(0,0,0,0.32);
-      --ds-border: 1px solid #49454F;
-      --ds-bar-bg: rgba(29,27,32,0.75);
-      --ds-bar-border: none;
-      --ds-shadow-sm: 0 1px 2px rgba(0,0,0,0.30), 0 1px 3px rgba(0,0,0,0.25);
-      --ds-shadow-md: 0 1px 3px rgba(0,0,0,0.35), 0 4px 8px rgba(0,0,0,0.25);
-      --ds-shadow-lg: 0 2px 6px rgba(0,0,0,0.35), 0 8px 24px rgba(0,0,0,0.30);
-    }
-    body.dark-mode.ds-material .section-card {
-      border: 1px solid #49454F;
-    }
-    body.dark-mode.ds-material .fab-menu {
-      backdrop-filter: blur(16px) saturate(1.2);
-      -webkit-backdrop-filter: blur(16px) saturate(1.2);
-      background: rgba(33,31,38,0.80);
-      border: 1px solid #49454F;
-    }
-    body.dark-mode.ds-material .fab-btn {
-      backdrop-filter: blur(12px) saturate(1.1);
-      -webkit-backdrop-filter: blur(12px) saturate(1.1);
-    }
-    body.dark-mode.ds-material .ds-popup {
-      backdrop-filter: blur(16px) saturate(1.2);
-      -webkit-backdrop-filter: blur(16px) saturate(1.2);
-      background: rgba(33,31,38,0.80);
-      border: 1px solid #49454F;
-    }
-    body.dark-mode.ds-material .fab-menu::before { background: #49454F; }
-
-    /* ===== Dark mode — Windows Fluent 2 =====
-       Fluent dark: colorNeutralBackground1=#292929,
-       colorNeutralForeground1=#FFFFFF, 28% base shadow opacity,
-       strokes instead of key shadows, focus stroke=White,
-       interaction states: controls get *lighter* on Windows */
-    body.dark-mode.ds-fluent {
-      --ds-bg: #1F1F1F;
-      --ds-text: #FFFFFF;
-      --ds-text-secondary: #ADADAD;
-      --ds-card-bg: #292929;
-      --ds-label-color: #ADADAD;
-      --ds-link-bg: #333333;
-      --ds-info-bg: #CC0000;
-      --ds-info-text: #FFFFFF;
-      --ds-btn-bg: #333333;
-      --ds-btn-hover: #3D3D3D;
-      --ds-btn-active: #474747;
-      --ds-fab-bg: #292929;
-      --ds-fab-cross: #FFFFFF;
-      --ds-fab-open-ring: 0 0 0 2px #FFFFFF;
-      --ds-menu-text: #FFFFFF;
-      --ds-menu-hover: rgba(255,255,255,0.0837);
-      --ds-menu-active-bg: rgba(255,255,255,0.0578);
-      --ds-menu-active-text: #FFFFFF;
-      --ds-footer-text: #ADADAD;
-      --ds-footer-link: #FFFFFF;
-      --ds-divider: rgba(255,255,255,0.0837);
-      --ds-loader: #60CDFF;
-      --ds-scrim: rgba(0,0,0,0.50);
-      --ds-border: 1px solid rgba(255,255,255,0.0837);
-      --ds-bar-bg: rgba(41,41,41,0.75);
-      --ds-bar-border: 1px solid rgba(255,255,255,0.0578);
-      /* Fluent dark shadows: 28% base opacity */
-      --ds-shadow-sm: 0 2px 4px rgba(0,0,0,0.28), 0 0 2px rgba(0,0,0,0.24);
-      --ds-shadow-md: 0 4px 8px rgba(0,0,0,0.28), 0 0 2px rgba(0,0,0,0.24);
-      --ds-shadow-lg: 0 8px 16px rgba(0,0,0,0.28), 0 0 2px rgba(0,0,0,0.24);
-    }
-    body.dark-mode.ds-fluent .section-card {
-      border: 1px solid rgba(255,255,255,0.0578);
-      border-top: 1px solid rgba(255,255,255,0.0837);
-    }
-    body.dark-mode.ds-fluent .fab-menu {
-      backdrop-filter: blur(30px) saturate(1.25);
-      -webkit-backdrop-filter: blur(30px) saturate(1.25);
-      background: rgba(41,41,41,0.70);
-      border: 1px solid rgba(255,255,255,0.0578);
-    }
-    body.dark-mode.ds-fluent .fab-btn {
-      backdrop-filter: blur(20px) saturate(1.2);
-      -webkit-backdrop-filter: blur(20px) saturate(1.2);
-    }
-    body.dark-mode.ds-fluent .ds-popup {
-      backdrop-filter: blur(30px) saturate(1.25);
-      -webkit-backdrop-filter: blur(30px) saturate(1.25);
-      background: rgba(41,41,41,0.70);
-      border: 1px solid rgba(255,255,255,0.0578);
-    }
-    body.dark-mode.ds-fluent .fab-menu::before { background: #5C5C5C; }
-    body.dark-mode.ds-fluent .fab-menu-item:focus-visible {
-      outline: 2px solid #FFFFFF;
-      outline-offset: -2px;
-    }
-
-    /* ===== Dark mode — IBM Carbon (Gray 100 theme) =====
-       Carbon Gray 100: $background=#161616, $text-primary=Gray10=#F4F4F4,
-       $text-secondary=Gray30=#C6C6C6, $layer-01=#262626,
-       $border-subtle-01=#393939, $interactive=Blue40=#78A9FF,
-       $support-error=Red50=#FA4D56, $focus=White #FFFFFF,
-       $link-primary=Blue40=#78A9FF */
-    body.dark-mode.ds-carbon {
-      --ds-bg: #161616;
-      --ds-text: #F4F4F4;
-      --ds-text-secondary: #C6C6C6;
-      --ds-card-bg: #262626;
-      --ds-label-color: #C6C6C6;
-      --ds-link-bg: #393939;
-      --ds-info-bg: #DA1E28;
-      --ds-info-text: #FFFFFF;
-      --ds-btn-bg: #393939;
-      --ds-btn-hover: #4C4C4C;
-      --ds-btn-active: #525252;
-      --ds-fab-bg: #262626;
-      --ds-fab-cross: #F4F4F4;
-      --ds-fab-open-ring: 0 0 0 2px #FFFFFF;
-      --ds-menu-text: #F4F4F4;
-      --ds-menu-hover: #353535;
-      --ds-menu-active-bg: rgba(120,169,255,0.20);
-      --ds-menu-active-text: #78A9FF;
-      --ds-footer-text: #C6C6C6;
-      --ds-footer-link: #78A9FF;
-      --ds-divider: #393939;
-      --ds-loader: #78A9FF;
-      --ds-scrim: rgba(22,22,22,0.70);
-      --ds-border: 1px solid #393939;
-      --ds-bar-bg: #262626;
-      --ds-bar-border: 1px solid #393939;
-      --ds-bar-shadow: 0 2px 6px rgba(0,0,0,0.30);
-      --ds-shadow-sm: 0 2px 6px rgba(0,0,0,0.30);
-      --ds-shadow-md: 0 2px 6px rgba(0,0,0,0.40);
-      --ds-shadow-lg: 0 8px 16px rgba(0,0,0,0.40);
-    }
-    body.dark-mode.ds-carbon .section-card {
-      border: 1px solid #393939;
-    }
-    body.dark-mode.ds-carbon .fab-menu {
-      background: #262626;
-      backdrop-filter: none;
-      -webkit-backdrop-filter: none;
-      border: 1px solid #393939;
-    }
-    body.dark-mode.ds-carbon .ds-popup {
-      background: #262626;
-      backdrop-filter: none;
-      -webkit-backdrop-filter: none;
-      border: 1px solid #393939;
-    }
-    body.dark-mode.ds-carbon .site-bottom-bar {
-      backdrop-filter: none;
-      -webkit-backdrop-filter: none;
-    }
-    body.dark-mode.ds-carbon .fab-menu::before { background: #525252; }
-    body.dark-mode.ds-carbon .fab-menu-item:focus-visible {
-      outline: 2px solid #FFFFFF;
       outline-offset: -2px;
     }
 
@@ -1393,7 +1067,7 @@
 
     .ds-popup {
       position: fixed;
-      bottom: calc(66px + env(safe-area-inset-bottom, 0px));
+      top: calc(66px + env(safe-area-inset-top, 0px));
       right: 12px;
       z-index: 10001;
       background: rgba(255,255,255,0.72);
@@ -1403,10 +1077,10 @@
       box-shadow: var(--ds-shadow-lg);
       padding: 8px 0;
       min-width: 240px;
-      transform: translateY(12px) scale(0.92);
+      transform: translateY(-12px) scale(0.92);
       opacity: 0;
       pointer-events: none;
-      transform-origin: bottom right;
+      transform-origin: top right;
       transition:
         transform var(--ds-motion, 0.3s ease),
         opacity 0.2s ease,
@@ -1467,7 +1141,7 @@
 </head>
 
 <body>
-<script>(function(){var t=localStorage.getItem('theme');var d=t==='dark'||(!t&&matchMedia('(prefers-color-scheme:dark)').matches);if(d){document.body.classList.add('dark-mode');var m=document.getElementById('metaThemeColor');if(m)m.setAttribute('content','#0E1C30')}var ds=localStorage.getItem('designSystem');if(ds&&ds!=='oneui'){document.body.classList.add('ds-'+ds)}})()</script>
+<script>(function(){var ds=localStorage.getItem('designSystem');if(ds&&ds!=='oneui'){document.body.classList.add('ds-'+ds)}})()</script>
 
 <div class="site-wrap">
 
@@ -1593,19 +1267,13 @@
 
 </div>
 
-<!-- Sticky bottom bar: marquee + theme toggle + FAB -->
-<div class="site-bottom-bar">
+<!-- Sticky top bar: marquee + settings + FAB -->
+<div class="site-top-bar">
   <div class="site-info-bar">
     <div class="info-bar-text">
       <span class="info-bar-scroll">全年無休 | 晨禱禮拜：6:30am - 8:00am | 晚禱禮拜：8:00pm - 9:00pm | 主日崇拜 周日：10:00am 開始</span>
     </div>
   </div>
-  <button class="site-top-btn" id="themeToggle" type="button" aria-label="Toggle dark mode">
-    <div class="theme-icon-flip">
-      <svg class="icon-sun" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="5"/><path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/></svg>
-      <svg class="icon-moon" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
-    </div>
-  </button>
   <button class="ds-picker-btn" id="dsPickerBtn" type="button" aria-label="Choose design system">
     <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
   </button>
@@ -1625,39 +1293,6 @@
     img.addEventListener('load', function() { a.classList.add('loaded'); });
     img.addEventListener('error', function() { a.classList.add('loaded'); });
   });
-})();
-</script>
-
-<!-- Theme toggle -->
-<script>
-(function() {
-  var btn = document.getElementById('themeToggle');
-  var metaTC = document.getElementById('metaThemeColor');
-
-  function applyTheme(dark) {
-    document.body.classList.toggle('dark-mode', dark);
-    var bg = getComputedStyle(document.body).getPropertyValue('--ds-bg').trim();
-    if (metaTC && bg) metaTC.setAttribute('content', bg);
-  }
-
-  // Manual toggle — saves explicit preference
-  btn.addEventListener('click', function() {
-    var nowDark = !document.body.classList.contains('dark-mode');
-    applyTheme(nowDark);
-    localStorage.setItem('theme', nowDark ? 'dark' : 'light');
-  });
-
-  // Listen for OS/system theme changes at runtime
-  var mq = window.matchMedia('(prefers-color-scheme: dark)');
-  mq.addEventListener('change', function(e) {
-    // Only follow system if user hasn't set a manual preference
-    if (!localStorage.getItem('theme')) {
-      applyTheme(e.matches);
-    }
-  });
-
-  // Set initial theme-color meta to match current state
-  applyTheme(document.body.classList.contains('dark-mode'));
 })();
 </script>
 
@@ -1880,7 +1515,7 @@
     if (e.key === 'Escape') close();
   });
 
-  // --- One UI drag-to-dismiss for mobile bottom sheet ---
+  // --- Drag-to-dismiss for mobile top sheet ---
   var dragStartY = 0;
   var lastY = 0;
   var lastTime = 0;
@@ -1889,8 +1524,8 @@
 
   menu.addEventListener('touchstart', function(e) {
     if (!isOpen) return;
-    // Only allow drag when sheet is scrolled to the very top
-    if (menuScroll.scrollTop > 0) return;
+    var atBottom = menuScroll.scrollTop + menuScroll.clientHeight >= menuScroll.scrollHeight - 1;
+    if (!atBottom) return;
     dragStartY = e.touches[0].clientY;
     lastY = dragStartY;
     lastTime = Date.now();
@@ -1904,9 +1539,8 @@
     if (!dragging) return;
     var touchY = e.touches[0].clientY;
     var dy = touchY - dragStartY;
-    if (dy < 0) dy = 0; // only allow downward drag
+    if (dy > 0) dy = 0; // only allow upward drag
 
-    // Track velocity for flick detection
     var now = Date.now();
     var dt = now - lastTime;
     if (dt > 0) velocityY = (touchY - lastY) / dt;
@@ -1914,10 +1548,9 @@
     lastTime = now;
 
     menu.style.transform = 'translateY(' + dy + 'px)';
-    // Fade scrim in direct 1:1 proportion with sheet position
-    scrim.style.opacity = Math.max(0, 1 - (dy / menu.offsetHeight));
+    scrim.style.opacity = Math.max(0, 1 - (Math.abs(dy) / menu.offsetHeight));
 
-    e.preventDefault(); // prevent page scroll in all directions during drag
+    e.preventDefault();
   }, { passive: false });
 
   menu.addEventListener('touchend', function(e) {
@@ -1925,17 +1558,14 @@
     dragging = false;
     var dy = e.changedTouches[0].clientY - dragStartY;
 
-    // Flick direction takes priority: upward swipe always snaps back
-    var flickingUp = velocityY < -0.3;
-    var shouldDismiss = !flickingUp && (dy > 80 || velocityY > 0.4);
+    var flickingDown = velocityY > 0.3;
+    var shouldDismiss = !flickingDown && (dy < -80 || velocityY < -0.4);
     if (shouldDismiss) {
-      // Animate sheet off-screen from current position
       menu.style.transition = 'transform 0.25s cubic-bezier(0.22, 0.61, 0.36, 1)';
-      menu.style.transform = 'translateY(100%)';
+      menu.style.transform = 'translateY(-100%)';
       scrim.style.transition = 'opacity 0.25s';
       scrim.style.opacity = '0';
       setTimeout(function() {
-        // Clean up inline styles, then run normal close logic
         menu.style.transition = '';
         menu.style.transform = '';
         scrim.style.transition = '';
@@ -1943,7 +1573,6 @@
         if (isOpen) toggle();
       }, 260);
     } else {
-      // Snap back to open position
       menu.style.transition = 'transform 0.25s cubic-bezier(0.22, 0.61, 0.36, 1)';
       menu.style.transform = 'translateY(0)';
       scrim.style.transition = 'opacity 0.25s';
