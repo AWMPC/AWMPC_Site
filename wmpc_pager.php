@@ -110,7 +110,7 @@
       width: 100%;
       margin: 0 auto;
       padding: 0 12px;
-      padding-top: calc(62px + env(safe-area-inset-top, 0px));
+      padding-top: calc(72px + env(safe-area-inset-top, 0px));
     }
 
     /* --- Combined banner card (wraps both banners side-by-side) --- */
