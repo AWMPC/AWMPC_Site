@@ -113,16 +113,23 @@
       padding-bottom: calc(66px + env(safe-area-inset-bottom, 0px));
     }
 
+    /* --- Combined banner card (wraps top + main banners) --- */
+    .site-combined-banner {
+      display: flex;
+      flex-direction: column;
+      border-radius: var(--ds-radius-md);
+      margin: 12px 0;
+      box-shadow: var(--ds-shadow-md);
+      overflow: hidden;
+    }
+
     /* --- Top banner (focus block) --- */
     .site-banner {
       display: block;
       text-align: center;
       padding: 12px 0;
-      background-color: #BDA58B;
-      border-radius: var(--ds-radius-md);
-      margin: 12px 0;
-      box-shadow: var(--ds-shadow-md);
-      overflow: hidden;
+      background: linear-gradient(to bottom, #2C5E9E 0%, #1A3F6F 100%);
+      text-decoration: none;
     }
     .site-banner img {
       max-width: 88%;
@@ -228,14 +235,12 @@
       transform: rotateY(180deg);
     }
 
-    /* --- Main banner GIF (card) --- */
+    /* --- Main banner GIF (inside combined card) --- */
     .site-main-banner {
       display: block;
       text-align: center;
       overflow: hidden;
-      border-radius: var(--ds-radius-sm);
-      margin: 16px 0;
-      box-shadow: var(--ds-shadow-md);
+      text-decoration: none;
     }
     .site-main-banner img {
       width: 100%;
@@ -1451,15 +1456,15 @@
 
 <div class="site-wrap">
 
-  <!-- Top banner -->
-  <a href="./index.html" class="site-banner">
-    <img src="./resources/images/banners/wmpc_topbanner_transparent.png" alt="All World Mission Prayer Center" />
-  </a>
-
-  <!-- Main banner image -->
-  <a href="./index.html" class="site-main-banner">
-    <img src="./resources/images/banners/wmpc_mainbanner2.gif" alt="AWMPC Church Banner" />
-  </a>
+  <!-- Combined banner card -->
+  <div class="site-combined-banner">
+    <a href="./index.html" class="site-banner">
+      <img src="./resources/images/banners/wmpc_topbanner_transparent.png" alt="All World Mission Prayer Center" />
+    </a>
+    <a href="./index.html" class="site-main-banner">
+      <img src="./resources/images/banners/wmpc_mainbanner2.gif" alt="AWMPC Church Banner" />
+    </a>
+  </div>
 
 
   <!-- Quick links grid -->
