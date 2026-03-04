@@ -113,32 +113,37 @@
       padding-bottom: calc(66px + env(safe-area-inset-bottom, 0px));
     }
 
-    /* --- Combined banner card (wraps top + main banners) --- */
+    /* --- Combined banner card (wraps both banners side-by-side) --- */
     .site-combined-banner {
       display: flex;
-      flex-direction: column;
+      flex-direction: row;
       border-radius: var(--ds-radius-md);
       margin: 12px 0;
       box-shadow: var(--ds-shadow-md);
       overflow: hidden;
     }
 
-    /* --- Top banner (focus block) --- */
+    /* --- Left banner (focus block) --- */
     .site-banner {
-      display: block;
-      text-align: center;
-      padding: 12px 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
       background-color: #BDA58B;
       text-decoration: none;
+      flex: 0 0 auto;
+      padding: 12px;
     }
     .site-banner img {
-      max-width: 88%;
-      height: auto;
+      max-height: 100%;
+      width: auto;
+      max-width: 100%;
+      display: block;
     }
-    /* Gradient blend between top banner and main banner */
+    /* Gradient blend between left and right banners */
     .site-banner-blend {
-      height: 24px;
-      background: linear-gradient(to bottom, #BDA58B, #2C5E9E);
+      width: 24px;
+      flex-shrink: 0;
+      background: linear-gradient(to right, #BDA58B, #2C5E9E);
     }
 
     /* --- Bottom bar: floating pill with glazed glass --- */
@@ -240,16 +245,18 @@
       transform: rotateY(180deg);
     }
 
-    /* --- Main banner GIF (inside combined card) --- */
+    /* --- Right banner GIF (inside combined card) --- */
     .site-main-banner {
       display: block;
-      text-align: center;
+      flex: 1 1 0;
+      min-width: 0;
       overflow: hidden;
       text-decoration: none;
     }
     .site-main-banner img {
       width: 100%;
-      height: auto;
+      height: 100%;
+      object-fit: cover;
       display: block;
     }
 
