@@ -117,6 +117,7 @@
     .site-combined-banner {
       display: flex;
       flex-direction: row;
+      align-items: stretch;
       border-radius: var(--ds-radius-md);
       margin: 12px 0;
       box-shadow: var(--ds-shadow-md);
@@ -130,13 +131,14 @@
       justify-content: center;
       background-color: #BDA58B;
       text-decoration: none;
-      flex: 0 0 auto;
-      padding: 12px;
+      flex: 1 1 0;
+      min-width: 0;
+      padding: 8px;
     }
     .site-banner img {
-      max-height: 100%;
-      width: auto;
-      max-width: 100%;
+      width: 100%;
+      height: 100%;
+      object-fit: contain;
       display: block;
     }
     /* Gradient blend between left and right banners */
@@ -247,7 +249,9 @@
 
     /* --- Right banner GIF (inside combined card) --- */
     .site-main-banner {
-      display: block;
+      display: flex;
+      align-items: center;
+      justify-content: center;
       flex: 1 1 0;
       min-width: 0;
       overflow: hidden;
@@ -255,8 +259,7 @@
     }
     .site-main-banner img {
       width: 100%;
-      height: 100%;
-      object-fit: cover;
+      height: auto;
       display: block;
     }
 
