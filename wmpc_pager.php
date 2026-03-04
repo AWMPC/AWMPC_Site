@@ -1150,7 +1150,7 @@
     <a href="./index.html" class="site-banner">
       <img src="./resources/images/banners/wmpc_topbanner_transparent.png" alt="All World Mission Prayer Center" />
     </a>
-    <div class="site-banner-blend"></div>
+    <div class="site-banner-blend" id="bannerBlend"></div>
     <a href="./index.html" class="site-main-banner">
       <img src="./resources/images/banners/wmpc_mainbanner2.gif" alt="AWMPC Church Banner" />
     </a>
@@ -1292,6 +1292,95 @@
     if (img.complete) { a.classList.add('loaded'); return; }
     img.addEventListener('load', function() { a.classList.add('loaded'); });
     img.addEventListener('error', function() { a.classList.add('loaded'); });
+  });
+})();
+</script>
+
+<!-- Dynamic pixel-sampled banner blend -->
+<script>
+(function() {
+  var blendEl = document.getElementById('bannerBlend');
+  if (!blendEl) return;
+
+  var leftBanner = document.querySelector('.site-banner');
+  var rightBanner = document.querySelector('.site-main-banner');
+  var leftImg = leftBanner.querySelector('img');
+  var rightImg = rightBanner.querySelector('img');
+
+  var canvas = document.createElement('canvas');
+  canvas.style.cssText = 'display:block;width:100%;height:100%;position:relative;z-index:1;';
+  blendEl.appendChild(canvas);
+
+  function containRect(img, cw, ch) {
+    var nw = img.naturalWidth, nh = img.naturalHeight;
+    if (!nw || !nh) return null;
+    var s = Math.min(cw / nw, ch / nh);
+    var w = nw * s, h = nh * s;
+    return { x: (cw - w) / 2, y: (ch - h) / 2, w: w, h: h };
+  }
+
+  function render() {
+    var bRect = blendEl.getBoundingClientRect();
+    var W = Math.round(bRect.width);
+    var H = Math.round(bRect.height);
+    if (!W || !H || !leftImg.naturalWidth || !rightImg.naturalWidth) return;
+
+    canvas.width = W;
+    canvas.height = H;
+    var ctx = canvas.getContext('2d');
+
+    var lbRect = leftBanner.getBoundingClientRect();
+    var ls = getComputedStyle(leftBanner);
+    var pT = parseFloat(ls.paddingTop) || 0;
+    var pB = parseFloat(ls.paddingBottom) || 0;
+    var pL = parseFloat(ls.paddingLeft) || 0;
+    var pR = parseFloat(ls.paddingRight) || 0;
+    var cw = lbRect.width - pL - pR;
+    var ch = lbRect.height - pT - pB;
+
+    var oc = document.createElement('canvas');
+    oc.width = Math.round(lbRect.width);
+    oc.height = Math.round(lbRect.height);
+    var octx = oc.getContext('2d');
+    octx.fillStyle = '#BDA58B';
+    octx.fillRect(0, 0, oc.width, oc.height);
+    var cr = containRect(leftImg, cw, ch);
+    if (cr) octx.drawImage(leftImg, pL + cr.x, pT + cr.y, cr.w, cr.h);
+    var leftEdge = octx.getImageData(oc.width - 1, 0, 1, oc.height);
+
+    var rbRect = rightBanner.getBoundingClientRect();
+    var rc = document.createElement('canvas');
+    rc.width = Math.round(rbRect.width);
+    rc.height = Math.round(rbRect.height);
+    var rctx = rc.getContext('2d');
+    var rw = rc.width;
+    var rh = (rightImg.naturalHeight / rightImg.naturalWidth) * rw;
+    var ry = (rc.height - rh) / 2;
+    rctx.drawImage(rightImg, 0, ry, rw, rh);
+    var rightEdge = rctx.getImageData(0, 0, 1, rc.height);
+
+    for (var y = 0; y < H; y++) {
+      var ly = Math.min(Math.round(y * oc.height / H), oc.height - 1);
+      var ryi = Math.min(Math.round(y * rc.height / H), rc.height - 1);
+      var li = ly * 4;
+      var ri = ryi * 4;
+      var grad = ctx.createLinearGradient(0, 0, W, 0);
+      grad.addColorStop(0, 'rgb(' + leftEdge.data[li] + ',' + leftEdge.data[li+1] + ',' + leftEdge.data[li+2] + ')');
+      grad.addColorStop(1, 'rgb(' + rightEdge.data[ri] + ',' + rightEdge.data[ri+1] + ',' + rightEdge.data[ri+2] + ')');
+      ctx.fillStyle = grad;
+      ctx.fillRect(0, y, W, 1);
+    }
+  }
+
+  var loaded = 0;
+  function onLoad() { if (++loaded >= 2) render(); }
+  if (leftImg.complete) onLoad(); else leftImg.addEventListener('load', onLoad);
+  if (rightImg.complete) onLoad(); else rightImg.addEventListener('load', onLoad);
+
+  var rt;
+  window.addEventListener('resize', function() {
+    clearTimeout(rt);
+    rt = setTimeout(render, 200);
   });
 })();
 </script>
