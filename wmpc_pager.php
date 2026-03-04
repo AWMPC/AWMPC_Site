@@ -128,12 +128,17 @@
       display: block;
       text-align: center;
       padding: 12px 0;
-      background: linear-gradient(to bottom, #2C5E9E 0%, #1A3F6F 100%);
+      background-color: #BDA58B;
       text-decoration: none;
     }
     .site-banner img {
       max-width: 88%;
       height: auto;
+    }
+    /* Gradient blend between top banner and main banner */
+    .site-banner-blend {
+      height: 24px;
+      background: linear-gradient(to bottom, #BDA58B, #2C5E9E);
     }
 
     /* --- Bottom bar: floating pill with glazed glass --- */
@@ -406,8 +411,8 @@
     @media (max-width: 768px) {
       .quick-links {
         display: grid;
-        grid-template-columns: 1fr 1fr;
-        grid-template-rows: 1fr 1fr 1fr;
+        grid-template-columns: 1fr 1fr 1fr;
+        grid-template-rows: 1fr 1fr;
         gap: 8px;
         height: auto;
       }
@@ -1461,6 +1466,7 @@
     <a href="./index.html" class="site-banner">
       <img src="./resources/images/banners/wmpc_topbanner_transparent.png" alt="All World Mission Prayer Center" />
     </a>
+    <div class="site-banner-blend"></div>
     <a href="./index.html" class="site-main-banner">
       <img src="./resources/images/banners/wmpc_mainbanner2.gif" alt="AWMPC Church Banner" />
     </a>
