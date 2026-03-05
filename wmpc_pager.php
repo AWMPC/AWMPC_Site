@@ -309,79 +309,7 @@
       0% { background-position: 200% 0; }
       100% { background-position: -50% 0; }
     }
-    .webex-card {
-      display: flex;
-      align-items: stretch;
-      width: 100%;
-      height: 100%;
-      background:
-        linear-gradient(135deg, rgba(255,255,255,0.12) 0%, transparent 40%, rgba(0,0,0,0.22) 100%),
-        #D0D8E4;
-      transition: background 0.5s ease;
-    }
-    .webex-card-left {
-      flex: 0 0 35%;
-      position: relative;
-      overflow: hidden;
-    }
-    .webex-card-logo {
-      position: absolute !important;
-      top: 50%;
-      left: 6px;
-      transform: translateY(-50%);
-      width: auto !important;
-      height: 92% !important;
-      max-width: none !important;
-      object-fit: contain !important;
-      border-radius: 0 !important;
-      box-shadow: none !important;
-      margin: 0 !important;
-      z-index: 0;
-      transition: left 0.35s cubic-bezier(0.22, 0.61, 0.36, 1);
-    }
-    .webex-card-link:hover .webex-card-logo,
-    .webex-card-link:active .webex-card-logo {
-      left: 0px;
-    }
-    .webex-card-divider {
-      flex-shrink: 0;
-      width: 2px;
-      align-self: center;
-      height: 92%;
-      background: rgba(0,0,0,0.45);
-      border-radius: 2px;
-      position: relative;
-      z-index: 1;
-      mask-image: radial-gradient(ellipse 2px 50% at center, black 0%, transparent 100%);
-      -webkit-mask-image: radial-gradient(ellipse 2px 50% at center, black 0%, transparent 100%);
-    }
-    .webex-card-right {
-      flex: 1 1 0;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      padding: 0 10px 0 2px;
-      min-width: 0;
-      position: relative;
-      z-index: 1;
-    }
-    .webex-card-line1 {
-      font-size: 1.05em;
-      font-weight: 600;
-      color: #1A1A1A;
-      line-height: 1.15;
-      transition: color 0.5s ease;
-      white-space: nowrap;
-    }
-    .webex-card-line2 {
-      font-size: 1.35em;
-      font-weight: 700;
-      color: #1A1A1A;
-      line-height: 1.15;
-      transition: color 0.5s ease;
-      white-space: nowrap;
-    }
+    /* webex-card styles deprecated — replaced by awmpc_webex_join_banner.png */
     @media (max-width: 768px) {
       .quick-links {
         display: grid;
@@ -1166,18 +1094,7 @@
       <a href="./sermons.html"><img src="./resources/images/sidebar/adwindow_dailysermon.jpg" alt="Daily Sermon" loading="lazy" /></a>
       <a href="./request.html"><img src="./resources/images/sidebar/adwindow_prayerrequest.jpg" alt="Prayer Request" loading="lazy" /></a>
       <a href="./mission.html"><img src="./resources/images/sidebar_mission.jpg" alt="Mission" loading="lazy" /></a>
-      <a href="https://allworldmissionprayercenterinc-321.my.webex.com/meet/awmpc" target="_blank" rel="noopener" class="webex-card-link">
-        <span class="webex-card">
-          <span class="webex-card-left">
-            <img src="https://developer.webex.com/images/webex-logo-icon-non-contained.svg" alt="" class="webex-card-logo" />
-          </span>
-          <span class="webex-card-divider"></span>
-          <span class="webex-card-right">
-            <span class="webex-card-line1">Join on</span>
-            <span class="webex-card-line2">Webex!</span>
-          </span>
-        </span>
-      </a>
+      <a href="https://allworldmissionprayercenterinc-321.my.webex.com/meet/awmpc" target="_blank" rel="noopener"><img src="./resources/images/awmpc_webex_join_banner.png" alt="Join on Webex" loading="lazy" /></a>
     </div>
   </div>
 
