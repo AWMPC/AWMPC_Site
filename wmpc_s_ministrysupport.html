@@ -72,15 +72,13 @@
 						1. STRIPE (國際奉獻):
 					</b>
 					<br>
-					Please input desired donation amount in USD, then click 'Submit':
 					<br>
-					<label for="donation_amount">
-						Donation Amount:
-					</label>
-					<input type="text" id="donation_amount" name="donation_amount">
-					<button type="button" onclick="triggerStripe()">
-						Submit
-					</button>
+					<script async src="https://js.stripe.com/v3/buy-button.js"></script>
+					<stripe-buy-button
+						buy-button-id="buy_btn_1T7RsbBntcIs8l3UVD4ua45v"
+						publishable-key="pk_live_51IlTacBntcIs8l3UZJJvvA9eOGjTLZ4l4dlDTyvo4O0ctbLwjnoRRfRnIIbbzet8jbE61rPIeF7l9EfztLQrlr8I00c3LeWv9J"
+					>
+					</stripe-buy-button>
 				</span>
 			</p>
 
@@ -226,44 +224,3 @@ East Palo Alto, CA 94303</span></p>
 			</p>
 		</div>
 
-		<script src="https://js.stripe.com/v3/"></script>
-		<script type="text/javascript">
-
-			function triggerStripe() {
-				/* Stripe Embedded JS for triggering local PHP file. */
-				// Create an instance of the Stripe object with your publishable API key
-				var stripe = Stripe("pk_live_51IlTacBntcIs8l3UZJJvvA9eOGjTLZ4l4dlDTyvo4O0ctbLwjnoRRfRnIIbbzet8jbE61rPIeF7l9EfztLQrlr8I00c3LeWv9J");
-
-				var donationAmount = document.getElementById("donation_amount").value;
-
-				donationAmount = donationAmount.toString()
-
-				donationAmount = donationAmount.replace(/\..*/g, "")
-				donationAmount = donationAmount.replace(/\D/g, "")
-
-				fetch("/create-donation-session.php", {
-					method: "POST",
-					headers: {
-						'Donation-Amount': donationAmount,
-					}
-				})
-				.then(function (response) {
-					return response.json();
-				})
-				.then(function (session) {
-					return stripe.redirectToCheckout({ sessionId: session.id });
-				})
-				.then(function (result) {
-					// If redirectToCheckout fails due to a browser or network
-					// error, you should display the localized error message to your
-					// customer using error.message.
-					if (result.error) {
-						alert(result.error.message);
-					}
-				})
-				.catch(function (error) {
-					console.error("Error:", error);
-				});
-			}
-
-		</script>
