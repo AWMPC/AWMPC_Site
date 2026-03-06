@@ -121,6 +121,7 @@
       box-shadow: var(--ds-shadow-md);
       overflow: hidden;
       text-decoration: none;
+      background-color: #BDA58B;
     }
     .site-banner img {
       width: 100%;
@@ -1041,7 +1042,7 @@
 
   <!-- Banner card -->
   <a href="./index.html" class="site-banner">
-    <img src="./resources/images/banners/awmpc_banner_2026_03_05.webp" alt="All World Mission Prayer Center" />
+    <img src="./resources/images/banners/wmpc_topbanner_transparent.png" alt="All World Mission Prayer Center" />
   </a>
 
 
@@ -1049,7 +1050,7 @@
   <div class="section-card">
     <span class="section-card-label">Site Links</span>
     <div class="quick-links">
-      <a href="./24hrhop.html"><img src="./resources/images/building_front_compressed_09_05_2020_mini.jpg" alt="Church Building" loading="lazy" /></a>
+      <a href="./24hrhop.html"><img src="./resources/images/banners/awmpc_banner_2026_03_05.webp" alt="Church Building" loading="lazy" /></a>
       <a href="./prayer.html"><img src="./resources/images/sidebar/adwindow_prayermeeting.jpg" alt="Prayer Meeting" loading="lazy" /></a>
       <a href="./sermons.html"><img src="./resources/images/sidebar/adwindow_dailysermon.jpg" alt="Daily Sermon" loading="lazy" /></a>
       <a href="./request.html"><img src="./resources/images/sidebar/adwindow_prayerrequest.jpg" alt="Prayer Request" loading="lazy" /></a>
