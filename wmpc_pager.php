@@ -122,13 +122,12 @@
     }
     .site-banner {
       display: flex;
-      align-items: center;
+      align-items: stretch;
       padding: 12px;
       position: relative;
     }
     .site-banner-logo {
       flex-shrink: 0;
-      height: 100%;
       display: flex;
       align-items: center;
     }
@@ -136,10 +135,13 @@
       height: 100%;
       width: auto;
       display: block;
+      mix-blend-mode: multiply;
     }
     .site-banner-main {
       flex: 1;
       min-width: 0;
+      display: flex;
+      align-items: center;
     }
     .site-banner-main img {
       width: 100%;
