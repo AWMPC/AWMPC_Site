@@ -6,7 +6,7 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <meta name="keywords" content="awmpc,wmpc,awmpc.org,All World Mission Prayer Center,World Mission Prayer Center,prayer,mission" />
-  <meta name="theme-color" content="#F5F7F8" id="metaThemeColor">
+  <meta name="theme-color" content="#EDE3D5" id="metaThemeColor">
   <meta name="color-scheme" content="light">
   <link rel="preconnect" href="https://fonts.googleapis.com" crossorigin>
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -40,7 +40,7 @@
       --ds-padding-sm: 12px;
       --ds-padding-md: 20px;
       /* Colors — surfaces */
-      --ds-bg: #F5F7F8;
+      --ds-bg: #EDE3D5;
       --ds-text: #212121;
       --ds-text-secondary: #666666;
       --ds-card-bg: #FFFFFF;
@@ -118,7 +118,7 @@
       margin: 12px 0;
       box-shadow: var(--ds-shadow-md);
       overflow: hidden;
-      background-color: #EDE3D5;
+      background-color: #BDA58B;
     }
     .site-banner {
       display: block;
