@@ -110,45 +110,31 @@
       width: 100%;
       margin: 0 auto;
       padding: 0 12px;
-      padding-top: calc(72px + env(safe-area-inset-top, 0px));
     }
 
-    /* --- Banner card --- */
-    .site-banner {
-      display: block;
+    /* --- Banner + info bar combined card --- */
+    .site-hero-card {
       border-radius: var(--ds-radius-md);
       margin: 12px 0;
       box-shadow: var(--ds-shadow-md);
       overflow: hidden;
+      background-color: #EDE3D5;
+    }
+    .site-banner {
+      display: block;
+      padding: 12px;
       text-decoration: none;
-      background-color: #BDA58B;
     }
     .site-banner img {
       width: 100%;
       height: auto;
       display: block;
     }
-
-    /* --- Top bar: floating pill with glazed glass --- */
     .site-top-bar {
-      position: fixed;
-      top: calc(8px + env(safe-area-inset-top, 0px));
-      left: 12px;
-      right: 12px;
-      max-width: 1100px;
-      margin: 0 auto;
-      z-index: 10000;
       display: flex;
       align-items: center;
       gap: 6px;
-      padding: 6px;
-      border-radius: var(--ds-radius-pill);
-      background: var(--ds-bar-bg);
-      backdrop-filter: var(--ds-blur);
-      -webkit-backdrop-filter: var(--ds-blur);
-      border: var(--ds-bar-border);
-      box-shadow: var(--ds-bar-shadow);
-      transition: background-color 0.5s ease, box-shadow 0.5s ease, border-color 0.5s ease, border-radius 0.4s ease;
+      padding: 6px 12px 10px;
     }
 
     /* --- Info bar (service times) --- */
@@ -467,7 +453,7 @@
     /* Expanded menu sheet */
     .fab-menu {
       position: fixed;
-      top: calc(58px + env(safe-area-inset-top, 0px));
+      bottom: calc(58px + env(safe-area-inset-bottom, 0px));
       right: 12px;
       z-index: 9999;
       background: rgba(255,255,255,0.72);
@@ -478,10 +464,10 @@
       padding: 8px 0;
       min-width: 220px;
       max-height: calc(100dvh - 140px);
-      transform: translateY(-16px) scale(0.92);
+      transform: translateY(16px) scale(0.92);
       opacity: 0;
       pointer-events: none;
-      transform-origin: top right;
+      transform-origin: bottom right;
       transition:
         transform var(--ds-motion),
         opacity 0.25s cubic-bezier(0.33, 0, 0.67, 1),
@@ -518,7 +504,7 @@
       -webkit-tap-highlight-color: transparent;
       /* Staggered entry */
       opacity: 0;
-      transform: translateY(-8px);
+      transform: translateY(8px);
     }
     .fab-menu-item:hover {
       background: var(--ds-menu-hover);
@@ -564,19 +550,19 @@
       .footer-left, .footer-center, .footer-right { text-align: center; }
     }
 
-    /* --- Top sheet for small screens --- */
+    /* --- Bottom sheet for small screens --- */
     @media (max-width: 600px) {
       .fab-menu {
-        top: 0;
+        bottom: 0;
         right: 0;
         left: 0;
-        border-radius: 0 0 var(--ds-radius-md) var(--ds-radius-md);
+        border-radius: var(--ds-radius-md) var(--ds-radius-md) 0 0;
         min-width: unset;
         max-height: 70dvh;
-        transform: translateY(-100%);
-        transform-origin: top center;
+        transform: translateY(100%);
+        transform-origin: bottom center;
         padding: 8px 16px;
-        padding-top: calc(66px + env(safe-area-inset-top, 0px));
+        padding-bottom: calc(16px + env(safe-area-inset-bottom, 0px));
       }
       .fab-menu-scroll {
         display: grid;
@@ -584,14 +570,14 @@
         gap: 2px;
         max-height: calc(70dvh - 80px);
       }
-      .fab-menu::after {
+      .fab-menu::before {
         content: '';
         display: block;
         width: 40px;
         height: 4px;
         background: #ccc;
         border-radius: 2px;
-        margin: 8px auto 4px;
+        margin: 4px auto 8px;
       }
       .fab-menu.open {
         transform: translateY(0);
@@ -608,443 +594,27 @@
       }
     }
 
-    /* ===== Design System Theme Overrides ===== */
-
-    /* Samsung One UI — default (values in :root) */
-
-    /* ---- Apple Liquid Glass ----
-       Ref: Liquid Glass design doc — translucent refractive material, content-first,
-       hardware-concentric rounding, SF Pro, 44pt min targets, 11pt min text,
-       judicious color, scroll-edge legibility, fluid morphing motion */
-    body.ds-liquid-glass {
-      --ds-font: -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", "Helvetica Neue", Helvetica, Arial, sans-serif;
-      /* Concentric rounding: controls match hardware curvature */
-      --ds-radius-sm: 13px;
-      --ds-radius-md: 16px;
-      --ds-radius-pill: 50px;
-      --ds-radius-card: 16px;
-      --ds-radius-btn: 50%;
-      --ds-gap: 8px;
-      --ds-padding-sm: 11px;
-      --ds-padding-md: 16px;
-      /* Liquid Glass: shadows are depth cues beneath elevated elements */
-      --ds-shadow-sm: 0 0.5px 1px rgba(0,0,0,0.03), 0 1px 6px rgba(0,0,0,0.05);
-      --ds-shadow-md: 0 1px 3px rgba(0,0,0,0.05), 0 4px 14px rgba(0,0,0,0.07);
-      --ds-shadow-lg: 0 2px 8px rgba(0,0,0,0.06), 0 12px 40px rgba(0,0,0,0.10);
-      --ds-shadow-btn: 0 0.5px 2px rgba(0,0,0,0.04), 0 2px 8px rgba(0,0,0,0.06);
-      /* Material: translucent glass with refraction & blur */
-      --ds-blur: blur(40px) saturate(2.0);
-      --ds-bar-bg: rgba(255,255,255,0.28);
-      --ds-bar-border: 0.5px solid rgba(255,255,255,0.55);
-      --ds-bar-shadow: 0 0.5px 4px rgba(0,0,0,0.03), 0 4px 16px rgba(0,0,0,0.05), inset 0 0 0 0.5px rgba(255,255,255,0.35);
-      /* Motion: fluid morphing, spring-like feel */
-      --ds-transition: 0.45s cubic-bezier(0.28,0.11,0.32,1);
-      --ds-motion: 0.4s cubic-bezier(0.28,0.11,0.32,1);
-      /* Colors: iOS systemGroupedBackground */
-      --ds-bg: #F2F2F7;
-      --ds-text: #000000;
-      --ds-text-secondary: #3C3C43;
-      --ds-card-bg: rgba(255,255,255,0.55);
-      --ds-label-color: #8E8E93;
-      --ds-link-bg: rgba(120,120,128,0.04);
-      --ds-border: 0.5px solid rgba(60,60,67,0.12);
-      --ds-divider: rgba(60,60,67,0.18);
-      --ds-accent: #CC0000;
-      --ds-info-bg: #CC0000;
-      --ds-info-text: #FFFFFF;
-      --ds-btn-bg: rgba(60,60,67,0.45);
-      --ds-btn-hover: rgba(60,60,67,0.55);
-      --ds-btn-active: rgba(60,60,67,0.65);
-      --ds-fab-bg: rgba(255,255,255,0.60);
-      --ds-fab-cross: #CC0000;
-      --ds-fab-open-ring: 0 0 0 1.5px rgba(0,0,0,0.10);
-      --ds-menu-text: #000000;
-      --ds-menu-hover: rgba(120,120,128,0.06);
-      --ds-menu-active-bg: rgba(0,122,255,0.10);
-      --ds-menu-active-text: #007AFF;
-      --ds-footer-text: #3C3C43;
-      --ds-footer-link: #000000;
-      --ds-loader: #007AFF;
-      --ds-scrim: rgba(0,0,0,0.32);
-    }
-    body.ds-liquid-glass .section-card {
-      backdrop-filter: blur(30px) saturate(1.8);
-      -webkit-backdrop-filter: blur(30px) saturate(1.8);
-      border: 0.5px solid rgba(255,255,255,0.55);
-    }
-    body.ds-liquid-glass .fab-menu {
-      backdrop-filter: blur(40px) saturate(2);
-      -webkit-backdrop-filter: blur(40px) saturate(2);
-      background: rgba(255,255,255,0.52);
-      border: 0.5px solid rgba(255,255,255,0.50);
-    }
-    body.ds-liquid-glass .fab-btn {
-      backdrop-filter: blur(20px) saturate(1.6);
-      -webkit-backdrop-filter: blur(20px) saturate(1.6);
-    }
-    body.ds-liquid-glass .ds-popup {
-      backdrop-filter: blur(40px) saturate(2);
-      -webkit-backdrop-filter: blur(40px) saturate(2);
-      background: rgba(255,255,255,0.52);
-      border: 0.5px solid rgba(255,255,255,0.50);
-    }
-
-
-    /* ---- Google Material Design 3 (Material You) ----
-       Ref: M3 design doc — tonal elevation (surface tint not shadows), shape scale
-       (None=0, XS=4, S=8, M=12, L=16, XL=28, Full=50%), Roboto, 48dp min touch,
-       standard easing cubic-bezier(0.2,0,0,1), emphasized easing for prominent,
-       M3 color roles: surface=#FEF7FF, onSurface=#1D1B20, outline=#79747E,
-       outlineVariant=#CAC4D0, primary=#6750A4, surfaceContainerLow=#F7F2FA,
-       surfaceContainer=#F3EDF7, surfaceContainerHigh=#ECE6F0 */
-    body.ds-material {
-      --ds-font: "Roboto", "Noto Sans", "Google Sans", Arial, sans-serif;
-      /* M3 shape scale: S=8dp, M=12dp, L=16dp, XL=28dp, Full=50% */
-      --ds-radius-sm: 8px;
-      --ds-radius-md: 16px;
-      --ds-radius-pill: 28px;
-      --ds-radius-card: 12px;
-      --ds-radius-btn: 50%;
-      /* M3 grid: compact margins=16dp, gutters=8dp */
-      --ds-gap: 8px;
-      --ds-padding-sm: 16px;
-      --ds-padding-md: 24px;
-      /* M3 tonal elevation: minimal shadow, uses surfaceTint overlay instead */
-      --ds-shadow-sm: 0 1px 2px rgba(0,0,0,0.15), 0 1px 3px rgba(0,0,0,0.10);
-      --ds-shadow-md: 0 1px 2px rgba(0,0,0,0.15), 0 2px 6px rgba(0,0,0,0.10);
-      --ds-shadow-lg: 0 4px 8px rgba(0,0,0,0.12), 0 8px 16px rgba(0,0,0,0.10);
-      --ds-shadow-btn: 0 1px 2px rgba(0,0,0,0.15), 0 2px 6px rgba(0,0,0,0.10);
-      --ds-blur: blur(16px) saturate(1.2);
-      --ds-bar-bg: rgba(243,237,247,0.75);
-      --ds-bar-border: none;
-      --ds-bar-shadow: 0 1px 2px rgba(0,0,0,0.10), 0 2px 6px rgba(0,0,0,0.06);
-      /* M3 standard easing */
-      --ds-transition: 0.3s cubic-bezier(0.2,0,0,1);
-      --ds-motion: 0.3s cubic-bezier(0.2,0,0,1);
-      /* M3 light scheme color roles */
-      --ds-bg: #FEF7FF;
-      --ds-text: #1D1B20;
-      --ds-text-secondary: #49454F;
-      --ds-card-bg: #F7F2FA;
-      --ds-label-color: #49454F;
-      --ds-link-bg: #ECE6F0;
-      --ds-border: 1px solid #CAC4D0;
-      --ds-divider: #CAC4D0;
-      --ds-accent: #6750A4;
-      --ds-info-bg: #6750A4;
-      --ds-info-text: #FFFFFF;
-      --ds-btn-bg: #1D1B20;
-      --ds-btn-hover: #49454F;
-      --ds-btn-active: #605D66;
-      --ds-fab-bg: #ECE6F0;
-      --ds-fab-cross: #6750A4;
-      --ds-fab-open-ring: 0 0 0 2px rgba(103,80,164,0.30);
-      --ds-menu-text: #1D1B20;
-      --ds-menu-hover: rgba(29,27,32,0.08);
-      --ds-menu-active-bg: rgba(103,80,164,0.12);
-      --ds-menu-active-text: #6750A4;
-      --ds-footer-text: #49454F;
-      --ds-footer-link: #6750A4;
-      --ds-loader: #6750A4;
-      --ds-scrim: rgba(0,0,0,0.32);
-    }
-    body.ds-material .section-card {
-      border: 1px solid #CAC4D0;
-    }
-    body.ds-material .fab-menu {
-      backdrop-filter: blur(16px) saturate(1.2);
-      -webkit-backdrop-filter: blur(16px) saturate(1.2);
-      background: rgba(247,242,250,0.80);
-      border: 1px solid #CAC4D0;
-    }
-    body.ds-material .fab-btn {
-      backdrop-filter: blur(12px) saturate(1.1);
-      -webkit-backdrop-filter: blur(12px) saturate(1.1);
-    }
-    body.ds-material .ds-popup {
-      backdrop-filter: blur(16px) saturate(1.2);
-      -webkit-backdrop-filter: blur(16px) saturate(1.2);
-      background: rgba(247,242,250,0.80);
-      border: 1px solid #CAC4D0;
-    }
-
-    /* ---- Windows Fluent Design 2 ----
-       Ref: Fluent 2 design doc — 4px base grid, Segoe UI Variable,
-       6-level shadow ramp (key+ambient composition, 14% base light / 28% dark),
-       standardized 4px corners, colorNeutralBackground1=#FFFFFF,
-       colorNeutralForeground1=#242424, interaction=darker on hover/press,
-       focus=thicker stroke not color change */
-    body.ds-fluent {
-      --ds-font: "Segoe UI Variable", "Segoe UI", system-ui, sans-serif;
-      /* Fluent standardized corners: 4px for components, 8px for containers */
-      --ds-radius-sm: 4px;
-      --ds-radius-md: 8px;
-      --ds-radius-pill: 4px;
-      --ds-radius-card: 4px;
-      --ds-radius-btn: 4px;
-      /* Fluent 4px base grid spacing */
-      --ds-gap: 8px;
-      --ds-padding-sm: 8px;
-      --ds-padding-md: 16px;
-      /* Fluent shadow ramp: key (sharp) + ambient (soft) composition */
-      --ds-shadow-sm: 0 2px 4px rgba(0,0,0,0.14), 0 0 2px rgba(0,0,0,0.12);
-      --ds-shadow-md: 0 4px 8px rgba(0,0,0,0.14), 0 0 2px rgba(0,0,0,0.12);
-      --ds-shadow-lg: 0 8px 16px rgba(0,0,0,0.14), 0 0 2px rgba(0,0,0,0.12);
-      --ds-shadow-btn: 0 2px 4px rgba(0,0,0,0.14), 0 0 2px rgba(0,0,0,0.12);
-      /* Fluent Acrylic: uses strokes on Windows instead of key shadows */
-      --ds-blur: blur(30px) saturate(1.25);
-      --ds-bar-bg: rgba(255,255,255,0.70);
-      --ds-bar-border: 1px solid rgba(0,0,0,0.0578);
-      --ds-bar-shadow: 0 2px 4px rgba(0,0,0,0.04);
-      /* Fluent ease-out for entering elements */
-      --ds-transition: 0.2s cubic-bezier(0,0,0,1);
-      --ds-motion: 0.25s cubic-bezier(0.1,0.9,0.2,1);
-      /* Fluent neutral palette */
-      --ds-bg: #F5F5F5;
-      --ds-text: #242424;
-      --ds-text-secondary: #616161;
-      --ds-card-bg: #FFFFFF;
-      --ds-label-color: #616161;
-      --ds-link-bg: #F0F0F0;
-      --ds-border: 1px solid rgba(0,0,0,0.0578);
-      --ds-divider: rgba(0,0,0,0.0837);
-      --ds-accent: #CC0000;
-      --ds-info-bg: #CC0000;
-      --ds-info-text: #FFFFFF;
-      --ds-btn-bg: #242424;
-      --ds-btn-hover: #424242;
-      --ds-btn-active: #4F4F4F;
-      --ds-fab-bg: #FFFFFF;
-      --ds-fab-cross: #CC0000;
-      --ds-fab-open-ring: 0 0 0 2px #000000;
-      --ds-menu-text: #242424;
-      --ds-menu-hover: rgba(0,0,0,0.04);
-      --ds-menu-active-bg: rgba(0,0,0,0.06);
-      --ds-menu-active-text: #242424;
-      --ds-footer-text: #616161;
-      --ds-footer-link: #242424;
-      --ds-loader: #0F6CBD;
-      --ds-scrim: rgba(0,0,0,0.40);
-    }
-    body.ds-fluent .section-card {
-      border: 1px solid rgba(0,0,0,0.0578);
-      border-bottom: 1px solid rgba(0,0,0,0.0837);
-    }
-    body.ds-fluent .fab-menu {
-      backdrop-filter: blur(30px) saturate(1.25);
-      -webkit-backdrop-filter: blur(30px) saturate(1.25);
-      background: rgba(255,255,255,0.70);
-      border: 1px solid rgba(0,0,0,0.0578);
-      border-bottom: 1px solid rgba(0,0,0,0.0837);
-    }
-    body.ds-fluent .fab-btn {
-      backdrop-filter: blur(20px) saturate(1.2);
-      -webkit-backdrop-filter: blur(20px) saturate(1.2);
-    }
-    body.ds-fluent .ds-popup {
-      backdrop-filter: blur(30px) saturate(1.25);
-      -webkit-backdrop-filter: blur(30px) saturate(1.25);
-      background: rgba(255,255,255,0.70);
-      border: 1px solid rgba(0,0,0,0.0578);
-    }
-    /* Fluent focus: thicker stroke, no color change */
-    body.ds-fluent .fab-menu-item:focus-visible {
-      outline: 2px solid #000000;
-      outline-offset: -2px;
-    }
-
-    /* ---- IBM Carbon ----
-       Ref: Carbon design doc — 2x Grid with 8px mini-unit, zero corner radius,
-       IBM Plex Sans, spacing scale ($spacing-03=8px, $spacing-05=16px, $spacing-07=32px),
-       productive motion: standard=cubic-bezier(0.2,0,0.38,0.9), duration-fast-01=70ms,
-       duration-moderate-01=150ms, Gray 10 theme: bg=#f4f4f4, text=$text-primary=Gray100=#161616,
-       $border-subtle=#e0e0e0, $layer-01=#ffffff, Blue 60=#0f62fe as primary action,
-       $support-error=Red60=#da1e28, no blur/acrylic, condensed 1px borders */
-    body.ds-carbon {
-      --ds-font: "IBM Plex Sans", "Helvetica Neue", Arial, sans-serif;
-      /* Carbon: no corner radius anywhere */
-      --ds-radius-sm: 0px;
-      --ds-radius-md: 0px;
-      --ds-radius-pill: 0px;
-      --ds-radius-card: 0px;
-      --ds-radius-btn: 0px;
-      /* Carbon 2x grid: 8px mini-unit, 16px column padding */
-      --ds-gap: 16px;
-      --ds-padding-sm: 16px;
-      --ds-padding-md: 16px;
-      /* Carbon: minimal elevation, borders over shadows */
-      --ds-shadow-sm: 0 2px 6px rgba(0,0,0,0.12);
-      --ds-shadow-md: 0 2px 6px rgba(0,0,0,0.16);
-      --ds-shadow-lg: 0 8px 16px rgba(0,0,0,0.16);
-      --ds-shadow-btn: none;
-      /* Carbon: no acrylic or blur effects */
-      --ds-blur: none;
-      --ds-bar-bg: #FFFFFF;
-      --ds-bar-border: 1px solid #E0E0E0;
-      --ds-bar-shadow: 0 2px 6px rgba(0,0,0,0.12);
-      /* Carbon productive motion: standard easing */
-      --ds-transition: 0.15s cubic-bezier(0.2,0,0.38,0.9);
-      --ds-motion: 0.15s cubic-bezier(0.2,0,0.38,0.9);
-      /* Carbon Gray 10 theme */
-      --ds-bg: #F4F4F4;
-      --ds-text: #161616;
-      --ds-text-secondary: #525252;
-      --ds-card-bg: #FFFFFF;
-      --ds-label-color: #525252;
-      --ds-link-bg: #E0E0E0;
-      --ds-border: 1px solid #E0E0E0;
-      --ds-divider: #E0E0E0;
-      /* Carbon: $support-error (Red 60) for danger, Blue 60 for primary actions */
-      --ds-accent: #DA1E28;
-      --ds-info-bg: #DA1E28;
-      --ds-info-text: #FFFFFF;
-      --ds-btn-bg: #161616;
-      --ds-btn-hover: #353535;
-      --ds-btn-active: #525252;
-      --ds-fab-bg: #FFFFFF;
-      --ds-fab-cross: #DA1E28;
-      --ds-fab-open-ring: 0 0 0 2px #0F62FE;
-      --ds-menu-text: #161616;
-      --ds-menu-hover: #E8E8E8;
-      --ds-menu-active-bg: rgba(15,98,254,0.10);
-      --ds-menu-active-text: #0F62FE;
-      --ds-footer-text: #525252;
-      --ds-footer-link: #0F62FE;
-      --ds-loader: #0F62FE;
-      --ds-scrim: rgba(22,22,22,0.50);
-    }
-    body.ds-carbon .section-card {
-      border: 1px solid #E0E0E0;
-    }
-    body.ds-carbon .fab-menu {
-      background: #FFFFFF;
-      backdrop-filter: none;
-      -webkit-backdrop-filter: none;
-      border: 1px solid #E0E0E0;
-    }
-    body.ds-carbon .ds-popup {
-      background: #FFFFFF;
-      backdrop-filter: none;
-      -webkit-backdrop-filter: none;
-      border: 1px solid #E0E0E0;
-    }
-    body.ds-carbon .site-top-bar {
-      backdrop-filter: none;
-      -webkit-backdrop-filter: none;
-    }
-    /* Carbon focus: 2px Blue 60 border */
-    body.ds-carbon .fab-menu-item:focus-visible {
-      outline: 2px solid #0F62FE;
-      outline-offset: -2px;
-    }
-
-    /* --- Theme selector popup --- */
-    .ds-picker-btn {
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      flex-shrink: 0;
-      width: 42px;
-      height: 42px;
-      border-radius: var(--ds-radius-btn);
-      border: none;
-      background: var(--ds-btn-bg);
-      color: #fff;
-      cursor: pointer;
-      box-shadow: var(--ds-shadow-btn);
-      transition: background-color 0.15s, box-shadow 0.5s ease, border-radius 0.4s ease;
-      -webkit-tap-highlight-color: transparent;
-      font-size: 18px;
-      line-height: 1;
-    }
-    .ds-picker-btn:hover { background: var(--ds-btn-hover); }
-    .ds-picker-btn:active { background: var(--ds-btn-active); }
-
-    .ds-popup {
-      position: fixed;
-      top: calc(66px + env(safe-area-inset-top, 0px));
-      right: 12px;
-      z-index: 10001;
-      background: rgba(255,255,255,0.72);
-      backdrop-filter: var(--ds-blur);
-      -webkit-backdrop-filter: var(--ds-blur);
-      border-radius: var(--ds-radius-md, 26px);
-      box-shadow: var(--ds-shadow-lg);
-      padding: 8px 0;
-      min-width: 240px;
-      transform: translateY(-12px) scale(0.92);
-      opacity: 0;
-      pointer-events: none;
-      transform-origin: top right;
-      transition:
-        transform var(--ds-motion, 0.3s ease),
-        opacity 0.2s ease,
-        background-color 0.5s ease;
-    }
-    .ds-popup.open {
-      transform: translateY(0) scale(1);
-      opacity: 1;
-      pointer-events: auto;
-    }
-    .ds-popup-title {
-      padding: 10px 20px 6px;
-      font-size: 11px;
-      font-weight: 700;
-      text-transform: uppercase;
-      letter-spacing: 0.06em;
-      color: var(--ds-label-color);
-    }
-    .ds-popup-item {
-      display: flex;
-      align-items: center;
-      gap: 12px;
-      padding: 10px 20px;
-      cursor: pointer;
-      font-size: 14px;
-      font-weight: 500;
-      color: var(--ds-menu-text);
-      border: none;
-      background: none;
-      width: 100%;
-      text-align: left;
-      transition: background 0.15s;
-    }
-    .ds-popup-item:hover { background: var(--ds-menu-hover); }
-    .ds-popup-item:active { background: var(--ds-menu-hover); }
-    .ds-popup-item.active {
-      color: var(--ds-menu-active-text);
-      font-weight: 600;
-      background: var(--ds-menu-active-bg);
-    }
-    .ds-popup-item .ds-icon {
-      width: 28px;
-      height: 28px;
-      border-radius: 6px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 15px;
-      flex-shrink: 0;
-    }
-    .ds-popup-item .ds-desc {
-      font-size: 11px;
-      font-weight: 400;
-      color: var(--ds-text-secondary);
-      margin-top: 1px;
-    }
+    /* Samsung One UI is the only design system (tokens in :root) */
   </style>
 </head>
 
 <body>
-<script>(function(){var ds=localStorage.getItem('designSystem');if(ds&&ds!=='oneui'){document.body.classList.add('ds-'+ds)}})()</script>
 
 <div class="site-wrap">
 
-  <!-- Banner card -->
-  <a href="./index.html" class="site-banner">
-    <img src="./resources/images/banners/wmpc_topbanner_transparent.png" alt="All World Mission Prayer Center" />
-  </a>
-
+  <!-- Banner + info bar card -->
+  <div class="site-hero-card">
+    <a href="./index.html" class="site-banner">
+      <img src="./resources/images/banners/wmpc_topbanner_transparent.png" alt="All World Mission Prayer Center" />
+    </a>
+    <div class="site-top-bar">
+      <div class="site-info-bar">
+        <div class="info-bar-text">
+          <span class="info-bar-scroll">全年無休 | 晨禱禮拜：6:30am - 8:00am | 晚禱禮拜：8:00pm - 9:00pm | 主日崇拜 周日：10:00am 開始</span>
+        </div>
+      </div>
+    </div>
+  </div>
 
   <!-- Quick links grid -->
   <div class="section-card">
@@ -1145,20 +715,10 @@
 
 </div>
 
-<!-- Sticky top bar: marquee + settings + FAB -->
-<div class="site-top-bar">
-  <div class="site-info-bar">
-    <div class="info-bar-text">
-      <span class="info-bar-scroll">全年無休 | 晨禱禮拜：6:30am - 8:00am | 晚禱禮拜：8:00pm - 9:00pm | 主日崇拜 周日：10:00am 開始</span>
-    </div>
-  </div>
-  <button class="ds-picker-btn" id="dsPickerBtn" type="button" aria-label="Choose design system">
-    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
-  </button>
-  <button class="fab-btn" id="fabBtn" aria-label="Open navigation menu" aria-expanded="false">
-    <div class="fab-icon"></div>
-  </button>
-</div>
+<!-- FAB button: fixed bottom-right -->
+<button class="fab-btn" id="fabBtn" aria-label="Open navigation menu" aria-expanded="false" style="position:fixed;bottom:calc(12px + env(safe-area-inset-bottom, 0px));right:12px;z-index:10000;">
+  <div class="fab-icon"></div>
+</button>
 
 <!-- Quick-links skeleton → loaded transition -->
 <script>
@@ -1176,95 +736,6 @@
 
 <!-- banner blend script removed — single banner image now -->
 
-<!-- Design system picker popup -->
-<div class="ds-popup" id="dsPopup">
-  <div class="ds-popup-title">Design System</div>
-  <button class="ds-popup-item active" data-ds="oneui">
-    <span class="ds-icon" style="background:#1428A0;color:#fff;">S</span>
-    <span><span>Samsung One UI</span><br><span class="ds-desc">Rounded, warm, bottom-focused interaction</span></span>
-  </button>
-  <button class="ds-popup-item" data-ds="liquid-glass">
-    <span class="ds-icon" style="background:#A2AAAD;color:#fff;">&#63743;</span>
-    <span><span>Apple Liquid Glass</span><br><span class="ds-desc">Translucent glass, refraction, fluid morph</span></span>
-  </button>
-  <button class="ds-popup-item" data-ds="material">
-    <span class="ds-icon" style="background:#6750A4;color:#fff;">M</span>
-    <span><span>Google Material 3</span><br><span class="ds-desc">Tonal elevation, dynamic color, spring motion</span></span>
-  </button>
-  <button class="ds-popup-item" data-ds="fluent">
-    <span class="ds-icon" style="background:#0F6CBD;color:#fff;">F</span>
-    <span><span>Windows Fluent 2</span><br><span class="ds-desc">4px grid, key+ambient shadows, Segoe UI</span></span>
-  </button>
-  <button class="ds-popup-item" data-ds="carbon">
-    <span class="ds-icon" style="background:#161616;color:#fff;">C</span>
-    <span><span>IBM Carbon</span><br><span class="ds-desc">2x grid, zero radius, IBM Plex, structured</span></span>
-  </button>
-</div>
-
-<!-- Design system picker -->
-<script>
-(function() {
-  var btn = document.getElementById('dsPickerBtn');
-  var popup = document.getElementById('dsPopup');
-  var items = popup.querySelectorAll('.ds-popup-item');
-  var isOpen = false;
-
-  var dsClasses = ['ds-liquid-glass', 'ds-material', 'ds-fluent', 'ds-carbon'];
-  var dsMap = {
-    'oneui': null,
-    'liquid-glass': 'ds-liquid-glass',
-    'material': 'ds-material',
-    'fluent': 'ds-fluent',
-    'carbon': 'ds-carbon'
-  };
-
-  function applyDS(key) {
-    dsClasses.forEach(function(c) { document.body.classList.remove(c); });
-    var cls = dsMap[key];
-    if (cls) document.body.classList.add(cls);
-    localStorage.setItem('designSystem', key);
-
-    for (var i = 0; i < items.length; i++) {
-      items[i].classList.toggle('active', items[i].getAttribute('data-ds') === key);
-    }
-
-    var metaTC = document.getElementById('metaThemeColor');
-    var bg = getComputedStyle(document.body).getPropertyValue('--ds-bg').trim();
-    if (metaTC && bg) metaTC.setAttribute('content', bg);
-  }
-
-  function toggle() {
-    isOpen = !isOpen;
-    popup.classList.toggle('open', isOpen);
-  }
-
-  function close() {
-    if (isOpen) { isOpen = false; popup.classList.remove('open'); }
-  }
-
-  btn.addEventListener('click', function(e) {
-    e.stopPropagation();
-    toggle();
-  });
-
-  for (var i = 0; i < items.length; i++) {
-    items[i].addEventListener('click', function() {
-      applyDS(this.getAttribute('data-ds'));
-      close();
-    });
-  }
-
-  document.addEventListener('click', function(e) {
-    if (!popup.contains(e.target) && e.target !== btn) close();
-  });
-  document.addEventListener('keydown', function(e) {
-    if (e.key === 'Escape') close();
-  });
-
-  var saved = localStorage.getItem('designSystem');
-  if (saved && dsMap.hasOwnProperty(saved)) applyDS(saved);
-})();
-</script>
 
 <!-- Info bar marquee for mobile -->
 <script>
@@ -1395,7 +866,7 @@
     if (e.key === 'Escape') close();
   });
 
-  // --- Drag-to-dismiss for mobile top sheet ---
+  // --- Drag-to-dismiss for mobile bottom sheet ---
   var dragStartY = 0;
   var lastY = 0;
   var lastTime = 0;
@@ -1404,8 +875,7 @@
 
   menu.addEventListener('touchstart', function(e) {
     if (!isOpen) return;
-    var atBottom = menuScroll.scrollTop + menuScroll.clientHeight >= menuScroll.scrollHeight - 1;
-    if (!atBottom) return;
+    if (menuScroll.scrollTop > 1) return;
     dragStartY = e.touches[0].clientY;
     lastY = dragStartY;
     lastTime = Date.now();
@@ -1419,7 +889,7 @@
     if (!dragging) return;
     var touchY = e.touches[0].clientY;
     var dy = touchY - dragStartY;
-    if (dy > 0) dy = 0; // only allow upward drag
+    if (dy < 0) dy = 0;
 
     var now = Date.now();
     var dt = now - lastTime;
@@ -1428,7 +898,7 @@
     lastTime = now;
 
     menu.style.transform = 'translateY(' + dy + 'px)';
-    scrim.style.opacity = Math.max(0, 1 - (Math.abs(dy) / menu.offsetHeight));
+    scrim.style.opacity = Math.max(0, 1 - (dy / menu.offsetHeight));
 
     e.preventDefault();
   }, { passive: false });
@@ -1438,11 +908,10 @@
     dragging = false;
     var dy = e.changedTouches[0].clientY - dragStartY;
 
-    var flickingDown = velocityY > 0.3;
-    var shouldDismiss = !flickingDown && (dy < -80 || velocityY < -0.4);
+    var shouldDismiss = dy > 80 || velocityY > 0.4;
     if (shouldDismiss) {
       menu.style.transition = 'transform 0.25s cubic-bezier(0.22, 0.61, 0.36, 1)';
-      menu.style.transform = 'translateY(-100%)';
+      menu.style.transform = 'translateY(100%)';
       scrim.style.transition = 'opacity 0.25s';
       scrim.style.opacity = '0';
       setTimeout(function() {
