@@ -121,14 +121,35 @@
       background-color: #BDA58B;
     }
     .site-banner {
-      display: block;
+      display: flex;
+      align-items: center;
       padding: 12px;
-      text-decoration: none;
+      position: relative;
     }
-    .site-banner img {
+    .site-banner-logo {
+      flex-shrink: 0;
+      height: 100%;
+      display: flex;
+      align-items: center;
+    }
+    .site-banner-logo img {
+      height: 100%;
+      width: auto;
+      display: block;
+    }
+    .site-banner-main {
+      flex: 1;
+      min-width: 0;
+    }
+    .site-banner-main img {
       width: 100%;
       height: auto;
       display: block;
+    }
+    .site-banner-link {
+      position: absolute;
+      inset: 0;
+      z-index: 1;
     }
     .site-top-bar {
       display: flex;
@@ -604,9 +625,15 @@
 
   <!-- Banner + info bar card -->
   <div class="site-hero-card">
-    <a href="./index.html" class="site-banner">
-      <img src="./resources/images/banners/wmpc_topbanner_transparent.png" alt="All World Mission Prayer Center" />
-    </a>
+    <div class="site-banner">
+      <a href="./index.html" class="site-banner-link" aria-label="Homepage"></a>
+      <div class="site-banner-logo">
+        <img src="./resources/images/awmpc_eagle_logo.svg" alt="" />
+      </div>
+      <div class="site-banner-main">
+        <img src="./resources/images/banners/wmpc_topbanner_transparent.png" alt="All World Mission Prayer Center" />
+      </div>
+    </div>
     <div class="site-top-bar">
       <div class="site-info-bar">
         <div class="info-bar-text">
