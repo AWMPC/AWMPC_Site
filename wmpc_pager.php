@@ -113,39 +113,19 @@
       padding-top: calc(72px + env(safe-area-inset-top, 0px));
     }
 
-    /* --- Combined banner card (wraps both banners side-by-side) --- */
-    .site-combined-banner {
-      display: flex;
-      flex-direction: row;
-      align-items: stretch;
+    /* --- Banner card --- */
+    .site-banner {
+      display: block;
       border-radius: var(--ds-radius-md);
       margin: 12px 0;
       box-shadow: var(--ds-shadow-md);
       overflow: hidden;
-    }
-
-    /* --- Left banner (focus block) --- */
-    .site-banner {
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      background-color: #BDA58B;
       text-decoration: none;
-      flex: 1 1 0;
-      min-width: 0;
-      padding: 8px;
     }
     .site-banner img {
       width: 100%;
-      height: 100%;
-      object-fit: contain;
+      height: auto;
       display: block;
-    }
-    /* Gradient blend between left and right banners */
-    .site-banner-blend {
-      width: 24px;
-      flex-shrink: 0;
-      background: linear-gradient(to right, #BDA58B, #001B5B);
     }
 
     /* --- Top bar: floating pill with glazed glass --- */
@@ -226,21 +206,7 @@
       display: block;
     }
 
-    /* --- Right banner GIF (inside combined card) --- */
-    .site-main-banner {
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      flex: 1 1 0;
-      min-width: 0;
-      overflow: hidden;
-      text-decoration: none;
-    }
-    .site-main-banner img {
-      width: 100%;
-      height: auto;
-      display: block;
-    }
+    /* site-main-banner styles deprecated — replaced by single banner image */
 
     /* --- Media defaults inside content --- */
     .site-main img {
@@ -1073,16 +1039,10 @@
 
 <div class="site-wrap">
 
-  <!-- Combined banner card -->
-  <div class="site-combined-banner">
-    <a href="./index.html" class="site-banner">
-      <img src="./resources/images/banners/wmpc_topbanner_transparent.png" alt="All World Mission Prayer Center" />
-    </a>
-    <div class="site-banner-blend" id="bannerBlend"></div>
-    <a href="./index.html" class="site-main-banner">
-      <img src="./resources/images/banners/wmpc_mainbanner2.gif" alt="AWMPC Church Banner" />
-    </a>
-  </div>
+  <!-- Banner card -->
+  <a href="./index.html" class="site-banner">
+    <img src="./resources/images/banners/awmpc_banner_2026_03_05.webp" alt="All World Mission Prayer Center" />
+  </a>
 
 
   <!-- Quick links grid -->
@@ -1213,94 +1173,7 @@
 })();
 </script>
 
-<!-- Dynamic pixel-sampled banner blend -->
-<script>
-(function() {
-  var blendEl = document.getElementById('bannerBlend');
-  if (!blendEl) return;
-
-  var leftBanner = document.querySelector('.site-banner');
-  var rightBanner = document.querySelector('.site-main-banner');
-  var leftImg = leftBanner.querySelector('img');
-  var rightImg = rightBanner.querySelector('img');
-
-  var canvas = document.createElement('canvas');
-  canvas.style.cssText = 'display:block;width:100%;height:100%;position:relative;z-index:1;';
-  blendEl.appendChild(canvas);
-
-  function containRect(img, cw, ch) {
-    var nw = img.naturalWidth, nh = img.naturalHeight;
-    if (!nw || !nh) return null;
-    var s = Math.min(cw / nw, ch / nh);
-    var w = nw * s, h = nh * s;
-    return { x: (cw - w) / 2, y: (ch - h) / 2, w: w, h: h };
-  }
-
-  function render() {
-    var bRect = blendEl.getBoundingClientRect();
-    var W = Math.round(bRect.width);
-    var H = Math.round(bRect.height);
-    if (!W || !H || !leftImg.naturalWidth || !rightImg.naturalWidth) return;
-
-    canvas.width = W;
-    canvas.height = H;
-    var ctx = canvas.getContext('2d');
-
-    var lbRect = leftBanner.getBoundingClientRect();
-    var ls = getComputedStyle(leftBanner);
-    var pT = parseFloat(ls.paddingTop) || 0;
-    var pB = parseFloat(ls.paddingBottom) || 0;
-    var pL = parseFloat(ls.paddingLeft) || 0;
-    var pR = parseFloat(ls.paddingRight) || 0;
-    var cw = lbRect.width - pL - pR;
-    var ch = lbRect.height - pT - pB;
-
-    var oc = document.createElement('canvas');
-    oc.width = Math.round(lbRect.width);
-    oc.height = Math.round(lbRect.height);
-    var octx = oc.getContext('2d');
-    octx.fillStyle = '#BDA58B';
-    octx.fillRect(0, 0, oc.width, oc.height);
-    var cr = containRect(leftImg, cw, ch);
-    if (cr) octx.drawImage(leftImg, pL + cr.x, pT + cr.y, cr.w, cr.h);
-    var leftEdge = octx.getImageData(oc.width - 1, 0, 1, oc.height);
-
-    var rbRect = rightBanner.getBoundingClientRect();
-    var rc = document.createElement('canvas');
-    rc.width = Math.round(rbRect.width);
-    rc.height = Math.round(rbRect.height);
-    var rctx = rc.getContext('2d');
-    var rw = rc.width;
-    var rh = (rightImg.naturalHeight / rightImg.naturalWidth) * rw;
-    var ry = (rc.height - rh) / 2;
-    rctx.drawImage(rightImg, 0, ry, rw, rh);
-    var rightEdge = rctx.getImageData(0, 0, 1, rc.height);
-
-    for (var y = 0; y < H; y++) {
-      var ly = Math.min(Math.round(y * oc.height / H), oc.height - 1);
-      var ryi = Math.min(Math.round(y * rc.height / H), rc.height - 1);
-      var li = ly * 4;
-      var ri = ryi * 4;
-      var grad = ctx.createLinearGradient(0, 0, W, 0);
-      grad.addColorStop(0, 'rgb(' + leftEdge.data[li] + ',' + leftEdge.data[li+1] + ',' + leftEdge.data[li+2] + ')');
-      grad.addColorStop(1, 'rgb(' + rightEdge.data[ri] + ',' + rightEdge.data[ri+1] + ',' + rightEdge.data[ri+2] + ')');
-      ctx.fillStyle = grad;
-      ctx.fillRect(0, y, W, 1);
-    }
-  }
-
-  var loaded = 0;
-  function onLoad() { if (++loaded >= 2) render(); }
-  if (leftImg.complete) onLoad(); else leftImg.addEventListener('load', onLoad);
-  if (rightImg.complete) onLoad(); else rightImg.addEventListener('load', onLoad);
-
-  var rt;
-  window.addEventListener('resize', function() {
-    clearTimeout(rt);
-    rt = setTimeout(render, 200);
-  });
-})();
-</script>
+<!-- banner blend script removed — single banner image now -->
 
 <!-- Design system picker popup -->
 <div class="ds-popup" id="dsPopup">
