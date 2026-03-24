@@ -42,7 +42,7 @@
       /* Colors — surfaces */
       --ds-bg: #EDE3D5;
       --ds-text: #212121;
-      --ds-text-secondary: #666666;
+      --ds-text-secondary: #656565;
       --ds-card-bg: #FFFFFF;
       --ds-label-color: #5C6B7A;
       --ds-border: 2px solid rgba(0,0,0,0.22);
