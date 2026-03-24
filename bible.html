@@ -378,6 +378,29 @@
     }
   }
 
+  // --- Browser history ---
+  var navFromPop = false;
+
+  function pushNav(state) {
+    if (!navFromPop) {
+      history.pushState(state, '');
+    }
+  }
+
+  window.addEventListener('popstate', function (e) {
+    if (!bibleData) return;
+    var s = e.state;
+    navFromPop = true;
+    if (s && s.view === 'verses' && s.book && s.chapter) {
+      showVersesView(s.book, s.chapter);
+    } else if (s && s.view === 'chapters' && s.book) {
+      showChaptersView(s.book);
+    } else {
+      showBooksView();
+    }
+    navFromPop = false;
+  });
+
   // --- View: Books ---
   function showBooksView() {
     viewEl.scrollTop = 0;
@@ -385,6 +408,7 @@
     currentBook = null;
     currentChapter = null;
     updateNav();
+    pushNav({ view: 'books' });
 
     if (booksHTML) {
       viewInner.appendChild(booksHTML);
@@ -432,6 +456,7 @@
     currentBook = bookName;
     currentChapter = null;
     updateNav();
+    pushNav({ view: 'chapters', book: bookName });
 
     var chapterCount = Object.keys(bibleData[bookName]).length;
     var header = document.createElement('div');
@@ -461,6 +486,7 @@
     currentBook = bookName;
     currentChapter = chapterNum;
     updateNav();
+    pushNav({ view: 'verses', book: bookName, chapter: chapterNum });
     pushHistory(bookName, chapterNum);
 
     var chapters = bibleData[bookName];
@@ -563,7 +589,10 @@
       return;
     }
     bibleData = xhr.response;
+    history.replaceState({ view: 'books' }, '');
+    navFromPop = true;
     showBooksView();
+    navFromPop = false;
   };
 
   xhr.onerror = function () {
