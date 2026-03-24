@@ -133,7 +133,9 @@
   .chapter-btn.active { background: var(--accent); color: var(--accent-fg); border-color: var(--accent); }
 
   /* Verses view */
-  .verse { margin-bottom: 12px; font-size: 20px; line-height: 1.8; position: relative; }
+  .verse { margin-bottom: 12px; font-size: 20px; line-height: 1.8; position: relative; border-radius: 6px; transition: background 0.4s, box-shadow 0.4s; }
+  .verse.highlight { background: rgba(197, 179, 88, 0.2); box-shadow: 0 0 12px rgba(197, 179, 88, 0.4); }
+  html.dark .verse.highlight { background: rgba(197, 179, 88, 0.12); box-shadow: 0 0 12px rgba(197, 179, 88, 0.25); }
   .verse-num { font-size: 14px; font-weight: 700; color: var(--fg3); vertical-align: super; margin-right: 4px; }
   .verse-bm {
     background: none; border: none; cursor: pointer; font-size: 16px;
@@ -724,7 +726,11 @@
     if (scrollToVerse) {
       requestAnimationFrame(function () {
         var target = viewInner.querySelector('[data-v="' + scrollToVerse + '"]');
-        if (target) target.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        if (target) {
+          target.scrollIntoView({ behavior: 'smooth', block: 'center' });
+          target.classList.add('highlight');
+          setTimeout(function () { target.classList.remove('highlight'); }, 2000);
+        }
       });
     }
   }
