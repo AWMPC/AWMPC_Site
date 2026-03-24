@@ -43,23 +43,23 @@
     flex-shrink: 0; z-index: 100;
   }
   .toolbar-btn {
-    background: none; border: 1px solid rgba(255,255,255,0.15);
+    background: rgba(255,255,255,0.06); border: 1.5px solid rgba(255,255,255,0.35);
     color: var(--toolbar-fg); font-size: 13px; font-family: inherit;
     padding: 5px 10px; border-radius: 6px; cursor: pointer;
-    white-space: nowrap; transition: background 0.12s; flex-shrink: 0;
+    white-space: nowrap; transition: background 0.12s, border-color 0.12s; flex-shrink: 0;
   }
-  .toolbar-btn:hover { background: rgba(255,255,255,0.1); }
+  .toolbar-btn:hover { background: rgba(255,255,255,0.14); border-color: rgba(255,255,255,0.5); }
   .toolbar-title { color: #fff; font-size: 15px; font-weight: 600; flex-shrink: 0; }
   .toolbar-sep { width: 1px; height: 20px; background: rgba(255,255,255,0.15); flex-shrink: 0; }
   .toolbar-spacer { flex: 1; min-width: 4px; }
   .nav-btn {
-    background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.2);
+    background: rgba(255,255,255,0.1); border: 1.5px solid rgba(255,255,255,0.45);
     color: #fff; font-size: 13px; font-family: inherit;
     padding: 5px 10px; border-radius: 6px; cursor: pointer;
-    white-space: nowrap; transition: background 0.12s;
+    white-space: nowrap; transition: background 0.12s, border-color 0.12s;
     max-width: 140px; overflow: hidden; text-overflow: ellipsis; flex-shrink: 1; min-width: 0;
   }
-  .nav-btn:hover { background: rgba(255,255,255,0.18); }
+  .nav-btn:hover { background: rgba(255,255,255,0.2); border-color: rgba(255,255,255,0.6); }
   .nav-btn.hidden { display: none; }
 
   /* History dropdown */
@@ -146,6 +146,17 @@
   }
   #loading { color: var(--fg3); font-size: 15px; padding: 40px 20px; text-align: center; }
 
+  html.large-font .book-btn { padding: 10px 12px; }
+  html.large-font .book-name-en { font-size: 18px; }
+  html.large-font .book-name-ko { font-size: 15px; }
+  html.large-font .testament h2 { font-size: 18px; }
+  html.large-font .chapters-header { font-size: 22px; }
+  html.large-font .chapter-btn { font-size: 19px; padding: 14px 0; }
+  html.large-font .verse { font-size: 20px; line-height: 1.8; }
+  html.large-font .verse-num { font-size: 14px; }
+  html.large-font .footnote-toggle { font-size: 13px; }
+  html.large-font .footnote-body { font-size: 17px; }
+
   #install-btn { display: none; }
   #install-btn.available { display: inline-block; }
 </style>
@@ -162,6 +173,7 @@
     <div class="history-menu" id="history-menu"></div>
   </div>
   <button class="toolbar-btn" id="dark-btn" type="button">🌙</button>
+  <button class="toolbar-btn" id="font-btn" type="button">Aa</button>
   <button class="toolbar-btn" id="install-btn" type="button">📲</button>
 </div>
 
@@ -177,6 +189,7 @@
   var OT_COUNT = 39;
   var HISTORY_KEY = 'bible_history';
   var DARK_KEY = 'bible_dark';
+  var FONT_KEY = 'bible_large_font';
   var MAX_HISTORY = 20;
 
   var viewEl = document.getElementById('view');
@@ -187,6 +200,7 @@
   var historyBtn = document.getElementById('history-btn');
   var historyMenu = document.getElementById('history-menu');
   var installBtn = document.getElementById('install-btn');
+  var fontBtn = document.getElementById('font-btn');
   var navBookBtn = document.getElementById('nav-book');
   var navChapterBtn = document.getElementById('nav-chapter');
 
@@ -236,6 +250,19 @@
   applyDark(initDark);
   darkBtn.addEventListener('click', function () {
     applyDark(!document.documentElement.classList.contains('dark'));
+  });
+
+  // --- Font size toggle ---
+  function applyFont(large) {
+    document.documentElement.classList.toggle('large-font', large);
+    fontBtn.textContent = large ? 'Aa\u2013' : 'Aa+';
+    try { localStorage.setItem(FONT_KEY, large ? '1' : '0'); } catch(e) {}
+  }
+  var initFont = false;
+  try { initFont = localStorage.getItem(FONT_KEY) === '1'; } catch(e) {}
+  applyFont(initFont);
+  fontBtn.addEventListener('click', function () {
+    applyFont(!document.documentElement.classList.contains('large-font'));
   });
 
   // --- History ---
@@ -395,7 +422,7 @@
     var header = document.createElement('div');
     header.className = 'chapters-header';
     var ko = koName(bookName);
-    header.textContent = (ko ? '(' + ko + ') ' : '') + bookName + ' \u2014 ' + chapterCount + (chapterCount === 1 ? ' chapter' : ' chapters');
+    header.textContent = (ko ? '(' + ko + ') ' : '') + bookName;
     viewInner.appendChild(header);
 
     var grid = document.createElement('div');
@@ -505,9 +532,6 @@
     if (bibleData) showBooksView();
   });
   navBookBtn.addEventListener('click', function () {
-    if (bibleData) showBooksView();
-  });
-  navChapterBtn.addEventListener('click', function () {
     if (bibleData && currentBook) showChaptersView(currentBook);
   });
 
