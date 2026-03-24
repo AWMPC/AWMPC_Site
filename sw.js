@@ -1,8 +1,10 @@
-var CACHE_NAME = 'bible-v1';
+var CACHE_NAME = 'bible-v2';
 var ASSETS = [
   'bible.html',
   'bible.json',
-  'manifest.json'
+  'manifest.json',
+  'resources/images/bible-icon-192.png',
+  'resources/images/bible-icon-512.png'
 ];
 
 self.addEventListener('install', function (e) {
