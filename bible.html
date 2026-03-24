@@ -141,6 +141,35 @@
   }
   .verse-bm:hover { opacity: 0.7; }
   .verse-bm.bookmarked { opacity: 1; color: var(--bm-color); }
+
+  /* Bookmark popup */
+  .bm-popup-scrim {
+    position: fixed; inset: 0; background: rgba(0,0,0,0.3); z-index: 200;
+  }
+  .bm-popup {
+    position: fixed; left: 50%; top: 50%; transform: translate(-50%, -50%);
+    background: var(--bg2); border: 1px solid var(--border); border-radius: 12px;
+    box-shadow: 0 12px 40px rgba(0,0,0,0.25); min-width: 260px; max-width: 320px;
+    z-index: 201; overflow: hidden;
+  }
+  .bm-popup-title {
+    font-size: 15px; font-weight: 600; color: var(--fg3); padding: 12px 16px 8px;
+  }
+  .bm-pop-item {
+    display: flex; align-items: center; gap: 10px; width: 100%;
+    background: none; border: none; border-top: 1px solid var(--border);
+    padding: 12px 16px; text-align: left; font-size: 17px; font-family: inherit;
+    color: var(--fg); cursor: pointer; transition: background 0.1s;
+  }
+  .bm-pop-item:hover { background: var(--bg4); }
+  .bm-pop-item.danger { color: var(--err-fg); }
+  .bm-pop-input {
+    width: calc(100% - 32px); margin: 8px 16px; font-size: 16px; font-family: inherit;
+    padding: 8px 12px; border: 1.5px solid var(--border); border-radius: 6px;
+    background: var(--bg); color: var(--fg); outline: none;
+  }
+  .bm-pop-input:focus { border-color: var(--accent); }
+  .bm-pop-check { color: var(--bm-color); font-size: 14px; }
   .footnote-toggle {
     display: inline-block; background: none; border: 1px solid var(--border3);
     border-radius: 4px; color: var(--fg3); font-size: 13px; font-family: inherit;
@@ -223,6 +252,8 @@
   html.large-font .search-text { font-size: 19px; }
   html.large-font .search-count { font-size: 18px; }
   html.large-font .bm-ref { font-size: 19px; }
+  html.large-font .bm-pop-item { font-size: 20px; }
+  html.large-font .bm-pop-input { font-size: 19px; }
 
   @media (prefers-reduced-motion: reduce) {
     *, *::before, *::after { transition-duration: 0.01ms !important; animation-duration: 0.01ms !important; }
@@ -300,20 +331,84 @@
       this._set('bible_history', list);
     },
 
-    getBookmarks: function () { return this._get('bible_bookmarks', []); },
-    addBookmark: function (book, ch, v) {
-      var list = this.getBookmarks();
-      var key = book + '|' + ch + '|' + v;
-      if (list.indexOf(key) === -1) { list.unshift(key); this._set('bible_bookmarks', list); }
+    _bmData: function () {
+      var d = this._get('bible_bm2', null);
+      if (d && d.unsorted) return d;
+      var old = this._get('bible_bookmarks', []);
+      d = { unsorted: old, lists: {} };
+      this._set('bible_bm2', d);
+      return d;
     },
-    removeBookmark: function (book, ch, v) {
-      var list = this.getBookmarks();
-      var key = book + '|' + ch + '|' + v;
-      list = list.filter(function (x) { return x !== key; });
-      this._set('bible_bookmarks', list);
+    _bmSave: function (d) { this._set('bible_bm2', d); },
+
+    getBmLists: function () { return Object.keys(this._bmData().lists); },
+    getBmList: function (name) { var d = this._bmData(); return (d.lists[name] || []).slice(); },
+    getUnsorted: function () { return this._bmData().unsorted.slice(); },
+    getAllBookmarks: function () {
+      var d = this._bmData();
+      var all = d.unsorted.slice();
+      var names = Object.keys(d.lists);
+      for (var i = 0; i < names.length; i++) {
+        var items = d.lists[names[i]];
+        for (var j = 0; j < items.length; j++) {
+          if (all.indexOf(items[j]) === -1) all.push(items[j]);
+        }
+      }
+      return all;
     },
     isBookmarked: function (book, ch, v) {
-      return this.getBookmarks().indexOf(book + '|' + ch + '|' + v) !== -1;
+      return this.getAllBookmarks().indexOf(book + '|' + ch + '|' + v) !== -1;
+    },
+    getVerseListMembership: function (book, ch, v) {
+      var key = book + '|' + ch + '|' + v;
+      var d = this._bmData();
+      var result = [];
+      if (d.unsorted.indexOf(key) !== -1) result.push(null);
+      var names = Object.keys(d.lists);
+      for (var i = 0; i < names.length; i++) {
+        if (d.lists[names[i]].indexOf(key) !== -1) result.push(names[i]);
+      }
+      return result;
+    },
+    addBookmark: function (book, ch, v) {
+      var d = this._bmData();
+      var key = book + '|' + ch + '|' + v;
+      if (d.unsorted.indexOf(key) === -1) d.unsorted.unshift(key);
+      this._bmSave(d);
+    },
+    addBookmarkToList: function (book, ch, v, listName) {
+      var d = this._bmData();
+      var key = book + '|' + ch + '|' + v;
+      if (!d.lists[listName]) d.lists[listName] = [];
+      if (d.lists[listName].indexOf(key) === -1) d.lists[listName].unshift(key);
+      this._bmSave(d);
+    },
+    removeBookmark: function (book, ch, v) {
+      var d = this._bmData();
+      var key = book + '|' + ch + '|' + v;
+      d.unsorted = d.unsorted.filter(function (x) { return x !== key; });
+      var names = Object.keys(d.lists);
+      for (var i = 0; i < names.length; i++) {
+        d.lists[names[i]] = d.lists[names[i]].filter(function (x) { return x !== key; });
+      }
+      this._bmSave(d);
+    },
+    removeFromList: function (book, ch, v, listName) {
+      var d = this._bmData();
+      var key = book + '|' + ch + '|' + v;
+      if (d.lists[listName]) {
+        d.lists[listName] = d.lists[listName].filter(function (x) { return x !== key; });
+      }
+      this._bmSave(d);
+    },
+    createList: function (name) {
+      var d = this._bmData();
+      if (!d.lists[name]) { d.lists[name] = []; this._bmSave(d); }
+    },
+    deleteList: function (name) {
+      var d = this._bmData();
+      delete d.lists[name];
+      this._bmSave(d);
     }
   };
 
@@ -611,21 +706,12 @@
         }
       }
 
-      // Bookmark button per verse
       var bmBtn = document.createElement('button');
       bmBtn.type = 'button';
       bmBtn.className = 'verse-bm' + (State.isBookmarked(bookName, chapterNum, keys[i]) ? ' bookmarked' : '');
-      bmBtn.textContent = '🔖';
+      bmBtn.textContent = '\uD83D\uDD16';
       bmBtn.addEventListener('click', (function (book, ch, v, el) {
-        return function () {
-          if (State.isBookmarked(book, ch, v)) {
-            State.removeBookmark(book, ch, v);
-            el.className = 'verse-bm';
-          } else {
-            State.addBookmark(book, ch, v);
-            el.className = 'verse-bm bookmarked';
-          }
-        };
+        return function (e) { e.stopPropagation(); showBmPopup(book, ch, v, el); };
       })(bookName, chapterNum, keys[i], bmBtn));
       p.appendChild(bmBtn);
 
@@ -633,6 +719,155 @@
       for (var nb = 0; nb < noteBodies.length; nb++) div.appendChild(noteBodies[nb]);
       viewInner.appendChild(div);
     }
+  }
+
+  // ===================== BOOKMARK POPUP =====================
+  function closeBmPopup() {
+    var s = document.querySelector('.bm-popup-scrim');
+    if (s) s.parentNode.removeChild(s);
+    var p = document.querySelector('.bm-popup');
+    if (p) p.parentNode.removeChild(p);
+  }
+
+  function showBmPopup(book, ch, v, btnEl) {
+    closeBmPopup();
+    var key = book + '|' + ch + '|' + v;
+    var isBm = State.isBookmarked(book, ch, v);
+
+    var scrim = document.createElement('div');
+    scrim.className = 'bm-popup-scrim';
+    scrim.addEventListener('click', closeBmPopup);
+    document.body.appendChild(scrim);
+
+    var popup = document.createElement('div');
+    popup.className = 'bm-popup';
+
+    var title = document.createElement('div');
+    title.className = 'bm-popup-title';
+    title.textContent = book + ' ' + ch + ':' + v;
+    popup.appendChild(title);
+
+    function refreshBtn() {
+      btnEl.className = 'verse-bm' + (State.isBookmarked(book, ch, v) ? ' bookmarked' : '');
+    }
+
+    if (!isBm) {
+      var addBtn = document.createElement('button');
+      addBtn.type = 'button';
+      addBtn.className = 'bm-pop-item';
+      addBtn.innerHTML = '<span class="dd-icon">\uD83D\uDD16</span> Add Bookmark';
+      addBtn.addEventListener('click', function () {
+        State.addBookmark(book, ch, v);
+        refreshBtn();
+        closeBmPopup();
+      });
+      popup.appendChild(addBtn);
+    }
+
+    var listBtn = document.createElement('button');
+    listBtn.type = 'button';
+    listBtn.className = 'bm-pop-item';
+    listBtn.innerHTML = '<span class="dd-icon">\uD83D\uDCC1</span> Add to List\u2026';
+    listBtn.addEventListener('click', function () {
+      showBmListPicker(popup, book, ch, v, refreshBtn);
+    });
+    popup.appendChild(listBtn);
+
+    if (isBm) {
+      var rmBtn = document.createElement('button');
+      rmBtn.type = 'button';
+      rmBtn.className = 'bm-pop-item danger';
+      rmBtn.innerHTML = '<span class="dd-icon">\u2715</span> Remove Bookmark';
+      rmBtn.addEventListener('click', function () {
+        State.removeBookmark(book, ch, v);
+        refreshBtn();
+        closeBmPopup();
+      });
+      popup.appendChild(rmBtn);
+    }
+
+    document.body.appendChild(popup);
+  }
+
+  function showBmListPicker(popup, book, ch, v, refreshBtn) {
+    popup.textContent = '';
+    var membership = State.getVerseListMembership(book, ch, v);
+
+    var backBtn = document.createElement('button');
+    backBtn.type = 'button';
+    backBtn.className = 'bm-pop-item';
+    backBtn.innerHTML = '<span class="dd-icon">\u2190</span> Back';
+    backBtn.addEventListener('click', function () {
+      closeBmPopup();
+      showBmPopup(book, ch, v, document.querySelector('.verse-bm.bookmarked') || document.querySelector('.verse-bm'));
+    });
+    popup.appendChild(backBtn);
+
+    var lists = State.getBmLists();
+    for (var i = 0; i < lists.length; i++) {
+      var inList = membership.indexOf(lists[i]) !== -1;
+      var item = document.createElement('button');
+      item.type = 'button';
+      item.className = 'bm-pop-item';
+      item.innerHTML = '<span class="dd-icon">\uD83D\uDCC1</span><span style="flex:1">' +
+        lists[i] + '</span>' + (inList ? '<span class="bm-pop-check">\u2713</span>' : '');
+      item.addEventListener('click', (function (name, wasIn) {
+        return function () {
+          if (wasIn) {
+            State.removeFromList(book, ch, v, name);
+          } else {
+            State.addBookmarkToList(book, ch, v, name);
+          }
+          refreshBtn();
+          showBmListPicker(popup, book, ch, v, refreshBtn);
+        };
+      })(lists[i], inList));
+      popup.appendChild(item);
+    }
+
+    var newItem = document.createElement('button');
+    newItem.type = 'button';
+    newItem.className = 'bm-pop-item';
+    newItem.innerHTML = '<span class="dd-icon">+</span> Create New List';
+    newItem.addEventListener('click', function () {
+      showBmNewList(popup, book, ch, v, refreshBtn);
+    });
+    popup.appendChild(newItem);
+  }
+
+  function showBmNewList(popup, book, ch, v, refreshBtn) {
+    popup.textContent = '';
+
+    var backBtn = document.createElement('button');
+    backBtn.type = 'button';
+    backBtn.className = 'bm-pop-item';
+    backBtn.innerHTML = '<span class="dd-icon">\u2190</span> Back';
+    backBtn.addEventListener('click', function () {
+      showBmListPicker(popup, book, ch, v, refreshBtn);
+    });
+    popup.appendChild(backBtn);
+
+    var input = document.createElement('input');
+    input.type = 'text';
+    input.className = 'bm-pop-input';
+    input.placeholder = 'List name\u2026';
+    popup.appendChild(input);
+
+    var createBtn = document.createElement('button');
+    createBtn.type = 'button';
+    createBtn.className = 'bm-pop-item';
+    createBtn.innerHTML = '<span class="dd-icon">+</span> Create & Add';
+    createBtn.addEventListener('click', function () {
+      var name = input.value.trim();
+      if (!name) return;
+      State.createList(name);
+      State.addBookmarkToList(book, ch, v, name);
+      refreshBtn();
+      closeBmPopup();
+    });
+    popup.appendChild(createBtn);
+
+    setTimeout(function () { input.focus(); }, 50);
   }
 
   // ===================== VIEW: SEARCH =====================
@@ -739,6 +974,116 @@
   }
 
   // ===================== VIEW: BOOKMARKS =====================
+  var bmViewEl = null;
+
+  function bmMakeItem(key, listName) {
+    var parts = key.split('|');
+    var book = parts[0], ch = parts[1], v = parts[2];
+
+    var row = document.createElement('div');
+    row.className = 'bm-item';
+
+    var refSpan = document.createElement('span');
+    refSpan.className = 'bm-ref';
+    refSpan.textContent = book + ' ' + ch + ':' + v;
+    row.appendChild(refSpan);
+
+    var rmBtn = document.createElement('button');
+    rmBtn.type = 'button';
+    rmBtn.className = 'bm-remove';
+    rmBtn.textContent = '\u2715';
+    rmBtn.addEventListener('click', (function (bk, c, vr, ln) {
+      return function (e) {
+        e.stopPropagation();
+        if (ln) { State.removeFromList(bk, parseInt(c, 10), vr, ln); }
+        else { State.removeBookmark(bk, parseInt(c, 10), vr); }
+        renderBmView();
+      };
+    })(book, ch, v, listName));
+    row.appendChild(rmBtn);
+
+    row.addEventListener('click', (function (bk, c) {
+      return function () { showVersesView(bk, parseInt(c, 10)); };
+    })(book, ch));
+    return row;
+  }
+
+  function renderBmView() {
+    if (!bmViewEl) return;
+    bmViewEl.textContent = '';
+
+    var unsorted = State.getUnsorted();
+    var listNames = State.getBmLists();
+    var hasAny = unsorted.length > 0 || listNames.length > 0;
+
+    if (!hasAny) {
+      var empty = document.createElement('div');
+      empty.className = 'dd-empty';
+      empty.textContent = 'No bookmarks yet. Tap \uD83D\uDD16 on any verse to add one.';
+      bmViewEl.appendChild(empty);
+      return;
+    }
+
+    for (var n = 0; n < listNames.length; n++) {
+      var name = listNames[n];
+      var items = State.getBmList(name);
+
+      var sec = document.createElement('div');
+      sec.style.marginBottom = '16px';
+
+      var secHead = document.createElement('div');
+      secHead.style.cssText = 'display:flex;align-items:center;gap:8px;margin-bottom:6px;';
+
+      var secTitle = document.createElement('span');
+      secTitle.className = 'chapters-header';
+      secTitle.style.cssText = 'margin-bottom:0;flex:1;font-size:18px;';
+      secTitle.textContent = '\uD83D\uDCC1 ' + name + ' (' + items.length + ')';
+      secHead.appendChild(secTitle);
+
+      var delListBtn = document.createElement('button');
+      delListBtn.type = 'button';
+      delListBtn.className = 'bm-remove';
+      delListBtn.textContent = '\uD83D\uDDD1';
+      delListBtn.title = 'Delete list';
+      delListBtn.addEventListener('click', (function (ln) {
+        return function (e) {
+          e.stopPropagation();
+          if (confirm('Delete list "' + ln + '"? Verses will not be removed from your bookmarks.')) {
+            State.deleteList(ln);
+            renderBmView();
+          }
+        };
+      })(name));
+      secHead.appendChild(delListBtn);
+      sec.appendChild(secHead);
+
+      for (var j = 0; j < items.length; j++) {
+        sec.appendChild(bmMakeItem(items[j], name));
+      }
+      if (items.length === 0) {
+        var emptyList = document.createElement('div');
+        emptyList.className = 'dd-empty';
+        emptyList.textContent = 'Empty list';
+        sec.appendChild(emptyList);
+      }
+      bmViewEl.appendChild(sec);
+    }
+
+    if (unsorted.length > 0) {
+      var unsortedSec = document.createElement('div');
+      unsortedSec.style.marginBottom = '16px';
+      var unsortedTitle = document.createElement('div');
+      unsortedTitle.className = 'chapters-header';
+      unsortedTitle.style.fontSize = '18px';
+      unsortedTitle.textContent = '\uD83D\uDD16 Unsorted (' + unsorted.length + ')';
+      unsortedSec.appendChild(unsortedTitle);
+      for (var u = 0; u < unsorted.length; u++) {
+        unsortedSec.appendChild(bmMakeItem(unsorted[u], null));
+      }
+      bmViewEl.appendChild(unsortedSec);
+    }
+  }
+
   function showBookmarksView() {
     viewEl.scrollTop = 0;
     viewInner.textContent = '';
@@ -752,45 +1097,9 @@
     header.textContent = 'Bookmarks';
     viewInner.appendChild(header);
 
-    var list = State.getBookmarks();
-    if (list.length === 0) {
-      var empty = document.createElement('div');
-      empty.className = 'dd-empty';
-      empty.textContent = 'No bookmarks yet. Tap 🔖 on any verse to add one.';
-      viewInner.appendChild(empty);
-      return;
-    }
-
-    for (var i = 0; i < list.length; i++) {
-      var parts = list[i].split('|');
-      var book = parts[0], ch = parts[1], v = parts[2];
-
-      var row = document.createElement('div');
-      row.className = 'bm-item';
-
-      var refSpan = document.createElement('span');
-      refSpan.className = 'bm-ref';
-      refSpan.textContent = book + ' ' + ch + ':' + v;
-      row.appendChild(refSpan);
-
-      var rmBtn = document.createElement('button');
-      rmBtn.type = 'button';
-      rmBtn.className = 'bm-remove';
-      rmBtn.textContent = '\u2715';
-      rmBtn.addEventListener('click', (function (bk, c, vr) {
-        return function (e) {
-          e.stopPropagation();
-          State.removeBookmark(bk, parseInt(c, 10), vr);
-          showBookmarksView();
-        };
-      })(book, ch, v));
-      row.appendChild(rmBtn);
-
-      row.addEventListener('click', (function (bk, c) {
-        return function () { showVersesView(bk, parseInt(c, 10)); };
-      })(book, ch));
-      viewInner.appendChild(row);
-    }
+    bmViewEl = document.createElement('div');
+    viewInner.appendChild(bmViewEl);
+    renderBmView();
   }
 
   // ===================== BOOK BUTTON FACTORY =====================
