@@ -112,8 +112,49 @@
     font-size: 15px;
     font-family: inherit;
     color: #333;
-    cursor: default;
-    transition: background 0.12s;
+    cursor: pointer;
+    transition: background 0.12s, border-color 0.12s;
+  }
+  .chapter-btn:hover { background: #e4e4e4; border-color: #ccc; }
+  .chapter-btn.active {
+    background: #1a1a2e;
+    color: #fff;
+    border-color: #1a1a2e;
+  }
+
+  /* Verse panel */
+  #verse-panel {
+    display: none;
+    margin-top: 20px;
+    background: #fafaf8;
+    border: 1px solid #e0e0e0;
+    border-radius: 12px;
+    padding: 20px 24px;
+    max-height: 70vh;
+    overflow-y: auto;
+  }
+  #verse-panel.visible { display: block; }
+  #verse-panel h3 {
+    font-size: 18px;
+    color: #1a1a1a;
+    margin-bottom: 16px;
+    position: sticky;
+    top: -20px;
+    background: #fafaf8;
+    padding: 8px 0 10px;
+    z-index: 1;
+  }
+  .verse {
+    margin-bottom: 12px;
+    font-size: 16px;
+    line-height: 1.7;
+  }
+  .verse-num {
+    font-size: 12px;
+    font-weight: 700;
+    color: #888;
+    vertical-align: super;
+    margin-right: 4px;
   }
 
   #error {
@@ -148,6 +189,10 @@
   <div id="chapter-panel">
     <h2 id="chapter-title"></h2>
     <div class="chapter-grid" id="chapter-grid"></div>
+    <div id="verse-panel">
+      <h3 id="verse-title"></h3>
+      <div id="verse-list"></div>
+    </div>
   </div>
 </div>
 <script>
@@ -161,15 +206,55 @@
   var chapterPanel = document.getElementById('chapter-panel');
   var chapterTitle = document.getElementById('chapter-title');
   var chapterGrid = document.getElementById('chapter-grid');
+  var versePanel = document.getElementById('verse-panel');
+  var verseTitle = document.getElementById('verse-title');
+  var verseList = document.getElementById('verse-list');
   var activeBtn = null;
+  var activeChBtn = null;
+  var bibleData = null;
+
+  function showVerses(bookName, chapterNum) {
+    var chapters = bibleData[bookName];
+    var verses = chapters[String(chapterNum)];
+    var keys = Object.keys(verses);
+
+    verseTitle.textContent = bookName + ' ' + chapterNum;
+    verseList.textContent = '';
+
+    for (var i = 0; i < keys.length; i++) {
+      var p = document.createElement('p');
+      p.className = 'verse';
+      var sup = document.createElement('span');
+      sup.className = 'verse-num';
+      sup.textContent = keys[i];
+      p.appendChild(sup);
+      p.appendChild(document.createTextNode(verses[keys[i]]));
+      verseList.appendChild(p);
+    }
+
+    versePanel.className = 'visible';
+    versePanel.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+  }
 
   function showChapters(bookName, chapterCount) {
     chapterTitle.textContent = bookName + ' \u2014 ' + chapterCount + (chapterCount === 1 ? ' Chapter' : ' Chapters');
     chapterGrid.textContent = '';
+    versePanel.className = '';
+    activeChBtn = null;
+
     for (var c = 1; c <= chapterCount; c++) {
       var btn = document.createElement('div');
       btn.className = 'chapter-btn';
       btn.textContent = c;
+      btn.setAttribute('data-ch', c);
+      btn.addEventListener('click', (function (book, ch) {
+        return function () {
+          if (activeChBtn) activeChBtn.className = 'chapter-btn';
+          this.className = 'chapter-btn active';
+          activeChBtn = this;
+          showVerses(book, ch);
+        };
+      })(bookName, c));
       chapterGrid.appendChild(btn);
     }
     chapterPanel.className = 'visible';
@@ -216,7 +301,8 @@
       errorEl.textContent = 'Failed to load bible.json (status ' + xhr.status + ').';
       return;
     }
-    var data = xhr.response;
+    bibleData = xhr.response;
+    var data = bibleData;
     var books = Object.keys(data);
     testaments.style.display = '';
 
