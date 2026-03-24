@@ -310,13 +310,21 @@
   // --- Footnotes ---
   var footnoteRe = /\{\[(\d+)\]\s*(.*?)\}/g;
   function parseVerse(raw) {
-    var notes = [];
-    var clean = raw.replace(footnoteRe, function (_, num, text) {
-      notes.push({ num: num, text: text });
-      return '';
-    });
-    clean = clean.replace(/  +/g, ' ');
-    return { text: clean, notes: notes };
+    var segments = [];
+    var last = 0;
+    var m;
+    footnoteRe.lastIndex = 0;
+    while ((m = footnoteRe.exec(raw)) !== null) {
+      if (m.index > last) {
+        segments.push({ type: 'text', value: raw.slice(last, m.index).replace(/  +/g, ' ') });
+      }
+      segments.push({ type: 'note', num: m[1], text: m[2] });
+      last = footnoteRe.lastIndex;
+    }
+    if (last < raw.length) {
+      segments.push({ type: 'text', value: raw.slice(last).replace(/  +/g, ' ') });
+    }
+    return segments;
   }
 
   // --- Navigation ---
@@ -360,7 +368,7 @@
     verseList.textContent = '';
 
     for (var i = 0; i < keys.length; i++) {
-      var parsed = parseVerse(verses[keys[i]]);
+      var segments = parseVerse(verses[keys[i]]);
       var div = document.createElement('div');
       div.className = 'verse';
 
@@ -369,29 +377,33 @@
       sup.className = 'verse-num';
       sup.textContent = keys[i];
       p.appendChild(sup);
-      p.appendChild(document.createTextNode(parsed.text));
 
       var noteBodies = [];
-      for (var n = 0; n < parsed.notes.length; n++) {
-        var noteBtn = document.createElement('button');
-        noteBtn.type = 'button';
-        noteBtn.className = 'footnote-toggle';
-        noteBtn.textContent = '\u2020' + parsed.notes[n].num;
+      for (var s = 0; s < segments.length; s++) {
+        var seg = segments[s];
+        if (seg.type === 'text') {
+          p.appendChild(document.createTextNode(seg.value));
+        } else {
+          var noteBtn = document.createElement('button');
+          noteBtn.type = 'button';
+          noteBtn.className = 'footnote-toggle';
+          noteBtn.textContent = '\u2020' + seg.num;
 
-        var noteBody = document.createElement('div');
-        noteBody.className = 'footnote-body';
-        noteBody.textContent = '[' + parsed.notes[n].num + '] ' + parsed.notes[n].text;
+          var noteBody = document.createElement('div');
+          noteBody.className = 'footnote-body';
+          noteBody.textContent = '[' + seg.num + '] ' + seg.text;
 
-        noteBtn.addEventListener('click', (function (btn, body) {
-          return function () {
-            var open = body.className.indexOf('visible') !== -1;
-            body.className = open ? 'footnote-body' : 'footnote-body visible';
-            btn.className = open ? 'footnote-toggle' : 'footnote-toggle open';
-          };
-        })(noteBtn, noteBody));
+          noteBtn.addEventListener('click', (function (btn, body) {
+            return function () {
+              var open = body.className.indexOf('visible') !== -1;
+              body.className = open ? 'footnote-body' : 'footnote-body visible';
+              btn.className = open ? 'footnote-toggle' : 'footnote-toggle open';
+            };
+          })(noteBtn, noteBody));
 
-        p.appendChild(noteBtn);
-        noteBodies.push(noteBody);
+          p.appendChild(noteBtn);
+          noteBodies.push(noteBody);
+        }
       }
 
       div.appendChild(p);
