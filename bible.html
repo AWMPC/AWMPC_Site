@@ -169,7 +169,7 @@
 <body>
 
 <div class="toolbar">
-  <span class="toolbar-title">📖</span>
+  <span class="toolbar-title">📖 The Holy Bible</span>
   <button class="nav-btn" id="nav-book" type="button">Books</button>
   <button class="nav-btn hidden" id="nav-chapter" type="button"></button>
   <span class="toolbar-spacer"></span>
@@ -211,6 +211,35 @@
   var currentBook = null;
   var currentChapter = null;
   var booksHTML = null;
+
+  var KO = {
+    'Genesis':'\uCC3D\uC138\uAE30','Exodus':'\uCD9C\uC560\uAD7D\uAE30','Leviticus':'\uB808\uC704\uAE30',
+    'Numbers':'\uBBFC\uC218\uAE30','Deuteronomy':'\uC2E0\uBA85\uAE30','Joshua':'\uC5EC\uD638\uC218\uC544',
+    'Judges':'\uC0AC\uC0AC\uAE30','Ruth':'\uB8FF\uAE30','1 Samuel':'\uC0AC\uBB34\uC5D8\uC0C1',
+    '2 Samuel':'\uC0AC\uBB34\uC5D8\uD558','1 Kings':'\uC5F4\uC655\uAE30\uC0C1','2 Kings':'\uC5F4\uC655\uAE30\uD558',
+    '1 Chronicles':'\uC5ED\uB300\uC0C1','2 Chronicles':'\uC5ED\uB300\uD558','Ezra':'\uC5D0\uC2A4\uB77C',
+    'Nehemiah':'\uB290\uD5E4\uBBF8\uC57C','Esther':'\uC5D0\uC2A4\uB354','Job':'\uC695\uAE30',
+    'Psalms':'\uC2DC\uD3B8','Proverbs':'\uC7A0\uC5B8','Ecclesiastes':'\uC804\uB3C4\uC11C',
+    'Song of Solomon':'\uC544\uAC00','Isaiah':'\uC774\uC0AC\uC57C','Jeremiah':'\uC608\uB808\uBBF8\uC57C',
+    'Lamentations':'\uC608\uB808\uBBF8\uC57C \uC560\uAC00','Ezekiel':'\uC5D0\uC2A4\uACA4',
+    'Daniel':'\uB2E4\uB2C8\uC5D8','Hosea':'\uD638\uC138\uC544','Joel':'\uC694\uC5D8',
+    'Amos':'\uC544\uBAA8\uC2A4','Obadiah':'\uC624\uBC14\uB55C','Jonah':'\uC694\uB098',
+    'Micah':'\uBBF8\uAC00','Nahum':'\uB098\uD6C8','Habakkuk':'\uD558\uBC15\uAD6D',
+    'Zephaniah':'\uC2A4\uBC14\uB0D0','Haggai':'\uD559\uAC1C','Zechariah':'\uC2A4\uAC00\uB8CC',
+    'Malachi':'\uB9D0\uB77C\uAE30',
+    'Matthew':'\uB9C8\uD0DC\uBCF5\uC74C','Mark':'\uB9C8\uAC00\uBCF5\uC74C','Luke':'\uB204\uAC00\uBCF5\uC74C',
+    'John':'\uC694\uD55C\uBCF5\uC74C','Acts':'\uC0AC\uB3C4\uD589\uC804','Romans':'\uB85C\uB9C8\uC11C',
+    '1 Corinthians':'\uACE0\uB9B0\uB3C4\uC804\uC11C','2 Corinthians':'\uACE0\uB9B0\uB3C4\uD6C4\uC11C',
+    'Galatians':'\uAC08\uB77C\uB514\uC544\uC11C','Ephesians':'\uC5D0\uBCA0\uC18C\uC11C',
+    'Philippians':'\uBE4C\uB9BD\uBCF4\uC11C','Colossians':'\uACE8\uB85C\uC0C8\uC11C',
+    '1 Thessalonians':'\uB370\uC0B4\uB85C\uB2C8\uAC00\uC804\uC11C','2 Thessalonians':'\uB370\uC0B4\uB85C\uB2C8\uAC00\uD6C4\uC11C',
+    '1 Timothy':'\uB514\uBAA8\uB370\uC804\uC11C','2 Timothy':'\uB514\uBAA8\uB370\uD6C4\uC11C',
+    'Titus':'\uB514\uB3C4\uC11C','Philemon':'\uBE4C\uB808\uBAAC\uC11C','Hebrews':'\uD788\uBE0C\uB9AC\uC11C',
+    'James':'\uC57C\uACE0\uBCF4\uC11C','1 Peter':'\uBCA0\uB4DC\uB85C\uC804\uC11C','2 Peter':'\uBCA0\uB4DC\uB85C\uD6C4\uC11C',
+    '1 John':'\uC694\uD55C1\uC11C','2 John':'\uC694\uD55C2\uC11C','3 John':'\uC694\uD55C3\uC11C',
+    'Jude':'\uC720\uB2E4\uC11C','Revelation':'\uC694\uD55C\uACC4\uC2DC\uB85D'
+  };
+  function koName(en) { return KO[en] || ''; }
 
   // --- Dark mode ---
   function applyDark(on) {
@@ -309,9 +338,9 @@
 
   // --- Update nav buttons ---
   function updateNav() {
-    navBookBtn.textContent = currentBook || 'Books';
+    navBookBtn.textContent = currentBook ? currentBook : 'Books';
     if (currentBook && currentChapter) {
-      navChapterBtn.textContent = 'Ch ' + currentChapter;
+      navChapterBtn.textContent = currentChapter;
       navChapterBtn.classList.remove('hidden');
     } else {
       navChapterBtn.classList.add('hidden');
@@ -378,7 +407,8 @@
     var chapterCount = Object.keys(bibleData[bookName]).length;
     var header = document.createElement('div');
     header.className = 'chapters-header';
-    header.textContent = bookName + ' \u2014 ' + chapterCount + (chapterCount === 1 ? ' chapter' : ' chapters');
+    var ko = koName(bookName);
+    header.textContent = (ko ? '(' + ko + ') ' : '') + bookName + ' \u2014 ' + chapterCount + (chapterCount === 1 ? ' chapter' : ' chapters');
     viewInner.appendChild(header);
 
     var grid = document.createElement('div');
@@ -471,7 +501,8 @@
     nameWrap.className = 'book-name';
     var nameInner = document.createElement('span');
     nameInner.className = 'book-name-inner';
-    nameInner.textContent = bookName;
+    var ko = koName(bookName);
+    nameInner.textContent = ko ? '(' + ko + ') ' + bookName : bookName;
     nameWrap.appendChild(nameInner);
     btn.appendChild(nameWrap);
 
