@@ -536,6 +536,14 @@
     .fab-menu-item.fab-active .fab-item-zh {
       color: var(--ds-menu-active-text);
     }
+    .fab-menu-item.fab-bible {
+      background: #f0f2f5;
+      border-top: 1px solid #e0e0e0;
+      margin-top: 4px;
+    }
+    .fab-menu-item.fab-bible:hover {
+      background: #e4e6ea;
+    }
 
 
     /* --- Responsive --- */
@@ -805,6 +813,7 @@
   <a class="fab-menu-item" href="./letters.html">Letters <span class="fab-item-zh">信件</span></a>
   <a class="fab-menu-item" href="./canaan_record.html">Canaan <span class="fab-item-zh">历史</span></a>
   <a class="fab-menu-item" href="./hymns.html">Hymns <span class="fab-item-zh">讚美詩</span></a>
+  <a class="fab-menu-item fab-bible" href="./bible.html">📚 Bible <span class="fab-item-zh">聖經</span></a>
   </div>
 </nav>
 

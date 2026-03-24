@@ -338,7 +338,12 @@
 
   // --- Update nav buttons ---
   function updateNav() {
-    navBookBtn.textContent = currentBook ? currentBook : 'Books';
+    if (currentBook) {
+      navBookBtn.textContent = currentBook;
+      navBookBtn.classList.remove('hidden');
+    } else {
+      navBookBtn.classList.add('hidden');
+    }
     if (currentBook && currentChapter) {
       navChapterBtn.textContent = currentChapter;
       navChapterBtn.classList.remove('hidden');
@@ -492,11 +497,6 @@
     btn.className = 'book-btn';
     btn.type = 'button';
 
-    var num = document.createElement('span');
-    num.className = 'book-number';
-    num.textContent = (index + 1) + '.';
-    btn.appendChild(num);
-
     var nameWrap = document.createElement('span');
     nameWrap.className = 'book-name';
     var nameInner = document.createElement('span');
@@ -505,11 +505,6 @@
     nameInner.textContent = ko ? '(' + ko + ') ' + bookName : bookName;
     nameWrap.appendChild(nameInner);
     btn.appendChild(nameWrap);
-
-    var chs = document.createElement('span');
-    chs.className = 'chapter-count';
-    chs.textContent = chapterCount + (chapterCount === 1 ? ' ch' : ' chs');
-    btn.appendChild(chs);
 
     btn.addEventListener('click', function () {
       showChaptersView(bookName);
