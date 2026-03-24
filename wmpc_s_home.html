@@ -139,7 +139,38 @@
 			.carousel-btn { width: 40px; height: 40px; font-size: 18px; }
 			.carousel-slide img { max-height: 350px; }
 		}
+
+		/* --- Hotbar Nav --- */
+		.hotbar {
+			display: flex;
+			align-items: center;
+			gap: 18px;
+			padding: 10px 14px;
+			background: #1a1a2e;
+			border-radius: 10px;
+			margin: 0 0 12px;
+			overflow-x: auto;
+		}
+		.hotbar a {
+			color: #e0e0e0;
+			text-decoration: none;
+			font-size: 15px;
+			font-family: -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+			white-space: nowrap;
+			padding: 6px 12px;
+			border-radius: 6px;
+			transition: background 0.15s, color 0.15s;
+		}
+		.hotbar a:hover {
+			background: rgba(255,255,255,0.12);
+			color: #fff;
+		}
 </style>
+
+	<!-- Navigation Hotbar -->
+	<nav class="hotbar">
+		<a href="bible.html">📚 Bible</a>
+	</nav>
 
 	<!-- Hero image -->
 	<img src="./resources/images/christian_tribune_newsclip.jpg" alt="Christian Tribune Newsclip 2007-06" style="width:100%; max-width:100%; border-radius:16px; margin:16px 0 0;" decoding="async"/>
