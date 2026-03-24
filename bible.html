@@ -657,7 +657,7 @@
   }
 
   // ===================== VIEW: VERSES =====================
-  function showVersesView(bookName, chapterNum) {
+  function showVersesView(bookName, chapterNum, scrollToVerse) {
     viewEl.scrollTop = 0;
     viewInner.textContent = '';
     currentBook = bookName;
@@ -674,6 +674,7 @@
       var segments = parseVerse(verses[keys[i]]);
       var div = document.createElement('div');
       div.className = 'verse';
+      div.setAttribute('data-v', keys[i]);
 
       var p = document.createElement('p');
       var sup = document.createElement('span');
@@ -718,6 +719,13 @@
       div.appendChild(p);
       for (var nb = 0; nb < noteBodies.length; nb++) div.appendChild(noteBodies[nb]);
       viewInner.appendChild(div);
+    }
+
+    if (scrollToVerse) {
+      requestAnimationFrame(function () {
+        var target = viewInner.querySelector('[data-v="' + scrollToVerse + '"]');
+        if (target) target.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      });
     }
   }
 
@@ -966,9 +974,9 @@
       text.appendChild(document.createTextNode(after));
       div.appendChild(text);
 
-      div.addEventListener('click', (function (book, ch) {
-        return function () { showVersesView(book, parseInt(ch, 10)); };
-      })(item.book, item.ch));
+      div.addEventListener('click', (function (book, ch, verse) {
+        return function () { showVersesView(book, parseInt(ch, 10), verse); };
+      })(item.book, item.ch, item.v));
       resultsEl.appendChild(div);
     }
   }
@@ -1002,9 +1010,9 @@
     })(book, ch, v, listName));
     row.appendChild(rmBtn);
 
-    row.addEventListener('click', (function (bk, c) {
-      return function () { showVersesView(bk, parseInt(c, 10)); };
-    })(book, ch));
+    row.addEventListener('click', (function (bk, c, vr) {
+      return function () { showVersesView(bk, parseInt(c, 10), vr); };
+    })(book, ch, v));
     return row;
   }
 
