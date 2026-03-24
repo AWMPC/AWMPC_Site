@@ -262,6 +262,25 @@
       0% { background-position: 200% 0; }
       100% { background-position: -50% 0; }
     }
+    .quick-link-bible {
+      display: flex !important;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      text-decoration: none;
+      background: #f7f5f0 !important;
+      font-size: 28px;
+      line-height: 1;
+      gap: 4px;
+    }
+    .quick-link-bible span {
+      font-size: 11px;
+      font-weight: 600;
+      color: #444;
+      text-align: center;
+      line-height: 1.3;
+    }
+    .quick-link-bible::after { display: none !important; }
     /* webex-card styles deprecated — replaced by awmpc_webex_join_banner.png */
     @media (max-width: 768px) {
       .quick-links {
@@ -634,6 +653,7 @@
       <a href="./request.html"><img src="./resources/images/sidebar/adwindow_prayerrequest.jpg" alt="Prayer Request" loading="lazy" /></a>
       <a href="./mission.html"><img src="./resources/images/sidebar_mission.jpg" alt="Mission" loading="lazy" /></a>
       <a href="https://allworldmissionprayercenterinc-321.my.webex.com/meet/awmpc" target="_blank" rel="noopener"><img src="./resources/images/awmpc_webex_join_banner.png" alt="Join on Webex" loading="lazy" /></a>
+      <a href="./bible.html" class="quick-link-bible">📖<span>Bible<br>聖經</span></a>
     </div>
   </div>
 
