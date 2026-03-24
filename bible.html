@@ -168,8 +168,6 @@
   html.large-font .footnote-toggle { font-size: 13px; }
   html.large-font .footnote-body { font-size: 17px; }
 
-  #install-btn { display: none; }
-  #install-btn.available { display: inline-block; }
 </style>
 </head>
 <body>
@@ -180,7 +178,6 @@
     <span class="toolbar-spacer"></span>
     <button class="toolbar-btn" id="dark-btn" type="button">🌙</button>
     <button class="toolbar-btn" id="font-btn" type="button">Aa</button>
-    <button class="toolbar-btn" id="install-btn" type="button">📲</button>
   </div>
   <div class="toolbar-row" id="toolbar-nav">
     <button class="nav-btn" id="nav-book" type="button">Books</button>
@@ -215,13 +212,11 @@
   var darkBtn = document.getElementById('dark-btn');
   var historyBtn = document.getElementById('history-btn');
   var historyMenu = document.getElementById('history-menu');
-  var installBtn = document.getElementById('install-btn');
   var fontBtn = document.getElementById('font-btn');
   var navBookBtn = document.getElementById('nav-book');
   var navChapterBtn = document.getElementById('nav-chapter');
 
   var bibleData = null;
-  var deferredPrompt = null;
   var currentBook = null;
   var currentChapter = null;
   var booksHTML = null;
@@ -330,18 +325,6 @@
   });
   document.addEventListener('click', function () { historyMenu.classList.remove('open'); });
   historyMenu.addEventListener('click', function (e) { e.stopPropagation(); });
-
-  // --- Install PWA ---
-  window.addEventListener('beforeinstallprompt', function (e) {
-    e.preventDefault();
-    deferredPrompt = e;
-    installBtn.classList.add('available');
-  });
-  installBtn.addEventListener('click', function () {
-    if (!deferredPrompt) return;
-    deferredPrompt.prompt();
-    deferredPrompt.userChoice.then(function () { deferredPrompt = null; installBtn.classList.remove('available'); });
-  });
 
   // --- Footnotes ---
   var footnoteRe = /\{\[(\d+)\]\s*(.*?)\}/g;
