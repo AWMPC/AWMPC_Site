@@ -1,12 +1,12 @@
 {
   "name": "Bible Reader",
   "short_name": "Bible",
-  "description": "Offline Bible reader with all 66 books",
+  "description": "Offline Bible NIV 1984",
   "start_url": "bible.html",
   "display": "standalone",
   "background_color": "#f5f5f5",
   "theme_color": "#1a1a2e",
-  "orientation": "any",
+  "orientation": "portrait",
   "icons": [
     {
       "src": "data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>📖</text></svg>",
