@@ -515,18 +515,25 @@
   }
 
   function checkMarquees() {
-    var inners = document.querySelectorAll('.book-name-inner');
-    for (var i = 0; i < inners.length; i++) {
-      var inner = inners[i];
-      var wrap = inner.parentNode;
-      if (inner.scrollWidth > wrap.clientWidth) {
-        inner.classList.add('overflows');
-        var dist = -(inner.scrollWidth - wrap.clientWidth);
-        inner.style.setProperty('--marquee-dist', dist + 'px');
-        var dur = Math.max(2, Math.abs(dist) / 30);
-        inner.style.setProperty('--marquee-dur', dur + 's');
-      }
-    }
+    requestAnimationFrame(function () {
+      requestAnimationFrame(function () {
+        var inners = document.querySelectorAll('.book-name-inner');
+        for (var i = 0; i < inners.length; i++) {
+          var inner = inners[i];
+          var wrap = inner.parentNode;
+          inner.classList.remove('overflows');
+          inner.style.removeProperty('--marquee-dist');
+          inner.style.removeProperty('--marquee-dur');
+          if (inner.scrollWidth > wrap.clientWidth + 1) {
+            inner.classList.add('overflows');
+            var dist = -(inner.scrollWidth - wrap.clientWidth);
+            inner.style.setProperty('--marquee-dist', dist + 'px');
+            var dur = Math.max(2, Math.abs(dist) / 30);
+            inner.style.setProperty('--marquee-dur', dur + 's');
+          }
+        }
+      });
+    });
   }
 
   // --- Nav button handlers ---
