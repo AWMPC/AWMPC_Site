@@ -8,7 +8,6 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="Bible">
 <link rel="manifest" href="manifest.json">
-<link rel="apple-touch-icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>📖</text></svg>">
 <title>Bible</title>
 <style>
   :root {
@@ -30,28 +29,41 @@
     --toolbar-bg: #0a0a18; --toolbar-fg: #ccc;
   }
   * { margin: 0; padding: 0; box-sizing: border-box; }
+  html, body { height: 100%; overflow: hidden; }
   body {
     font-family: -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
     background: var(--bg); color: var(--fg); line-height: 1.6;
+    display: flex; flex-direction: column;
   }
 
   /* Toolbar */
   .toolbar {
-    display: flex; align-items: center; gap: 8px;
-    padding: 8px 14px; background: var(--toolbar-bg);
-    position: sticky; top: 0; z-index: 100;
+    display: flex; align-items: center; gap: 6px;
+    padding: 8px 10px; background: var(--toolbar-bg);
+    flex-shrink: 0; z-index: 100;
   }
   .toolbar-btn {
     background: none; border: 1px solid rgba(255,255,255,0.15);
     color: var(--toolbar-fg); font-size: 13px; font-family: inherit;
-    padding: 5px 12px; border-radius: 6px; cursor: pointer;
-    white-space: nowrap; transition: background 0.12s;
+    padding: 5px 10px; border-radius: 6px; cursor: pointer;
+    white-space: nowrap; transition: background 0.12s; flex-shrink: 0;
   }
   .toolbar-btn:hover { background: rgba(255,255,255,0.1); }
-  .toolbar-title { color: #fff; font-size: 15px; font-weight: 600; margin-right: auto; }
+  .toolbar-title { color: #fff; font-size: 15px; font-weight: 600; flex-shrink: 0; }
+  .toolbar-sep { width: 1px; height: 20px; background: rgba(255,255,255,0.15); flex-shrink: 0; }
+  .toolbar-spacer { flex: 1; min-width: 4px; }
+  .nav-btn {
+    background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.2);
+    color: #fff; font-size: 13px; font-family: inherit;
+    padding: 5px 10px; border-radius: 6px; cursor: pointer;
+    white-space: nowrap; transition: background 0.12s;
+    max-width: 140px; overflow: hidden; text-overflow: ellipsis; flex-shrink: 1; min-width: 0;
+  }
+  .nav-btn:hover { background: rgba(255,255,255,0.18); }
+  .nav-btn.hidden { display: none; }
 
   /* History dropdown */
-  .history-wrap { position: relative; }
+  .history-wrap { position: relative; flex-shrink: 0; }
   .history-menu {
     display: none; position: absolute; top: 100%; right: 0; margin-top: 6px;
     background: var(--bg2); border: 1px solid var(--border); border-radius: 8px;
@@ -68,31 +80,33 @@
   .history-item:last-child { border-bottom: none; }
   .history-item:hover { background: var(--bg4); }
 
-  .container { max-width: 960px; margin: 0 auto; padding: 24px 20px; }
-  h1 { font-size: 28px; margin-bottom: 4px; color: var(--fg); }
-  .subtitle { font-size: 15px; color: var(--fg3); margin-bottom: 24px; }
-
-  .testaments { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; }
-  @media (max-width: 640px) { .testaments { gap: 16px; } }
-  .testament h2 {
-    font-size: 17px; font-weight: 600; color: var(--fg2);
-    text-transform: uppercase; letter-spacing: 0.5px;
-    margin-bottom: 10px; padding-bottom: 6px; border-bottom: 2px solid var(--border2);
+  /* Shell view area */
+  #view {
+    flex: 1; overflow-y: auto; -webkit-overflow-scrolling: touch;
   }
-  .testament ul { list-style: none; display: flex; flex-direction: column; gap: 6px; }
+  .view-inner { max-width: 960px; margin: 0 auto; padding: 16px 12px; }
 
+  /* Books view */
+  .testaments { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  .testament h2 {
+    font-size: 14px; font-weight: 600; color: var(--fg2);
+    text-transform: uppercase; letter-spacing: 0.5px;
+    margin-bottom: 8px; padding-bottom: 5px; border-bottom: 2px solid var(--border2);
+  }
+  .testament { min-width: 0; }
+  .testament ul { list-style: none; display: flex; flex-direction: column; gap: 5px; }
   .book-btn {
     display: flex; align-items: center; width: 100%;
     background: var(--bg2); border: 1px solid var(--border); border-radius: 8px;
-    padding: 10px 14px; font-size: 15px; font-family: inherit;
+    padding: 8px 10px; font-size: 14px; font-family: inherit;
     color: var(--fg); cursor: pointer; text-align: left; overflow: hidden;
     transition: box-shadow 0.15s, border-color 0.15s, background 0.15s;
   }
   .book-btn:hover { border-color: var(--border3); box-shadow: 0 2px 8px rgba(0,0,0,0.07); }
   .book-btn.active { background: var(--accent); color: var(--accent-fg); border-color: var(--accent); }
   .book-btn .book-number {
-    display: inline-block; width: 26px; flex-shrink: 0;
-    color: var(--fg4); font-size: 12px; text-align: right; margin-right: 8px;
+    display: inline-block; width: 22px; flex-shrink: 0;
+    color: var(--fg4); font-size: 11px; text-align: right; margin-right: 6px;
   }
   .book-btn.active .book-number { color: #aaa; }
   .book-name { flex: 1; min-width: 0; overflow: hidden; position: relative; }
@@ -106,16 +120,12 @@
     85%, 100% { transform: translateX(var(--marquee-dist)); }
   }
   .book-btn .chapter-count {
-    margin-left: 6px; font-size: 12px; color: var(--fg4); flex-shrink: 0; white-space: nowrap;
+    margin-left: 4px; font-size: 11px; color: var(--fg4); flex-shrink: 0; white-space: nowrap;
   }
   .book-btn.active .chapter-count { color: #aaa; }
 
-  #chapter-panel {
-    display: none; margin-top: 28px; background: var(--bg2);
-    border: 1px solid var(--border); border-radius: 12px; padding: 20px 24px;
-  }
-  #chapter-panel.visible { display: block; }
-  #chapter-panel h2 { font-size: 20px; margin-bottom: 14px; color: var(--fg); }
+  /* Chapters view */
+  .chapters-header { font-size: 18px; margin-bottom: 14px; color: var(--fg); }
   .chapter-grid {
     display: grid; grid-template-columns: repeat(auto-fill, minmax(52px, 1fr)); gap: 8px;
   }
@@ -128,16 +138,7 @@
   .chapter-btn:hover { background: var(--border2); border-color: var(--border3); }
   .chapter-btn.active { background: var(--accent); color: var(--accent-fg); border-color: var(--accent); }
 
-  #verse-panel {
-    display: none; margin-top: 20px; background: var(--bg3);
-    border: 1px solid var(--border); border-radius: 12px;
-    padding: 20px 24px; max-height: 70vh; overflow-y: auto;
-  }
-  #verse-panel.visible { display: block; }
-  #verse-panel h3 {
-    font-size: 18px; color: var(--fg); margin-bottom: 16px;
-    position: sticky; top: -20px; background: var(--bg3); padding: 8px 0 10px; z-index: 1;
-  }
+  /* Verses view */
   .verse { margin-bottom: 12px; font-size: 16px; line-height: 1.7; }
   .verse-num { font-size: 12px; font-weight: 700; color: var(--fg3); vertical-align: super; margin-right: 4px; }
   .footnote-toggle {
@@ -159,7 +160,7 @@
     display: none; background: var(--err-bg); color: var(--err-fg);
     padding: 12px 16px; border-radius: 8px; margin-bottom: 16px;
   }
-  #loading { color: var(--fg3); font-size: 15px; }
+  #loading { color: var(--fg3); font-size: 15px; padding: 40px 20px; text-align: center; }
 
   #install-btn { display: none; }
   #install-btn.available { display: inline-block; }
@@ -168,39 +169,22 @@
 <body>
 
 <div class="toolbar">
-  <span class="toolbar-title">📖 Bible</span>
+  <span class="toolbar-title">📖</span>
+  <button class="nav-btn" id="nav-book" type="button">Books</button>
+  <button class="nav-btn hidden" id="nav-chapter" type="button"></button>
+  <span class="toolbar-spacer"></span>
   <div class="history-wrap">
-    <button class="toolbar-btn" id="history-btn" type="button">📑 History</button>
+    <button class="toolbar-btn" id="history-btn" type="button">📑</button>
     <div class="history-menu" id="history-menu"></div>
   </div>
-  <button class="toolbar-btn" id="dark-btn" type="button">🌙 Dark</button>
-  <button class="toolbar-btn" id="install-btn" type="button">📲 Install</button>
+  <button class="toolbar-btn" id="dark-btn" type="button">🌙</button>
+  <button class="toolbar-btn" id="install-btn" type="button">📲</button>
 </div>
 
-<div class="container">
-  <h1>Bible</h1>
-  <p class="subtitle">Books of the Bible</p>
-  <div id="error"></div>
-  <p id="loading">Loading&hellip;</p>
-
-  <div class="testaments" id="testaments" style="display:none;">
-    <div class="testament">
-      <h2>Old Testament</h2>
-      <ul id="ot-list"></ul>
-    </div>
-    <div class="testament">
-      <h2>New Testament</h2>
-      <ul id="nt-list"></ul>
-    </div>
-  </div>
-
-  <div id="chapter-panel">
-    <h2 id="chapter-title"></h2>
-    <div class="chapter-grid" id="chapter-grid"></div>
-    <div id="verse-panel">
-      <h3 id="verse-title"></h3>
-      <div id="verse-list"></div>
-    </div>
+<div id="view">
+  <div class="view-inner" id="view-inner">
+    <div id="error"></div>
+    <p id="loading">Loading&hellip;</p>
   </div>
 </div>
 
@@ -211,31 +195,27 @@
   var DARK_KEY = 'bible_dark';
   var MAX_HISTORY = 20;
 
-  var loading = document.getElementById('loading');
+  var viewEl = document.getElementById('view');
+  var viewInner = document.getElementById('view-inner');
   var errorEl = document.getElementById('error');
-  var testaments = document.getElementById('testaments');
-  var otList = document.getElementById('ot-list');
-  var ntList = document.getElementById('nt-list');
-  var chapterPanel = document.getElementById('chapter-panel');
-  var chapterTitle = document.getElementById('chapter-title');
-  var chapterGrid = document.getElementById('chapter-grid');
-  var versePanel = document.getElementById('verse-panel');
-  var verseTitle = document.getElementById('verse-title');
-  var verseList = document.getElementById('verse-list');
+  var loadingEl = document.getElementById('loading');
   var darkBtn = document.getElementById('dark-btn');
   var historyBtn = document.getElementById('history-btn');
   var historyMenu = document.getElementById('history-menu');
   var installBtn = document.getElementById('install-btn');
+  var navBookBtn = document.getElementById('nav-book');
+  var navChapterBtn = document.getElementById('nav-chapter');
 
-  var activeBtn = null;
-  var activeChBtn = null;
   var bibleData = null;
   var deferredPrompt = null;
+  var currentBook = null;
+  var currentChapter = null;
+  var booksHTML = null;
 
   // --- Dark mode ---
   function applyDark(on) {
     document.documentElement.classList.toggle('dark', on);
-    darkBtn.textContent = on ? '☀️ Light' : '🌙 Dark';
+    darkBtn.textContent = on ? '☀\uFE0F' : '🌙';
     try { localStorage.setItem(DARK_KEY, on ? '1' : '0'); } catch(e) {}
   }
   var initDark = false;
@@ -280,7 +260,7 @@
         return function () {
           historyMenu.classList.remove('open');
           if (bibleData && bibleData[book]) {
-            navigateTo(book, parseInt(ch, 10));
+            showVersesView(book, parseInt(ch, 10));
           }
         };
       })(parts[0], parts[1]));
@@ -327,45 +307,106 @@
     return segments;
   }
 
-  // --- Navigation ---
-  function navigateTo(bookName, chapterNum) {
-    if (!bibleData || !bibleData[bookName]) return;
-    var books = Object.keys(bibleData);
-    var idx = books.indexOf(bookName);
-    if (idx === -1) return;
+  // --- Update nav buttons ---
+  function updateNav() {
+    navBookBtn.textContent = currentBook || 'Books';
+    if (currentBook && currentChapter) {
+      navChapterBtn.textContent = 'Ch ' + currentChapter;
+      navChapterBtn.classList.remove('hidden');
+    } else {
+      navChapterBtn.classList.add('hidden');
+    }
+  }
+
+  // --- View: Books ---
+  function showBooksView() {
+    viewEl.scrollTop = 0;
+    viewInner.textContent = '';
+    currentBook = null;
+    currentChapter = null;
+    updateNav();
+
+    if (booksHTML) {
+      viewInner.appendChild(booksHTML);
+      checkMarquees();
+      return;
+    }
+
+    var data = bibleData;
+    var books = Object.keys(data);
+    var wrap = document.createElement('div');
+    wrap.className = 'testaments';
+
+    var otDiv = document.createElement('div');
+    otDiv.className = 'testament';
+    var otH = document.createElement('h2');
+    otH.textContent = 'Old Testament';
+    otDiv.appendChild(otH);
+    var otUl = document.createElement('ul');
+    otDiv.appendChild(otUl);
+
+    var ntDiv = document.createElement('div');
+    ntDiv.className = 'testament';
+    var ntH = document.createElement('h2');
+    ntH.textContent = 'New Testament';
+    ntDiv.appendChild(ntH);
+    var ntUl = document.createElement('ul');
+    ntDiv.appendChild(ntUl);
+
+    for (var i = 0; i < books.length; i++) {
+      var bookName = books[i];
+      var chapterCount = Object.keys(data[bookName]).length;
+      var ul = i < OT_COUNT ? otUl : ntUl;
+      createBookButton(bookName, i, chapterCount, ul);
+    }
+
+    wrap.appendChild(otDiv);
+    wrap.appendChild(ntDiv);
+    booksHTML = wrap;
+    viewInner.appendChild(wrap);
+    checkMarquees();
+  }
+
+  // --- View: Chapters ---
+  function showChaptersView(bookName) {
+    viewEl.scrollTop = 0;
+    viewInner.textContent = '';
+    currentBook = bookName;
+    currentChapter = null;
+    updateNav();
+
     var chapterCount = Object.keys(bibleData[bookName]).length;
+    var header = document.createElement('div');
+    header.className = 'chapters-header';
+    header.textContent = bookName + ' \u2014 ' + chapterCount + (chapterCount === 1 ? ' chapter' : ' chapters');
+    viewInner.appendChild(header);
 
-    if (activeBtn) activeBtn.className = 'book-btn';
-    var allBtns = document.querySelectorAll('.book-btn');
-    if (allBtns[idx]) {
-      allBtns[idx].className = 'book-btn active';
-      activeBtn = allBtns[idx];
+    var grid = document.createElement('div');
+    grid.className = 'chapter-grid';
+    for (var c = 1; c <= chapterCount; c++) {
+      var btn = document.createElement('div');
+      btn.className = 'chapter-btn';
+      btn.textContent = c;
+      btn.addEventListener('click', (function (book, ch) {
+        return function () { showVersesView(book, ch); };
+      })(bookName, c));
+      grid.appendChild(btn);
     }
-    showChapters(bookName, chapterCount);
-    selectChapter(bookName, chapterNum);
+    viewInner.appendChild(grid);
   }
 
-  function selectChapter(bookName, chapterNum) {
-    var btns = chapterGrid.querySelectorAll('.chapter-btn');
-    for (var j = 0; j < btns.length; j++) {
-      if (parseInt(btns[j].getAttribute('data-ch'), 10) === chapterNum) {
-        if (activeChBtn) activeChBtn.className = 'chapter-btn';
-        btns[j].className = 'chapter-btn active';
-        activeChBtn = btns[j];
-        break;
-      }
-    }
-    showVerses(bookName, chapterNum);
+  // --- View: Verses ---
+  function showVersesView(bookName, chapterNum) {
+    viewEl.scrollTop = 0;
+    viewInner.textContent = '';
+    currentBook = bookName;
+    currentChapter = chapterNum;
+    updateNav();
     pushHistory(bookName, chapterNum);
-  }
 
-  function showVerses(bookName, chapterNum) {
     var chapters = bibleData[bookName];
     var verses = chapters[String(chapterNum)];
     var keys = Object.keys(verses);
-
-    verseTitle.textContent = bookName + ' ' + chapterNum;
-    verseList.textContent = '';
 
     for (var i = 0; i < keys.length; i++) {
       var segments = parseVerse(verses[keys[i]]);
@@ -410,39 +451,11 @@
       for (var nb = 0; nb < noteBodies.length; nb++) {
         div.appendChild(noteBodies[nb]);
       }
-      verseList.appendChild(div);
+      viewInner.appendChild(div);
     }
-
-    versePanel.className = 'visible';
-    versePanel.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
   }
 
-  function showChapters(bookName, chapterCount) {
-    chapterTitle.textContent = bookName + ' \u2014 ' + chapterCount + (chapterCount === 1 ? ' Chapter' : ' Chapters');
-    chapterGrid.textContent = '';
-    versePanel.className = '';
-    activeChBtn = null;
-
-    for (var c = 1; c <= chapterCount; c++) {
-      var btn = document.createElement('div');
-      btn.className = 'chapter-btn';
-      btn.textContent = c;
-      btn.setAttribute('data-ch', c);
-      btn.addEventListener('click', (function (book, ch) {
-        return function () {
-          if (activeChBtn) activeChBtn.className = 'chapter-btn';
-          this.className = 'chapter-btn active';
-          activeChBtn = this;
-          showVerses(book, ch);
-          pushHistory(book, ch);
-        };
-      })(bookName, c));
-      chapterGrid.appendChild(btn);
-    }
-    chapterPanel.className = 'visible';
-    chapterPanel.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
-  }
-
+  // --- Book button factory ---
   function createBookButton(bookName, index, chapterCount, list) {
     var li = document.createElement('li');
     var btn = document.createElement('button');
@@ -468,10 +481,7 @@
     btn.appendChild(chs);
 
     btn.addEventListener('click', function () {
-      if (activeBtn) activeBtn.className = 'book-btn';
-      btn.className = 'book-btn active';
-      activeBtn = btn;
-      showChapters(bookName, chapterCount);
+      showChaptersView(bookName);
     });
 
     li.appendChild(btn);
@@ -493,34 +503,33 @@
     }
   }
 
+  // --- Nav button handlers ---
+  navBookBtn.addEventListener('click', function () {
+    if (bibleData) showBooksView();
+  });
+  navChapterBtn.addEventListener('click', function () {
+    if (bibleData && currentBook) showChaptersView(currentBook);
+  });
+
   // --- Load data ---
   var xhr = new XMLHttpRequest();
   xhr.open('GET', 'bible.json', true);
   xhr.responseType = 'json';
 
   xhr.onload = function () {
-    loading.style.display = 'none';
+    loadingEl.style.display = 'none';
     if (xhr.status !== 200 || !xhr.response) {
       errorEl.style.display = 'block';
       errorEl.textContent = 'Failed to load bible.json (status ' + xhr.status + ').';
       return;
     }
     bibleData = xhr.response;
-    var data = bibleData;
-    var books = Object.keys(data);
-    testaments.style.display = '';
-
-    for (var i = 0; i < books.length; i++) {
-      var chapterCount = Object.keys(data[books[i]]).length;
-      var list = i < OT_COUNT ? otList : ntList;
-      createBookButton(books[i], i, chapterCount, list);
-    }
-    checkMarquees();
+    showBooksView();
     window.addEventListener('resize', checkMarquees);
   };
 
   xhr.onerror = function () {
-    loading.style.display = 'none';
+    loadingEl.style.display = 'none';
     errorEl.style.display = 'block';
     errorEl.textContent = 'Network error loading bible.json.';
   };
