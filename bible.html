@@ -1523,7 +1523,7 @@
 
   // ===================== TTS ENGINE =====================
   var tts = {
-    speaking: false, paused: false,
+    speaking: false, paused: false, voice: null,
     bookIdx: 0, chIdx: 0, vIdx: 0,
     timerMinutes: 0, timerEnd: 0,
     rate: 1, speeds: [0.7, 0.85, 1, 1.15, 1.3, 1.5],
@@ -1633,6 +1633,7 @@
 
       var utt = new SpeechSynthesisUtterance(prefix + info.text);
       utt.rate = this.rate;
+      if (this.voice) utt.voice = this.voice;
       utt.onend = function () {
         if (!tts.speaking || tts.paused) return;
         if (tts.advance()) {
@@ -1825,6 +1826,38 @@
     }
     popup.appendChild(fromText);
 
+    var voiceLabel = document.createElement('label');
+    voiceLabel.textContent = 'Voice';
+    popup.appendChild(voiceLabel);
+
+    var voiceSel = document.createElement('select');
+    function populateVoices() {
+      voiceSel.textContent = '';
+      var voices = speechSynthesis.getVoices();
+      var engVoices = [];
+      for (var vi = 0; vi < voices.length; vi++) {
+        if (voices[vi].lang.indexOf('en') === 0) engVoices.push(voices[vi]);
+      }
+      if (engVoices.length === 0) engVoices = voices;
+      var defOpt = document.createElement('option');
+      defOpt.value = '';
+      defOpt.textContent = 'System Default';
+      voiceSel.appendChild(defOpt);
+      for (var vj = 0; vj < engVoices.length; vj++) {
+        var vo = document.createElement('option');
+        vo.value = vj;
+        vo.textContent = engVoices[vj].name + ' (' + engVoices[vj].lang + ')';
+        if (tts.voice && tts.voice.name === engVoices[vj].name) vo.selected = true;
+        voiceSel.appendChild(vo);
+      }
+      voiceSel._voices = engVoices;
+    }
+    populateVoices();
+    if (speechSynthesis.onvoiceschanged !== undefined) {
+      speechSynthesis.onvoiceschanged = populateVoices;
+    }
+    popup.appendChild(voiceSel);
+
     var speedLabel = document.createElement('label');
     speedLabel.textContent = 'Speed';
     popup.appendChild(speedLabel);
@@ -1876,6 +1909,8 @@
       if (tts.speedIdx === -1) tts.speedIdx = 2;
       abSpeed.textContent = spd + 'x';
       tts.timerMinutes = selectedTimer;
+      var vidx = voiceSel.value;
+      tts.voice = vidx !== '' && voiceSel._voices ? voiceSel._voices[parseInt(vidx, 10)] : null;
 
       scrim.remove();
       popup.remove();
