@@ -1622,6 +1622,7 @@
       abRef.textContent = info.book + ' ' + info.ch + ':' + info.v;
       this.highlight(info.v);
       this.updateTimer();
+      mediaSession.update(info.book + ' ' + info.ch + ':' + info.v, 'AWMPC Bible');
 
       var prefix = '';
       var book = this.allBooks[this.bookIdx];
@@ -1656,6 +1657,7 @@
       this.paused = false;
       audioBar.classList.add('active');
       abPlay.textContent = '\u23F8';
+      mediaSession.start(bookName + ' ' + chapterNum, 'AWMPC Bible');
       this.speakVerse();
     },
 
@@ -1663,12 +1665,14 @@
       this.paused = true;
       speechSynthesis.pause();
       abPlay.textContent = '\u25B6';
+      mediaSession.setPaused();
     },
 
     resume: function () {
       this.paused = false;
       speechSynthesis.resume();
       abPlay.textContent = '\u23F8';
+      mediaSession.setPlaying();
     },
 
     stop: function () {
@@ -1677,6 +1681,7 @@
       speechSynthesis.cancel();
       this.clearHighlight();
       audioBar.classList.remove('active');
+      mediaSession.stop();
     },
 
     nextVerse: function () {
@@ -1704,6 +1709,76 @@
       if (this.timerMinutes <= 0) { abTimer.textContent = ''; return; }
       var left = Math.max(0, Math.ceil((this.timerEnd - Date.now()) / 60000));
       abTimer.textContent = '(' + left + 'm left)';
+    }
+  };
+
+  // ===================== MEDIA SESSION (background + OS controls) =====================
+  // Isolated so it can be replaced by Capacitor NowPlaying plugin in native build.
+  var mediaSession = {
+    _audio: null,
+    _audioCtx: null,
+
+    init: function () {
+      if (this._audio) return;
+      this._audio = document.createElement('audio');
+      this._audio.loop = true;
+      this._audio.volume = 0.01;
+      // Generate a tiny silent WAV in a data URI
+      this._audio.src = 'data:audio/wav;base64,UklGRiQAAABXQVZFZm10IBAAAAABAAEAQB8AAIA+AAACABAAZGF0YQAAAAA=';
+    },
+
+    start: function (title, artist, album) {
+      this.init();
+      this._audio.play().catch(function () {});
+      if ('mediaSession' in navigator) {
+        navigator.mediaSession.metadata = new MediaMetadata({
+          title: title || 'AWMPC Bible',
+          artist: artist || '',
+          album: album || 'AWMPC Bible',
+          artwork: [
+            { src: 'resources/images/bible-icon-192.png', sizes: '192x192', type: 'image/png' },
+            { src: 'resources/images/bible-icon-512.png', sizes: '512x512', type: 'image/png' }
+          ]
+        });
+        navigator.mediaSession.playbackState = 'playing';
+        var self = this;
+        navigator.mediaSession.setActionHandler('play', function () { tts.resume(); self.setPlaying(); });
+        navigator.mediaSession.setActionHandler('pause', function () { tts.pause(); self.setPaused(); });
+        navigator.mediaSession.setActionHandler('nexttrack', function () { tts.nextVerse(); });
+        navigator.mediaSession.setActionHandler('previoustrack', function () { tts.prevVerse(); });
+        navigator.mediaSession.setActionHandler('stop', function () { tts.stop(); });
+      }
+    },
+
+    update: function (title, artist) {
+      if ('mediaSession' in navigator && navigator.mediaSession.metadata) {
+        navigator.mediaSession.metadata.title = title || '';
+        navigator.mediaSession.metadata.artist = artist || '';
+      }
+    },
+
+    setPlaying: function () {
+      if (this._audio && this._audio.paused) this._audio.play().catch(function () {});
+      if ('mediaSession' in navigator) navigator.mediaSession.playbackState = 'playing';
+    },
+
+    setPaused: function () {
+      if ('mediaSession' in navigator) navigator.mediaSession.playbackState = 'paused';
+    },
+
+    stop: function () {
+      if (this._audio) { this._audio.pause(); this._audio.currentTime = 0; }
+      if ('mediaSession' in navigator) {
+        navigator.mediaSession.playbackState = 'none';
+        navigator.mediaSession.metadata = null;
+        try {
+          navigator.mediaSession.setActionHandler('play', null);
+          navigator.mediaSession.setActionHandler('pause', null);
+          navigator.mediaSession.setActionHandler('nexttrack', null);
+          navigator.mediaSession.setActionHandler('previoustrack', null);
+          navigator.mediaSession.setActionHandler('stop', null);
+        } catch(e) {}
+      }
     }
   };
 
