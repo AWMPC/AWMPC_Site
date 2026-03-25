@@ -1,6 +1,6 @@
 {
-  "name": "The Holy Bible",
-  "short_name": "Bible",
+  "name": "AWMPC Bible",
+  "short_name": "AWMPC Bible",
   "display": "standalone",
   "start_url": "bible.html",
   "background_color": "#1a1a2e",

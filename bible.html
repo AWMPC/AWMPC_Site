@@ -6,10 +6,10 @@
 <meta name="theme-color" content="#1a1a2e">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<meta name="apple-mobile-web-app-title" content="Bible">
+<meta name="apple-mobile-web-app-title" content="AWMPC Bible">
 <link rel="manifest" href="manifest.json">
 <link rel="apple-touch-icon" href="resources/images/bible-icon-192.png">
-<title>Bible</title>
+<title>AWMPC Bible</title>
 <style>
   :root {
     --bg: #f5f5f5; --bg2: #fff; --bg3: #fafaf8; --bg4: #f0f0f0;
@@ -296,6 +296,21 @@
   html.large-font .bm-pop-item { font-size: 20px; }
   html.large-font .bm-pop-input { font-size: 19px; }
 
+  /* Auth UI */
+  .profile-avatar {
+    width: 28px; height: 28px; border-radius: 50%; vertical-align: middle;
+    border: 1.5px solid rgba(255,255,255,0.4);
+  }
+  .dd-user {
+    display: flex; align-items: center; gap: 10px;
+    padding: 14px 16px; border-bottom: 1px solid var(--border);
+  }
+  .dd-user-photo { width: 36px; height: 36px; border-radius: 50%; flex-shrink: 0; }
+  .dd-user-info { flex: 1; min-width: 0; }
+  .dd-user-name { font-size: 15px; font-weight: 600; color: var(--fg); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .dd-user-email { font-size: 12px; color: var(--fg3); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .dd-sync-status { font-size: 12px; color: var(--fg4); padding: 4px 16px 8px; }
+
   @media (prefers-reduced-motion: reduce) {
     *, *::before, *::after { transition-duration: 0.01ms !important; animation-duration: 0.01ms !important; }
   }
@@ -305,11 +320,12 @@
 
 <div class="toolbar">
   <div class="toolbar-row">
-    <span class="toolbar-title" id="nav-home">📖 The Holy Bible</span>
+    <span class="toolbar-title" id="nav-home">📖 AWMPC Bible</span>
     <span class="toolbar-spacer"></span>
     <div class="dd-wrap">
       <button class="tb" id="profile-btn" type="button" aria-label="Settings">👤</button>
       <div class="dd-menu right" id="profile-menu">
+        <div id="auth-area"></div>
         <button class="dd-item" id="dd-dark" type="button">
           <span class="dd-icon" id="dd-dark-icon">🌙</span>
           <span class="dd-label">Dark Mode</span>
@@ -344,9 +360,49 @@
   </div>
 </div>
 
+<script src="https://www.gstatic.com/firebasejs/11.2.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/11.2.0/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/11.2.0/firebase-firestore-compat.js"></script>
 <script>
 (function () {
+  // ===================== FIREBASE =====================
+  var fbApp = firebase.initializeApp({
+    apiKey: "AIzaSyBQy2RroDHDnUxfOs4aDCmS4nOEC_3j9Ac",
+    authDomain: "awmpc-bible.firebaseapp.com",
+    projectId: "awmpc-bible",
+    storageBucket: "awmpc-bible.firebasestorage.app",
+    messagingSenderId: "1073608844887",
+    appId: "1:1073608844887:web:40700e236dc26d11286512"
+  });
+  var auth = fbApp.auth();
+  var db = fbApp.firestore();
+  db.enablePersistence({ synchronizeTabs: true }).catch(function () {});
+
   // ===================== STATE WRAPPER =====================
+  var _syncTimer = null;
+  var _currentUid = null;
+
+  function _userDoc() {
+    return _currentUid ? db.collection('users').doc(_currentUid) : null;
+  }
+
+  function _scheduleSync() {
+    if (!_currentUid) return;
+    clearTimeout(_syncTimer);
+    _syncTimer = setTimeout(function () {
+      var doc = _userDoc();
+      if (!doc) return;
+      doc.set({
+        dark: State.getDark(),
+        font: State.getFont(),
+        history: State.getHistory(),
+        bookmarks: State._bmData(),
+        searchHistory: State.getSearchHistory(),
+        updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+      }, { merge: true }).catch(function () {});
+    }, 1500);
+  }
+
   var State = {
     _get: function (k, fallback) {
       try { var v = localStorage.getItem(k); return v !== null ? JSON.parse(v) : fallback; }
@@ -354,6 +410,7 @@
     },
     _set: function (k, v) {
       try { localStorage.setItem(k, JSON.stringify(v)); } catch(e) {}
+      _scheduleSync();
     },
 
     getDark: function () { return this._get('bible_dark', false); },
@@ -464,7 +521,16 @@
       var list = this.getSearchHistory().filter(function (x) { return x !== q; });
       this._set('bible_search_hist', list);
     },
-    clearSearchHistory: function () { this._set('bible_search_hist', []); }
+    clearSearchHistory: function () { this._set('bible_search_hist', []); },
+
+    applyCloudData: function (data) {
+      if (!data) return;
+      if (typeof data.dark === 'boolean') { try { localStorage.setItem('bible_dark', JSON.stringify(data.dark)); } catch(e) {} }
+      if (typeof data.font === 'boolean') { try { localStorage.setItem('bible_large_font', JSON.stringify(data.font)); } catch(e) {} }
+      if (Array.isArray(data.history)) { try { localStorage.setItem('bible_history', JSON.stringify(data.history)); } catch(e) {} }
+      if (data.bookmarks && data.bookmarks.unsorted) { try { localStorage.setItem('bible_bm2', JSON.stringify(data.bookmarks)); } catch(e) {} }
+      if (Array.isArray(data.searchHistory)) { try { localStorage.setItem('bible_search_hist', JSON.stringify(data.searchHistory)); } catch(e) {} }
+    }
   };
 
   // ===================== CONSTANTS =====================
@@ -559,6 +625,98 @@
   // ===================== PROFILE MENU =====================
   profileBtn.addEventListener('click', function (e) { toggleMenu(profileMenu, e); });
   profileMenu.addEventListener('click', function (e) { e.stopPropagation(); });
+
+  // ===================== AUTH =====================
+  var authArea = document.getElementById('auth-area');
+
+  function renderAuthArea(user) {
+    authArea.textContent = '';
+    if (user) {
+      var info = document.createElement('div');
+      info.className = 'dd-user';
+      var photo = document.createElement('img');
+      photo.className = 'dd-user-photo';
+      photo.src = user.photoURL || '';
+      photo.alt = '';
+      photo.referrerPolicy = 'no-referrer';
+      info.appendChild(photo);
+      var details = document.createElement('div');
+      details.className = 'dd-user-info';
+      var name = document.createElement('div');
+      name.className = 'dd-user-name';
+      name.textContent = user.displayName || 'Signed In';
+      details.appendChild(name);
+      var email = document.createElement('div');
+      email.className = 'dd-user-email';
+      email.textContent = user.email || '';
+      details.appendChild(email);
+      info.appendChild(details);
+      authArea.appendChild(info);
+
+      var status = document.createElement('div');
+      status.className = 'dd-sync-status';
+      status.textContent = 'Syncing to cloud \u2601';
+      authArea.appendChild(status);
+
+      var outBtn = document.createElement('button');
+      outBtn.type = 'button';
+      outBtn.className = 'dd-item';
+      outBtn.innerHTML = '<span class="dd-icon">\uD83D\uDEAA</span><span class="dd-label">Sign Out</span>';
+      outBtn.addEventListener('click', function () {
+        auth.signOut();
+        closeMenus();
+      });
+      authArea.appendChild(outBtn);
+    } else {
+      var inBtn = document.createElement('button');
+      inBtn.type = 'button';
+      inBtn.className = 'dd-item';
+      inBtn.innerHTML = '<span class="dd-icon"><img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" style="width:20px;height:20px;" alt="G"></span><span class="dd-label">Sign in with Google</span>';
+      inBtn.addEventListener('click', function () {
+        closeMenus();
+        var provider = new firebase.auth.GoogleAuthProvider();
+        auth.signInWithPopup(provider).catch(function (err) {
+          if (err.code === 'auth/popup-blocked' || err.code === 'auth/cancelled-popup-request') {
+            auth.signInWithRedirect(provider);
+          }
+        });
+      });
+      authArea.appendChild(inBtn);
+    }
+  }
+
+  auth.onAuthStateChanged(function (user) {
+    _currentUid = user ? user.uid : null;
+
+    if (user) {
+      profileBtn.innerHTML = '<img class="profile-avatar" src="' + (user.photoURL || '') + '" alt="" referrerpolicy="no-referrer">';
+    } else {
+      profileBtn.textContent = '\uD83D\uDC64';
+    }
+    renderAuthArea(user);
+
+    if (user) {
+      _userDoc().get().then(function (snap) {
+        if (snap.exists) {
+          var cloud = snap.data();
+          var localBm = State._bmData();
+          var localHasData = State.getHistory().length > 0 || localBm.unsorted.length > 0 || Object.keys(localBm.lists).length > 0;
+          var cloudHasData = (cloud.history && cloud.history.length > 0) ||
+            (cloud.bookmarks && (cloud.bookmarks.unsorted.length > 0 || Object.keys(cloud.bookmarks.lists || {}).length > 0));
+
+          if (cloudHasData && !localHasData) {
+            State.applyCloudData(cloud);
+            applyDark(State.getDark());
+            applyFont(State.getFont());
+          } else if (localHasData) {
+            _scheduleSync();
+          }
+        } else {
+          _scheduleSync();
+        }
+      }).catch(function () {});
+    }
+  });
 
   // ===================== HISTORY MENU =====================
   historyBtn.addEventListener('click', function (e) {
