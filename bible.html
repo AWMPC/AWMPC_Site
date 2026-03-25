@@ -386,12 +386,19 @@
     return _currentUid ? db.collection('users').doc(_currentUid) : null;
   }
 
+  var _syncStatusEl = null;
+  function _setSyncStatus(text) {
+    if (_syncStatusEl) _syncStatusEl.textContent = text;
+  }
+
   function _scheduleSync() {
     if (!_currentUid) return;
     clearTimeout(_syncTimer);
+    _setSyncStatus('Pending\u2026');
     _syncTimer = setTimeout(function () {
       var doc = _userDoc();
       if (!doc) return;
+      _setSyncStatus('Syncing\u2026');
       doc.set({
         dark: State.getDark(),
         font: State.getFont(),
@@ -399,7 +406,11 @@
         bookmarks: State._bmData(),
         searchHistory: State.getSearchHistory(),
         updatedAt: firebase.firestore.FieldValue.serverTimestamp()
-      }, { merge: true }).catch(function () {});
+      }, { merge: true }).then(function () {
+        _setSyncStatus('Synced \u2713');
+      }).catch(function () {
+        _setSyncStatus('Offline \u2014 will sync later');
+      });
     }, 1500);
   }
 
@@ -655,7 +666,8 @@
 
       var status = document.createElement('div');
       status.className = 'dd-sync-status';
-      status.textContent = 'Syncing to cloud \u2601';
+      status.textContent = navigator.onLine ? 'Synced \u2713' : 'Offline \u2014 will sync later';
+      _syncStatusEl = status;
       authArea.appendChild(status);
 
       var outBtn = document.createElement('button');
@@ -716,6 +728,13 @@
         }
       }).catch(function () {});
     }
+  });
+
+  window.addEventListener('online', function () {
+    if (_currentUid) { _setSyncStatus('Back online \u2014 syncing\u2026'); _scheduleSync(); }
+  });
+  window.addEventListener('offline', function () {
+    if (_currentUid) _setSyncStatus('Offline \u2014 will sync later');
   });
 
   // ===================== HISTORY MENU =====================
