@@ -296,6 +296,53 @@
   html.large-font .bm-pop-item { font-size: 20px; }
   html.large-font .bm-pop-input { font-size: 19px; }
 
+  /* Audio player bar */
+  .audio-bar {
+    display: none; background: var(--accent); color: var(--accent-fg);
+    padding: 8px 12px; flex-shrink: 0; gap: 8px; align-items: center;
+  }
+  .audio-bar.active { display: flex; }
+  .audio-bar-btn {
+    background: rgba(255,255,255,0.15); border: none; color: #fff;
+    font-size: 16px; width: 34px; height: 34px; border-radius: 50%;
+    cursor: pointer; display: flex; align-items: center; justify-content: center;
+    transition: background 0.12s; flex-shrink: 0;
+  }
+  .audio-bar-btn:hover { background: rgba(255,255,255,0.25); }
+  .audio-bar-info {
+    flex: 1; min-width: 0; font-size: 13px; line-height: 1.3;
+    overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  }
+  .audio-bar-ref { font-weight: 600; }
+  .audio-bar-timer { font-size: 12px; opacity: 0.7; margin-left: 4px; }
+  .audio-bar-speed {
+    background: rgba(255,255,255,0.15); border: 1px solid rgba(255,255,255,0.3);
+    color: #fff; font-size: 12px; font-family: inherit;
+    padding: 3px 8px; border-radius: 4px; cursor: pointer; flex-shrink: 0;
+  }
+  .verse.speaking { background: rgba(100, 149, 237, 0.15); border-color: rgba(100, 149, 237, 0.4); }
+  html.dark .verse.speaking { background: rgba(100, 149, 237, 0.1); border-color: rgba(100, 149, 237, 0.3); }
+
+  /* Audio setup popup */
+  .audio-setup { text-align: left; }
+  .audio-setup label {
+    display: block; font-size: 15px; color: var(--fg2); margin: 12px 16px 4px;
+  }
+  .audio-setup select, .audio-setup input[type="range"] {
+    display: block; width: calc(100% - 32px); margin: 0 16px 8px;
+    font-size: 15px; font-family: inherit; padding: 6px 8px;
+    border: 1px solid var(--border); border-radius: 6px;
+    background: var(--bg); color: var(--fg);
+  }
+  .audio-timer-opts { display: flex; flex-wrap: wrap; gap: 6px; padding: 0 16px 12px; }
+  .audio-timer-opt {
+    padding: 6px 14px; border-radius: 6px; font-size: 14px; font-family: inherit;
+    border: 1px solid var(--border); background: var(--bg); color: var(--fg);
+    cursor: pointer; transition: background 0.1s;
+  }
+  .audio-timer-opt:hover { background: var(--bg4); }
+  .audio-timer-opt.selected { background: var(--accent); color: var(--accent-fg); border-color: var(--accent); }
+
   /* Auth UI */
   .profile-avatar {
     width: 28px; height: 28px; border-radius: 50%; vertical-align: middle;
@@ -344,13 +391,25 @@
     <button class="nav-btn hidden" id="nav-chapter" type="button"></button>
     <span class="toolbar-spacer"></span>
     <button class="tb" id="btn-search" type="button" aria-label="Search">🔍</button>
-    <button class="tb" id="btn-audio" type="button" aria-label="Audio" style="opacity:0.4;cursor:default;">🔊</button>
+    <button class="tb" id="btn-audio" type="button" aria-label="Audio">🔊</button>
     <button class="tb" id="btn-bookmarks" type="button" aria-label="Bookmarks">🔖</button>
     <div class="dd-wrap">
       <button class="tb" id="btn-history" type="button" aria-label="History">📑</button>
       <div class="dd-menu right" id="history-menu"></div>
     </div>
   </div>
+</div>
+
+<div class="audio-bar" id="audio-bar">
+  <button class="audio-bar-btn" id="ab-prev" aria-label="Previous verse">⏮</button>
+  <button class="audio-bar-btn" id="ab-play" aria-label="Play/Pause">⏸</button>
+  <button class="audio-bar-btn" id="ab-next" aria-label="Next verse">⏭</button>
+  <div class="audio-bar-info">
+    <span class="audio-bar-ref" id="ab-ref"></span>
+    <span class="audio-bar-timer" id="ab-timer"></span>
+  </div>
+  <button class="audio-bar-speed" id="ab-speed">1x</button>
+  <button class="audio-bar-btn" id="ab-stop" aria-label="Stop">⏹</button>
 </div>
 
 <div id="view">
@@ -1462,6 +1521,317 @@
     list.appendChild(li);
   }
 
+  // ===================== TTS ENGINE =====================
+  var tts = {
+    speaking: false, paused: false,
+    bookIdx: 0, chIdx: 0, vIdx: 0,
+    timerMinutes: 0, timerEnd: 0,
+    rate: 1, speeds: [0.7, 0.85, 1, 1.15, 1.3, 1.5],
+    speedIdx: 2,
+    allBooks: null, utterance: null,
+    _highlightEl: null,
+    footnoteRe: /\{\[\d+\]\s*.*?\}/g,
+
+    init: function () {
+      if (!bibleData) return;
+      this.allBooks = Object.keys(bibleData);
+    },
+
+    cleanText: function (raw) {
+      return raw.replace(this.footnoteRe, '').replace(/  +/g, ' ').trim();
+    },
+
+    getVerse: function () {
+      var book = this.allBooks[this.bookIdx];
+      var chs = Object.keys(bibleData[book]);
+      if (this.chIdx >= chs.length) return null;
+      var vs = Object.keys(bibleData[book][chs[this.chIdx]]);
+      if (this.vIdx >= vs.length) return null;
+      return {
+        book: book, ch: chs[this.chIdx], v: vs[this.vIdx],
+        text: this.cleanText(bibleData[book][chs[this.chIdx]][vs[this.vIdx]])
+      };
+    },
+
+    advance: function () {
+      var book = this.allBooks[this.bookIdx];
+      var chs = Object.keys(bibleData[book]);
+      var vs = Object.keys(bibleData[book][chs[this.chIdx]]);
+      this.vIdx++;
+      if (this.vIdx >= vs.length) {
+        this.vIdx = 0;
+        this.chIdx++;
+        if (this.chIdx >= chs.length) {
+          this.chIdx = 0;
+          this.bookIdx++;
+          if (this.bookIdx >= this.allBooks.length) {
+            return false;
+          }
+        }
+        var newBook = this.allBooks[this.bookIdx];
+        var newCh = Object.keys(bibleData[newBook])[this.chIdx];
+        if (currentBook !== newBook || currentChapter !== parseInt(newCh, 10)) {
+          showVersesView(newBook, parseInt(newCh, 10));
+        }
+      }
+      return true;
+    },
+
+    rewind: function () {
+      if (this.vIdx > 0) { this.vIdx--; return true; }
+      if (this.chIdx > 0) {
+        this.chIdx--;
+        var book = this.allBooks[this.bookIdx];
+        var vs = Object.keys(bibleData[book][Object.keys(bibleData[book])[this.chIdx]]);
+        this.vIdx = Math.max(0, vs.length - 1);
+        return true;
+      }
+      if (this.bookIdx > 0) {
+        this.bookIdx--;
+        var b = this.allBooks[this.bookIdx];
+        var chs = Object.keys(bibleData[b]);
+        this.chIdx = chs.length - 1;
+        var vs2 = Object.keys(bibleData[b][chs[this.chIdx]]);
+        this.vIdx = Math.max(0, vs2.length - 1);
+        return true;
+      }
+      return false;
+    },
+
+    highlight: function (verseNum) {
+      if (this._highlightEl) this._highlightEl.classList.remove('speaking');
+      var el = viewInner.querySelector('[data-v="' + verseNum + '"]');
+      if (el) {
+        el.classList.add('speaking');
+        el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        this._highlightEl = el;
+      }
+    },
+
+    clearHighlight: function () {
+      if (this._highlightEl) { this._highlightEl.classList.remove('speaking'); this._highlightEl = null; }
+    },
+
+    speakVerse: function () {
+      if (this.timerMinutes > 0 && Date.now() >= this.timerEnd) {
+        this.stop(); return;
+      }
+      var info = this.getVerse();
+      if (!info) { this.stop(); return; }
+
+      abRef.textContent = info.book + ' ' + info.ch + ':' + info.v;
+      this.highlight(info.v);
+      this.updateTimer();
+
+      var prefix = '';
+      var book = this.allBooks[this.bookIdx];
+      var chs = Object.keys(bibleData[book]);
+      if (this.vIdx === 0) {
+        prefix = info.book + ', chapter ' + info.ch + '. ';
+      }
+
+      var utt = new SpeechSynthesisUtterance(prefix + info.text);
+      utt.rate = this.rate;
+      utt.onend = function () {
+        if (!tts.speaking || tts.paused) return;
+        if (tts.advance()) {
+          tts.speakVerse();
+        } else {
+          tts.stop();
+        }
+      };
+      utt.onerror = function () { tts.stop(); };
+      this.utterance = utt;
+      speechSynthesis.speak(utt);
+    },
+
+    startFrom: function (bookName, chapterNum) {
+      this.init();
+      this.bookIdx = Math.max(0, this.allBooks.indexOf(bookName));
+      var chs = Object.keys(bibleData[bookName]);
+      this.chIdx = Math.max(0, chs.indexOf(String(chapterNum)));
+      this.vIdx = 0;
+      if (this.timerMinutes > 0) this.timerEnd = Date.now() + this.timerMinutes * 60000;
+      this.speaking = true;
+      this.paused = false;
+      audioBar.classList.add('active');
+      abPlay.textContent = '\u23F8';
+      this.speakVerse();
+    },
+
+    pause: function () {
+      this.paused = true;
+      speechSynthesis.pause();
+      abPlay.textContent = '\u25B6';
+    },
+
+    resume: function () {
+      this.paused = false;
+      speechSynthesis.resume();
+      abPlay.textContent = '\u23F8';
+    },
+
+    stop: function () {
+      this.speaking = false;
+      this.paused = false;
+      speechSynthesis.cancel();
+      this.clearHighlight();
+      audioBar.classList.remove('active');
+    },
+
+    nextVerse: function () {
+      speechSynthesis.cancel();
+      if (this.advance()) this.speakVerse(); else this.stop();
+    },
+
+    prevVerse: function () {
+      speechSynthesis.cancel();
+      this.rewind();
+      this.speakVerse();
+    },
+
+    cycleSpeed: function () {
+      this.speedIdx = (this.speedIdx + 1) % this.speeds.length;
+      this.rate = this.speeds[this.speedIdx];
+      abSpeed.textContent = this.rate + 'x';
+      if (this.speaking && !this.paused) {
+        speechSynthesis.cancel();
+        this.speakVerse();
+      }
+    },
+
+    updateTimer: function () {
+      if (this.timerMinutes <= 0) { abTimer.textContent = ''; return; }
+      var left = Math.max(0, Math.ceil((this.timerEnd - Date.now()) / 60000));
+      abTimer.textContent = '(' + left + 'm left)';
+    }
+  };
+
+  var audioBar = document.getElementById('audio-bar');
+  var abRef = document.getElementById('ab-ref');
+  var abTimer = document.getElementById('ab-timer');
+  var abPlay = document.getElementById('ab-play');
+  var abSpeed = document.getElementById('ab-speed');
+
+  document.getElementById('ab-play').addEventListener('click', function () {
+    if (tts.paused) tts.resume(); else tts.pause();
+  });
+  document.getElementById('ab-stop').addEventListener('click', function () { tts.stop(); });
+  document.getElementById('ab-next').addEventListener('click', function () { if (tts.speaking) tts.nextVerse(); });
+  document.getElementById('ab-prev').addEventListener('click', function () { if (tts.speaking) tts.prevVerse(); });
+  document.getElementById('ab-speed').addEventListener('click', function () { tts.cycleSpeed(); });
+
+  // Audio setup popup
+  function showAudioSetup() {
+    closeBmPopup();
+    var scrim = document.createElement('div');
+    scrim.className = 'bm-popup-scrim';
+    scrim.addEventListener('click', function () { scrim.remove(); popup.remove(); });
+    document.body.appendChild(scrim);
+
+    var popup = document.createElement('div');
+    popup.className = 'bm-popup audio-setup';
+
+    var title = document.createElement('div');
+    title.className = 'bm-popup-title';
+    title.textContent = '\uD83D\uDD0A Read Aloud';
+    popup.appendChild(title);
+
+    var fromLabel = document.createElement('label');
+    fromLabel.textContent = 'Start from';
+    popup.appendChild(fromLabel);
+
+    var fromText = document.createElement('div');
+    fromText.style.cssText = 'padding: 0 16px 8px; font-size: 16px; font-weight: 600; color: var(--fg);';
+    if (currentBook && currentChapter) {
+      fromText.textContent = currentBook + ' ' + currentChapter;
+    } else {
+      fromText.textContent = 'Genesis 1';
+    }
+    popup.appendChild(fromText);
+
+    var speedLabel = document.createElement('label');
+    speedLabel.textContent = 'Speed';
+    popup.appendChild(speedLabel);
+
+    var speedSel = document.createElement('select');
+    var speeds = [['0.7x (Slow)', 0.7], ['0.85x', 0.85], ['1x (Normal)', 1], ['1.15x', 1.15], ['1.3x', 1.3], ['1.5x (Fast)', 1.5]];
+    for (var i = 0; i < speeds.length; i++) {
+      var opt = document.createElement('option');
+      opt.value = speeds[i][1];
+      opt.textContent = speeds[i][0];
+      if (speeds[i][1] === tts.rate) opt.selected = true;
+      speedSel.appendChild(opt);
+    }
+    popup.appendChild(speedSel);
+
+    var timerLabel = document.createElement('label');
+    timerLabel.textContent = 'Auto-stop after';
+    popup.appendChild(timerLabel);
+
+    var timerOpts = document.createElement('div');
+    timerOpts.className = 'audio-timer-opts';
+    var times = [['No limit', 0], ['15 min', 15], ['30 min', 30], ['1 hour', 60], ['2 hours', 120]];
+    var selectedTimer = tts.timerMinutes;
+    for (var t = 0; t < times.length; t++) {
+      var tb = document.createElement('button');
+      tb.type = 'button';
+      tb.className = 'audio-timer-opt' + (times[t][1] === selectedTimer ? ' selected' : '');
+      tb.textContent = times[t][0];
+      tb.addEventListener('click', (function (val, btn, container) {
+        return function () {
+          selectedTimer = val;
+          var all = container.querySelectorAll('.audio-timer-opt');
+          for (var x = 0; x < all.length; x++) all[x].classList.remove('selected');
+          btn.classList.add('selected');
+        };
+      })(times[t][1], tb, timerOpts));
+      timerOpts.appendChild(tb);
+    }
+    popup.appendChild(timerOpts);
+
+    var startBtn = document.createElement('button');
+    startBtn.type = 'button';
+    startBtn.className = 'bm-pop-item';
+    startBtn.innerHTML = '<span class="dd-icon">\u25B6</span> Start Reading';
+    startBtn.addEventListener('click', function () {
+      var spd = parseFloat(speedSel.value);
+      tts.rate = spd;
+      tts.speedIdx = tts.speeds.indexOf(spd);
+      if (tts.speedIdx === -1) tts.speedIdx = 2;
+      abSpeed.textContent = spd + 'x';
+      tts.timerMinutes = selectedTimer;
+
+      scrim.remove();
+      popup.remove();
+
+      var book = currentBook || 'Genesis';
+      var ch = currentChapter || 1;
+      if (!currentBook || !currentChapter) {
+        showVersesView('Genesis', 1);
+        book = 'Genesis'; ch = 1;
+      }
+      tts.stop();
+      tts.startFrom(book, ch);
+    });
+    popup.appendChild(startBtn);
+
+    if (tts.speaking) {
+      var stopBtn = document.createElement('button');
+      stopBtn.type = 'button';
+      stopBtn.className = 'bm-pop-item danger';
+      stopBtn.innerHTML = '<span class="dd-icon">\u23F9</span> Stop Reading';
+      stopBtn.addEventListener('click', function () {
+        tts.stop();
+        scrim.remove();
+        popup.remove();
+      });
+      popup.appendChild(stopBtn);
+    }
+
+    document.body.appendChild(popup);
+  }
+
   // ===================== NAV HANDLERS =====================
   document.getElementById('nav-home').addEventListener('click', function () {
     if (bibleData) showBooksView();
@@ -1471,6 +1841,9 @@
   });
   document.getElementById('btn-search').addEventListener('click', function () {
     if (bibleData) showSearchView();
+  });
+  document.getElementById('btn-audio').addEventListener('click', function () {
+    if (bibleData) showAudioSetup();
   });
   document.getElementById('btn-bookmarks').addEventListener('click', function () {
     if (bibleData) showBookmarksView();
