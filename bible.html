@@ -43,16 +43,39 @@
     display: flex; flex-direction: column;
   }
 
+  /* Bottom chrome: chapter bar + FAB (single row, shared safe-area) */
+  .bottom-chrome {
+    position: fixed;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 125;
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 10px;
+    padding: 8px 12px calc(8px + env(safe-area-inset-bottom, 0px));
+    min-height: calc(52px + 16px + env(safe-area-inset-bottom, 0px));
+    pointer-events: none;
+  }
+  .bottom-chrome > * { pointer-events: auto; }
+
   /* Floating chapter nav */
   .floating-nav {
     display: flex; align-items: center; justify-content: center; gap: 4px;
-    position: fixed; left: 50%; transform: translateX(-50%);
-    bottom: calc(68px + env(safe-area-inset-bottom, 0px));
+    position: relative;
+    left: auto;
+    transform: none;
+    flex: 1;
+    min-width: 0;
+    min-height: 52px;
+    margin-right: auto;
     z-index: 120;
     background: var(--float-nav-bg); color: var(--float-nav-fg);
     border-radius: 12px; padding: 6px 8px;
     box-shadow: 0 4px 20px rgba(0,0,0,0.22);
-    max-width: calc(100vw - 24px);
+    max-width: calc(100vw - 24px - 62px);
   }
   .floating-nav.hidden { display: none; }
   .floating-nav button {
@@ -72,8 +95,10 @@
 
   /* FAB */
   .fab-root {
-    position: fixed; right: calc(12px + env(safe-area-inset-right, 0px));
-    bottom: calc(12px + env(safe-area-inset-bottom, 0px));
+    position: relative;
+    right: auto;
+    bottom: auto;
+    flex-shrink: 0;
     z-index: 130;
     display: flex; flex-direction: column; align-items: flex-end; gap: 8px;
   }
@@ -128,7 +153,7 @@
   .view-inner {
     max-width: 960px; margin: 0 auto;
     padding: 16px 12px;
-    padding-bottom: calc(100px + env(safe-area-inset-bottom, 0px));
+    padding-bottom: calc(88px + env(safe-area-inset-bottom, 0px));
   }
 
   /* Books view */
@@ -300,6 +325,7 @@
 </head>
 <body>
 
+<div class="bottom-chrome" id="bottom-chrome">
 <div id="floating-nav" class="floating-nav hidden" role="navigation" aria-label="Chapter">
   <button type="button" id="fn-prev" aria-label="Previous chapter">←</button>
   <button type="button" class="fn-book" id="fn-book" aria-label="Choose book"></button>
@@ -328,6 +354,7 @@
     <div id="history-menu" class="fab-history-menu"></div>
   </div>
   <button type="button" id="fab-main" class="fab-main" aria-label="Menu" aria-expanded="false" aria-controls="fab-panel">☰</button>
+</div>
 </div>
 
 <div id="view">
@@ -487,6 +514,9 @@
   var bibleData = null;
   var currentBook = null;
   var currentChapter = null;
+  /** Persistent reading anchor for the chapter bar (survives books/search views). */
+  var navBook = null;
+  var navChapter = null;
   var uiView = 'books';
   var booksHTML = null;
   var searchIndex = null;
@@ -730,16 +760,27 @@
     return { book: nextBook, chapter: parseInt(nextCh[0], 10) };
   }
 
+  function initNavAnchor() {
+    if (!bibleData) return;
+    var books = Object.keys(bibleData);
+    if (!books.length) return;
+    var fb = books[0];
+    var chs = sortedChapterKeys(fb);
+    if (!chs.length) return;
+    navBook = fb;
+    navChapter = parseInt(chs[0], 10);
+  }
+
   function updateNav() {
-    if (uiView !== 'verses' || !currentBook || currentChapter == null || !bibleData) {
+    if (!bibleData || navBook == null || navChapter == null) {
       floatingNav.classList.add('hidden');
       return;
     }
     floatingNav.classList.remove('hidden');
-    fnBook.textContent = currentBook;
-    fnChapter.textContent = String(currentChapter);
-    var p = prevChapterNav(currentBook, currentChapter);
-    var n = nextChapterNav(currentBook, currentChapter);
+    fnBook.textContent = navBook;
+    fnChapter.textContent = String(navChapter);
+    var p = prevChapterNav(navBook, navChapter);
+    var n = nextChapterNav(navBook, navChapter);
     fnPrev.disabled = !p;
     fnNext.disabled = !n;
   }
@@ -805,6 +846,15 @@
     currentBook = bookName;
     currentChapter = null;
     uiView = 'chapters';
+    var prevBk = navBook;
+    navBook = bookName;
+    var sk = sortedChapterKeys(bookName);
+    var firstCh = parseInt(sk[0], 10);
+    if (prevBk !== bookName) {
+      navChapter = firstCh;
+    } else if (navChapter == null || sk.indexOf(String(navChapter)) === -1) {
+      navChapter = firstCh;
+    }
     updateNav();
     pushNav({ view: 'chapters', book: bookName });
 
@@ -835,6 +885,8 @@
     viewInner.textContent = '';
     currentBook = bookName;
     currentChapter = chapterNum;
+    navBook = bookName;
+    navChapter = chapterNum;
     uiView = 'verses';
     updateNav();
     pushNav({ view: 'verses', book: bookName, chapter: chapterNum });
@@ -913,6 +965,38 @@
     } catch (e) {
       return t.replace(/[^a-z0-9]+/gi, '');
     }
+  }
+
+  /** Map first normalized match of qn in raw (footnote-stripped) to [start,end) indices in that same string. */
+  function findNormMatchInRaw(raw, qn) {
+    var stripped = String(raw).replace(/\{\[\d+\]\s*.*?\}/g, '').replace(/  +/g, ' ');
+    var normFull = normalizeSearchText(stripped);
+    var pos = normFull.indexOf(qn);
+    if (pos === -1) return null;
+    var lower = stripped.toLowerCase();
+    var built = 0;
+    var rawStart = -1;
+    var i = 0;
+    while (i < lower.length) {
+      var cp = lower.codePointAt(i);
+      var w = cp > 0xffff ? 2 : 1;
+      var ch = String.fromCodePoint(cp);
+      var isWord = false;
+      try {
+        isWord = /^[\p{L}\p{N}]$/u.test(ch);
+      } catch (e) {
+        isWord = /[a-z0-9]/i.test(ch);
+      }
+      if (isWord) {
+        if (built === pos) rawStart = i;
+        built++;
+        if (built === pos + qn.length) {
+          return { start: rawStart, end: i + w };
+        }
+      }
+      i += w;
+    }
+    return null;
   }
 
   function buildSearchIndex() {
@@ -1088,19 +1172,19 @@
       var text = document.createElement('div');
       text.className = 'search-text';
       var raw = item.text.replace(/\{\[\d+\]\s*.*?\}/g, '').replace(/  +/g, ' ');
-      var rawLower = raw.toLowerCase();
-      var idx = rawLower.indexOf(qLow);
-      var markLen = q.length;
-      if (idx < 0) {
+      var range = findNormMatchInRaw(raw, qn);
+      var idx = range ? range.start : 0;
+      var markLen = range ? (range.end - range.start) : Math.min(20, raw.length);
+      if (!range && raw.length) {
+        var rawLower = raw.toLowerCase();
         var words = qLow.split(/\s+/).filter(Boolean);
         if (words.length) {
-          idx = rawLower.indexOf(words[0]);
-          markLen = words[0].length;
+          var wi = rawLower.indexOf(words[0]);
+          if (wi >= 0) {
+            idx = wi;
+            markLen = words[0].length;
+          }
         }
-      }
-      if (idx < 0) {
-        idx = 0;
-        markLen = Math.min(20, raw.length);
       }
       var start = Math.max(0, idx - 40);
       var end = Math.min(raw.length, idx + markLen + 40);
@@ -1150,20 +1234,20 @@
   }
   // ===================== NAV HANDLERS =====================
   fnPrev.addEventListener('click', function () {
-    if (!bibleData || !currentBook || !currentChapter) return;
-    var p = prevChapterNav(currentBook, currentChapter);
+    if (!bibleData || navBook == null || navChapter == null) return;
+    var p = prevChapterNav(navBook, navChapter);
     if (p) showVersesView(p.book, p.chapter);
   });
   fnNext.addEventListener('click', function () {
-    if (!bibleData || !currentBook || !currentChapter) return;
-    var n = nextChapterNav(currentBook, currentChapter);
+    if (!bibleData || navBook == null || navChapter == null) return;
+    var n = nextChapterNav(navBook, navChapter);
     if (n) showVersesView(n.book, n.chapter);
   });
   fnBook.addEventListener('click', function () {
     if (bibleData) showBooksView();
   });
   fnChapter.addEventListener('click', function () {
-    if (bibleData && currentBook) showChaptersView(currentBook);
+    if (bibleData && navBook) showChaptersView(navBook);
   });
   document.getElementById('btn-search').addEventListener('click', function (e) {
     e.stopPropagation();
@@ -1186,6 +1270,7 @@
       return;
     }
     bibleData = xhr.response;
+    initNavAnchor();
     history.replaceState({ view: 'books' }, '');
     navFromPop = true;
     showBooksView();
