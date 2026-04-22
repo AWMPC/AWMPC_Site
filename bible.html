@@ -935,18 +935,20 @@
       p.appendChild(sup);
 
       var noteBodies = [];
+      var fnIdx = 0;
       for (var s = 0; s < segments.length; s++) {
         var seg = segments[s];
         if (seg.type === 'text') {
           p.appendChild(document.createTextNode(seg.value));
         } else {
+          fnIdx++;
           var noteBtn = document.createElement('button');
           noteBtn.type = 'button';
           noteBtn.className = 'footnote-toggle';
-          noteBtn.textContent = '\u2020' + seg.num;
+          noteBtn.textContent = keys[i] + '.' + fnIdx;
           var noteBody = document.createElement('div');
           noteBody.className = 'footnote-body';
-          noteBody.textContent = '[' + seg.num + '] ' + seg.text;
+          noteBody.textContent = '[' + keys[i] + '.' + fnIdx + '] ' + seg.text;
           noteBtn.addEventListener('click', (function (b, bd) {
             return function () {
               var on = bd.className.indexOf('visible') !== -1;
