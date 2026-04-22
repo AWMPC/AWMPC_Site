@@ -730,7 +730,9 @@
   }
 
   // ===================== FOOTNOTES =====================
-  var footnoteRe = /\{\[(\d+)\]\s*(.*?)\}/g;
+  // Bracket label is manuscript / editor scope: digits, ranges (6-8), etc. — not only the current verse number.
+  var footnoteRe = /\{\[([^\]]+)\]\s*(.*?)\}/g;
+  var footnoteStripRe = /\{\[[^\]]+\]\s*.*?\}/g;
   function parseVerse(raw) {
     var segments = [];
     var last = 0;
@@ -740,7 +742,7 @@
       if (m.index > last) {
         segments.push({ type: 'text', value: raw.slice(last, m.index).replace(/  +/g, ' ') });
       }
-      segments.push({ type: 'note', num: m[1], text: m[2] });
+      segments.push({ type: 'note', ref: m[1], text: m[2] });
       last = footnoteRe.lastIndex;
     }
     if (last < raw.length) {
@@ -948,7 +950,14 @@
           noteBtn.textContent = keys[i] + '.' + fnIdx;
           var noteBody = document.createElement('div');
           noteBody.className = 'footnote-body';
-          noteBody.textContent = '[' + keys[i] + '.' + fnIdx + '] ' + seg.text;
+          var refLabel = String(seg.ref).trim();
+          var bodyText = String(seg.text).replace(/  +/g, ' ').trim();
+          noteBody.textContent =
+            '[' + keys[i] + '.' + fnIdx + '] [' + refLabel + '] ' + bodyText;
+          noteBtn.setAttribute(
+            'title',
+            'Note ' + keys[i] + '.' + fnIdx + ' (manuscript scope [' + refLabel + '])'
+          );
           noteBtn.addEventListener('click', (function (b, bd) {
             return function () {
               var on = bd.className.indexOf('visible') !== -1;
@@ -986,7 +995,7 @@
 
   // ===================== VIEW: SEARCH =====================
   function normalizeSearchText(raw) {
-    var t = String(raw).replace(/\{\[\d+\]\s*.*?\}/g, '').replace(/  +/g, ' ');
+    var t = String(raw).replace(footnoteStripRe, '').replace(/  +/g, ' ');
     t = t.toLowerCase();
     try {
       return t.replace(/[^\p{L}\p{N}]+/gu, '');
@@ -997,7 +1006,7 @@
 
   /** Map first normalized match of qn in raw (footnote-stripped) to [start,end) indices in that same string. */
   function findNormMatchInRaw(raw, qn) {
-    var stripped = String(raw).replace(/\{\[\d+\]\s*.*?\}/g, '').replace(/  +/g, ' ');
+    var stripped = String(raw).replace(footnoteStripRe, '').replace(/  +/g, ' ');
     var normFull = normalizeSearchText(stripped);
     var pos = normFull.indexOf(qn);
     if (pos === -1) return null;
@@ -1199,7 +1208,7 @@
 
       var text = document.createElement('div');
       text.className = 'search-text';
-      var raw = item.text.replace(/\{\[\d+\]\s*.*?\}/g, '').replace(/  +/g, ' ');
+      var raw = item.text.replace(footnoteStripRe, '').replace(/  +/g, ' ');
       var range = findNormMatchInRaw(raw, qn);
       var idx = range ? range.start : 0;
       var markLen = range ? (range.end - range.start) : Math.min(20, raw.length);
