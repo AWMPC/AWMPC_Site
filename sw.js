@@ -1,4 +1,4 @@
-var CACHE_NAME = 'bible-v4';
+var CACHE_NAME = 'bible-v5';
 var ASSETS = [
   'bible.html',
   'bible.json',
@@ -35,20 +35,21 @@ self.addEventListener('activate', function (e) {
 self.addEventListener('fetch', function (e) {
   var url = new URL(e.request.url);
 
+  // bible.json must be network-first: cache-on-hit was serving stale JSON forever
+  // (cached || fetch never reached the network when any cached Response existed).
   if (url.pathname.endsWith('bible.json')) {
     e.respondWith(
       caches.open(CACHE_NAME).then(function (cache) {
-        return cache.match(e.request).then(function (cached) {
-          var fetchPromise = fetch(e.request).then(function (response) {
+        return fetch(e.request)
+          .then(function (response) {
             if (response.ok) {
               cache.put(e.request, response.clone());
             }
             return response;
-          }).catch(function () {
-            return cached;
+          })
+          .catch(function () {
+            return cache.match(e.request);
           });
-          return cached || fetchPromise;
-        });
       })
     );
     return;
