@@ -52,11 +52,12 @@
     z-index: 125;
     display: flex;
     flex-direction: row;
-    align-items: center;
+    align-items: flex-end;
     justify-content: flex-end;
     gap: 10px;
     padding: 8px 12px calc(8px + env(safe-area-inset-bottom, 0px));
     min-height: calc(52px + 16px + env(safe-area-inset-bottom, 0px));
+    overflow: visible;
     pointer-events: none;
   }
   .bottom-chrome > * { pointer-events: auto; }
@@ -67,7 +68,9 @@
     position: relative;
     left: auto;
     transform: none;
-    flex: 1;
+    flex: 0 1 auto;
+    width: max-content;
+    max-width: calc(100vw - 24px - 62px);
     min-width: 0;
     min-height: 52px;
     margin-right: auto;
@@ -75,7 +78,6 @@
     background: var(--float-nav-bg); color: var(--float-nav-fg);
     border-radius: 12px; padding: 6px 8px;
     box-shadow: 0 4px 20px rgba(0,0,0,0.22);
-    max-width: calc(100vw - 24px - 62px);
   }
   .floating-nav.hidden { display: none; }
   .floating-nav button {
@@ -100,7 +102,13 @@
     bottom: auto;
     flex-shrink: 0;
     z-index: 130;
-    display: flex; flex-direction: column; align-items: flex-end; gap: 8px;
+    overflow: visible;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    justify-content: flex-end;
+    gap: 0;
+    min-height: 52px;
   }
   .fab-main {
     width: 52px; height: 52px; border-radius: 50%;
@@ -112,8 +120,14 @@
   }
   .fab-main:hover { filter: brightness(1.08); }
   .fab-panel {
-    display: none; width: min(320px, calc(100vw - 24px));
-    max-height: min(70vh, 480px); overflow-y: auto;
+    display: none;
+    position: absolute;
+    right: 0;
+    bottom: calc(100% + 8px);
+    z-index: 131;
+    width: min(320px, calc(100vw - 24px));
+    max-height: min(70vh, 480px);
+    overflow-y: auto;
     background: var(--bg2); border: 1px solid var(--border); border-radius: 12px;
     box-shadow: 0 8px 28px rgba(0,0,0,0.2);
   }
@@ -334,6 +348,7 @@
 </div>
 
 <div class="fab-root">
+  <button type="button" id="fab-main" class="fab-main" aria-label="Menu" aria-expanded="false" aria-controls="fab-panel">☰</button>
   <div id="fab-panel" class="fab-panel">
     <div id="auth-area"></div>
     <button class="dd-item" id="dd-dark" type="button">
@@ -353,7 +368,6 @@
     <div class="fab-section-label">Recent reading</div>
     <div id="history-menu" class="fab-history-menu"></div>
   </div>
-  <button type="button" id="fab-main" class="fab-main" aria-label="Menu" aria-expanded="false" aria-controls="fab-panel">☰</button>
 </div>
 </div>
 
