@@ -655,7 +655,13 @@
     _currentUid = user ? user.uid : null;
 
     if (user) {
-      fabMain.innerHTML = '<img class="profile-avatar" src="' + (user.photoURL || '') + '" alt="" referrerpolicy="no-referrer">';
+      fabMain.textContent = '';
+      var av = document.createElement('img');
+      av.className = 'profile-avatar';
+      av.alt = '';
+      av.referrerPolicy = 'no-referrer';
+      av.src = user.photoURL || '';
+      fabMain.appendChild(av);
     } else {
       fabMain.textContent = '\u2630';
     }
@@ -705,8 +711,14 @@
       var btn = document.createElement('button');
       btn.type = 'button';
       btn.className = 'dd-item';
-      btn.innerHTML = '<span class="dd-icon">📄</span><span class="dd-label">' +
-        parts[0] + ' ' + parts[1] + '</span>';
+      var hi = document.createElement('span');
+      hi.className = 'dd-icon';
+      hi.textContent = '📄';
+      var hl = document.createElement('span');
+      hl.className = 'dd-label';
+      hl.textContent = parts[0] + ' ' + parts[1];
+      btn.appendChild(hi);
+      btn.appendChild(hl);
       btn.addEventListener('click', (function (book, ch) {
         return function () {
           closeMenus();
