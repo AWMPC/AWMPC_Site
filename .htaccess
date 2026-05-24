@@ -63,7 +63,8 @@ RewriteRule ^(.*)$ https://awmpc.org/$1 [L,R=301]
 
     # Content Security Policy
     # TODO: how to embed youtube iframes with "default-src 'self';"
-    Header set Content-Security-Policy "base-uri 'none'; form-action 'self'; frame-ancestors 'none'; upgrade-insecure-requests" "expr=%{CONTENT_TYPE} =~ m#text\/(html|javascript)|application\/pdf|xml#i"
+    Header set Content-Security-Policy "base-uri 'none'; form-action 'self'; frame-ancestors 'none'; upgrade-insecure-requests" "expr=%{CONTENT_TYPE} =~ m#text\/(html|javascript)|xml#i"
+    Header set Content-Security-Policy "frame-ancestors 'self'; upgrade-insecure-requests" "expr=%{CONTENT_TYPE} =~ m#application\/pdf#i"
 
     # Prevent MIME-type sniffing
     Header set X-Content-Type-Options "nosniff"
