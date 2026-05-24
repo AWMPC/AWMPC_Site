@@ -25,3 +25,9 @@ assert.match(
   shell,
   /<a class="fab-menu-item" href="\.\/hymns\.html">Hymns <span class="fab-item-zh">讚美詩<\/span><\/a>/
 );
+
+assert.doesNotMatch(
+  shell,
+  /navigator\.serviceWorker\.register\(['"]\.\/sw\.js['"]\)/,
+  'site shell must not register the Bible service worker on every page'
+);
