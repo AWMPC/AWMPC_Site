@@ -215,27 +215,6 @@
   var renderQueued = false;
   var resizeTimer = null;
 
-  function cleanupLegacyServiceWorker() {
-    if (!('serviceWorker' in navigator)) return Promise.resolve();
-
-    return navigator.serviceWorker.getRegistrations().then(function(registrations) {
-      return Promise.all(registrations.map(function(registration) {
-        return registration.unregister();
-      }));
-    }).then(function() {
-      if (!window.caches) return Promise.resolve();
-      return caches.keys().then(function(keys) {
-        return Promise.all(keys.filter(function(key) {
-          return key.indexOf('bible-') === 0;
-        }).map(function(key) {
-          return caches.delete(key);
-        }));
-      });
-    }).catch(function() {
-      return undefined;
-    });
-  }
-
   function setLoading(isLoading) {
     stage.classList.toggle('is-loading', isLoading);
   }
@@ -494,6 +473,6 @@
     resizeTimer = window.setTimeout(renderPage, 150);
   });
 
-  cleanupLegacyServiceWorker().then(loadHymns);
+  loadHymns();
 })();
 </script>

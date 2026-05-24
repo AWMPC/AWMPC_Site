@@ -66,9 +66,6 @@ assert.match(html, /id="hymnPdfCanvas"/);
 assert.match(html, /id="hymnPdfFullscreen"/);
 assert.match(html, /requestFullscreen/);
 assert.doesNotMatch(html, /<iframe/);
-assert.match(html, /navigator\.serviceWorker\.getRegistrations/);
-assert.match(html, /registration\.unregister\(\)/);
-assert.match(html, /caches\.delete/);
 
 assert.ok(fs.existsSync(path.join(root, 'resources', 'vendor', 'pdfjs', 'pdf.min.js')));
 assert.ok(fs.existsSync(path.join(root, 'resources', 'vendor', 'pdfjs', 'pdf.worker.min.js')));
