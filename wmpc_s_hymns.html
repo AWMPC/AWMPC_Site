@@ -153,6 +153,14 @@
     max-width: none;
   }
 
+  .hymns-stage.is-mobile-presenting:fullscreen .hymns-canvas,
+  .hymns-stage.is-mobile-presenting:-webkit-full-screen .hymns-canvas {
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    transform: translate(-50%, -50%);
+  }
+
   .hymns-error {
     padding: 18px;
     border: 1px solid rgba(204, 0, 0, 0.28);

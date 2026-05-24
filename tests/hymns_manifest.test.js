@@ -87,6 +87,7 @@ assert.match(html, /\(pointer: coarse\)/);
 assert.match(html, /var mobilePresentation = isPresenting\(\) && isMobilePresentationViewport\(\)/);
 assert.match(html, /mobilePresentation \?\s*maxCssHeight \/ baseViewport\.height\s*:\s*Math\.min\(maxCssWidth \/ baseViewport\.width, maxCssHeight \/ baseViewport\.height\)/);
 assert.match(html, /stage\.classList\.toggle\('is-mobile-presenting', mobilePresentation\)/);
+assert.match(html, /\.hymns-stage\.is-mobile-presenting:fullscreen \.hymns-canvas,\s*\.hymns-stage\.is-mobile-presenting:-webkit-full-screen \.hymns-canvas\s*{[\s\S]*?position: absolute;[\s\S]*?left: 50%;[\s\S]*?top: 50%;[\s\S]*?transform: translate\(-50%, -50%\)/);
 assert.match(html, /document\.addEventListener\('keydown'/);
 assert.match(html, /event\.key === 'ArrowLeft'/);
 assert.match(html, /event\.key === 'ArrowRight'/);
