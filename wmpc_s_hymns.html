@@ -88,6 +88,8 @@
     border-radius: 0;
     background: #000;
     overflow: hidden;
+    touch-action: none;
+    user-select: none;
   }
 
   .hymns-stage:-webkit-full-screen {
@@ -98,6 +100,9 @@
     border-radius: 0;
     background: #000;
     overflow: hidden;
+    touch-action: none;
+    -webkit-user-select: none;
+    user-select: none;
   }
 
   .hymns-stage.is-loading::before {
@@ -232,6 +237,8 @@
   var activeCanvas = primaryCanvas;
   var inactiveCanvas = secondaryCanvas;
   var CROSSFADE_OVERLAP_MS = 260;
+  var SWIPE_THRESHOLD_PX = 56;
+  var SWIPE_VERTICAL_LIMIT_RATIO = 1.25;
   var hymns = [];
   var pdfDoc = null;
   var renderTask = null;
@@ -239,6 +246,7 @@
   var renderQueued = false;
   var resizeTimer = null;
   var crossfadeTimer = null;
+  var swipeState = null;
   var hasRenderedPage = false;
 
   function cleanupLegacyServiceWorker() {
@@ -548,6 +556,60 @@
     renderPage();
   }
 
+  function beginSwipe(event) {
+    if (!isPresenting() || !pdfDoc || event.pointerType === 'mouse') return;
+
+    swipeState = {
+      pointerId: event.pointerId,
+      startX: event.clientX,
+      startY: event.clientY,
+      lastX: event.clientX,
+      lastY: event.clientY
+    };
+
+    if (stage.setPointerCapture) {
+      try {
+        stage.setPointerCapture(event.pointerId);
+      } catch (error) {
+        // Some browsers may reject capture during fullscreen transitions.
+      }
+    }
+  }
+
+  function moveSwipe(event) {
+    if (!swipeState || event.pointerId !== swipeState.pointerId) return;
+
+    swipeState.lastX = event.clientX;
+    swipeState.lastY = event.clientY;
+
+    var deltaX = event.clientX - swipeState.startX;
+    var deltaY = event.clientY - swipeState.startY;
+    if (Math.abs(deltaX) > 10 && Math.abs(deltaX) > Math.abs(deltaY)) {
+      event.preventDefault();
+    }
+  }
+
+  function finishSwipe(event) {
+    if (!swipeState || event.pointerId !== swipeState.pointerId) return;
+
+    var deltaX = event.clientX - swipeState.startX;
+    var deltaY = event.clientY - swipeState.startY;
+    swipeState = null;
+
+    if (!isPresenting()) return;
+    if (Math.abs(deltaX) < SWIPE_THRESHOLD_PX) return;
+    if (Math.abs(deltaX) < Math.abs(deltaY) * SWIPE_VERTICAL_LIMIT_RATIO) return;
+
+    event.preventDefault();
+    if (deltaX < 0) goToNextPage();
+    if (deltaX > 0) goToPreviousPage();
+  }
+
+  function cancelSwipe(event) {
+    if (!swipeState || event.pointerId !== swipeState.pointerId) return;
+    swipeState = null;
+  }
+
   function exitPresentation() {
     if (document.fullscreenElement && document.exitFullscreen) {
       document.exitFullscreen();
@@ -634,6 +696,12 @@
     fullscreenButton.textContent = document.webkitFullscreenElement === stage ? 'Exit' : 'Present';
     renderPage();
   });
+
+  stage.addEventListener('pointerdown', beginSwipe);
+  stage.addEventListener('pointermove', moveSwipe);
+  stage.addEventListener('pointerup', finishSwipe);
+  stage.addEventListener('pointercancel', cancelSwipe);
+  stage.addEventListener('lostpointercapture', cancelSwipe);
 
   window.addEventListener('resize', function() {
     if (!pdfDoc) return;
