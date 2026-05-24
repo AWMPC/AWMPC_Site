@@ -57,4 +57,5 @@ assert.match(html, /data-manifest-url="documents\/hymns\/index\.json"/);
 assert.match(html, /id="hymnPdfViewer"/);
 assert.match(html, /id="hymnPdfFallback"/);
 assert.match(html, /encodeURI/);
-
+assert.match(html, /new URL\(hymn\.file, window\.location\.href\)/);
+assert.match(html, /searchParams\.set\('embed', '1'\)/);

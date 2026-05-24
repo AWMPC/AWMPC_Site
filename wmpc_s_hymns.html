@@ -238,11 +238,17 @@
     select.disabled = hymns.length === 0;
   }
 
+  function hymnUrl(hymn) {
+    var url = new URL(hymn.file, window.location.href);
+    url.searchParams.set('embed', '1');
+    return encodeURI(url.href);
+  }
+
   function showHymn(index) {
     var hymn = hymns[index];
     if (!hymn) return;
 
-    var encodedFile = encodeURI(hymn.file);
+    var encodedFile = hymnUrl(hymn);
     if (loadTimer) window.clearTimeout(loadTimer);
     setLoading(true);
     setStatus('Loading ' + hymn.title + '...');
