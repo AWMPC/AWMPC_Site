@@ -238,7 +238,10 @@
   var inactiveCanvas = secondaryCanvas;
   var CROSSFADE_OVERLAP_MS = 260;
   var SWIPE_THRESHOLD_PX = 56;
+  var PRESENTATION_EXIT_SWIPE_THRESHOLD_PX = 56;
   var SWIPE_VERTICAL_LIMIT_RATIO = 1.25;
+  var PINCH_EXIT_RATIO = 0.72;
+  var PINCH_EXIT_MIN_DELTA_PX = 36;
   var hymns = [];
   var pdfDoc = null;
   var renderTask = null;
@@ -246,6 +249,8 @@
   var renderQueued = false;
   var resizeTimer = null;
   var crossfadeTimer = null;
+  var activePointers = {};
+  var pinchState = null;
   var swipeState = null;
   var hasRenderedPage = false;
 
@@ -568,8 +573,67 @@
     renderPage();
   }
 
+  function activePointerList() {
+    return Object.keys(activePointers).map(function(pointerId) {
+      return activePointers[pointerId];
+    });
+  }
+
+  function resetPointerGestures() {
+    activePointers = {};
+    pinchState = null;
+    swipeState = null;
+  }
+
+  function distanceBetweenPointers(firstPointer, secondPointer) {
+    var deltaX = firstPointer.x - secondPointer.x;
+    var deltaY = firstPointer.y - secondPointer.y;
+    return Math.sqrt(deltaX * deltaX + deltaY * deltaY);
+  }
+
+  function beginPinchIfReady() {
+    var pointers = activePointerList();
+    if (pointers.length < 2) return;
+
+    pinchState = {
+      pointerIds: [pointers[0].pointerId, pointers[1].pointerId],
+      startDistance: distanceBetweenPointers(pointers[0], pointers[1])
+    };
+    swipeState = null;
+  }
+
+  function exitPresentationFromGesture(event) {
+    if (event && event.preventDefault) event.preventDefault();
+    resetPointerGestures();
+    exitPresentation();
+  }
+
+  function updatePinchExit(event) {
+    if (!pinchState) return false;
+
+    var firstPointer = activePointers[pinchState.pointerIds[0]];
+    var secondPointer = activePointers[pinchState.pointerIds[1]];
+    if (!firstPointer || !secondPointer) return false;
+
+    var currentDistance = distanceBetweenPointers(firstPointer, secondPointer);
+    var distanceDelta = pinchState.startDistance - currentDistance;
+    if (currentDistance <= pinchState.startDistance * PINCH_EXIT_RATIO &&
+        distanceDelta >= PINCH_EXIT_MIN_DELTA_PX) {
+      exitPresentationFromGesture(event);
+      return true;
+    }
+
+    return false;
+  }
+
   function beginSwipe(event) {
     if (!isPresenting() || !pdfDoc || event.pointerType === 'mouse') return;
+
+    activePointers[event.pointerId] = {
+      pointerId: event.pointerId,
+      x: event.clientX,
+      y: event.clientY
+    };
 
     swipeState = {
       pointerId: event.pointerId,
@@ -586,9 +650,24 @@
         // Some browsers may reject capture during fullscreen transitions.
       }
     }
+
+    if (activePointerList().length >= 2) {
+      beginPinchIfReady();
+    }
   }
 
   function moveSwipe(event) {
+    if (!activePointers[event.pointerId]) return;
+
+    activePointers[event.pointerId].x = event.clientX;
+    activePointers[event.pointerId].y = event.clientY;
+
+    if (pinchState) {
+      event.preventDefault();
+      updatePinchExit(event);
+      return;
+    }
+
     if (!swipeState || event.pointerId !== swipeState.pointerId) return;
 
     swipeState.lastX = event.clientX;
@@ -596,12 +675,20 @@
 
     var deltaX = event.clientX - swipeState.startX;
     var deltaY = event.clientY - swipeState.startY;
-    if (Math.abs(deltaX) > 10 && Math.abs(deltaX) > Math.abs(deltaY)) {
+    if ((Math.abs(deltaX) > 10 && Math.abs(deltaX) > Math.abs(deltaY)) ||
+        (Math.abs(deltaY) > 10 && Math.abs(deltaY) > Math.abs(deltaX))) {
       event.preventDefault();
     }
   }
 
   function finishSwipe(event) {
+    delete activePointers[event.pointerId];
+
+    if (pinchState) {
+      if (activePointerList().length < 2) pinchState = null;
+      return;
+    }
+
     if (!swipeState || event.pointerId !== swipeState.pointerId) return;
 
     var deltaX = event.clientX - swipeState.startX;
@@ -609,6 +696,11 @@
     swipeState = null;
 
     if (!isPresenting()) return;
+    if (Math.abs(deltaY) >= PRESENTATION_EXIT_SWIPE_THRESHOLD_PX &&
+        Math.abs(deltaY) >= Math.abs(deltaX) * SWIPE_VERTICAL_LIMIT_RATIO) {
+      exitPresentationFromGesture(event);
+      return;
+    }
     if (Math.abs(deltaX) < SWIPE_THRESHOLD_PX) return;
     if (Math.abs(deltaX) < Math.abs(deltaY) * SWIPE_VERTICAL_LIMIT_RATIO) return;
 
@@ -618,8 +710,16 @@
   }
 
   function cancelSwipe(event) {
-    if (!swipeState || event.pointerId !== swipeState.pointerId) return;
-    swipeState = null;
+    delete activePointers[event.pointerId];
+    if (swipeState && event.pointerId === swipeState.pointerId) swipeState = null;
+    if (pinchState && activePointerList().length < 2) pinchState = null;
+  }
+
+  function handleGestureChange(event) {
+    if (!isPresenting()) return;
+    if (typeof event.scale === 'number' && event.scale <= PINCH_EXIT_RATIO) {
+      exitPresentationFromGesture(event);
+    }
   }
 
   function exitPresentation() {
@@ -701,11 +801,13 @@
 
   document.addEventListener('fullscreenchange', function() {
     fullscreenButton.textContent = document.fullscreenElement === stage ? 'Exit' : 'Present';
+    resetPointerGestures();
     renderPage();
   });
 
   document.addEventListener('webkitfullscreenchange', function() {
     fullscreenButton.textContent = document.webkitFullscreenElement === stage ? 'Exit' : 'Present';
+    resetPointerGestures();
     renderPage();
   });
 
@@ -714,6 +816,7 @@
   stage.addEventListener('pointerup', finishSwipe);
   stage.addEventListener('pointercancel', cancelSwipe);
   stage.addEventListener('lostpointercapture', cancelSwipe);
+  stage.addEventListener('gesturechange', handleGestureChange);
 
   window.addEventListener('resize', function() {
     if (!pdfDoc) return;
