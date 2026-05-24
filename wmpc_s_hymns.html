@@ -151,6 +151,12 @@
   .hymns-stage:fullscreen .hymns-canvas,
   .hymns-stage:-webkit-full-screen .hymns-canvas {
     max-width: none;
+    transform-origin: center center;
+  }
+
+  .hymns-stage.is-presentation-zoomed:fullscreen .hymns-canvas,
+  .hymns-stage.is-presentation-zoomed:-webkit-full-screen .hymns-canvas {
+    transform: scale(var(--hymns-presentation-zoom, 1));
   }
 
   .hymns-error {
@@ -240,8 +246,8 @@
   var SWIPE_THRESHOLD_PX = 56;
   var PRESENTATION_EXIT_SWIPE_THRESHOLD_PX = 56;
   var SWIPE_VERTICAL_LIMIT_RATIO = 1.25;
-  var PINCH_EXIT_RATIO = 0.72;
-  var PINCH_EXIT_MIN_DELTA_PX = 36;
+  var MIN_PRESENTATION_ZOOM = 1;
+  var MAX_PRESENTATION_ZOOM = 3;
   var hymns = [];
   var pdfDoc = null;
   var renderTask = null;
@@ -251,7 +257,9 @@
   var crossfadeTimer = null;
   var activePointers = {};
   var pinchState = null;
+  var gestureState = null;
   var swipeState = null;
+  var presentationZoom = 1;
   var hasRenderedPage = false;
 
   function cleanupLegacyServiceWorker() {
@@ -570,6 +578,7 @@
   function resetPointerGestures() {
     activePointers = {};
     pinchState = null;
+    gestureState = null;
     swipeState = null;
   }
 
@@ -579,13 +588,32 @@
     return Math.sqrt(deltaX * deltaX + deltaY * deltaY);
   }
 
+  function clampPresentationZoom(zoom) {
+    var numericZoom = Number(zoom);
+    if (!isFinite(numericZoom)) return MIN_PRESENTATION_ZOOM;
+    return Math.max(MIN_PRESENTATION_ZOOM, Math.min(MAX_PRESENTATION_ZOOM, numericZoom));
+  }
+
+  function updatePresentationZoom(zoom) {
+    presentationZoom = clampPresentationZoom(zoom);
+    stage.style.setProperty('--hymns-presentation-zoom', String(presentationZoom));
+    stage.classList.toggle('is-presentation-zoomed', isPresenting() && presentationZoom > MIN_PRESENTATION_ZOOM);
+  }
+
+  function resetPresentationZoom() {
+    presentationZoom = MIN_PRESENTATION_ZOOM;
+    stage.style.removeProperty('--hymns-presentation-zoom');
+    stage.classList.remove('is-presentation-zoomed');
+  }
+
   function beginPinchIfReady() {
     var pointers = activePointerList();
     if (pointers.length < 2) return;
 
     pinchState = {
       pointerIds: [pointers[0].pointerId, pointers[1].pointerId],
-      startDistance: distanceBetweenPointers(pointers[0], pointers[1])
+      startDistance: distanceBetweenPointers(pointers[0], pointers[1]),
+      startZoom: presentationZoom
     };
     swipeState = null;
   }
@@ -596,7 +624,7 @@
     exitPresentation();
   }
 
-  function updatePinchExit(event) {
+  function updatePinchZoom(event) {
     if (!pinchState) return false;
 
     var firstPointer = activePointers[pinchState.pointerIds[0]];
@@ -604,14 +632,10 @@
     if (!firstPointer || !secondPointer) return false;
 
     var currentDistance = distanceBetweenPointers(firstPointer, secondPointer);
-    var distanceDelta = pinchState.startDistance - currentDistance;
-    if (currentDistance <= pinchState.startDistance * PINCH_EXIT_RATIO &&
-        distanceDelta >= PINCH_EXIT_MIN_DELTA_PX) {
-      exitPresentationFromGesture(event);
-      return true;
-    }
+    var zoomRatio = currentDistance / pinchState.startDistance;
+    updatePresentationZoom(pinchState.startZoom * zoomRatio);
 
-    return false;
+    return true;
   }
 
   function beginSwipe(event) {
@@ -652,7 +676,7 @@
 
     if (pinchState) {
       event.preventDefault();
-      updatePinchExit(event);
+      updatePinchZoom(event);
       return;
     }
 
@@ -703,11 +727,26 @@
     if (pinchState && activePointerList().length < 2) pinchState = null;
   }
 
+  function beginGestureZoom(event) {
+    if (!isPresenting()) return;
+    if (event.preventDefault) event.preventDefault();
+    gestureState = {
+      startZoom: presentationZoom
+    };
+  }
+
   function handleGestureChange(event) {
     if (!isPresenting()) return;
-    if (typeof event.scale === 'number' && event.scale <= PINCH_EXIT_RATIO) {
-      exitPresentationFromGesture(event);
-    }
+    if (event.preventDefault) event.preventDefault();
+    if (typeof event.scale !== 'number') return;
+
+    var startZoom = gestureState ? gestureState.startZoom : presentationZoom;
+    updatePresentationZoom(startZoom * event.scale);
+  }
+
+  function endGestureZoom(event) {
+    if (gestureState && event.preventDefault) event.preventDefault();
+    gestureState = null;
   }
 
   function exitPresentation() {
@@ -788,14 +827,18 @@
   });
 
   document.addEventListener('fullscreenchange', function() {
-    fullscreenButton.textContent = document.fullscreenElement === stage ? 'Exit' : 'Present';
+    var presenting = document.fullscreenElement === stage;
+    fullscreenButton.textContent = presenting ? 'Exit' : 'Present';
     resetPointerGestures();
+    if (!presenting) resetPresentationZoom();
     renderPage();
   });
 
   document.addEventListener('webkitfullscreenchange', function() {
-    fullscreenButton.textContent = document.webkitFullscreenElement === stage ? 'Exit' : 'Present';
+    var presenting = document.webkitFullscreenElement === stage;
+    fullscreenButton.textContent = presenting ? 'Exit' : 'Present';
     resetPointerGestures();
+    if (!presenting) resetPresentationZoom();
     renderPage();
   });
 
@@ -804,7 +847,9 @@
   stage.addEventListener('pointerup', finishSwipe);
   stage.addEventListener('pointercancel', cancelSwipe);
   stage.addEventListener('lostpointercapture', cancelSwipe);
+  stage.addEventListener('gesturestart', beginGestureZoom);
   stage.addEventListener('gesturechange', handleGestureChange);
+  stage.addEventListener('gestureend', endGestureZoom);
 
   window.addEventListener('resize', function() {
     if (!pdfDoc) return;
