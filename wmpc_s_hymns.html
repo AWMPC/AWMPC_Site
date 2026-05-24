@@ -129,11 +129,18 @@
     height: auto;
     background: #000;
     opacity: 0;
-    transition: opacity 180ms ease;
+    transition: opacity 520ms ease-in-out;
+    z-index: 0;
   }
 
   .hymns-canvas.is-active {
     opacity: 1;
+    z-index: 2;
+  }
+
+  .hymns-canvas.is-retiring {
+    opacity: 1;
+    z-index: 1;
   }
 
   .hymns-stage:fullscreen .hymns-canvas,
@@ -224,12 +231,14 @@
   var secondaryCanvasContext = secondaryCanvas.getContext('2d');
   var activeCanvas = primaryCanvas;
   var inactiveCanvas = secondaryCanvas;
+  var CROSSFADE_OVERLAP_MS = 260;
   var hymns = [];
   var pdfDoc = null;
   var renderTask = null;
   var pageNumber = 1;
   var renderQueued = false;
   var resizeTimer = null;
+  var crossfadeTimer = null;
   var hasRenderedPage = false;
 
   function cleanupLegacyServiceWorker() {
@@ -322,26 +331,45 @@
     canvas.style.height = '';
   }
 
+  function clearCrossfadeTimer() {
+    if (!crossfadeTimer) return;
+    window.clearTimeout(crossfadeTimer);
+    crossfadeTimer = null;
+  }
+
   function clearCanvas() {
+    clearCrossfadeTimer();
     resetCanvas(primaryCanvas);
     resetCanvas(secondaryCanvas);
     activeCanvas = primaryCanvas;
     inactiveCanvas = secondaryCanvas;
     primaryCanvas.classList.add('is-active');
     secondaryCanvas.classList.remove('is-active');
+    primaryCanvas.classList.remove('is-retiring');
+    secondaryCanvas.classList.remove('is-retiring');
     hasRenderedPage = false;
   }
 
   function swapCanvases(targetCanvas) {
+    clearCrossfadeTimer();
+    primaryCanvas.classList.remove('is-retiring');
+    secondaryCanvas.classList.remove('is-retiring');
+
     if (targetCanvas !== activeCanvas) {
       var previousCanvas = activeCanvas;
       targetCanvas.classList.add('is-active');
       previousCanvas.classList.remove('is-active');
+      previousCanvas.classList.add('is-retiring');
       activeCanvas = targetCanvas;
       inactiveCanvas = previousCanvas;
+      crossfadeTimer = window.setTimeout(function() {
+        previousCanvas.classList.remove('is-retiring');
+        crossfadeTimer = null;
+      }, CROSSFADE_OVERLAP_MS);
     } else {
       targetCanvas.classList.add('is-active');
       inactiveCanvas.classList.remove('is-active');
+      inactiveCanvas.classList.remove('is-retiring');
     }
     hasRenderedPage = true;
   }
