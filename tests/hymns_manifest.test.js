@@ -58,9 +58,14 @@ assert.match(html, /id="hymnPdfFallback"/);
 assert.match(html, /encodeURI/);
 assert.match(html, /new URL\(hymn\.file, window\.location\.href\)/);
 assert.match(html, /searchParams\.set\('embed', '1'\)/);
-assert.match(html, /cdnjs\.cloudflare\.com\/ajax\/libs\/pdf\.js\/3\.11\.174\/pdf\.min\.js/);
+assert.match(html, /resources\/vendor\/pdfjs\/pdf\.min\.js/);
+assert.match(html, /resources\/vendor\/pdfjs\/pdf\.worker\.min\.js/);
+assert.doesNotMatch(html, /cdnjs\.cloudflare\.com/);
 assert.match(html, /pdfjsLib\.getDocument/);
 assert.match(html, /id="hymnPdfCanvas"/);
 assert.match(html, /id="hymnPdfFullscreen"/);
 assert.match(html, /requestFullscreen/);
 assert.doesNotMatch(html, /<iframe/);
+
+assert.ok(fs.existsSync(path.join(root, 'resources', 'vendor', 'pdfjs', 'pdf.min.js')));
+assert.ok(fs.existsSync(path.join(root, 'resources', 'vendor', 'pdfjs', 'pdf.worker.min.js')));

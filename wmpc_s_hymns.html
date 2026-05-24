@@ -190,7 +190,7 @@
   </div>
 </div>
 
-<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js" referrerpolicy="no-referrer"></script>
+<script src="resources/vendor/pdfjs/pdf.min.js"></script>
 <script>
 (function() {
   var root = document.querySelector('.hymns-viewer');
@@ -408,7 +408,7 @@
     }
 
     window.pdfjsLib.GlobalWorkerOptions.workerSrc =
-      'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+      'resources/vendor/pdfjs/pdf.worker.min.js';
 
     setLoading(true);
     setStatus('Loading hymns...');

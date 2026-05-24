@@ -1,4 +1,4 @@
-var CACHE_NAME = 'bible-v6';
+var CACHE_NAME = 'bible-v7';
 var ASSETS = [
   'bible.html',
   'bible.json',
@@ -35,7 +35,12 @@ self.addEventListener('activate', function (e) {
 self.addEventListener('fetch', function (e) {
   var url = new URL(e.request.url);
 
-  if (e.request.method !== 'GET' || e.request.headers.has('range')) {
+  if (
+    e.request.method !== 'GET' ||
+    e.request.headers.has('range') ||
+    (url.protocol !== 'http:' && url.protocol !== 'https:') ||
+    url.origin !== self.location.origin
+  ) {
     e.respondWith(fetch(e.request));
     return;
   }
