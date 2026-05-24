@@ -4,7 +4,8 @@
     gap: 14px;
   }
 
-  .hymns-toolbar {
+  .hymns-toolbar,
+  .hymns-controls {
     display: flex;
     flex-wrap: wrap;
     align-items: end;
@@ -35,6 +36,7 @@
     padding: 8px 12px;
   }
 
+  .hymns-button,
   .hymns-open-link,
   .hymns-retry-button {
     min-height: 44px;
@@ -42,6 +44,7 @@
     border: 1px solid rgba(0, 0, 0, 0.22);
     background: #fff;
     color: var(--ds-text, #212121);
+    cursor: pointer;
     font: inherit;
     font-weight: 700;
     line-height: 1.2;
@@ -49,54 +52,88 @@
     text-decoration: none;
   }
 
-  .hymns-retry-button {
-    cursor: pointer;
+  .hymns-button:disabled {
+    cursor: not-allowed;
+    opacity: 0.5;
   }
 
+  .hymns-page-status,
   .hymns-status {
     min-height: 22px;
     color: var(--ds-text-secondary, #656565);
     font-size: 14px;
   }
 
-  .hymns-frame-wrap {
-    position: relative;
-    min-height: 72vh;
-    overflow: hidden;
-    border: 1px solid rgba(0, 0, 0, 0.18);
-    border-radius: 8px;
-    background: #f7f5f0;
+  .hymns-page-status {
+    align-self: center;
+    font-weight: 700;
   }
 
-  .hymns-frame-wrap.is-loading::before {
+  .hymns-stage {
+    position: relative;
+    display: grid;
+    place-items: center;
+    min-height: 72vh;
+    overflow: auto;
+    border: 1px solid rgba(0, 0, 0, 0.18);
+    border-radius: 8px;
+    background: #111;
+  }
+
+  .hymns-stage:fullscreen {
+    border: 0;
+    border-radius: 0;
+    background: #000;
+  }
+
+  .hymns-viewer:fullscreen {
+    grid-template-rows: auto auto auto minmax(0, 1fr);
+    width: 100vw;
+    height: 100vh;
+    padding: 12px;
+    background: #000;
+  }
+
+  .hymns-viewer:fullscreen .hymns-label,
+  .hymns-viewer:fullscreen .hymns-page-status,
+  .hymns-viewer:fullscreen .hymns-status {
+    color: #fff;
+  }
+
+  .hymns-viewer:fullscreen .hymns-stage {
+    min-height: 0;
+    height: 100%;
+    border: 0;
+    border-radius: 0;
+  }
+
+  .hymns-stage.is-loading::before {
     content: "";
     position: absolute;
     inset: 0;
-    background: linear-gradient(110deg, #ece7df 25%, #f9f7f2 45%, #ece7df 65%);
+    background: linear-gradient(110deg, #222 25%, #333 45%, #222 65%);
     background-size: 220% 100%;
     animation: hymns-shimmer 1.5s ease-in-out infinite;
     z-index: 1;
   }
 
-  .hymns-frame-wrap.is-loading::after {
+  .hymns-stage.is-loading::after {
     content: "Loading hymnal PDF...";
     position: absolute;
     left: 50%;
     top: 50%;
     z-index: 2;
     transform: translate(-50%, -50%);
-    color: var(--ds-text-secondary, #656565);
+    color: #fff;
     font-size: 15px;
     font-weight: 700;
   }
 
-  .hymns-frame {
+  .hymns-canvas {
     display: block;
-    width: 100%;
-    height: 72vh;
-    min-height: 560px;
-    border: 0;
-    background: #fff;
+    max-width: 100%;
+    height: auto;
+    background: #000;
   }
 
   .hymns-error {
@@ -117,15 +154,14 @@
   }
 
   @media (max-width: 640px) {
-    .hymns-frame-wrap,
-    .hymns-frame {
+    .hymns-stage {
       min-height: 68vh;
-      height: 68vh;
     }
 
+    .hymns-button,
     .hymns-open-link,
     .hymns-retry-button {
-      width: 100%;
+      flex: 1 1 auto;
       text-align: center;
     }
   }
@@ -142,12 +178,19 @@
     <a class="hymns-open-link hymns-hidden" id="hymnPdfFallback" href="#" target="_blank" rel="noopener">Open PDF</a>
     <button class="hymns-retry-button hymns-hidden" id="hymnPdfRetry" type="button">Retry</button>
   </div>
+  <div class="hymns-controls" aria-label="Hymn PDF controls">
+    <button class="hymns-button" id="hymnPdfPrev" type="button" disabled>Previous</button>
+    <span class="hymns-page-status" id="hymnPdfPageStatus">Page - / -</span>
+    <button class="hymns-button" id="hymnPdfNext" type="button" disabled>Next</button>
+    <button class="hymns-button" id="hymnPdfFullscreen" type="button" disabled>Present</button>
+  </div>
   <p class="hymns-status" id="hymnPdfStatus" role="status" aria-live="polite">Loading hymns...</p>
-  <div class="hymns-frame-wrap is-loading" id="hymnPdfFrameWrap">
-    <iframe class="hymns-frame" id="hymnPdfViewer" title="Hymn PDF viewer"></iframe>
+  <div class="hymns-stage is-loading" id="hymnPdfStage">
+    <canvas class="hymns-canvas" id="hymnPdfCanvas"></canvas>
   </div>
 </div>
 
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js" referrerpolicy="no-referrer"></script>
 <script>
 (function() {
   var root = document.querySelector('.hymns-viewer');
@@ -155,31 +198,47 @@
 
   var manifestUrl = root.getAttribute('data-manifest-url');
   var select = document.getElementById('hymnPdfSelect');
-  var viewer = document.getElementById('hymnPdfViewer');
   var fallback = document.getElementById('hymnPdfFallback');
   var retry = document.getElementById('hymnPdfRetry');
   var status = document.getElementById('hymnPdfStatus');
-  var frameWrap = document.getElementById('hymnPdfFrameWrap');
+  var pageStatus = document.getElementById('hymnPdfPageStatus');
+  var previousButton = document.getElementById('hymnPdfPrev');
+  var nextButton = document.getElementById('hymnPdfNext');
+  var fullscreenButton = document.getElementById('hymnPdfFullscreen');
+  var stage = document.getElementById('hymnPdfStage');
+  var canvas = document.getElementById('hymnPdfCanvas');
+  var canvasContext = canvas.getContext('2d');
   var hymns = [];
-  var loadTimer = null;
+  var pdfDoc = null;
+  var renderTask = null;
+  var pageNumber = 1;
+  var renderQueued = false;
+  var resizeTimer = null;
 
   function setLoading(isLoading) {
-    frameWrap.classList.toggle('is-loading', isLoading);
+    stage.classList.toggle('is-loading', isLoading);
   }
 
   function setStatus(message) {
     status.textContent = message;
   }
 
-  function finishShowing() {
-    var hymn = hymns[Number(select.value)];
-    if (!hymn) return;
-    if (loadTimer) {
-      window.clearTimeout(loadTimer);
-      loadTimer = null;
-    }
-    setLoading(false);
-    setStatus('Showing ' + hymn.title + '.');
+  function setControlsEnabled(enabled) {
+    previousButton.disabled = !enabled || pageNumber <= 1;
+    nextButton.disabled = !enabled || !pdfDoc || pageNumber >= pdfDoc.numPages;
+    fullscreenButton.disabled = !enabled;
+  }
+
+  function updatePageStatus() {
+    pageStatus.textContent = pdfDoc ? 'Page ' + pageNumber + ' / ' + pdfDoc.numPages : 'Page - / -';
+  }
+
+  function clearCanvas() {
+    canvasContext.clearRect(0, 0, canvas.width, canvas.height);
+    canvas.width = 0;
+    canvas.height = 0;
+    canvas.style.width = '';
+    canvas.style.height = '';
   }
 
   function isSafeHymnFile(file) {
@@ -244,56 +303,175 @@
     return encodeURI(url.href);
   }
 
+  function renderPage() {
+    if (!pdfDoc) return Promise.resolve();
+
+    if (renderTask) {
+      renderQueued = true;
+      renderTask.cancel();
+      return Promise.resolve();
+    }
+
+    renderQueued = false;
+    setLoading(true);
+    setControlsEnabled(false);
+    updatePageStatus();
+
+    return pdfDoc.getPage(pageNumber).then(function(page) {
+      var baseViewport = page.getViewport({ scale: 1 });
+      var maxCssWidth = Math.max(stage.clientWidth - 24, 320);
+      var fullscreenElement = document.fullscreenElement || document.webkitFullscreenElement;
+      var maxCssHeight = fullscreenElement === root ? Math.max(stage.clientHeight - 24, 320) : Infinity;
+      var fitScale = Math.min(maxCssWidth / baseViewport.width, maxCssHeight / baseViewport.height);
+      var pixelRatio = Math.min(window.devicePixelRatio || 1, 3);
+      var renderViewport = page.getViewport({ scale: fitScale * pixelRatio });
+      var displayViewport = page.getViewport({ scale: fitScale });
+
+      canvas.width = Math.floor(renderViewport.width);
+      canvas.height = Math.floor(renderViewport.height);
+      canvas.style.width = Math.floor(displayViewport.width) + 'px';
+      canvas.style.height = Math.floor(displayViewport.height) + 'px';
+
+      renderTask = page.render({
+        canvasContext: canvasContext,
+        viewport: renderViewport
+      });
+
+      return renderTask.promise.then(function() {
+        renderTask = null;
+        setLoading(false);
+        updatePageStatus();
+        setControlsEnabled(true);
+        setStatus('Showing ' + hymns[Number(select.value)].title + '.');
+      }).catch(function(error) {
+        renderTask = null;
+        if (error && error.name === 'RenderingCancelledException' && renderQueued) {
+          return renderPage();
+        }
+        throw error;
+      });
+    }).catch(function() {
+      setLoading(false);
+      setControlsEnabled(Boolean(pdfDoc));
+      setStatus('Unable to render this page. Open the PDF directly if the problem continues.');
+    });
+  }
+
+  function destroyCurrentPdf() {
+    if (renderTask) {
+      renderTask.cancel();
+      renderTask = null;
+    }
+    if (pdfDoc) {
+      pdfDoc.destroy();
+      pdfDoc = null;
+    }
+    clearCanvas();
+    pageNumber = 1;
+    updatePageStatus();
+    setControlsEnabled(false);
+  }
+
   function showHymn(index) {
     var hymn = hymns[index];
     if (!hymn) return;
 
     var encodedFile = hymnUrl(hymn);
-    if (loadTimer) window.clearTimeout(loadTimer);
+    destroyCurrentPdf();
     setLoading(true);
     setStatus('Loading ' + hymn.title + '...');
     fallback.href = encodedFile;
     fallback.classList.remove('hymns-hidden');
-    viewer.src = encodedFile;
-    loadTimer = window.setTimeout(finishShowing, 2500);
+
+    window.pdfjsLib.getDocument({ url: encodedFile }).promise.then(function(loadedPdf) {
+      pdfDoc = loadedPdf;
+      pageNumber = 1;
+      return renderPage();
+    }).catch(function() {
+      showError('Unable to load this PDF. Open it directly or try another hymn.');
+    });
   }
 
-  function showError() {
-    select.textContent = '';
-    var option = document.createElement('option');
-    option.textContent = 'Hymns unavailable';
-    select.appendChild(option);
-    select.disabled = true;
+  function showError(message) {
+    select.disabled = hymns.length === 0;
     retry.classList.remove('hymns-hidden');
-    fallback.classList.add('hymns-hidden');
     setLoading(false);
-    frameWrap.classList.add('hymns-error');
-    setStatus('Unable to load the hymn list. Please try again.');
+    setControlsEnabled(false);
+    stage.classList.add('hymns-error');
+    setStatus(message || 'Unable to load the hymn list. Please try again.');
   }
 
   function loadHymns() {
+    if (!window.pdfjsLib) {
+      showError('Unable to load the PDF viewer library. Open the PDF directly or try again.');
+      return;
+    }
+
+    window.pdfjsLib.GlobalWorkerOptions.workerSrc =
+      'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+
     setLoading(true);
     setStatus('Loading hymns...');
     retry.classList.add('hymns-hidden');
-    frameWrap.classList.remove('hymns-error');
+    stage.classList.remove('hymns-error');
 
     fetchManifestWithBackoff(0).then(function(manifest) {
       hymns = normalizeHymns(manifest.hymns);
       if (!hymns.length) throw new Error('Manifest has no safe hymn entries.');
       populateSelect();
       showHymn(0);
-    }).catch(showError);
+    }).catch(function() {
+      showError('Unable to load the hymn list. Please try again.');
+    });
   }
 
   select.addEventListener('change', function() {
     showHymn(Number(select.value));
   });
 
-  viewer.addEventListener('load', function() {
-    finishShowing();
+  previousButton.addEventListener('click', function() {
+    if (!pdfDoc || pageNumber <= 1) return;
+    pageNumber -= 1;
+    renderPage();
   });
 
-  retry.addEventListener('click', loadHymns);
+  nextButton.addEventListener('click', function() {
+    if (!pdfDoc || pageNumber >= pdfDoc.numPages) return;
+    pageNumber += 1;
+    renderPage();
+  });
+
+  fullscreenButton.addEventListener('click', function() {
+    if (document.fullscreenElement) {
+      document.exitFullscreen();
+      return;
+    }
+    if (document.webkitFullscreenElement && document.webkitExitFullscreen) {
+      document.webkitExitFullscreen();
+      return;
+    }
+    if (root.requestFullscreen) {
+      root.requestFullscreen();
+    } else if (root.webkitRequestFullscreen) {
+      root.webkitRequestFullscreen();
+    }
+  });
+
+  document.addEventListener('fullscreenchange', function() {
+    fullscreenButton.textContent = document.fullscreenElement === root ? 'Exit' : 'Present';
+    renderPage();
+  });
+
+  document.addEventListener('webkitfullscreenchange', function() {
+    fullscreenButton.textContent = document.webkitFullscreenElement === root ? 'Exit' : 'Present';
+    renderPage();
+  });
+
+  window.addEventListener('resize', function() {
+    if (!pdfDoc) return;
+    window.clearTimeout(resizeTimer);
+    resizeTimer = window.setTimeout(renderPage, 150);
+  });
 
   loadHymns();
 })();
