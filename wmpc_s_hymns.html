@@ -234,6 +234,35 @@
     });
   }
 
+  function ensurePdfJs() {
+    if (window.pdfjsLib) return Promise.resolve();
+
+    return new Promise(function(resolve) {
+      var script = document.querySelector('script[src$="resources/vendor/pdfjs/pdf.min.js"], script[src$="pdf.min.js"]');
+      var settled = false;
+      var timer = window.setTimeout(done, 4000);
+
+      function done() {
+        if (settled) return;
+        settled = true;
+        window.clearTimeout(timer);
+        resolve();
+      }
+
+      if (!script) {
+        script = document.createElement('script');
+        script.src = 'resources/vendor/pdfjs/pdf.min.js';
+        script.async = false;
+        document.head.appendChild(script);
+      }
+
+      script.addEventListener('load', done, { once: true });
+      script.addEventListener('error', done, { once: true });
+
+      if (window.pdfjsLib || script.readyState === 'complete') done();
+    });
+  }
+
   function setLoading(isLoading) {
     stage.classList.toggle('is-loading', isLoading);
   }
@@ -532,6 +561,6 @@
     resizeTimer = window.setTimeout(renderPage, 150);
   });
 
-  cleanupLegacyServiceWorker().then(loadHymns);
+  cleanupLegacyServiceWorker().then(ensurePdfJs).then(loadHymns);
 })();
 </script>

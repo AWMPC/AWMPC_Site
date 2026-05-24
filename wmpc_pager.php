@@ -1041,18 +1041,30 @@
 
   // --- Execute scripts inside injected HTML ---
   function runScripts(container) {
-    var scripts = container.querySelectorAll('script');
-    for (var i = 0; i < scripts.length; i++) {
-      var old = scripts[i];
-      var s = document.createElement('script');
-      for (var j = 0; j < old.attributes.length; j++) {
-        s.setAttribute(old.attributes[j].name, old.attributes[j].value);
-      }
-      if (!old.src) {
-        s.textContent = old.textContent;
-      }
-      old.parentNode.replaceChild(s, old);
-    }
+    var scripts = Array.prototype.slice.call(container.querySelectorAll('script'));
+
+    return scripts.reduce(function(chain, old) {
+      return chain.then(function() {
+        return new Promise(function(resolve) {
+          var s = document.createElement('script');
+          for (var j = 0; j < old.attributes.length; j++) {
+            s.setAttribute(old.attributes[j].name, old.attributes[j].value);
+          }
+
+          s.async = false;
+
+          if (old.src) {
+            s.onload = resolve;
+            s.onerror = resolve;
+          } else {
+            s.textContent = old.textContent;
+          }
+
+          old.parentNode.replaceChild(s, old);
+          if (!old.src) resolve();
+        });
+      });
+    }, Promise.resolve());
   }
 
   // --- Load a content fragment and swap it in ---
@@ -1067,27 +1079,27 @@
 
       setTimeout(function() {
         mainEl.innerHTML = html;
-        runScripts(mainEl);
+        return runScripts(mainEl).then(function() {
+          if (pushState && displayUrl) {
+            history.pushState({ fragment: fragmentFile }, '', displayUrl);
+          }
 
-        if (pushState && displayUrl) {
-          history.pushState({ fragment: fragmentFile }, '', displayUrl);
-        }
+          // Update active page indicator in FAB and content card label
+          var activeKey = routeKey(displayUrl || window.location.href);
+          updateActiveNav(activeKey);
+          if (contentLabel) contentLabel.textContent = pageNames[activeKey] || 'Homepage';
 
-        // Update active page indicator in FAB and content card label
-        var activeKey = routeKey(displayUrl || window.location.href);
-        updateActiveNav(activeKey);
-        if (contentLabel) contentLabel.textContent = pageNames[activeKey] || 'Homepage';
+          // Scroll to top of content card
+          if (contentCard) {
+            contentCard.scrollIntoView({ behavior: 'smooth', block: 'start' });
+          }
 
-        // Scroll to top of content card
-        if (contentCard) {
-          contentCard.scrollIntoView({ behavior: 'smooth', block: 'start' });
-        }
+          // Fade in new content
+          void mainEl.offsetWidth;
+          mainEl.classList.remove('fade-out');
 
-        // Fade in new content
-        void mainEl.offsetWidth;
-        mainEl.classList.remove('fade-out');
-
-        loaderDone();
+          loaderDone();
+        });
       }, 200);
     };
 

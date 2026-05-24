@@ -31,3 +31,27 @@ assert.doesNotMatch(
   /navigator\.serviceWorker\.register\(['"]\.\/sw\.js['"]\)/,
   'site shell must not register the Bible service worker on every page'
 );
+
+assert.match(
+  shell,
+  /return scripts\.reduce\(function\(chain, old\)/,
+  'SPA loader must execute injected fragment scripts sequentially'
+);
+
+assert.match(
+  shell,
+  /s\.async = false/,
+  'SPA loader must keep dynamically injected external scripts ordered'
+);
+
+assert.match(
+  shell,
+  /s\.onload = resolve/,
+  'SPA loader must wait for external fragment scripts before later inline scripts'
+);
+
+assert.match(
+  shell,
+  /return runScripts\(mainEl\)\.then\(function\(\)/,
+  'SPA navigation must wait for fragment scripts to finish loading'
+);
