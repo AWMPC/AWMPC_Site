@@ -262,7 +262,7 @@
       0% { background-position: 200% 0; }
       100% { background-position: -50% 0; }
     }
-    .quick-link-bible {
+    .quick-link-icon {
       display: flex !important;
       flex-direction: column;
       align-items: center;
@@ -273,14 +273,14 @@
       line-height: 1;
       gap: 4px;
     }
-    .quick-link-bible span {
+    .quick-link-icon span {
       font-size: 11px;
       font-weight: 600;
       color: #444;
       text-align: center;
       line-height: 1.3;
     }
-    .quick-link-bible::after { display: none !important; }
+    .quick-link-icon::after { display: none !important; }
     /* webex-card styles deprecated — replaced by awmpc_webex_join_banner.png */
     @media (max-width: 768px) {
       .quick-links {
@@ -653,7 +653,8 @@
       <a href="./request.html"><img src="./resources/images/sidebar/adwindow_prayerrequest.jpg" alt="Prayer Request" loading="lazy" /></a>
       <a href="./mission.html"><img src="./resources/images/sidebar_mission.jpg" alt="Mission" loading="lazy" /></a>
       <a href="https://allworldmissionprayercenterinc-321.my.webex.com/meet/awmpc" target="_blank" rel="noopener"><img src="./resources/images/awmpc_webex_join_banner.png" alt="Join on Webex" loading="lazy" /></a>
-      <a href="./bible.html" class="quick-link-bible">📖<span>Bible<br>聖經</span></a>
+      <a href="./hymns.html" class="quick-link-hymns quick-link-icon" aria-label="Hymns">🎤<span>Hymns<br>讚美詩</span></a>
+      <a href="./bible.html" class="quick-link-bible quick-link-icon" aria-label="Bible">📖<span>Bible<br>聖經</span></a>
     </div>
   </div>
 
