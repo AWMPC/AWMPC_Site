@@ -110,7 +110,7 @@
     z-index: 1;
   }
 
-  .hymns-stage.is-loading::after {
+  .hymns-stage.is-loading.is-loading-label::after {
     content: "Loading hymnal PDF...";
     position: absolute;
     left: 50%;
@@ -124,9 +124,16 @@
 
   .hymns-canvas {
     display: block;
+    grid-area: 1 / 1;
     max-width: 100%;
     height: auto;
     background: #000;
+    opacity: 0;
+    transition: opacity 180ms ease;
+  }
+
+  .hymns-canvas.is-active {
+    opacity: 1;
   }
 
   .hymns-stage:fullscreen .hymns-canvas,
@@ -163,6 +170,12 @@
       text-align: center;
     }
   }
+
+  @media (prefers-reduced-motion: reduce) {
+    .hymns-canvas {
+      transition: none;
+    }
+  }
 </style>
 
 <div class="hymns-viewer" data-manifest-url="documents/hymns/index.json">
@@ -183,8 +196,9 @@
     <button class="hymns-button" id="hymnPdfFullscreen" type="button" disabled>Present</button>
   </div>
   <p class="hymns-status" id="hymnPdfStatus" role="status" aria-live="polite">Loading hymns...</p>
-  <div class="hymns-stage is-loading" id="hymnPdfStage">
-    <canvas class="hymns-canvas" id="hymnPdfCanvas"></canvas>
+  <div class="hymns-stage is-loading is-loading-label" id="hymnPdfStage">
+    <canvas class="hymns-canvas is-active" id="hymnPdfCanvas"></canvas>
+    <canvas class="hymns-canvas" id="hymnPdfCanvasNext"></canvas>
   </div>
 </div>
 
@@ -204,14 +218,19 @@
   var nextButton = document.getElementById('hymnPdfNext');
   var fullscreenButton = document.getElementById('hymnPdfFullscreen');
   var stage = document.getElementById('hymnPdfStage');
-  var canvas = document.getElementById('hymnPdfCanvas');
-  var canvasContext = canvas.getContext('2d');
+  var primaryCanvas = document.getElementById('hymnPdfCanvas');
+  var secondaryCanvas = document.getElementById('hymnPdfCanvasNext');
+  var primaryCanvasContext = primaryCanvas.getContext('2d');
+  var secondaryCanvasContext = secondaryCanvas.getContext('2d');
+  var activeCanvas = primaryCanvas;
+  var inactiveCanvas = secondaryCanvas;
   var hymns = [];
   var pdfDoc = null;
   var renderTask = null;
   var pageNumber = 1;
   var renderQueued = false;
   var resizeTimer = null;
+  var hasRenderedPage = false;
 
   function cleanupLegacyServiceWorker() {
     if (!('serviceWorker' in navigator)) return Promise.resolve();
@@ -263,8 +282,9 @@
     });
   }
 
-  function setLoading(isLoading) {
+  function setLoading(isLoading, showLabel) {
     stage.classList.toggle('is-loading', isLoading);
+    stage.classList.toggle('is-loading-label', Boolean(isLoading && showLabel));
   }
 
   function setStatus(message) {
@@ -289,12 +309,41 @@
     return currentFullscreenElement() === stage;
   }
 
-  function clearCanvas() {
-    canvasContext.clearRect(0, 0, canvas.width, canvas.height);
+  function canvasContextFor(canvas) {
+    return canvas === primaryCanvas ? primaryCanvasContext : secondaryCanvasContext;
+  }
+
+  function resetCanvas(canvas) {
+    var context = canvasContextFor(canvas);
+    context.clearRect(0, 0, canvas.width, canvas.height);
     canvas.width = 0;
     canvas.height = 0;
     canvas.style.width = '';
     canvas.style.height = '';
+  }
+
+  function clearCanvas() {
+    resetCanvas(primaryCanvas);
+    resetCanvas(secondaryCanvas);
+    activeCanvas = primaryCanvas;
+    inactiveCanvas = secondaryCanvas;
+    primaryCanvas.classList.add('is-active');
+    secondaryCanvas.classList.remove('is-active');
+    hasRenderedPage = false;
+  }
+
+  function swapCanvases(targetCanvas) {
+    if (targetCanvas !== activeCanvas) {
+      var previousCanvas = activeCanvas;
+      targetCanvas.classList.add('is-active');
+      previousCanvas.classList.remove('is-active');
+      activeCanvas = targetCanvas;
+      inactiveCanvas = previousCanvas;
+    } else {
+      targetCanvas.classList.add('is-active');
+      inactiveCanvas.classList.remove('is-active');
+    }
+    hasRenderedPage = true;
   }
 
   function isSafeHymnFile(file) {
@@ -369,7 +418,7 @@
     }
 
     renderQueued = false;
-    setLoading(true);
+    setLoading(!hasRenderedPage, !hasRenderedPage);
     setControlsEnabled(false);
     updatePageStatus();
 
@@ -381,19 +430,22 @@
       var pixelRatio = Math.min(window.devicePixelRatio || 1, 3);
       var renderViewport = page.getViewport({ scale: fitScale * pixelRatio });
       var displayViewport = page.getViewport({ scale: fitScale });
+      var targetCanvas = hasRenderedPage ? inactiveCanvas : activeCanvas;
+      var targetContext = canvasContextFor(targetCanvas);
 
-      canvas.width = Math.floor(renderViewport.width);
-      canvas.height = Math.floor(renderViewport.height);
-      canvas.style.width = Math.floor(displayViewport.width) + 'px';
-      canvas.style.height = Math.floor(displayViewport.height) + 'px';
+      targetCanvas.width = Math.floor(renderViewport.width);
+      targetCanvas.height = Math.floor(renderViewport.height);
+      targetCanvas.style.width = Math.floor(displayViewport.width) + 'px';
+      targetCanvas.style.height = Math.floor(displayViewport.height) + 'px';
 
       renderTask = page.render({
-        canvasContext: canvasContext,
+        canvasContext: targetContext,
         viewport: renderViewport
       });
 
       return renderTask.promise.then(function() {
         renderTask = null;
+        swapCanvases(targetCanvas);
         setLoading(false);
         updatePageStatus();
         setControlsEnabled(true);
@@ -433,7 +485,7 @@
 
     var encodedFile = hymnUrl(hymn);
     destroyCurrentPdf();
-    setLoading(true);
+    setLoading(true, true);
     setStatus('Loading ' + hymn.title + '...');
     fallback.href = encodedFile;
     fallback.classList.remove('hymns-hidden');
@@ -487,7 +539,7 @@
     window.pdfjsLib.GlobalWorkerOptions.workerSrc =
       'resources/vendor/pdfjs/pdf.worker.min.js';
 
-    setLoading(true);
+    setLoading(true, true);
     setStatus('Loading hymns...');
     retry.classList.add('hymns-hidden');
     stage.classList.remove('hymns-error');
