@@ -78,6 +78,12 @@ assert.match(html, /window\.setTimeout\(function\(\) {\s*previousCanvas\.classLi
 assert.match(html, /var hasRenderedPage = false/);
 assert.match(html, /function swapCanvases\(targetCanvas\)/);
 assert.match(html, /setLoading\(!hasRenderedPage, !hasRenderedPage\)/);
+assert.match(html, /var PRESENTATION_SUPERSAMPLE_SCALE = 5/);
+assert.match(html, /var MAX_RENDER_PIXELS = 40000000/);
+assert.match(html, /function renderPixelRatioFor\(displayViewport\)/);
+assert.match(html, /Math\.sqrt\(MAX_RENDER_PIXELS \/ displayPixels\)/);
+assert.match(html, /isPresenting\(\) \?\s*Math\.max\(deviceScale, PRESENTATION_SUPERSAMPLE_SCALE\)\s*:\s*deviceScale/);
+assert.match(html, /var pixelRatio = renderPixelRatioFor\(displayViewport\)/);
 assert.match(html, /id="hymnPdfFullscreen"/);
 assert.match(html, /requestFullscreen/);
 assert.doesNotMatch(html, /<iframe/);
