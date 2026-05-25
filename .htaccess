@@ -256,7 +256,38 @@ RewriteCond %{HTTP_REFERER} !^https://www.worldmissionprayercenter.org$      [NC
 # END WordPress
 # BEGIN NFD Htaccess
 # Managed by Newfold Htaccess Manager v1.0.0 (awmpc.org)
-# STATE sha256: 31f2c114f1d000d037210b1dac32bcbf151bab7754800aac63067b799d182d5b applied: 2026-05-24T08:35:13Z
+# STATE sha256: 804bb567059ec7f8f5d2efc01836117aecdb2d61c1fbacbaa6a8ed7909682a0b applied: 2026-05-25T19:52:50Z
+
+# BEGIN Newfold Browser Cache
+<IfModule mod_expires.c>
+	ExpiresActive On
+	ExpiresDefault "access plus 24 hours"
+	ExpiresByType text/html "access plus 2 hours"
+	ExpiresByType image/jpg "access plus 24 hours"
+	ExpiresByType image/jpeg "access plus 24 hours"
+	ExpiresByType image/gif "access plus 24 hours"
+	ExpiresByType image/png "access plus 24 hours"
+	ExpiresByType image/webp "access plus 24 hours"
+	ExpiresByType text/css "access plus 24 hours"
+	ExpiresByType text/javascript "access plus 24 hours"
+	ExpiresByType application/pdf "access plus 1 week"
+	ExpiresByType image/x-icon "access plus 1 year"
+</IfModule>
+# END Newfold Browser Cache
+
+# BEGIN Newfold File Cache
+<IfModule mod_rewrite.c>
+RewriteEngine On
+RewriteBase /
+RewriteRule ^wp-content/newfold-page-cache/ - [L]
+RewriteCond %{REQUEST_METHOD} !POST
+RewriteCond %{QUERY_STRING} !.*=.*
+RewriteCond %{HTTP_COOKIE} !(wordpress_test_cookie|comment_author|wp\-postpass|wordpress_logged_in|wptouch_switch_toggle|wp_woocommerce_session_) [NC]
+RewriteCond %{HTTP:Cache-Control} ^((?!no-cache).)*$
+RewriteCond %{DOCUMENT_ROOT}/wp-content/newfold-page-cache/$1/_index.html -f
+RewriteRule ^(.*)$ /wp-content/newfold-page-cache/$1/_index.html [L]
+</IfModule>
+# END Newfold File Cache
 
 # BEGIN Newfold Skip 404 Handling for Static Files
 <IfModule mod_rewrite.c>
