@@ -212,7 +212,6 @@
     <span class="hymns-page-status" id="hymnPdfPageStatus">Page - / -</span>
     <button class="hymns-button" id="hymnPdfNext" type="button" disabled>Next</button>
     <button class="hymns-button" id="hymnPdfFullscreen" type="button" disabled>Present</button>
-    <button class="hymns-button hymns-hidden" id="hymnInstall" type="button">Install</button>
   </div>
   <p class="hymns-status" id="hymnPdfStatus" role="status" aria-live="polite">Loading hymns...</p>
   <div class="hymns-stage is-loading is-loading-label" id="hymnPdfStage">
@@ -236,7 +235,6 @@
   var previousButton = document.getElementById('hymnPdfPrev');
   var nextButton = document.getElementById('hymnPdfNext');
   var fullscreenButton = document.getElementById('hymnPdfFullscreen');
-  var installButton = document.getElementById('hymnInstall');
   var stage = document.getElementById('hymnPdfStage');
   var primaryCanvas = document.getElementById('hymnPdfCanvas');
   var secondaryCanvas = document.getElementById('hymnPdfCanvasNext');
@@ -265,30 +263,13 @@
   var swipeState = null;
   var presentationZoom = 1;
   var hasRenderedPage = false;
-  var deferredInstallPrompt = null;
-
-  function ensureHymnsManifestLink() {
-    if (document.querySelector('link[rel="manifest"][href$="hymns.webmanifest"]')) return;
-
-    var link = document.createElement('link');
-    link.rel = 'manifest';
-    link.href = 'hymns.webmanifest';
-    document.head.appendChild(link);
-  }
-
-  function registrationWorkerScriptUrl(registration) {
-    var worker = registration && (registration.active || registration.waiting || registration.installing);
-    return worker && worker.scriptURL ? worker.scriptURL : '';
-  }
 
   function cleanupLegacyServiceWorker() {
     if (!('serviceWorker' in navigator)) return Promise.resolve();
 
     return navigator.serviceWorker.getRegistrations().then(function(registrations) {
       return Promise.all(registrations.map(function(registration) {
-        var scriptUrl = registrationWorkerScriptUrl(registration);
-        if (/\/sw\.js$/.test(scriptUrl)) return registration.unregister();
-        return Promise.resolve();
+        return registration.unregister();
       }));
     }).then(function() {
       if (!window.caches) return Promise.resolve();
@@ -299,28 +280,6 @@
           return caches.delete(key);
         }));
       });
-    }).catch(function() {
-      return undefined;
-    });
-  }
-
-  function requestHymnsCacheRefresh() {
-    if (!('serviceWorker' in navigator)) return;
-
-    navigator.serviceWorker.ready.then(function(registration) {
-      if (registration.active) {
-        registration.active.postMessage({ type: 'CACHE_HYMNS_NOW' });
-      }
-    }).catch(function() {
-      return undefined;
-    });
-  }
-
-  function registerHymnsServiceWorker() {
-    if (!('serviceWorker' in navigator)) return Promise.resolve();
-
-    return navigator.serviceWorker.register('hymns-sw.js', { scope: './' }).then(function() {
-      requestHymnsCacheRefresh();
     }).catch(function() {
       return undefined;
     });
@@ -862,25 +821,6 @@
     }
   });
 
-  installButton.addEventListener('click', function() {
-    if (!deferredInstallPrompt) return;
-
-    deferredInstallPrompt.prompt();
-    deferredInstallPrompt.userChoice.then(function() {
-      deferredInstallPrompt = null;
-      installButton.classList.add('hymns-hidden');
-    }).catch(function() {
-      deferredInstallPrompt = null;
-      installButton.classList.add('hymns-hidden');
-    });
-  });
-
-  window.addEventListener('beforeinstallprompt', function(event) {
-    event.preventDefault();
-    deferredInstallPrompt = event;
-    installButton.classList.remove('hymns-hidden');
-  });
-
   document.addEventListener('keydown', function(event) {
     if (!isPresenting()) return;
 
@@ -931,7 +871,6 @@
     resizeTimer = window.setTimeout(renderPage, 150);
   });
 
-  ensureHymnsManifestLink();
-  cleanupLegacyServiceWorker().then(registerHymnsServiceWorker).then(ensurePdfJs).then(loadHymns);
+  cleanupLegacyServiceWorker().then(ensurePdfJs).then(loadHymns);
 })();
 </script>

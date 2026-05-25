@@ -1,6 +1,0 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="Hymns">
-  <rect width="512" height="512" rx="96" fill="#111111"/>
-  <path d="M256 72c44 0 80 36 80 80v112c0 44-36 80-80 80s-80-36-80-80V152c0-44 36-80 80-80Z" fill="#ffffff"/>
-  <path d="M132 244c0-12 10-22 22-22s22 10 22 22v20c0 44 36 80 80 80s80-36 80-80v-20c0-12 10-22 22-22s22 10 22 22v20c0 60-44 110-102 121v35h42c12 0 22 10 22 22s-10 22-22 22H192c-12 0-22-10-22-22s10-22 22-22h42v-35c-58-11-102-61-102-121v-20Z" fill="#ffffff"/>
-  <path d="M230 142h52M230 204h52M230 266h52" stroke="#111111" stroke-width="22" stroke-linecap="round"/>
-</svg>
