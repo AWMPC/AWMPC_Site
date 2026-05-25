@@ -6,15 +6,23 @@ const root = path.resolve(__dirname, '..');
 const html = fs.readFileSync(path.join(root, 'wmpc_s_hymns.html'), 'utf8');
 const htaccess = fs.readFileSync(path.join(root, '.htaccess'), 'utf8');
 const manifest = JSON.parse(fs.readFileSync(path.join(root, 'hymns.webmanifest'), 'utf8'));
+const bibleManifest = JSON.parse(fs.readFileSync(path.join(root, 'manifest.json'), 'utf8'));
 const sw = fs.readFileSync(path.join(root, 'hymns-sw.js'), 'utf8');
 
 assert.equal(manifest.name, 'AWMPC Hymns');
 assert.equal(manifest.short_name, 'Hymns');
+assert.equal(manifest.id, '/pwa/hymns');
 assert.equal(manifest.start_url, 'hymns.html');
 assert.equal(manifest.scope, './');
 assert.equal(manifest.display, 'standalone');
 assert.ok(Array.isArray(manifest.icons));
 assert.ok(manifest.icons.some((icon) => icon.src === 'resources/icons/hymns-icon.svg'));
+
+assert.equal(bibleManifest.name, 'AWMPC Bible');
+assert.equal(bibleManifest.id, '/pwa/bible');
+assert.equal(bibleManifest.start_url, 'bible.html');
+assert.equal(bibleManifest.scope, './');
+assert.notEqual(bibleManifest.id, manifest.id);
 
 assert.match(html, /function ensureHymnsManifestLink\(\)/);
 assert.match(html, /link\.rel = 'manifest'/);

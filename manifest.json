@@ -1,8 +1,10 @@
 {
+  "id": "/pwa/bible",
   "name": "AWMPC Bible",
   "short_name": "AWMPC Bible",
   "display": "standalone",
   "start_url": "bible.html",
+  "scope": "./",
   "background_color": "#1a1a2e",
   "theme_color": "#1a1a2e",
   "icons": [
