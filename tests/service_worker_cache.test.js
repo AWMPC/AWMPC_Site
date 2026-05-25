@@ -17,6 +17,6 @@ assert.doesNotMatch(sw, /cache\.put\(e\.request, clone\);/);
 
 assert.match(
   htaccess,
-  /Header\s+set\s+Cache-Control\s+"no-cache, no-store, must-revalidate"\s+"expr=%\{REQUEST_URI\}\s*=~\s*m#\/sw\\.js\$#"/,
-  'sw.js must not be served with long-lived cache headers'
+  /Header\s+set\s+Cache-Control\s+"no-cache, no-store, must-revalidate"\s+"expr=%\{REQUEST_URI\}\s*=~\s*m#\/\(sw\\\.js\|hymns-sw\\\.js\)\$#"/,
+  'service workers must not be served with long-lived cache headers'
 );

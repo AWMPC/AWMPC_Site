@@ -64,7 +64,7 @@ assert.doesNotMatch(html, /cdnjs\.cloudflare\.com/);
 assert.match(html, /pdfjsLib\.getDocument/);
 assert.match(html, /function ensurePdfJs\(\)/);
 assert.match(html, /script\.addEventListener\('load', done/);
-assert.match(html, /cleanupLegacyServiceWorker\(\)\.then\(ensurePdfJs\)\.then\(loadHymns\)/);
+assert.match(html, /cleanupLegacyServiceWorker\(\)\.then\(registerHymnsServiceWorker\)\.then\(ensurePdfJs\)\.then\(loadHymns\)/);
 assert.match(html, /id="hymnPdfCanvas"/);
 assert.match(html, /id="hymnPdfCanvasNext"/);
 assert.match(html, /class="hymns-canvas is-active"/);
@@ -127,6 +127,9 @@ assert.match(html, /if \(deltaX > 0\) goToPreviousPage\(\)/);
 assert.doesNotMatch(html, /root\.requestFullscreen/);
 assert.match(html, /navigator\.serviceWorker\.getRegistrations/);
 assert.match(html, /registration\.unregister\(\)/);
+assert.match(html, /function registerHymnsServiceWorker\(\)/);
+assert.match(html, /navigator\.serviceWorker\.register\('hymns-sw\.js', \{ scope: '\.\/' \}\)/);
+assert.match(html, /function ensureHymnsManifestLink\(\)/);
 assert.match(html, /caches\.delete/);
 
 assert.ok(fs.existsSync(path.join(root, 'resources', 'vendor', 'pdfjs', 'pdf.min.js')));

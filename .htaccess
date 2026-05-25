@@ -77,7 +77,7 @@ RewriteRule ^(.*)$ https://awmpc.org/$1 [L,R=301]
 
     # Cache-Control: allow caching but require revalidation for HTML
     Header set Cache-Control "public, no-cache" "expr=%{CONTENT_TYPE} =~ m#text/html#i"
-    Header set Cache-Control "no-cache, no-store, must-revalidate" "expr=%{REQUEST_URI} =~ m#/sw\.js$#"
+    Header set Cache-Control "no-cache, no-store, must-revalidate" "expr=%{REQUEST_URI} =~ m#/(sw\.js|hymns-sw\.js)$#"
 
     # Removed deprecated headers:
     # - X-XSS-Protection (removed from modern browsers, CSP is the replacement)
