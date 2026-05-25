@@ -262,7 +262,7 @@
       0% { background-position: 200% 0; }
       100% { background-position: -50% 0; }
     }
-    .quick-link-bible {
+    .quick-link-icon {
       display: flex !important;
       flex-direction: column;
       align-items: center;
@@ -273,14 +273,14 @@
       line-height: 1;
       gap: 4px;
     }
-    .quick-link-bible span {
+    .quick-link-icon span {
       font-size: 11px;
       font-weight: 600;
       color: #444;
       text-align: center;
       line-height: 1.3;
     }
-    .quick-link-bible::after { display: none !important; }
+    .quick-link-icon::after { display: none !important; }
     /* webex-card styles deprecated — replaced by awmpc_webex_join_banner.png */
     @media (max-width: 768px) {
       .quick-links {
@@ -653,7 +653,8 @@
       <a href="./request.html"><img src="./resources/images/sidebar/adwindow_prayerrequest.jpg" alt="Prayer Request" loading="lazy" /></a>
       <a href="./mission.html"><img src="./resources/images/sidebar_mission.jpg" alt="Mission" loading="lazy" /></a>
       <a href="https://allworldmissionprayercenterinc-321.my.webex.com/meet/awmpc" target="_blank" rel="noopener"><img src="./resources/images/awmpc_webex_join_banner.png" alt="Join on Webex" loading="lazy" /></a>
-      <a href="./bible.html" class="quick-link-bible">📖<span>Bible<br>聖經</span></a>
+      <a href="./hymns.html" class="quick-link-hymns quick-link-icon" aria-label="Hymns">🎤<span>Hymns<br>讚美詩</span></a>
+      <a href="./bible.html" class="quick-link-bible quick-link-icon" aria-label="Bible">📖<span>Bible<br>聖經</span></a>
     </div>
   </div>
 
@@ -1040,18 +1041,30 @@
 
   // --- Execute scripts inside injected HTML ---
   function runScripts(container) {
-    var scripts = container.querySelectorAll('script');
-    for (var i = 0; i < scripts.length; i++) {
-      var old = scripts[i];
-      var s = document.createElement('script');
-      for (var j = 0; j < old.attributes.length; j++) {
-        s.setAttribute(old.attributes[j].name, old.attributes[j].value);
-      }
-      if (!old.src) {
-        s.textContent = old.textContent;
-      }
-      old.parentNode.replaceChild(s, old);
-    }
+    var scripts = Array.prototype.slice.call(container.querySelectorAll('script'));
+
+    return scripts.reduce(function(chain, old) {
+      return chain.then(function() {
+        return new Promise(function(resolve) {
+          var s = document.createElement('script');
+          for (var j = 0; j < old.attributes.length; j++) {
+            s.setAttribute(old.attributes[j].name, old.attributes[j].value);
+          }
+
+          s.async = false;
+
+          if (old.src) {
+            s.onload = resolve;
+            s.onerror = resolve;
+          } else {
+            s.textContent = old.textContent;
+          }
+
+          old.parentNode.replaceChild(s, old);
+          if (!old.src) resolve();
+        });
+      });
+    }, Promise.resolve());
   }
 
   // --- Load a content fragment and swap it in ---
@@ -1066,27 +1079,27 @@
 
       setTimeout(function() {
         mainEl.innerHTML = html;
-        runScripts(mainEl);
+        return runScripts(mainEl).then(function() {
+          if (pushState && displayUrl) {
+            history.pushState({ fragment: fragmentFile }, '', displayUrl);
+          }
 
-        if (pushState && displayUrl) {
-          history.pushState({ fragment: fragmentFile }, '', displayUrl);
-        }
+          // Update active page indicator in FAB and content card label
+          var activeKey = routeKey(displayUrl || window.location.href);
+          updateActiveNav(activeKey);
+          if (contentLabel) contentLabel.textContent = pageNames[activeKey] || 'Homepage';
 
-        // Update active page indicator in FAB and content card label
-        var activeKey = routeKey(displayUrl || window.location.href);
-        updateActiveNav(activeKey);
-        if (contentLabel) contentLabel.textContent = pageNames[activeKey] || 'Homepage';
+          // Scroll to top of content card
+          if (contentCard) {
+            contentCard.scrollIntoView({ behavior: 'smooth', block: 'start' });
+          }
 
-        // Scroll to top of content card
-        if (contentCard) {
-          contentCard.scrollIntoView({ behavior: 'smooth', block: 'start' });
-        }
+          // Fade in new content
+          void mainEl.offsetWidth;
+          mainEl.classList.remove('fade-out');
 
-        // Fade in new content
-        void mainEl.offsetWidth;
-        mainEl.classList.remove('fade-out');
-
-        loaderDone();
+          loaderDone();
+        });
       }, 200);
     };
 
@@ -1152,12 +1165,6 @@
   // --- Highlight current page on initial load ---
   updateActiveNav(initKey);
 })();
-</script>
-
-<script>
-if ('serviceWorker' in navigator) {
-  navigator.serviceWorker.register('./sw.js').catch(function() {});
-}
 </script>
 
 </body>
