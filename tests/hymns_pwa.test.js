@@ -59,5 +59,10 @@ assert.match(
   /Header\s+set\s+Cache-Control\s+"no-cache, no-store, must-revalidate"\s+"expr=%\{REQUEST_URI\}\s*=~\s*m#\/\(sw\\\.js\|hymns-sw\\\.js\)\$#"/,
   'both service workers must avoid long-lived cache headers'
 );
+assert.match(
+  htaccess,
+  /AddType\s+application\/manifest\+json\s+\.webmanifest/,
+  'hymns.webmanifest must be served with a PWA manifest MIME type'
+);
 
 assert.ok(fs.existsSync(path.join(root, 'resources', 'icons', 'hymns-icon.svg')));

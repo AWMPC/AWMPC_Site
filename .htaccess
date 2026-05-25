@@ -51,6 +51,10 @@ RewriteRule ^(.*)$ https://awmpc.org/$1 [L,R=301]
 
 # --- Security Headers ---
 
+<IfModule mod_mime.c>
+    AddType application/manifest+json .webmanifest
+</IfModule>
+
 <IfModule mod_headers.c>
     # Make sure proxies don't deliver the wrong content
     Header append Vary User-Agent env=!dont-vary
