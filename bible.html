@@ -124,26 +124,17 @@
     box-shadow: 0 4px 16px rgba(0,0,0,0.2);
   }
   .fab-main:hover { filter: brightness(1.08); }
-  .fab-root:has(.fab-panel.open) .fab-main {
-    position: fixed;
-    right: 12px;
-    bottom: calc(8px + env(safe-area-inset-bottom, 0px));
-    z-index: 132;
-  }
   .fab-panel {
     display: none;
-    position: fixed;
+    position: absolute;
     right: 0;
-    bottom: 0;
-    top: 0;
-    left: 0;
+    bottom: calc(100% + 8px);
     z-index: 131;
-    width: 100vw;
-    height: 100dvh;
+    width: min(360px, calc(100vw - 24px));
+    max-height: calc(100dvh - 96px - env(safe-area-inset-bottom, 0px));
     overflow: hidden;
     flex-direction: column;
-    padding: calc(12px + env(safe-area-inset-top, 0px)) 12px calc(84px + env(safe-area-inset-bottom, 0px));
-    background: var(--bg2); border: 1px solid var(--border); border-radius: 0;
+    background: var(--bg2); border: 1px solid var(--border); border-radius: 12px;
     box-shadow: 0 8px 28px rgba(0,0,0,0.2);
   }
   .fab-panel.open { display: flex; }

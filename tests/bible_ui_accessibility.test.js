@@ -20,10 +20,14 @@ assert.match(bible, /class="font-slider-ticks"/);
 assert.match(bible, /<span style="left: 0%;">16<\/span>[\s\S]*<span style="left: 25%;">18<\/span>[\s\S]*<span style="left: 50%;">20<\/span>[\s\S]*<span style="left: 75%;">22<\/span>[\s\S]*<span style="left: 100%;">24<\/span>/);
 
 assert.match(bible, /\.fab-panel\.open \{ display: flex; \}/);
-assert.match(bible, /width: 100vw;/);
-assert.match(bible, /height: 100dvh;/);
+assert.match(bible, /position: absolute;/);
+assert.match(bible, /bottom: calc\(100% \+ 8px\);/);
+assert.match(bible, /width: min\(360px, calc\(100vw - 24px\)\);/);
+assert.match(bible, /max-height: calc\(100dvh - 96px - env\(safe-area-inset-bottom, 0px\)\);/);
 assert.match(bible, /\.fab-history-menu \{ flex: 1 1 auto; min-height: 0; overflow-y: auto; \}/);
-assert.match(bible, /\.fab-root:has\(\.fab-panel\.open\) \.fab-main/);
+assert.doesNotMatch(bible, /width: 100vw;/);
+assert.doesNotMatch(bible, /height: 100dvh;/);
+assert.doesNotMatch(bible, /\.fab-root:has\(\.fab-panel\.open\) \.fab-main/);
 assert.doesNotMatch(bible, /id="fab-close"/);
 assert.doesNotMatch(bible, /fabClose\.addEventListener\('click'/);
 
