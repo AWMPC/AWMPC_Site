@@ -455,7 +455,6 @@
   var APP_VERSION = '3.0.0';
   var FONT_STEPS = [16, 18, 20, 22, 24];
   var DEFAULT_FONT_STEP = 2;
-  var ACTIVE_VERSE_SETTLE_MS = 1500;
 
   // ===================== FIREBASE =====================
   var fbApp = firebase.initializeApp({
@@ -617,7 +616,6 @@
   var navBook = null;
   var navChapter = null;
   var activeVerse = null;
-  var activeVerseTimer = null;
   var activeVerseScrollFrame = null;
   var uiView = 'books';
   var booksHTML = null;
@@ -953,17 +951,6 @@
     updateNav();
   }
 
-  function scheduleActiveVerseCenter(verse) {
-    if (!verse || uiView !== 'verses') return;
-    clearTimeout(activeVerseTimer);
-    activeVerseTimer = setTimeout(function () {
-      if (uiView === 'verses' && activeVerse === String(verse)) {
-        var target = viewInner.querySelector('[data-v="' + activeVerse + '"]');
-        if (target) scrollVerseToCenter(target);
-      }
-    }, ACTIVE_VERSE_SETTLE_MS);
-  }
-
   function updateActiveVerseFromViewport() {
     if (uiView !== 'verses') return;
     var verses = viewInner.querySelectorAll('.verse');
@@ -984,7 +971,6 @@
     }
     if (best && best.getAttribute('data-v') !== activeVerse) {
       setActiveVerse(best.getAttribute('data-v'), false);
-      scheduleActiveVerseCenter(best.getAttribute('data-v'));
     }
   }
 
