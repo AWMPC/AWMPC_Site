@@ -124,6 +124,12 @@
     box-shadow: 0 4px 16px rgba(0,0,0,0.2);
   }
   .fab-main:hover { filter: brightness(1.08); }
+  .fab-root:has(.fab-panel.open) .fab-main {
+    position: fixed;
+    right: 12px;
+    bottom: calc(8px + env(safe-area-inset-bottom, 0px));
+    z-index: 132;
+  }
   .fab-panel {
     display: none;
     position: fixed;
@@ -180,12 +186,25 @@
     width: 100%;
     accent-color: var(--accent);
   }
+  .font-slider-track {
+    position: relative;
+    padding-bottom: 22px;
+  }
   .font-slider-ticks {
-    display: grid;
-    grid-template-columns: repeat(5, 1fr);
+    position: absolute;
+    left: 0;
+    right: 0;
+    top: 26px;
+    height: 20px;
     color: var(--fg4);
     font-size: 12px;
     line-height: 1.2;
+    pointer-events: none;
+  }
+  .font-slider-ticks span {
+    position: absolute;
+    top: 0;
+    transform: translateX(-50%);
     text-align: center;
   }
   .font-slider-ticks span::before {
@@ -282,6 +301,7 @@
     box-shadow: 0 4px 18px rgba(0, 0, 0, 0.22);
   }
   .verse-num { font-size: 14px; font-weight: 700; color: var(--verse-num); vertical-align: super; margin-right: 4px; }
+  .verse-tail-spacer { height: 50vh; pointer-events: none; }
   .footnote-toggle {
     display: inline-block; background: none; border: 1px solid var(--border3);
     border-radius: 4px; color: var(--fg3); font-size: 13px; font-family: inherit;
@@ -367,16 +387,6 @@
   .dd-user-name { font-size: 15px; font-weight: 600; color: var(--fg); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   .dd-user-email { font-size: 12px; color: var(--fg3); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   .dd-sync-status { font-size: 12px; color: var(--fg4); padding: 4px 16px 8px; }
-  .fab-panel-header {
-    display: flex; justify-content: flex-end;
-    padding: 0 0 8px;
-  }
-  .fab-close {
-    width: 44px; height: 44px; border-radius: 50%;
-    border: 1px solid var(--border3); background: var(--bg4); color: var(--fg);
-    font-size: 24px; line-height: 1; cursor: pointer;
-  }
-  .fab-close:hover { filter: brightness(0.97); }
 
   @media (prefers-reduced-motion: reduce) {
     *, *::before, *::after { transition-duration: 0.01ms !important; animation-duration: 0.01ms !important; }
@@ -397,9 +407,6 @@
 <div class="fab-root">
   <button type="button" id="fab-main" class="fab-main" aria-label="Menu" aria-expanded="false" aria-controls="fab-panel">☰</button>
   <div id="fab-panel" class="fab-panel">
-    <div class="fab-panel-header">
-      <button type="button" id="fab-close" class="fab-close" aria-label="Close menu">×</button>
-    </div>
     <div id="auth-area"></div>
     <button class="dd-item" id="dd-dark" type="button">
       <span class="dd-icon" id="dd-dark-icon">🌙</span>
@@ -411,13 +418,15 @@
         <label for="font-size-slider">Text Size</label>
         <output id="dd-font-val" for="font-size-slider">20px</output>
       </div>
-      <input id="font-size-slider" class="font-slider" type="range" min="0" max="4" step="1" value="2" aria-label="Reader text size">
-      <div class="font-slider-ticks" aria-hidden="true">
-        <span>16</span>
-        <span>18</span>
-        <span>20</span>
-        <span>22</span>
-        <span>24</span>
+      <div class="font-slider-track">
+        <input id="font-size-slider" class="font-slider" type="range" min="0" max="4" step="1" value="2" aria-label="Reader text size">
+        <div class="font-slider-ticks" aria-hidden="true">
+          <span style="left: 0%;">16</span>
+          <span style="left: 25%;">18</span>
+          <span style="left: 50%;">20</span>
+          <span style="left: 75%;">22</span>
+          <span style="left: 100%;">24</span>
+        </div>
       </div>
     </div>
     <button class="dd-item" id="btn-search" type="button">
@@ -426,7 +435,7 @@
     </button>
     <div class="fab-section-label">Recent reading</div>
     <div id="history-menu" class="fab-history-menu"></div>
-    <div class="app-version">Version <span id="app-version">2.5.0</span></div>
+    <div class="app-version">Version <span id="app-version">3.0.0</span></div>
   </div>
 </div>
 </div>
@@ -443,7 +452,7 @@
 <script src="https://www.gstatic.com/firebasejs/11.2.0/firebase-firestore-compat.js"></script>
 <script>
 (function () {
-  var APP_VERSION = '2.5.0';
+  var APP_VERSION = '3.0.0';
   var FONT_STEPS = [16, 18, 20, 22, 24];
   var DEFAULT_FONT_STEP = 2;
   var ACTIVE_VERSE_SETTLE_MS = 1500;
@@ -598,7 +607,6 @@
   var fnNext = document.getElementById('fn-next');
   var fabMain = document.getElementById('fab-main');
   var fabPanel = document.getElementById('fab-panel');
-  var fabClose = document.getElementById('fab-close');
   var historyMenu = document.getElementById('history-menu');
   document.getElementById('app-version').textContent = APP_VERSION;
 
@@ -610,6 +618,7 @@
   var navChapter = null;
   var activeVerse = null;
   var activeVerseTimer = null;
+  var activeVerseScrollFrame = null;
   var uiView = 'books';
   var booksHTML = null;
   var searchIndex = null;
@@ -672,10 +681,6 @@
     fabPanel.classList.toggle('open', open);
     fabMain.setAttribute('aria-expanded', open ? 'true' : 'false');
     if (open) renderHistoryMenu();
-  });
-  fabClose.addEventListener('click', function (e) {
-    e.stopPropagation();
-    closeMenus();
   });
   fabPanel.addEventListener('click', function (e) { e.stopPropagation(); });
 
@@ -902,6 +907,39 @@
     fnNext.disabled = !n;
   }
 
+  function materialEaseOut(t) {
+    return 1 - Math.pow(1 - t, 3);
+  }
+
+  function scrollVerseToCenter(target) {
+    if (!target) return;
+    if (activeVerseScrollFrame) cancelAnimationFrame(activeVerseScrollFrame);
+    var viewRect = viewEl.getBoundingClientRect();
+    var targetRect = target.getBoundingClientRect();
+    var startTop = viewEl.scrollTop;
+    var maxTop = Math.max(0, viewEl.scrollHeight - viewEl.clientHeight);
+    var desiredTop = startTop + (targetRect.top - viewRect.top) - ((viewRect.height - targetRect.height) / 2);
+    var endTop = Math.min(maxTop, Math.max(0, desiredTop));
+    var distance = endTop - startTop;
+    if (Math.abs(distance) < 1) {
+      viewEl.scrollTop = endTop;
+      return;
+    }
+    var duration = Math.min(620, Math.max(260, Math.abs(distance) * 0.45));
+    var started = null;
+    function step(ts) {
+      if (started == null) started = ts;
+      var t = Math.min(1, (ts - started) / duration);
+      viewEl.scrollTop = startTop + (distance * materialEaseOut(t));
+      if (t < 1) {
+        activeVerseScrollFrame = requestAnimationFrame(step);
+      } else {
+        activeVerseScrollFrame = null;
+      }
+    }
+    activeVerseScrollFrame = requestAnimationFrame(step);
+  }
+
   function setActiveVerse(verse, center) {
     if (!verse || uiView !== 'verses') return;
     var prev = viewInner.querySelector('.verse.active');
@@ -910,7 +948,7 @@
     var target = viewInner.querySelector('[data-v="' + activeVerse + '"]');
     if (target) {
       target.classList.add('active');
-      if (center) target.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      if (center) scrollVerseToCenter(target);
     }
     updateNav();
   }
@@ -921,7 +959,7 @@
     activeVerseTimer = setTimeout(function () {
       if (uiView === 'verses' && activeVerse === String(verse)) {
         var target = viewInner.querySelector('[data-v="' + activeVerse + '"]');
-        if (target) target.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        if (target) scrollVerseToCenter(target);
       }
     }, ACTIVE_VERSE_SETTLE_MS);
   }
@@ -1149,13 +1187,17 @@
       for (var nb = 0; nb < noteBodies.length; nb++) div.appendChild(noteBodies[nb]);
       viewInner.appendChild(div);
     }
+    var tailSpacer = document.createElement('div');
+    tailSpacer.className = 'verse-tail-spacer';
+    tailSpacer.setAttribute('aria-hidden', 'true');
+    viewInner.appendChild(tailSpacer);
 
     if (scrollToVerse) {
       requestAnimationFrame(function () {
         var target = viewInner.querySelector('[data-v="' + scrollToVerse + '"]');
         if (target) {
           setActiveVerse(scrollToVerse, false);
-          target.scrollIntoView({ behavior: 'smooth', block: 'center' });
+          scrollVerseToCenter(target);
           target.classList.add('highlight');
           setTimeout(function () {
             target.classList.add('highlight-fade');
