@@ -15,16 +15,21 @@ assert.match(bible, /id="font-size-slider"/);
 assert.match(bible, /var FONT_STEPS = \[16, 18, 20, 22, 24\];/);
 assert.match(bible, /--reader-font-size/);
 assert.match(bible, /bible_font_step/);
+assert.match(bible, /class="font-slider-ticks"/);
+assert.match(bible, /<span>16<\/span>[\s\S]*<span>18<\/span>[\s\S]*<span>20<\/span>[\s\S]*<span>22<\/span>[\s\S]*<span>24<\/span>/);
 
 assert.match(bible, /\.fab-panel\.open \{ display: flex; \}/);
 assert.match(bible, /width: 100vw;/);
 assert.match(bible, /height: 100dvh;/);
 assert.match(bible, /\.fab-history-menu \{ flex: 1 1 auto; min-height: 0; overflow-y: auto; \}/);
+assert.match(bible, /id="fab-close"/);
+assert.match(bible, /fabClose\.addEventListener\('click'/);
 
 assert.match(bible, /id="fn-verse"/);
 assert.match(bible, /function showVersePickerView\(bookName, chapterNum\)/);
 assert.match(bible, /view: 'verse-picker'/);
-assert.match(bible, /fnVerse\.textContent = activeVerse \? activeVerse : 'Verse';/);
+assert.match(bible, /fnVerse\.textContent = activeVerse \? activeVerse : '1';/);
+assert.doesNotMatch(bible, /fnVerse\.textContent = activeVerse \? activeVerse : 'Verse';/);
 assert.doesNotMatch(bible, /fnVerse\.textContent = activeVerse \? ':' \+ activeVerse : 'Verse';/);
 assert.match(bible, /setActiveVerse\(keys\[0\], false\)/);
 assert.match(bible, /scheduleActiveVerseCenter\(best\.getAttribute\('data-v'\)\)/);
