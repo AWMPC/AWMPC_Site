@@ -292,6 +292,8 @@
     box-shadow: 0 4px 18px rgba(0, 0, 0, 0.22);
   }
   .verse-num { font-size: 14px; font-weight: 700; color: var(--verse-num); vertical-align: super; margin-right: 4px; }
+  .verse-edge-spacer,
+  .verse-head-spacer,
   .verse-tail-spacer { height: 50vh; pointer-events: none; }
   .footnote-toggle {
     display: inline-block; background: none; border: 1px solid var(--border3);
@@ -1113,6 +1115,10 @@
     var chapters = bibleData[bookName];
     var verses = chapters[String(chapterNum)];
     var keys = Object.keys(verses);
+    var headSpacer = document.createElement('div');
+    headSpacer.className = 'verse-edge-spacer verse-head-spacer';
+    headSpacer.setAttribute('aria-hidden', 'true');
+    viewInner.appendChild(headSpacer);
 
     for (var i = 0; i < keys.length; i++) {
       var segments = parseVerse(verses[keys[i]]);
@@ -1165,7 +1171,7 @@
       viewInner.appendChild(div);
     }
     var tailSpacer = document.createElement('div');
-    tailSpacer.className = 'verse-tail-spacer';
+    tailSpacer.className = 'verse-edge-spacer verse-tail-spacer';
     tailSpacer.setAttribute('aria-hidden', 'true');
     viewInner.appendChild(tailSpacer);
 
