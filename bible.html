@@ -136,9 +136,7 @@
   .floating-nav .fn-book {
     font-weight: 600; max-width: 42vw; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
   }
-  .floating-nav .fn-chapter {
-    font-weight: 600; min-width: 36px;
-  }
+  .floating-nav .fn-chapter,
   .floating-nav .fn-verse {
     font-weight: 600; min-width: 44px;
   }
@@ -166,6 +164,7 @@
     font-size: 22px; cursor: pointer;
     display: flex; align-items: center; justify-content: center;
     box-shadow: var(--shadow);
+    overflow: hidden;
   }
   .fab-main:hover,
   .fab-main:focus-visible {
@@ -459,7 +458,9 @@
     border: 1.5px solid var(--border3);
   }
   .fab-main .profile-avatar {
-    width: 36px; height: 36px; border-color: rgba(255,255,255,0.35);
+    display: block;
+    width: 100%; height: 100%; border-radius: inherit;
+    object-fit: cover; border: 0;
   }
   .dd-user {
     display: flex; align-items: center; gap: 10px;
@@ -469,6 +470,15 @@
   .dd-user-info { flex: 1; min-width: 0; }
   .dd-user-name { font-size: 15px; font-weight: 600; color: var(--fg); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   .dd-user-email { font-size: 12px; color: var(--fg3); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .dd-signout-button {
+    flex-shrink: 0; border-radius: var(--radius-xs); border: 1px solid var(--border2);
+    background: var(--surface); color: var(--fg2); font: inherit; font-size: 13px;
+    min-height: 34px; padding: 6px 10px; cursor: pointer;
+  }
+  .dd-signout-button:hover,
+  .dd-signout-button:focus-visible {
+    color: var(--accent); border-color: var(--accent); background: var(--hover-bg); outline: none;
+  }
   .dd-sync-status { font-size: 12px; color: var(--fg4); padding: 4px 16px 8px; }
 
   @media (prefers-reduced-motion: reduce) {
@@ -514,12 +524,12 @@
           </div>
         </div>
       </div>
+      <div class="fab-section-label">Recent reading</div>
+      <div id="history-menu" class="fab-history-menu"></div>
       <button class="dd-item" id="btn-search" type="button">
         <span class="dd-icon">🔍</span>
         <span class="dd-label">Search</span>
       </button>
-      <div class="fab-section-label">Recent reading</div>
-      <div id="history-menu" class="fab-history-menu"></div>
       <div class="app-version">Version <span id="app-version">3.0.0</span></div>
     </div>
   </div>
@@ -838,6 +848,16 @@
       email.textContent = user.email || '';
       details.appendChild(email);
       info.appendChild(details);
+
+      var outBtn = document.createElement('button');
+      outBtn.type = 'button';
+      outBtn.className = 'dd-signout-button';
+      outBtn.textContent = 'Sign Out';
+      outBtn.addEventListener('click', function () {
+        auth.signOut();
+        closeMenus();
+      });
+      info.appendChild(outBtn);
       authArea.appendChild(info);
 
       var status = document.createElement('div');
@@ -845,16 +865,6 @@
       status.textContent = navigator.onLine ? 'Synced \u2713' : 'Offline \u2014 will sync later';
       _syncStatusEl = status;
       authArea.appendChild(status);
-
-      var outBtn = document.createElement('button');
-      outBtn.type = 'button';
-      outBtn.className = 'dd-item';
-      outBtn.innerHTML = '<span class="dd-icon">\uD83D\uDEAA</span><span class="dd-label">Sign Out</span>';
-      outBtn.addEventListener('click', function () {
-        auth.signOut();
-        closeMenus();
-      });
-      authArea.appendChild(outBtn);
     } else {
       var inBtn = document.createElement('button');
       inBtn.type = 'button';
