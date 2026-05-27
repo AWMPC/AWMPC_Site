@@ -238,8 +238,8 @@
     opacity: 1;
     transition: opacity 520ms ease-in-out;
   }
-  .view-inner.chapter-transition-ready { opacity: 0; }
-  .view-inner.chapter-transition-ready.chapter-transition-in { opacity: 1; }
+  .view-inner.chapter-transition-ready { opacity: 0; transition: none; }
+  .view-inner.chapter-transition-ready.chapter-transition-in { opacity: 1; transition: opacity 520ms ease-in-out; }
   .view-inner.chapter-transition-retiring {
     position: absolute;
     top: 0;
@@ -974,8 +974,10 @@
     fnNext.disabled = !n;
   }
 
-  function materialEaseInOut(t) {
-    return t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2;
+  function verseEaseLateBrake(t) {
+    if (t < 0.68) return 0.78 * Math.pow(t / 0.68, 3.2);
+    var tail = (t - 0.68) / 0.32;
+    return 0.78 + (0.22 * (1 - Math.pow(1 - tail, 2)));
   }
 
   function scrollVerseToCenter(target) {
@@ -997,7 +999,7 @@
     function step(ts) {
       if (started == null) started = ts;
       var t = Math.min(1, (ts - started) / duration);
-      viewEl.scrollTop = startTop + (distance * materialEaseInOut(t));
+      viewEl.scrollTop = startTop + (distance * verseEaseLateBrake(t));
       if (t < 1) {
         activeVerseScrollFrame = requestAnimationFrame(step);
       } else {
@@ -1083,6 +1085,7 @@
     } finally {
       preservingChapterCrossfade = false;
     }
+    void viewInner.offsetWidth;
     requestAnimationFrame(function () {
       requestAnimationFrame(function () {
         viewInner.classList.add('chapter-transition-in');
