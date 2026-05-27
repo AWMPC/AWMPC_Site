@@ -167,6 +167,21 @@
   .dd-item .dd-label { flex: 1; }
   .dd-item .dd-value { color: var(--fg3); font-size: 14px; flex-shrink: 0; }
   .dd-empty { padding: 16px; color: var(--fg3); font-size: 15px; text-align: center; }
+  .theme-mode-wrap {
+    display: grid; gap: 8px; padding: 12px 16px; border-bottom: 1px solid var(--border);
+  }
+  .theme-mode-label { font-size: 17px; color: var(--fg); }
+  .theme-mode-control {
+    display: grid; grid-template-columns: repeat(3, 1fr); gap: 4px;
+    padding: 4px; border: 1px solid var(--border2); border-radius: 8px; background: var(--bg4);
+  }
+  .theme-mode-button {
+    min-height: 36px; border: 0; border-radius: 6px; background: transparent;
+    color: var(--fg2); font: inherit; cursor: pointer;
+  }
+  .theme-mode-button.active {
+    background: var(--bg2); color: var(--fg); box-shadow: 0 1px 4px rgba(0,0,0,0.14);
+  }
   .font-slider-wrap {
     display: grid; gap: 8px; padding: 12px 16px; border-bottom: 1px solid var(--border);
   }
@@ -417,11 +432,14 @@
   <button type="button" id="fab-main" class="fab-main" aria-label="Menu" aria-expanded="false" aria-controls="fab-panel">☰</button>
   <div id="fab-panel" class="fab-panel">
     <div id="auth-area"></div>
-    <button class="dd-item" id="dd-dark" type="button">
-      <span class="dd-icon" id="dd-dark-icon">🌙</span>
-      <span class="dd-label">Dark Mode</span>
-      <span class="dd-value" id="dd-dark-val">Off</span>
-    </button>
+    <div class="theme-mode-wrap">
+      <div class="theme-mode-label">Color Scheme</div>
+      <div class="theme-mode-control" role="group" aria-label="Color scheme">
+        <button class="theme-mode-button" type="button" data-theme-mode="light" aria-pressed="true">Light</button>
+        <button class="theme-mode-button" type="button" data-theme-mode="dark" aria-pressed="false">Dark</button>
+        <button class="theme-mode-button" type="button" data-theme-mode="auto" aria-pressed="false">Auto</button>
+      </div>
+    </div>
     <div class="font-slider-wrap">
       <div class="font-slider-row">
         <label for="font-size-slider">Text Size</label>
@@ -666,8 +684,7 @@
   document.addEventListener('click', closeMenus);
 
   // ===================== DARK MODE =====================
-  var ddDarkIcon = document.getElementById('dd-dark-icon');
-  var ddDarkVal = document.getElementById('dd-dark-val');
+  var themeModeButtons = Array.prototype.slice.call(document.querySelectorAll('[data-theme-mode]'));
   var themeQuery = preferredDarkQuery();
   function preferredDarkQuery() {
     return window.matchMedia ? window.matchMedia('(prefers-color-scheme: dark)') : null;
@@ -679,14 +696,12 @@
   function applyThemeMode(mode) {
     mode = mode === 'dark' || mode === 'auto' ? mode : 'light';
     document.documentElement.classList.toggle('dark', resolveThemeMode(mode));
-    ddDarkIcon.textContent = mode === 'auto' ? '◐' : (mode === 'dark' ? '☀\uFE0F' : '🌙');
-    ddDarkVal.textContent = mode === 'auto' ? 'Auto' : (mode === 'dark' ? 'Dark' : 'Light');
+    themeModeButtons.forEach(function (button) {
+      var selected = button.getAttribute('data-theme-mode') === mode;
+      button.classList.toggle('active', selected);
+      button.setAttribute('aria-pressed', selected ? 'true' : 'false');
+    });
     State.setThemeMode(mode);
-  }
-  function nextThemeMode(mode) {
-    if (mode === 'light') return 'dark';
-    if (mode === 'dark') return 'auto';
-    return 'light';
   }
   applyThemeMode(State.getThemeMode());
   if (themeQuery) {
@@ -701,9 +716,11 @@
       });
     }
   }
-  document.getElementById('dd-dark').addEventListener('click', function (e) {
-    e.stopPropagation();
-    applyThemeMode(nextThemeMode(State.getThemeMode()));
+  themeModeButtons.forEach(function (button) {
+    button.addEventListener('click', function (e) {
+      e.stopPropagation();
+      applyThemeMode(button.getAttribute('data-theme-mode'));
+    });
   });
 
   // ===================== FONT SIZE =====================
