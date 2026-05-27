@@ -269,10 +269,10 @@
     visibility: hidden;
     pointer-events: none;
     transform: translateY(6px);
-    background: var(--float-nav-bg); border: 1px solid var(--border); border-radius: var(--radius-sm);
+    background: color-mix(in srgb, var(--surface) 82%, transparent); border: 1px solid var(--border); border-radius: var(--radius-sm);
     box-shadow: var(--float-nav-shadow);
-    backdrop-filter: blur(28px) saturate(180%);
-    -webkit-backdrop-filter: blur(28px) saturate(180%);
+    backdrop-filter: blur(64px) saturate(220%) brightness(1.06);
+    -webkit-backdrop-filter: blur(64px) saturate(220%) brightness(1.06);
     isolation: isolate;
     transition: opacity 180ms ease, transform 180ms ease, visibility 0s linear 180ms;
   }
@@ -282,9 +282,9 @@
     inset: 0;
     z-index: -1;
     border-radius: inherit;
-    background: var(--float-nav-bg);
-    backdrop-filter: blur(28px) saturate(180%);
-    -webkit-backdrop-filter: blur(28px) saturate(180%);
+    background: color-mix(in srgb, var(--surface) 74%, transparent);
+    backdrop-filter: blur(64px) saturate(220%) brightness(1.06);
+    -webkit-backdrop-filter: blur(64px) saturate(220%) brightness(1.06);
   }
   .fab-panel.open {
     opacity: 1;

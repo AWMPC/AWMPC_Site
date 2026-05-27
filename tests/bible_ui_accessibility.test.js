@@ -41,9 +41,9 @@ assert.match(bible, /\.font-slider \{[\s\S]*width: 100%;[\s\S]*margin: 0;/);
 assert.match(bible, /\.font-slider-ticks \{[\s\S]*left: 16px;[\s\S]*right: 16px;/);
 assert.match(bible, /<span style="left: 0%;">16<\/span>[\s\S]*<span style="left: 25%;">18<\/span>[\s\S]*<span style="left: 50%;">20<\/span>[\s\S]*<span style="left: 75%;">22<\/span>[\s\S]*<span style="left: 100%;">24<\/span>/);
 
-assert.match(bible, /\.fab-panel \{[\s\S]*display: flex;[\s\S]*gap: 10px;[\s\S]*padding: 12px;[\s\S]*background: var\(--float-nav-bg\);[\s\S]*box-shadow: var\(--float-nav-shadow\);[\s\S]*backdrop-filter: blur\(28px\) saturate\(180%\);[\s\S]*-webkit-backdrop-filter: blur\(28px\) saturate\(180%\);[\s\S]*isolation: isolate;[\s\S]*transition: opacity 180ms ease, transform 180ms ease, visibility 0s linear 180ms;/);
+assert.match(bible, /\.fab-panel \{[\s\S]*display: flex;[\s\S]*gap: 10px;[\s\S]*padding: 12px;[\s\S]*background: color-mix\(in srgb, var\(--surface\) 82%, transparent\);[\s\S]*box-shadow: var\(--float-nav-shadow\);[\s\S]*backdrop-filter: blur\(64px\) saturate\(220%\) brightness\(1\.06\);[\s\S]*-webkit-backdrop-filter: blur\(64px\) saturate\(220%\) brightness\(1\.06\);[\s\S]*isolation: isolate;[\s\S]*transition: opacity 180ms ease, transform 180ms ease, visibility 0s linear 180ms;/);
 assert.match(bible, /\.fab-panel\.open \{[\s\S]*opacity: 1;[\s\S]*visibility: visible;[\s\S]*pointer-events: auto;[\s\S]*transition: opacity 180ms ease, transform 180ms ease, visibility 0s;/);
-assert.match(bible, /\.fab-panel::before \{[\s\S]*backdrop-filter: blur\(28px\) saturate\(180%\);[\s\S]*-webkit-backdrop-filter: blur\(28px\) saturate\(180%\);/);
+assert.match(bible, /\.fab-panel::before \{[\s\S]*background: color-mix\(in srgb, var\(--surface\) 74%, transparent\);[\s\S]*backdrop-filter: blur\(64px\) saturate\(220%\) brightness\(1\.06\);[\s\S]*-webkit-backdrop-filter: blur\(64px\) saturate\(220%\) brightness\(1\.06\);/);
 assert.match(bible, /\.fab-card \{[\s\S]*margin: 0;[\s\S]*padding: 12px;[\s\S]*border-radius: var\(--radius-sm\);[\s\S]*background: var\(--card-bg\);[\s\S]*border: var\(--card-border\);/);
 assert.match(bible, /\.fab-card-title \{[\s\S]*padding: 0 2px 8px;/);
 assert.match(bible, /\.profile-card \{[\s\S]*--profile-photo-width: 116px;[\s\S]*position: relative;[\s\S]*overflow: hidden;[\s\S]*min-height: 92px;/);
