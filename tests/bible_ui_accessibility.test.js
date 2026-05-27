@@ -46,7 +46,8 @@ assert.match(bible, /\.fab-panel\.open \{[\s\S]*opacity: 1;[\s\S]*visibility: vi
 assert.match(bible, /\.fab-panel::before \{[\s\S]*backdrop-filter: blur\(28px\) saturate\(180%\);[\s\S]*-webkit-backdrop-filter: blur\(28px\) saturate\(180%\);/);
 assert.match(bible, /\.fab-card \{[\s\S]*margin: 0;[\s\S]*padding: 12px;[\s\S]*border-radius: var\(--radius-sm\);[\s\S]*background: var\(--card-bg\);[\s\S]*border: var\(--card-border\);/);
 assert.match(bible, /\.fab-card-title \{[\s\S]*padding: 0 2px 8px;/);
-assert.match(bible, /\.profile-card \{[\s\S]*position: relative;[\s\S]*overflow: hidden;[\s\S]*min-height: 92px;[\s\S]*padding-left: 132px;/);
+assert.match(bible, /\.profile-card \{[\s\S]*--profile-photo-width: 116px;[\s\S]*position: relative;[\s\S]*overflow: hidden;[\s\S]*min-height: 92px;/);
+assert.doesNotMatch(bible, /\.profile-card \{[^}]*padding-left: 132px;/);
 assert.doesNotMatch(bible, /\.profile-card::after/);
 assert.doesNotMatch(bible, /html\.dark \.profile-card::after/);
 assert.match(bible, /position: absolute;/);
@@ -82,7 +83,8 @@ assert.match(bible, /\.fab-main \{[\s\S]*position: relative;[\s\S]*padding: 0;[\
 assert.match(bible, /\.fab-main \.profile-avatar \{[\s\S]*position: absolute;[\s\S]*inset: 0;[\s\S]*width: 100%;[\s\S]*height: 100%;[\s\S]*min-width: 100%;[\s\S]*min-height: 100%;[\s\S]*max-width: none;[\s\S]*border-radius: 0;[\s\S]*object-fit: cover;[\s\S]*border: 0;/);
 assert.match(bible, /\.dd-signout-button \{[\s\S]*flex-shrink: 0;[\s\S]*border-radius: var\(--radius-xs\);/);
 assert.match(bible, /\.dd-sync-status \{[\s\S]*padding: 2px 0 0;/);
-assert.match(bible, /\.profile-card \.dd-user-photo \{[\s\S]*position: absolute;[\s\S]*left: 0;[\s\S]*top: 0;[\s\S]*bottom: 0;[\s\S]*width: auto;[\s\S]*height: 100%;[\s\S]*max-width: none;[\s\S]*object-fit: contain;[\s\S]*object-position: center top;[\s\S]*clip-path: inset\(0 max\(0px, calc\(100% - 116px\)\) 0 0\);[\s\S]*border-radius: 0;/);
+assert.match(bible, /\.profile-card \.dd-user-photo \{[\s\S]*position: absolute;[\s\S]*left: 0;[\s\S]*top: 0;[\s\S]*bottom: 0;[\s\S]*width: auto;[\s\S]*height: 100%;[\s\S]*max-width: none;[\s\S]*object-fit: contain;[\s\S]*object-position: center top;[\s\S]*clip-path: inset\(0 max\(0px, calc\(100% - var\(--profile-photo-width\)\)\) 0 0\);[\s\S]*border-radius: 0;/);
+assert.match(bible, /\.profile-card \.dd-user \{[\s\S]*margin-left: calc\(var\(--profile-photo-width\) \+ 16px\);[\s\S]*\}/);
 assert.match(bible, /\.profile-card \.dd-user-info \{[\s\S]*position: relative;[\s\S]*z-index: 1;/);
 assert.match(bible, /\.profile-card \.dd-signout-button \{[\s\S]*position: relative;[\s\S]*z-index: 1;/);
 assert.match(bible, /details\.appendChild\(status\);/);
