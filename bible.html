@@ -255,9 +255,9 @@
   }
   .fab-panel {
     display: flex;
-    position: absolute;
-    right: 0;
-    bottom: calc(100% + 8px);
+    position: fixed;
+    right: 12px;
+    bottom: calc(76px + env(safe-area-inset-bottom, 0px));
     z-index: 131;
     width: min(360px, calc(100vw - 24px));
     max-height: calc(100dvh - 96px - env(safe-area-inset-bottom, 0px));
@@ -269,22 +269,12 @@
     visibility: hidden;
     pointer-events: none;
     transform: translateY(6px);
-    background: color-mix(in srgb, var(--surface) 82%, transparent); border: 1px solid var(--border); border-radius: var(--radius-sm);
+    background: var(--float-nav-bg); border: var(--card-border); border-radius: var(--radius-md);
     box-shadow: var(--float-nav-shadow);
-    backdrop-filter: blur(64px) saturate(220%) brightness(1.06);
-    -webkit-backdrop-filter: blur(64px) saturate(220%) brightness(1.06);
+    backdrop-filter: var(--hdr-blur);
+    -webkit-backdrop-filter: var(--hdr-blur);
     isolation: isolate;
     transition: opacity 180ms ease, transform 180ms ease, visibility 0s linear 180ms;
-  }
-  .fab-panel::before {
-    content: "";
-    position: absolute;
-    inset: 0;
-    z-index: -1;
-    border-radius: inherit;
-    background: color-mix(in srgb, var(--surface) 74%, transparent);
-    backdrop-filter: blur(64px) saturate(220%) brightness(1.06);
-    -webkit-backdrop-filter: blur(64px) saturate(220%) brightness(1.06);
   }
   .fab-panel.open {
     opacity: 1;
@@ -292,6 +282,9 @@
     pointer-events: auto;
     transform: translateY(0);
     transition: opacity 180ms ease, transform 180ms ease, visibility 0s;
+  }
+  @media (max-width: 640px) {
+    .fab-panel { bottom: calc(118px + env(safe-area-inset-bottom, 0px)); }
   }
   .fab-card {
     margin: 0;
@@ -627,7 +620,9 @@
 </div>
 <div class="fab-root">
     <button type="button" id="fab-main" class="fab-main" aria-label="Menu" aria-expanded="false" aria-controls="fab-panel">☰</button>
-    <div id="fab-panel" class="fab-panel">
+</div>
+</div>
+<div id="fab-panel" class="fab-panel">
       <div id="auth-area" class="fab-card profile-card"></div>
       <div class="fab-card theme-mode-wrap">
         <div class="fab-card-title">Display Mode</div>
@@ -646,8 +641,6 @@
         </div>
       </div>
       <div class="app-version">Version <span id="app-version">3.0.0</span></div>
-    </div>
-  </div>
 </div>
 
 <div id="view">

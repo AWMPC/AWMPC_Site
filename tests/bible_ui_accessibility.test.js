@@ -45,9 +45,9 @@ assert.match(bible, /class="theme-mode-button font-size-button" type="button" da
 assert.match(bible, /class="theme-mode-button font-size-button" type="button" data-font-step="1" aria-pressed="true">Medium<\/button>/);
 assert.match(bible, /class="theme-mode-button font-size-button" type="button" data-font-step="2" aria-pressed="false">Large<\/button>/);
 
-assert.match(bible, /\.fab-panel \{[\s\S]*display: flex;[\s\S]*gap: 10px;[\s\S]*padding: 12px;[\s\S]*background: color-mix\(in srgb, var\(--surface\) 82%, transparent\);[\s\S]*box-shadow: var\(--float-nav-shadow\);[\s\S]*backdrop-filter: blur\(64px\) saturate\(220%\) brightness\(1\.06\);[\s\S]*-webkit-backdrop-filter: blur\(64px\) saturate\(220%\) brightness\(1\.06\);[\s\S]*isolation: isolate;[\s\S]*transition: opacity 180ms ease, transform 180ms ease, visibility 0s linear 180ms;/);
+assert.match(bible, /\.fab-panel \{[\s\S]*display: flex;[\s\S]*position: fixed;[\s\S]*right: 12px;[\s\S]*bottom: calc\(76px \+ env\(safe-area-inset-bottom, 0px\)\);[\s\S]*gap: 10px;[\s\S]*padding: 12px;[\s\S]*background: var\(--float-nav-bg\);[\s\S]*border: var\(--card-border\);[\s\S]*border-radius: var\(--radius-md\);[\s\S]*box-shadow: var\(--float-nav-shadow\);[\s\S]*backdrop-filter: var\(--hdr-blur\);[\s\S]*-webkit-backdrop-filter: var\(--hdr-blur\);[\s\S]*isolation: isolate;[\s\S]*transition: opacity 180ms ease, transform 180ms ease, visibility 0s linear 180ms;/);
 assert.match(bible, /\.fab-panel\.open \{[\s\S]*opacity: 1;[\s\S]*visibility: visible;[\s\S]*pointer-events: auto;[\s\S]*transition: opacity 180ms ease, transform 180ms ease, visibility 0s;/);
-assert.match(bible, /\.fab-panel::before \{[\s\S]*background: color-mix\(in srgb, var\(--surface\) 74%, transparent\);[\s\S]*backdrop-filter: blur\(64px\) saturate\(220%\) brightness\(1\.06\);[\s\S]*-webkit-backdrop-filter: blur\(64px\) saturate\(220%\) brightness\(1\.06\);/);
+assert.doesNotMatch(bible, /\.fab-panel::before/);
 assert.match(bible, /\.fab-card \{[\s\S]*margin: 0;[\s\S]*padding: 12px;[\s\S]*border-radius: var\(--radius-sm\);[\s\S]*background: var\(--card-bg\);[\s\S]*border: var\(--card-border\);/);
 assert.match(bible, /\.fab-card-title \{[\s\S]*padding: 0 2px 8px;/);
 assert.match(bible, /\.profile-card \{[\s\S]*--profile-photo-width: 116px;[\s\S]*position: relative;[\s\S]*overflow: hidden;[\s\S]*min-height: 92px;/);
@@ -70,6 +70,7 @@ assert.match(bible, /@media \(max-width: 640px\) \{[\s\S]*\.bottom-actions \{[\s
 assert.match(bible, /@media \(max-width: 640px\) \{[\s\S]*\.bottom-actions \.bottom-action-button \{ flex: 1 1 0; \}/);
 assert.match(bible, /@media \(max-width: 640px\) \{[\s\S]*\.fab-root \{[\s\S]*grid-column: 2;[\s\S]*grid-row: 2;[\s\S]*align-self: center;/);
 assert.match(bible, /@media \(max-width: 640px\) \{[\s\S]*\.fab-main \{ height: 40px; min-height: 40px; \}/);
+assert.match(bible, /@media \(max-width: 640px\) \{[\s\S]*\.fab-panel \{ bottom: calc\(118px \+ env\(safe-area-inset-bottom, 0px\)\); \}/);
 assert.match(bible, /<div id="auth-area" class="fab-card profile-card"><\/div>/);
 assert.match(bible, /<div class="fab-card theme-mode-wrap">[\s\S]*<div class="fab-card-title">Display Mode<\/div>/);
 assert.match(bible, /<div class="fab-card font-size-wrap">[\s\S]*<div class="fab-card-title">Font Size<\/div>[\s\S]*data-font-step="0"[\s\S]*Small[\s\S]*data-font-step="1"[\s\S]*Medium[\s\S]*data-font-step="2"[\s\S]*Large/);
@@ -94,7 +95,7 @@ assert.match(bible, /\.profile-card \.dd-user-info \{[\s\S]*position: relative;[
 assert.match(bible, /\.profile-card \.dd-signout-button \{[\s\S]*position: relative;[\s\S]*z-index: 1;/);
 assert.match(bible, /details\.appendChild\(status\);/);
 assert.doesNotMatch(bible, /authArea\.appendChild\(status\);/);
-assert.match(bible, /<div id="floating-nav" class="floating-nav hidden" role="navigation" aria-label="Chapter">[\s\S]*<\/div>\s*<div class="bottom-actions" aria-label="Quick actions">[\s\S]*<\/div>\s*<div class="fab-root">[\s\S]*id="fab-main"/);
+assert.match(bible, /<div id="floating-nav" class="floating-nav hidden" role="navigation" aria-label="Chapter">[\s\S]*<\/div>\s*<div class="bottom-actions" aria-label="Quick actions">[\s\S]*<\/div>\s*<div class="fab-root">[\s\S]*id="fab-main"[\s\S]*<\/div>\s*<\/div>\s*<div id="fab-panel" class="fab-panel">/);
 assert.doesNotMatch(bible, /width: 100vw;/);
 assert.match(bible, /var fabPanelHistoryOpen = false;/);
 assert.match(bible, /var suppressNextPopupPop = false;/);
