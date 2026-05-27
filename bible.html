@@ -997,6 +997,10 @@
     verseChaseLastTs = null;
   }
 
+  function releaseVerseChaseForFreeScroll() {
+    if (uiView === 'verses' && verseChaseTarget) stopVerseChase();
+  }
+
   function setVerseChaseTarget(target) {
     if (!target) return;
     if (shouldReduceVerseMotion()) {
@@ -1849,6 +1853,7 @@
   viewEl.addEventListener('scroll', function () {
     requestAnimationFrame(updateActiveVerseFromViewport);
   }, { passive: true });
+  viewEl.addEventListener('wheel', releaseVerseChaseForFreeScroll, { passive: true });
   document.addEventListener('keydown', handleBibleKeyboardNavigation);
   document.getElementById('btn-search').addEventListener('click', function (e) {
     e.stopPropagation();

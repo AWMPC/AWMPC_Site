@@ -45,6 +45,7 @@ assert.match(bible, /var verseChaseLastTs = null;/);
 assert.match(bible, /function desiredVerseScrollTop\(target\)/);
 assert.match(bible, /function shouldReduceVerseMotion\(\)/);
 assert.match(bible, /function stopVerseChase\(\)/);
+assert.match(bible, /function releaseVerseChaseForFreeScroll\(\)/);
 assert.match(bible, /function setVerseChaseTarget\(target\)/);
 assert.match(bible, /function stepVerseChase\(ts\)/);
 assert.match(bible, /function scrollVerseToCenter\(target\)/);
@@ -75,6 +76,7 @@ assert.match(bible, /--verse-num: #555;/);
 assert.match(bible, /--verse-num: #b8b8b8;/);
 
 assert.match(bible, /document\.addEventListener\('keydown', handleBibleKeyboardNavigation\);/);
+assert.match(bible, /viewEl\.addEventListener\('wheel', releaseVerseChaseForFreeScroll, \{ passive: true \}\);/);
 assert.match(bible, /function handleBibleKeyboardNavigation\(e\)/);
 assert.match(bible, /function shouldIgnoreBibleShortcut\(e\)/);
 assert.match(bible, /tag === 'INPUT' \|\| tag === 'TEXTAREA' \|\| tag === 'SELECT'/);
