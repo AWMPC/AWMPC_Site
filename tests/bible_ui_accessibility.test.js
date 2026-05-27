@@ -44,6 +44,9 @@ assert.match(bible, /\.fab-panel\.open \{[\s\S]*opacity: 1;[\s\S]*visibility: vi
 assert.match(bible, /\.fab-panel::before \{[\s\S]*backdrop-filter: blur\(28px\) saturate\(180%\);[\s\S]*-webkit-backdrop-filter: blur\(28px\) saturate\(180%\);/);
 assert.match(bible, /\.fab-card \{[\s\S]*margin: 0;[\s\S]*padding: 12px;[\s\S]*border-radius: var\(--radius-sm\);[\s\S]*background: var\(--card-bg\);[\s\S]*border: var\(--card-border\);/);
 assert.match(bible, /\.fab-card-title \{[\s\S]*padding: 0 2px 8px;/);
+assert.match(bible, /\.profile-card \{[\s\S]*position: relative;[\s\S]*overflow: hidden;[\s\S]*min-height: 92px;[\s\S]*padding-left: 112px;/);
+assert.match(bible, /\.profile-card::after \{[\s\S]*background: linear-gradient\(90deg, transparent 0%, var\(--surface\) 88%\);/);
+assert.match(bible, /html\.dark \.profile-card::after \{[\s\S]*background: linear-gradient\(90deg, transparent 0%, var\(--surface\) 88%\);/);
 assert.match(bible, /position: absolute;/);
 assert.match(bible, /bottom: calc\(100% \+ 8px\);/);
 assert.match(bible, /width: min\(360px, calc\(100vw - 24px\)\);/);
@@ -56,8 +59,10 @@ assert.match(bible, /@media \(max-width: 640px\) \{[\s\S]*\.bottom-chrome \{[\s\
 assert.match(bible, /@media \(max-width: 640px\) \{[\s\S]*\.fab-root \{[\s\S]*grid-column: 2;[\s\S]*grid-row: 1 \/ span 2;[\s\S]*align-self: stretch;/);
 assert.match(bible, /@media \(max-width: 640px\) \{[\s\S]*\.fab-main \{ height: 100%; min-height: 88px; \}/);
 assert.match(bible, /<div id="auth-area" class="fab-card profile-card"><\/div>/);
-assert.match(bible, /<div class="fab-card theme-mode-wrap">[\s\S]*<div class="fab-card-title">Color Scheme<\/div>/);
-assert.match(bible, /<div class="fab-card font-slider-wrap">[\s\S]*<label for="font-size-slider">Text Size<\/label>/);
+assert.match(bible, /<div class="fab-card theme-mode-wrap">[\s\S]*<div class="fab-card-title">Display Mode<\/div>/);
+assert.match(bible, /<div class="fab-card font-slider-wrap">[\s\S]*<div class="fab-card-title">Font Size<\/div>[\s\S]*<input id="font-size-slider"/);
+assert.doesNotMatch(bible, /<label for="font-size-slider">Text Size<\/label>/);
+assert.doesNotMatch(bible, /<output id="dd-font-val"/);
 assert.doesNotMatch(bible, /class="fab-card history-card"/);
 assert.doesNotMatch(bible, /class="fab-card search-card"/);
 assert.match(bible, /<\/div>\s*<div class="bottom-actions" aria-label="Quick actions">[\s\S]*<button class="bottom-action-button" id="btn-history" type="button">[\s\S]*Recent[\s\S]*<button class="bottom-action-button" id="btn-search" type="button">[\s\S]*Search[\s\S]*<div id="history-menu" class="bottom-history-menu"/);
@@ -71,6 +76,9 @@ assert.match(bible, /\.fab-main \{[\s\S]*position: relative;[\s\S]*padding: 0;[\
 assert.match(bible, /\.fab-main \.profile-avatar \{[\s\S]*position: absolute;[\s\S]*inset: 0;[\s\S]*width: 100%;[\s\S]*height: 100%;[\s\S]*min-width: 100%;[\s\S]*min-height: 100%;[\s\S]*max-width: none;[\s\S]*border-radius: 0;[\s\S]*object-fit: cover;[\s\S]*border: 0;/);
 assert.match(bible, /\.dd-signout-button \{[\s\S]*flex-shrink: 0;[\s\S]*border-radius: var\(--radius-xs\);/);
 assert.match(bible, /\.dd-sync-status \{[\s\S]*padding: 2px 0 0;/);
+assert.match(bible, /\.profile-card \.dd-user-photo \{[\s\S]*position: absolute;[\s\S]*left: 0;[\s\S]*top: 0;[\s\S]*bottom: 0;[\s\S]*width: 112px;[\s\S]*height: 100%;[\s\S]*border-radius: 0;/);
+assert.match(bible, /\.profile-card \.dd-user-info \{[\s\S]*position: relative;[\s\S]*z-index: 1;/);
+assert.match(bible, /\.profile-card \.dd-signout-button \{[\s\S]*position: relative;[\s\S]*z-index: 1;/);
 assert.match(bible, /details\.appendChild\(status\);/);
 assert.doesNotMatch(bible, /authArea\.appendChild\(status\);/);
 assert.match(bible, /<div id="floating-nav" class="floating-nav hidden" role="navigation" aria-label="Chapter">[\s\S]*<\/div>\s*<div class="bottom-actions" aria-label="Quick actions">[\s\S]*<\/div>\s*<div class="fab-root">[\s\S]*id="fab-main"/);
