@@ -43,6 +43,7 @@
     --hover-bg: rgba(11,99,206,.08);
     --pill-bg: rgba(11,99,206,.08);
     --btn-active-text: #ffffff;
+    --bottom-chrome-clearance: 88px;
   }
   html.dark {
     --bg: #0d1017; --bg2: #171c28; --bg3: #111722; --bg4: #1e2538;
@@ -371,7 +372,7 @@
   .view-inner {
     max-width: 960px; margin: 0 auto;
     padding: 16px 12px;
-    padding-bottom: calc(88px + env(safe-area-inset-bottom, 0px));
+    padding-bottom: var(--bottom-chrome-clearance);
     opacity: 1;
     transition: opacity 520ms ease-in-out;
   }
@@ -831,6 +832,7 @@
   var fabPanel = document.getElementById('fab-panel');
   var historyMenu = document.getElementById('history-menu');
   document.getElementById('app-version').textContent = APP_VERSION;
+  var bottomChromeResizeObserver = null;
 
   var bibleData = null;
   var currentBook = null;
@@ -854,6 +856,24 @@
   var openMenu = null;
   var fabPanelHistoryOpen = false;
   var suppressNextPopupPop = false;
+
+  function updateBottomChromeClearance() {
+    if (!bottomChrome) return;
+    var rect = bottomChrome.getBoundingClientRect();
+    var viewportHeight = window.innerHeight || document.documentElement.clientHeight || 0;
+    var clearance = Math.max(88, viewportHeight - rect.top + 16);
+    document.documentElement.style.setProperty('--bottom-chrome-clearance', Math.ceil(clearance) + 'px');
+  }
+
+  function observeBottomChromeClearance() {
+    updateBottomChromeClearance();
+    window.addEventListener('resize', updateBottomChromeClearance);
+    window.addEventListener('orientationchange', updateBottomChromeClearance);
+    if ('ResizeObserver' in window) {
+      bottomChromeResizeObserver = new ResizeObserver(updateBottomChromeClearance);
+      bottomChromeResizeObserver.observe(bottomChrome);
+    }
+  }
 
   function currentNavStateForHistory() {
     if (uiView === 'verses') return { view: 'verses', book: navBook, chapter: navChapter, verse: activeVerse };
@@ -1178,6 +1198,7 @@
   function updateNav() {
     if (!bibleData || navBook == null || navChapter == null) {
       floatingNav.classList.add('hidden');
+      updateBottomChromeClearance();
       return;
     }
     floatingNav.classList.remove('hidden');
@@ -1188,6 +1209,7 @@
     var n = nextChapterNav(navBook, navChapter);
     fnPrev.disabled = !p;
     fnNext.disabled = !n;
+    updateBottomChromeClearance();
   }
 
   function readingViewportMetrics() {
@@ -2184,6 +2206,8 @@
   });
 
   // ===================== LOAD DATA =====================
+  observeBottomChromeClearance();
+
   var xhr = new XMLHttpRequest();
   xhr.open('GET', 'bible.json', true);
   xhr.responseType = 'json';
