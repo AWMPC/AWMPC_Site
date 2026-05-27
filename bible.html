@@ -967,6 +967,172 @@
     }
   }
 
+  function shouldIgnoreBibleShortcut(e) {
+    if (e.metaKey || e.ctrlKey || e.altKey) return true;
+    var target = e.target;
+    if (!target) return false;
+    var tag = target.tagName;
+    if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT') return true;
+    return target.isContentEditable;
+  }
+
+  function getSelectionGridItems() {
+    if (uiView === 'books') {
+      return Array.prototype.slice.call(viewInner.querySelectorAll('.book-btn'));
+    }
+    if (uiView === 'chapters') {
+      return Array.prototype.slice.call(viewInner.querySelectorAll('.chapter-grid .chapter-btn'));
+    }
+    if (uiView === 'verse-picker') {
+      return Array.prototype.slice.call(viewInner.querySelectorAll('.verse-grid .chapter-btn'));
+    }
+    return [];
+  }
+
+  function directionalDistance(currentRect, rect, key) {
+    var currentX = currentRect.left + (currentRect.width / 2);
+    var currentY = currentRect.top + (currentRect.height / 2);
+    var x = rect.left + (rect.width / 2);
+    var y = rect.top + (rect.height / 2);
+    var dx = x - currentX;
+    var dy = y - currentY;
+    var primary;
+    var cross;
+    if (key === 'ArrowLeft') {
+      if (dx >= -1) return Infinity;
+      primary = Math.abs(dx);
+      cross = Math.abs(dy);
+    } else if (key === 'ArrowRight') {
+      if (dx <= 1) return Infinity;
+      primary = Math.abs(dx);
+      cross = Math.abs(dy);
+    } else if (key === 'ArrowUp') {
+      if (dy >= -1) return Infinity;
+      primary = Math.abs(dy);
+      cross = Math.abs(dx);
+    } else if (key === 'ArrowDown') {
+      if (dy <= 1) return Infinity;
+      primary = Math.abs(dy);
+      cross = Math.abs(dx);
+    } else {
+      return Infinity;
+    }
+    return (primary * primary) + (cross * cross * 2);
+  }
+
+  function focusClosestGridItem(items, current, key) {
+    if (!items.length) return false;
+    if (!current || items.indexOf(current) === -1) {
+      items[0].focus();
+      return true;
+    }
+    var currentRect = current.getBoundingClientRect();
+    var best = null;
+    for (var i = 0; i < items.length; i++) {
+      if (items[i] === current || items[i].disabled) continue;
+      var rect = items[i].getBoundingClientRect();
+      if (!rect.width || !rect.height) continue;
+      var candidate = { el: items[i], score: Infinity };
+      candidate.score = directionalDistance(currentRect, rect, key);
+      if (candidate.score < Infinity && (!best || candidate.score < best.score)) {
+        best = candidate;
+      }
+    }
+    if (!best) return false;
+    best.el.focus();
+    return true;
+  }
+
+  function handleSelectionArrowKey(key) {
+    var items = getSelectionGridItems();
+    return focusClosestGridItem(items, document.activeElement, key);
+  }
+
+  function handleSelectionEnterKey() {
+    var items = getSelectionGridItems();
+    if (items.indexOf(document.activeElement) === -1) return false;
+    document.activeElement.click();
+    return true;
+  }
+
+  function handleReadingEnterKey() {
+    var active = viewInner.querySelector('.verse.active');
+    if (!active) return false;
+    var noteButtons = active.querySelectorAll('.footnote-toggle');
+    var noteBodies = active.querySelectorAll('.footnote-body');
+    if (!noteButtons.length || !noteBodies.length) return false;
+    var shouldOpen = false;
+    for (var i = 0; i < noteBodies.length; i++) {
+      if (noteBodies[i].className.indexOf('visible') === -1) {
+        shouldOpen = true;
+        break;
+      }
+    }
+    for (i = 0; i < noteBodies.length; i++) {
+      noteBodies[i].className = shouldOpen ? 'footnote-body visible' : 'footnote-body';
+    }
+    for (i = 0; i < noteButtons.length; i++) {
+      noteButtons[i].className = shouldOpen ? 'footnote-toggle open' : 'footnote-toggle';
+    }
+    return true;
+  }
+
+  function handleKeyboardBack() {
+    if (fabPanel.classList.contains('open') || openMenu) {
+      closeMenus();
+      return true;
+    }
+    if (uiView === 'verses') { showVersePickerView(navBook, navChapter); return true; }
+    if (uiView === 'verse-picker') { showChaptersView(navBook); return true; }
+    if (uiView === 'chapters') { showBooksView(); return true; }
+    if (uiView === 'search') { showBooksView(); return true; }
+    return false;
+  }
+
+  function showAdjacentChapter(direction) {
+    if (!bibleData || navBook == null || navChapter == null) return false;
+    var next = direction < 0 ? prevChapterNav(navBook, navChapter) : nextChapterNav(navBook, navChapter);
+    if (!next) return false;
+    showVersesView(next.book, next.chapter);
+    return true;
+  }
+
+  function showAdjacentVerse(direction) {
+    if (uiView !== 'verses') return false;
+    var verses = Array.prototype.slice.call(viewInner.querySelectorAll('.verse'));
+    if (!verses.length) return false;
+    var current = viewInner.querySelector('.verse.active');
+    var idx = current ? verses.indexOf(current) : -1;
+    if (idx === -1) idx = direction < 0 ? verses.length : -1;
+    var next = verses[idx + direction];
+    if (!next) return false;
+    var verse = next.getAttribute('data-v');
+    setActiveVerse(verse, false);
+    var target = viewInner.querySelector('[data-v="' + verse + '"]');
+    scrollVerseToCenter(target);
+    return true;
+  }
+
+  function handleReadingArrowKey(key) {
+    if (key === 'ArrowLeft') return showAdjacentChapter(-1);
+    if (key === 'ArrowRight') return showAdjacentChapter(1);
+    if (key === 'ArrowUp') return showAdjacentVerse(-1);
+    if (key === 'ArrowDown') return showAdjacentVerse(1);
+    return false;
+  }
+
+  function handleBibleKeyboardNavigation(e) {
+    if (shouldIgnoreBibleShortcut(e)) return;
+    var key = e.key;
+    var handled = false;
+    if (key === 'Enter') handled = uiView === 'verses' ? handleReadingEnterKey() : handleSelectionEnterKey();
+    if (key === 'Escape' || key === 'Backspace' || key === 'Delete') handled = handleKeyboardBack();
+    if (!handled && (key === 'ArrowLeft' || key === 'ArrowRight' || key === 'ArrowUp' || key === 'ArrowDown')) {
+      handled = uiView === 'verses' ? handleReadingArrowKey(key) : handleSelectionArrowKey(key);
+    }
+    if (handled) e.preventDefault();
+  }
+
   // ===================== BROWSER HISTORY =====================
   var navFromPop = false;
   function pushNav(state) { if (!navFromPop) history.pushState(state, ''); }
@@ -1053,7 +1219,8 @@
     var grid = document.createElement('div');
     grid.className = 'chapter-grid';
     for (var c = 1; c <= chapterCount; c++) {
-      var btn = document.createElement('div');
+      var btn = document.createElement('button');
+      btn.type = 'button';
       btn.className = 'chapter-btn';
       btn.textContent = c;
       btn.addEventListener('click', (function (book, ch) {
@@ -1496,6 +1663,7 @@
   viewEl.addEventListener('scroll', function () {
     requestAnimationFrame(updateActiveVerseFromViewport);
   }, { passive: true });
+  document.addEventListener('keydown', handleBibleKeyboardNavigation);
   document.getElementById('btn-search').addEventListener('click', function (e) {
     e.stopPropagation();
     if (bibleData) {
