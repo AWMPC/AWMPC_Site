@@ -1159,6 +1159,61 @@
       window.matchMedia('(prefers-reduced-motion: reduce)').matches;
   }
 
+  function showViewWithTransition(renderView) {
+    if (shouldReduceChapterMotion() || !viewInner.children.length) {
+      clearChapterCrossfadeTimer();
+      clearRetiringChapterViews();
+      viewInner.classList.remove('chapter-transition-ready', 'chapter-transition-in');
+      renderView();
+      return;
+    }
+
+    clearChapterCrossfadeTimer();
+    clearRetiringChapterViews();
+    var retiring = viewInner.cloneNode(true);
+    retiring.removeAttribute('id');
+    retiring.className = 'view-inner chapter-transition-retiring';
+    retiring.style.transform = 'translateY(-' + viewEl.scrollTop + 'px)';
+    viewEl.appendChild(retiring);
+
+    viewInner.classList.add('chapter-transition-ready');
+    preservingChapterCrossfade = true;
+    try {
+      renderView();
+    } finally {
+      preservingChapterCrossfade = false;
+    }
+    void viewInner.offsetWidth;
+    requestAnimationFrame(function () {
+      requestAnimationFrame(function () {
+        viewInner.classList.add('chapter-transition-in');
+        retiring.classList.add('chapter-transition-out');
+      });
+    });
+
+    chapterCrossfadeTimer = window.setTimeout(function () {
+      retiring.remove();
+      viewInner.classList.remove('chapter-transition-ready', 'chapter-transition-in');
+      chapterCrossfadeTimer = null;
+    }, CHAPTER_CROSSFADE_MS);
+  }
+
+  function showBooksViewWithTransition() {
+    showViewWithTransition(function () { showBooksView(); });
+  }
+
+  function showChaptersViewWithTransition(bookName) {
+    showViewWithTransition(function () { showChaptersView(bookName); });
+  }
+
+  function showVersePickerViewWithTransition(bookName, chapterNum) {
+    showViewWithTransition(function () { showVersePickerView(bookName, chapterNum); });
+  }
+
+  function showSelectedVerseWithTransition(bookName, chapterNum, verse) {
+    showViewWithTransition(function () { showVersesView(bookName, chapterNum, verse); });
+  }
+
   function showVersesViewWithTransition(bookName, chapterNum, scrollToVerse) {
     if (uiView !== 'verses' || shouldReduceChapterMotion()) {
       clearChapterCrossfadeTimer();
@@ -1313,10 +1368,10 @@
       closeMenus();
       return true;
     }
-    if (uiView === 'verses') { showVersePickerView(navBook, navChapter); return true; }
-    if (uiView === 'verse-picker') { showChaptersView(navBook); return true; }
-    if (uiView === 'chapters') { showBooksView(); return true; }
-    if (uiView === 'search') { showBooksView(); return true; }
+    if (uiView === 'verses') { showVersePickerViewWithTransition(navBook, navChapter); return true; }
+    if (uiView === 'verse-picker') { showChaptersViewWithTransition(navBook); return true; }
+    if (uiView === 'chapters') { showBooksViewWithTransition(); return true; }
+    if (uiView === 'search') { showBooksViewWithTransition(); return true; }
     return false;
   }
 
@@ -1384,9 +1439,11 @@
     stopVerseChase();
     viewEl.scrollTop = 0;
     viewInner.textContent = '';
-    viewInner.classList.remove('chapter-transition-ready', 'chapter-transition-in');
-    clearChapterCrossfadeTimer();
-    clearRetiringChapterViews();
+    if (!preservingChapterCrossfade) {
+      viewInner.classList.remove('chapter-transition-ready', 'chapter-transition-in');
+      clearChapterCrossfadeTimer();
+      clearRetiringChapterViews();
+    }
     currentBook = null;
     currentChapter = null;
     activeVerse = null;
@@ -1429,9 +1486,11 @@
     stopVerseChase();
     viewEl.scrollTop = 0;
     viewInner.textContent = '';
-    viewInner.classList.remove('chapter-transition-ready', 'chapter-transition-in');
-    clearChapterCrossfadeTimer();
-    clearRetiringChapterViews();
+    if (!preservingChapterCrossfade) {
+      viewInner.classList.remove('chapter-transition-ready', 'chapter-transition-in');
+      clearChapterCrossfadeTimer();
+      clearRetiringChapterViews();
+    }
     currentBook = bookName;
     currentChapter = null;
     activeVerse = null;
@@ -1463,7 +1522,7 @@
       btn.className = 'chapter-btn';
       btn.textContent = c;
       btn.addEventListener('click', (function (book, ch) {
-        return function () { showVersePickerView(book, ch); };
+        return function () { showVersePickerViewWithTransition(book, ch); };
       })(bookName, c));
       grid.appendChild(btn);
     }
@@ -1474,9 +1533,11 @@
     stopVerseChase();
     viewEl.scrollTop = 0;
     viewInner.textContent = '';
-    viewInner.classList.remove('chapter-transition-ready', 'chapter-transition-in');
-    clearChapterCrossfadeTimer();
-    clearRetiringChapterViews();
+    if (!preservingChapterCrossfade) {
+      viewInner.classList.remove('chapter-transition-ready', 'chapter-transition-in');
+      clearChapterCrossfadeTimer();
+      clearRetiringChapterViews();
+    }
     currentBook = bookName;
     currentChapter = chapterNum;
     navBook = bookName;
@@ -1501,7 +1562,7 @@
       btn.className = 'chapter-btn';
       btn.textContent = keys[i];
       btn.addEventListener('click', (function (book, ch, verse) {
-        return function () { showVersesView(book, ch, verse); };
+        return function () { showSelectedVerseWithTransition(book, ch, verse); };
       })(bookName, chapterNum, keys[i]));
       grid.appendChild(btn);
     }
@@ -1885,7 +1946,7 @@
       btn.appendChild(koSpan);
     }
 
-    btn.addEventListener('click', function () { showChaptersView(bookName); });
+    btn.addEventListener('click', function () { showChaptersViewWithTransition(bookName); });
     li.appendChild(btn);
     list.appendChild(li);
   }
@@ -1901,13 +1962,13 @@
     if (n) showVersesViewWithTransition(n.book, n.chapter);
   });
   fnBook.addEventListener('click', function () {
-    if (bibleData) showBooksView();
+    if (bibleData) showBooksViewWithTransition();
   });
   fnChapter.addEventListener('click', function () {
-    if (bibleData && navBook) showChaptersView(navBook);
+    if (bibleData && navBook) showChaptersViewWithTransition(navBook);
   });
   fnVerse.addEventListener('click', function () {
-    if (bibleData && navBook && navChapter) showVersePickerView(navBook, navChapter);
+    if (bibleData && navBook && navChapter) showVersePickerViewWithTransition(navBook, navChapter);
   });
   viewEl.addEventListener('scroll', function () {
     requestAnimationFrame(updateActiveVerseFromViewport);
