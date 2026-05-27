@@ -11,6 +11,17 @@ assert.match(sw, /var CACHE_NAME = 'bible-v3\.0\.0';/);
 assert.match(bible, /id="app-version"/);
 assert.match(bible, /Version <span id="app-version">3\.0\.0<\/span>/);
 
+assert.match(bible, /--oneui-font:/);
+assert.match(bible, /--surface: #ffffff;/);
+assert.match(bible, /--surface-hi: #eef3f9;/);
+assert.match(bible, /--accent: #0b63ce;/);
+assert.match(bible, /--accent-glow: rgba\(11,99,206,\.22\);/);
+assert.match(bible, /html\.dark \{[\s\S]*--surface: #171c28;/);
+assert.match(bible, /html\.dark \{[\s\S]*--accent: #5b9bf4;/);
+assert.match(bible, /font-family: var\(--oneui-font\);/);
+assert.match(bible, /backdrop-filter: var\(--hdr-blur\);/);
+assert.match(bible, /background: var\(--card-bg\); border: var\(--card-border\); border-radius: var\(--radius-sm\);/);
+
 assert.match(bible, /id="font-size-slider"/);
 assert.match(bible, /var FONT_STEPS = \[16, 18, 20, 22, 24\];/);
 assert.match(bible, /--reader-font-size/);
@@ -25,6 +36,10 @@ assert.match(bible, /bottom: calc\(100% \+ 8px\);/);
 assert.match(bible, /width: min\(360px, calc\(100vw - 24px\)\);/);
 assert.match(bible, /max-height: calc\(100dvh - 96px - env\(safe-area-inset-bottom, 0px\)\);/);
 assert.match(bible, /\.fab-history-menu \{ flex: 1 1 auto; min-height: 0; overflow-y: auto; \}/);
+assert.match(bible, /\.bottom-chrome \{[\s\S]*justify-content: stretch;/);
+assert.match(bible, /\.floating-nav \{[\s\S]*flex: 1 1 auto;[\s\S]*width: 100%;[\s\S]*max-width: none;/);
+assert.match(bible, /\.fab-root \{[\s\S]*margin-left: auto;/);
+assert.match(bible, /<div id="floating-nav" class="floating-nav hidden" role="navigation" aria-label="Chapter">[\s\S]*<div class="fab-root">[\s\S]*id="fab-main"/);
 assert.doesNotMatch(bible, /width: 100vw;/);
 assert.doesNotMatch(bible, /height: 100dvh;/);
 assert.doesNotMatch(bible, /\.fab-root:has\(\.fab-panel\.open\) \.fab-main/);
@@ -72,8 +87,8 @@ assert.doesNotMatch(bible, /function isNearScrollBottom\(\)/);
 assert.doesNotMatch(bible, /scrollIntoView\(\{ behavior: 'smooth', block: 'center' \}\)/);
 assert.match(bible, /\.verse\.active/);
 
-assert.match(bible, /--verse-num: #555;/);
-assert.match(bible, /--verse-num: #b8b8b8;/);
+assert.match(bible, /--verse-num: #0b63ce;/);
+assert.match(bible, /--verse-num: #8bb9ff;/);
 
 assert.match(bible, /document\.addEventListener\('keydown', handleBibleKeyboardNavigation\);/);
 assert.match(bible, /viewEl\.addEventListener\('wheel', releaseVerseChaseForFreeScroll, \{ passive: true \}\);/);
