@@ -44,9 +44,9 @@ assert.match(bible, /\.fab-panel\.open \{[\s\S]*opacity: 1;[\s\S]*visibility: vi
 assert.match(bible, /\.fab-panel::before \{[\s\S]*backdrop-filter: blur\(28px\) saturate\(180%\);[\s\S]*-webkit-backdrop-filter: blur\(28px\) saturate\(180%\);/);
 assert.match(bible, /\.fab-card \{[\s\S]*margin: 0;[\s\S]*padding: 12px;[\s\S]*border-radius: var\(--radius-sm\);[\s\S]*background: var\(--card-bg\);[\s\S]*border: var\(--card-border\);/);
 assert.match(bible, /\.fab-card-title \{[\s\S]*padding: 0 2px 8px;/);
-assert.match(bible, /\.profile-card \{[\s\S]*position: relative;[\s\S]*overflow: hidden;[\s\S]*min-height: 92px;[\s\S]*padding-left: 112px;/);
-assert.match(bible, /\.profile-card::after \{[\s\S]*background: linear-gradient\(90deg, transparent 0%, var\(--surface\) 88%\);/);
-assert.match(bible, /html\.dark \.profile-card::after \{[\s\S]*background: linear-gradient\(90deg, transparent 0%, var\(--surface\) 88%\);/);
+assert.match(bible, /\.profile-card \{[\s\S]*position: relative;[\s\S]*overflow: hidden;[\s\S]*min-height: 92px;[\s\S]*padding-left: 132px;/);
+assert.match(bible, /\.profile-card::after \{[\s\S]*left: 48px;[\s\S]*width: 88px;[\s\S]*background: linear-gradient\(90deg, transparent 0%, color-mix\(in srgb, var\(--surface\) 58%, transparent\) 36%, var\(--surface\) 88%\);/);
+assert.match(bible, /html\.dark \.profile-card::after \{[\s\S]*background: linear-gradient\(90deg, transparent 0%, color-mix\(in srgb, var\(--surface\) 58%, transparent\) 36%, var\(--surface\) 88%\);/);
 assert.match(bible, /position: absolute;/);
 assert.match(bible, /bottom: calc\(100% \+ 8px\);/);
 assert.match(bible, /width: min\(360px, calc\(100vw - 24px\)\);/);
@@ -76,7 +76,7 @@ assert.match(bible, /\.fab-main \{[\s\S]*position: relative;[\s\S]*padding: 0;[\
 assert.match(bible, /\.fab-main \.profile-avatar \{[\s\S]*position: absolute;[\s\S]*inset: 0;[\s\S]*width: 100%;[\s\S]*height: 100%;[\s\S]*min-width: 100%;[\s\S]*min-height: 100%;[\s\S]*max-width: none;[\s\S]*border-radius: 0;[\s\S]*object-fit: cover;[\s\S]*border: 0;/);
 assert.match(bible, /\.dd-signout-button \{[\s\S]*flex-shrink: 0;[\s\S]*border-radius: var\(--radius-xs\);/);
 assert.match(bible, /\.dd-sync-status \{[\s\S]*padding: 2px 0 0;/);
-assert.match(bible, /\.profile-card \.dd-user-photo \{[\s\S]*position: absolute;[\s\S]*left: 0;[\s\S]*top: 0;[\s\S]*bottom: 0;[\s\S]*width: 112px;[\s\S]*height: 100%;[\s\S]*border-radius: 0;/);
+assert.match(bible, /\.profile-card \.dd-user-photo \{[\s\S]*position: absolute;[\s\S]*left: 0;[\s\S]*top: 0;[\s\S]*bottom: 0;[\s\S]*width: 116px;[\s\S]*height: 100%;[\s\S]*object-fit: cover;[\s\S]*object-position: center;[\s\S]*border-radius: 0;/);
 assert.match(bible, /\.profile-card \.dd-user-info \{[\s\S]*position: relative;[\s\S]*z-index: 1;/);
 assert.match(bible, /\.profile-card \.dd-signout-button \{[\s\S]*position: relative;[\s\S]*z-index: 1;/);
 assert.match(bible, /details\.appendChild\(status\);/);

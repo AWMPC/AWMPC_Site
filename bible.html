@@ -297,21 +297,21 @@
     position: relative;
     overflow: hidden;
     min-height: 92px;
-    padding-left: 112px;
+    padding-left: 132px;
   }
   .profile-card::after {
     content: "";
     position: absolute;
-    left: 72px;
+    left: 48px;
     top: 0;
     bottom: 0;
-    width: 48px;
+    width: 88px;
     z-index: 0;
-    background: linear-gradient(90deg, transparent 0%, var(--surface) 88%);
+    background: linear-gradient(90deg, transparent 0%, color-mix(in srgb, var(--surface) 58%, transparent) 36%, var(--surface) 88%);
     pointer-events: none;
   }
   html.dark .profile-card::after {
-    background: linear-gradient(90deg, transparent 0%, var(--surface) 88%);
+    background: linear-gradient(90deg, transparent 0%, color-mix(in srgb, var(--surface) 58%, transparent) 36%, var(--surface) 88%);
   }
   .fab-card-title {
     font-size: 12px; font-weight: 700; color: var(--fg3); text-transform: uppercase;
@@ -624,10 +624,11 @@
     left: 0;
     top: 0;
     bottom: 0;
-    width: 112px;
+    width: 116px;
     height: 100%;
-    border-radius: 0;
     object-fit: cover;
+    object-position: center;
+    border-radius: 0;
     border: 0;
   }
   .profile-card .dd-user-info {
