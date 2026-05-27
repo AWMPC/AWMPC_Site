@@ -89,8 +89,9 @@ assert.match(bible, /\.fab-main \{[\s\S]*position: relative;[\s\S]*padding: 0;[\
 assert.match(bible, /\.fab-main \.profile-avatar \{[\s\S]*position: absolute;[\s\S]*inset: 0;[\s\S]*width: 100%;[\s\S]*height: 100%;[\s\S]*min-width: 100%;[\s\S]*min-height: 100%;[\s\S]*max-width: none;[\s\S]*border-radius: 0;[\s\S]*object-fit: cover;[\s\S]*border: 0;/);
 assert.match(bible, /\.dd-signout-button \{[\s\S]*flex-shrink: 0;[\s\S]*border-radius: var\(--radius-xs\);/);
 assert.match(bible, /\.dd-sync-status \{[\s\S]*padding: 2px 0 0;/);
-assert.match(bible, /\.profile-card \.dd-user-photo \{[\s\S]*position: absolute;[\s\S]*left: 0;[\s\S]*top: 0;[\s\S]*bottom: 0;[\s\S]*width: auto;[\s\S]*height: 100%;[\s\S]*max-width: none;[\s\S]*object-fit: contain;[\s\S]*object-position: center top;[\s\S]*clip-path: inset\(0 max\(0px, calc\(100% - var\(--profile-photo-width\)\)\) 0 0\);[\s\S]*border-radius: 0;/);
-assert.match(bible, /\.profile-card \.dd-user \{[\s\S]*margin-left: calc\(var\(--profile-photo-width\) \+ 16px\);[\s\S]*\}/);
+assert.match(bible, /\.profile-card \.dd-user-photo \{[\s\S]*position: absolute;[\s\S]*left: 0;[\s\S]*top: 0;[\s\S]*bottom: 0;[\s\S]*width: var\(--profile-photo-width\);[\s\S]*height: 100%;[\s\S]*max-width: none;[\s\S]*object-fit: cover;[\s\S]*object-position: center top;[\s\S]*border-radius: 0;/);
+assert.doesNotMatch(bible, /clip-path: inset\(0 max\(0px, calc\(100% - var\(--profile-photo-width\)\)\) 0 0\);/);
+assert.match(bible, /\.profile-card \.dd-user \{[\s\S]*margin-left: var\(--profile-photo-width\);[\s\S]*\}/);
 assert.match(bible, /\.profile-card \.dd-user-info \{[\s\S]*position: relative;[\s\S]*z-index: 1;/);
 assert.match(bible, /\.profile-card \.dd-signout-button \{[\s\S]*position: relative;[\s\S]*z-index: 1;/);
 assert.match(bible, /details\.appendChild\(status\);/);

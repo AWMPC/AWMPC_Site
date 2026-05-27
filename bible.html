@@ -575,17 +575,16 @@
     left: 0;
     top: 0;
     bottom: 0;
-    width: auto;
+    width: var(--profile-photo-width);
     height: 100%;
     max-width: none;
-    object-fit: contain;
+    object-fit: cover;
     object-position: center top;
-    clip-path: inset(0 max(0px, calc(100% - var(--profile-photo-width))) 0 0);
     border-radius: 0;
     border: 0;
   }
   .profile-card .dd-user {
-    margin-left: calc(var(--profile-photo-width) + 16px);
+    margin-left: var(--profile-photo-width);
   }
   .profile-card .dd-user-info {
     position: relative;
