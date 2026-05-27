@@ -372,7 +372,8 @@
   .font-slider-row label { flex: 1; font-size: 17px; color: var(--fg); }
   .font-slider-row output { min-width: 54px; text-align: right; color: var(--fg3); font-size: 14px; }
   .font-slider {
-    width: 100%;
+    width: calc(100% - 16px);
+    margin: 0 8px;
     accent-color: var(--accent);
   }
   .font-slider-track {
@@ -381,8 +382,8 @@
   }
   .font-slider-ticks {
     position: absolute;
-    left: 0;
-    right: 0;
+    left: 8px;
+    right: 8px;
     top: 26px;
     height: 20px;
     color: var(--fg4);

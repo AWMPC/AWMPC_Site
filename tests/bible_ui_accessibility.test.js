@@ -37,6 +37,8 @@ assert.match(bible, /--reader-font-size/);
 assert.match(bible, /bible_font_step/);
 assert.match(bible, /class="font-slider-track"/);
 assert.match(bible, /class="font-slider-ticks"/);
+assert.match(bible, /\.font-slider \{[\s\S]*width: calc\(100% - 16px\);[\s\S]*margin: 0 8px;/);
+assert.match(bible, /\.font-slider-ticks \{[\s\S]*left: 8px;[\s\S]*right: 8px;/);
 assert.match(bible, /<span style="left: 0%;">16<\/span>[\s\S]*<span style="left: 25%;">18<\/span>[\s\S]*<span style="left: 50%;">20<\/span>[\s\S]*<span style="left: 75%;">22<\/span>[\s\S]*<span style="left: 100%;">24<\/span>/);
 
 assert.match(bible, /\.fab-panel \{[\s\S]*display: flex;[\s\S]*gap: 10px;[\s\S]*padding: 12px;[\s\S]*background: var\(--float-nav-bg\);[\s\S]*box-shadow: var\(--float-nav-shadow\);[\s\S]*backdrop-filter: blur\(28px\) saturate\(180%\);[\s\S]*-webkit-backdrop-filter: blur\(28px\) saturate\(180%\);[\s\S]*isolation: isolate;[\s\S]*transition: opacity 180ms ease, transform 180ms ease, visibility 0s linear 180ms;/);
