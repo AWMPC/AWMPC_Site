@@ -69,7 +69,8 @@ assert.match(bible, /\.bottom-action-button \{[\s\S]*height: 40px;[\s\S]*min-hei
 assert.match(bible, /\.bottom-history-menu \{[\s\S]*position: absolute;[\s\S]*bottom: calc\(100% \+ 8px\);[\s\S]*display: none;/);
 assert.match(bible, /\.bottom-history-menu\.open \{ display: grid; \}/);
 assert.match(bible, /@media \(max-width: 640px\) \{[\s\S]*\.bottom-chrome \{[\s\S]*display: grid;[\s\S]*grid-template-columns: minmax\(0, 1fr\) 48px;[\s\S]*grid-template-rows: auto auto;/);
-assert.match(bible, /@media \(max-width: 640px\) \{[\s\S]*\.floating-nav \{ grid-column: 1 \/ -1; grid-row: 1; \}/);
+assert.match(bible, /@media \(max-width: 640px\) \{[\s\S]*\.floating-nav \{ grid-column: 1 \/ -1; grid-row: 1; width: 100%; \}/);
+assert.match(bible, /@media \(max-width: 640px\) \{[\s\S]*\.floating-nav \.fn-book \{ flex: 1 1 auto; max-width: none; \}/);
 assert.match(bible, /@media \(max-width: 640px\) \{[\s\S]*\.bottom-actions \{[\s\S]*grid-column: 1;[\s\S]*grid-row: 2;[\s\S]*justify-content: flex-start;/);
 assert.match(bible, /@media \(max-width: 640px\) \{[\s\S]*\.bottom-actions \.bottom-action-button \{ flex: 1 1 0; \}/);
 assert.match(bible, /@media \(max-width: 640px\) \{[\s\S]*\.fab-root \{[\s\S]*grid-column: 2;[\s\S]*grid-row: 2;[\s\S]*align-self: center;/);
