@@ -26,8 +26,9 @@
     --note-bg: rgba(11,99,206,.08); --note-border: #0b63ce;
     --err-bg: rgba(196,56,50,.12); --err-fg: #9f211d;
     --fab-bg: #ffffff; --fab-fg: #0b63ce;
-    --float-nav-bg: rgba(255,255,255,.82);
+    --float-nav-bg: rgba(255,255,255,.64);
     --float-nav-fg: #172033;
+    --float-nav-shadow: 0 8px 22px rgba(26,40,63,.12);
     --radius-xs: 10px;
     --radius-sm: 14px;
     --radius-md: 20px;
@@ -54,8 +55,9 @@
     --note-bg: rgba(91,155,244,.12); --note-border: #5b9bf4;
     --err-bg: rgba(244,96,90,.16); --err-fg: #ff9c98;
     --fab-bg: #1e2538; --fab-fg: #8bb9ff;
-    --float-nav-bg: rgba(13,16,23,.72);
+    --float-nav-bg: rgba(13,16,23,.52);
     --float-nav-fg: #edf0f7;
+    --float-nav-shadow: 0 8px 22px rgba(0,0,0,.32);
     --shadow: 0 2px 12px rgba(0,0,0,.35);
     --card-bg: linear-gradient(175deg, rgba(23,28,40,.8) 0%, rgba(30,37,56,.75) 100%);
     --card-border: 1px solid var(--border);
@@ -110,7 +112,7 @@
     background: var(--float-nav-bg); color: var(--float-nav-fg);
     border: var(--card-border);
     border-radius: var(--radius-md); padding: 8px;
-    box-shadow: var(--menu-shadow);
+    box-shadow: var(--float-nav-shadow);
     backdrop-filter: var(--hdr-blur);
     -webkit-backdrop-filter: var(--hdr-blur);
   }
@@ -1911,6 +1913,7 @@
     requestAnimationFrame(updateActiveVerseFromViewport);
   }, { passive: true });
   viewEl.addEventListener('wheel', releaseVerseChaseForFreeScroll, { passive: true });
+  viewEl.addEventListener('touchstart', releaseVerseChaseForFreeScroll, { passive: true });
   document.addEventListener('keydown', handleBibleKeyboardNavigation);
   document.getElementById('btn-search').addEventListener('click', function (e) {
     e.stopPropagation();

@@ -16,8 +16,12 @@ assert.match(bible, /--surface: #ffffff;/);
 assert.match(bible, /--surface-hi: #eef3f9;/);
 assert.match(bible, /--accent: #0b63ce;/);
 assert.match(bible, /--accent-glow: rgba\(11,99,206,\.22\);/);
+assert.match(bible, /--float-nav-bg: rgba\(255,255,255,\.64\);/);
+assert.match(bible, /--float-nav-shadow: 0 8px 22px rgba\(26,40,63,\.12\);/);
 assert.match(bible, /html\.dark \{[\s\S]*--surface: #171c28;/);
 assert.match(bible, /html\.dark \{[\s\S]*--accent: #5b9bf4;/);
+assert.match(bible, /html\.dark \{[\s\S]*--float-nav-bg: rgba\(13,16,23,\.52\);/);
+assert.match(bible, /html\.dark \{[\s\S]*--float-nav-shadow: 0 8px 22px rgba\(0,0,0,\.32\);/);
 assert.match(bible, /font-family: var\(--oneui-font\);/);
 assert.match(bible, /backdrop-filter: var\(--hdr-blur\);/);
 assert.match(bible, /background: var\(--card-bg\); border: var\(--card-border\); border-radius: var\(--radius-sm\);/);
@@ -38,6 +42,7 @@ assert.match(bible, /max-height: calc\(100dvh - 96px - env\(safe-area-inset-bott
 assert.match(bible, /\.fab-history-menu \{ flex: 1 1 auto; min-height: 0; overflow-y: auto; \}/);
 assert.match(bible, /\.bottom-chrome \{[\s\S]*justify-content: stretch;/);
 assert.match(bible, /\.floating-nav \{[\s\S]*flex: 1 1 auto;[\s\S]*width: 100%;[\s\S]*max-width: none;/);
+assert.match(bible, /\.floating-nav \{[\s\S]*box-shadow: var\(--float-nav-shadow\);/);
 assert.match(bible, /\.fab-root \{[\s\S]*margin-left: auto;/);
 assert.match(bible, /<div id="floating-nav" class="floating-nav hidden" role="navigation" aria-label="Chapter">[\s\S]*<div class="fab-root">[\s\S]*id="fab-main"/);
 assert.doesNotMatch(bible, /width: 100vw;/);
@@ -92,6 +97,7 @@ assert.match(bible, /--verse-num: #8bb9ff;/);
 
 assert.match(bible, /document\.addEventListener\('keydown', handleBibleKeyboardNavigation\);/);
 assert.match(bible, /viewEl\.addEventListener\('wheel', releaseVerseChaseForFreeScroll, \{ passive: true \}\);/);
+assert.match(bible, /viewEl\.addEventListener\('touchstart', releaseVerseChaseForFreeScroll, \{ passive: true \}\);/);
 assert.match(bible, /function handleBibleKeyboardNavigation\(e\)/);
 assert.match(bible, /function shouldIgnoreBibleShortcut\(e\)/);
 assert.match(bible, /tag === 'INPUT' \|\| tag === 'TEXTAREA' \|\| tag === 'SELECT'/);
