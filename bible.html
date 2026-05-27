@@ -88,7 +88,7 @@
     flex-direction: row;
     align-items: flex-end;
     justify-content: stretch;
-    gap: 0;
+    gap: 8px;
     padding: 8px 12px calc(8px + env(safe-area-inset-bottom, 0px));
     min-height: calc(52px + 16px + env(safe-area-inset-bottom, 0px));
     overflow: visible;
@@ -139,6 +139,65 @@
   .floating-nav .fn-chapter,
   .floating-nav .fn-verse {
     font-weight: 600; min-width: 44px;
+  }
+  .bottom-actions {
+    display: flex; align-items: center; justify-content: center; gap: 6px;
+    position: relative;
+    flex: 0 0 auto;
+    min-height: 52px;
+    z-index: 121;
+    background: var(--float-nav-bg); color: var(--float-nav-fg);
+    border: var(--card-border); border-radius: var(--radius-md); padding: 8px;
+    box-shadow: var(--float-nav-shadow);
+    backdrop-filter: var(--hdr-blur);
+    -webkit-backdrop-filter: var(--hdr-blur);
+  }
+  .bottom-action-button {
+    min-height: 40px; border-radius: var(--radius-xs); border: 1px solid var(--border);
+    background: var(--surface); color: inherit; font: inherit; font-size: 15px;
+    padding: 8px 10px; cursor: pointer; box-shadow: var(--shadow);
+  }
+  .bottom-action-button:hover,
+  .bottom-action-button:focus-visible {
+    color: var(--accent); border-color: var(--accent); background: var(--hover-bg); outline: none;
+  }
+  .bottom-history-menu {
+    position: absolute;
+    right: 0;
+    bottom: calc(100% + 8px);
+    width: min(280px, calc(100vw - 24px));
+    max-height: min(360px, calc(100dvh - 120px));
+    display: none;
+    gap: 6px;
+    overflow-y: auto;
+    padding: 10px;
+    background: var(--float-nav-bg);
+    border: var(--card-border);
+    border-radius: var(--radius-sm);
+    box-shadow: var(--float-nav-shadow);
+    backdrop-filter: blur(28px) saturate(180%);
+    -webkit-backdrop-filter: blur(28px) saturate(180%);
+  }
+  .bottom-history-menu.open { display: grid; }
+  .bottom-history-menu .dd-item {
+    border: 1px solid var(--border);
+    border-radius: var(--radius-xs);
+    background: var(--surface);
+    box-shadow: var(--shadow);
+  }
+
+  @media (max-width: 640px) {
+    .bottom-chrome {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) 48px;
+      grid-template-rows: auto auto;
+      gap: 6px;
+      align-items: stretch;
+    }
+    .floating-nav { grid-column: 1; grid-row: 1; }
+    .bottom-actions { grid-column: 1; grid-row: 2; }
+    .fab-root { grid-column: 2; grid-row: 1 / span 2; align-self: stretch; }
+    .fab-main { height: 100%; min-height: 88px; }
   }
 
   /* FAB */
@@ -193,9 +252,20 @@
     transform: translateY(6px);
     background: var(--float-nav-bg); border: 1px solid var(--border); border-radius: var(--radius-sm);
     box-shadow: var(--float-nav-shadow);
-    backdrop-filter: saturate(180%) var(--hdr-blur);
-    -webkit-backdrop-filter: saturate(180%) var(--hdr-blur);
+    backdrop-filter: blur(28px) saturate(180%);
+    -webkit-backdrop-filter: blur(28px) saturate(180%);
+    isolation: isolate;
     transition: opacity 180ms ease, transform 180ms ease, visibility 0s linear 180ms;
+  }
+  .fab-panel::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    z-index: -1;
+    border-radius: inherit;
+    background: var(--float-nav-bg);
+    backdrop-filter: blur(28px) saturate(180%);
+    -webkit-backdrop-filter: blur(28px) saturate(180%);
   }
   .fab-panel.open {
     opacity: 1;
@@ -216,8 +286,6 @@
     font-size: 12px; font-weight: 700; color: var(--fg3); text-transform: uppercase;
     letter-spacing: 0.5px; padding: 0 2px 8px;
   }
-  .fab-card.history-card { flex: 1 1 auto; min-height: 130px; display: flex; flex-direction: column; }
-  .fab-card.search-card { flex: 0 0 auto; }
   .fab-card .dd-item {
     border: 1px solid var(--border);
     border-radius: var(--radius-xs);
@@ -537,7 +605,13 @@
   <button type="button" class="fn-chapter" id="fn-chapter" aria-label="Choose chapter"></button>
   <button type="button" class="fn-verse" id="fn-verse" aria-label="Choose verse"></button>
   <button type="button" id="fn-next" aria-label="Next chapter">→</button>
-  <div class="fab-root">
+</div>
+<div class="bottom-actions" aria-label="Quick actions">
+  <button class="bottom-action-button" id="btn-history" type="button">Recent</button>
+  <button class="bottom-action-button" id="btn-search" type="button">Search</button>
+  <div id="history-menu" class="bottom-history-menu" aria-label="Recent reading"></div>
+</div>
+<div class="fab-root">
     <button type="button" id="fab-main" class="fab-main" aria-label="Menu" aria-expanded="false" aria-controls="fab-panel">☰</button>
     <div id="fab-panel" class="fab-panel">
       <div id="auth-area" class="fab-card profile-card"></div>
@@ -565,21 +639,9 @@
           </div>
         </div>
       </div>
-      <div class="fab-card history-card">
-        <div class="fab-card-title">Recent Reading</div>
-        <div id="history-menu" class="fab-history-menu"></div>
-      </div>
-      <div class="fab-card search-card">
-        <div class="fab-card-title">Search</div>
-        <button class="dd-item" id="btn-search" type="button">
-          <span class="dd-icon">🔍</span>
-          <span class="dd-label">Search</span>
-        </button>
-      </div>
       <div class="app-version">Version <span id="app-version">3.0.0</span></div>
     </div>
   </div>
-</div>
 </div>
 
 <div id="view">
@@ -2100,6 +2162,11 @@
   viewEl.addEventListener('wheel', releaseVerseChaseForFreeScroll, { passive: true });
   viewEl.addEventListener('touchstart', releaseVerseChaseForFreeScroll, { passive: true });
   document.addEventListener('keydown', handleBibleKeyboardNavigation);
+  document.getElementById('btn-history').addEventListener('click', function (e) {
+    e.stopPropagation();
+    renderHistoryMenu();
+    toggleMenu(historyMenu, e);
+  });
   document.getElementById('btn-search').addEventListener('click', function (e) {
     e.stopPropagation();
     if (bibleData) {
