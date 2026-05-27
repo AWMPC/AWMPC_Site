@@ -104,6 +104,13 @@
     min-height: calc(52px + 16px + env(safe-area-inset-bottom, 0px));
     overflow: visible;
     pointer-events: none;
+    background: var(--float-nav-bg);
+    color: var(--float-nav-fg);
+    border: var(--card-border);
+    border-radius: var(--radius-md);
+    box-shadow: var(--float-nav-shadow);
+    backdrop-filter: var(--hdr-blur);
+    -webkit-backdrop-filter: var(--hdr-blur);
   }
   .bottom-chrome > * { pointer-events: auto; }
 
@@ -120,12 +127,12 @@
     min-height: 52px;
     margin-right: 0;
     z-index: 120;
-    background: var(--float-nav-bg); color: var(--float-nav-fg);
-    border: var(--card-border);
-    border-radius: var(--radius-md); padding: 8px;
-    box-shadow: var(--float-nav-shadow);
-    backdrop-filter: var(--hdr-blur);
-    -webkit-backdrop-filter: var(--hdr-blur);
+    background: transparent; color: inherit;
+    border: 0;
+    border-radius: var(--radius-sm); padding: 0;
+    box-shadow: none;
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
   }
   .floating-nav.hidden { display: none; }
   .floating-nav button {
@@ -157,11 +164,11 @@
     flex: 0 0 auto;
     min-height: 52px;
     z-index: 121;
-    background: var(--float-nav-bg); color: var(--float-nav-fg);
-    border: var(--card-border); border-radius: var(--radius-md); padding: 8px;
-    box-shadow: var(--float-nav-shadow);
-    backdrop-filter: var(--hdr-blur);
-    -webkit-backdrop-filter: var(--hdr-blur);
+    background: transparent; color: inherit;
+    border: 0; border-radius: var(--radius-sm); padding: 0;
+    box-shadow: none;
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
   }
   .bottom-action-button {
     min-height: 40px; border-radius: var(--radius-xs); border: 1px solid var(--border);
@@ -206,7 +213,7 @@
       align-items: stretch;
     }
     .floating-nav { grid-column: 1; grid-row: 1; }
-    .bottom-actions { grid-column: 1; grid-row: 2; }
+    .bottom-actions { grid-column: 1; grid-row: 2; justify-content: flex-start; }
     .fab-root { grid-column: 2; grid-row: 1 / span 2; align-self: stretch; }
     .fab-main { height: 100%; min-height: 88px; }
   }
