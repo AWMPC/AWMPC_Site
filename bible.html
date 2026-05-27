@@ -185,14 +185,16 @@
     max-height: calc(100dvh - 96px - env(safe-area-inset-bottom, 0px));
     overflow: hidden;
     flex-direction: column;
+    gap: 10px;
+    padding: 12px;
     opacity: 0;
     visibility: hidden;
     pointer-events: none;
     transform: translateY(6px);
     background: var(--float-nav-bg); border: 1px solid var(--border); border-radius: var(--radius-sm);
     box-shadow: var(--float-nav-shadow);
-    backdrop-filter: var(--hdr-blur);
-    -webkit-backdrop-filter: var(--hdr-blur);
+    backdrop-filter: saturate(180%) var(--hdr-blur);
+    -webkit-backdrop-filter: saturate(180%) var(--hdr-blur);
     transition: opacity 180ms ease, transform 180ms ease, visibility 0s linear 180ms;
   }
   .fab-panel.open {
@@ -202,7 +204,27 @@
     transform: translateY(0);
     transition: opacity 180ms ease, transform 180ms ease, visibility 0s;
   }
-  .fab-history-menu { flex: 1 1 auto; min-height: 0; overflow-y: auto; }
+  .fab-card {
+    margin: 0;
+    padding: 12px;
+    border-radius: var(--radius-sm);
+    background: var(--card-bg);
+    border: var(--card-border);
+    box-shadow: 0 1px 8px rgba(26,40,63,.08);
+  }
+  .fab-card-title {
+    font-size: 12px; font-weight: 700; color: var(--fg3); text-transform: uppercase;
+    letter-spacing: 0.5px; padding: 0 2px 8px;
+  }
+  .fab-card.history-card { flex: 1 1 auto; min-height: 130px; display: flex; flex-direction: column; }
+  .fab-card.search-card { flex: 0 0 auto; }
+  .fab-card .dd-item {
+    border: 1px solid var(--border);
+    border-radius: var(--radius-xs);
+    background: var(--surface);
+    box-shadow: var(--shadow);
+  }
+  .fab-history-menu { flex: 1 1 auto; min-height: 0; overflow-y: auto; display: grid; gap: 6px; }
   .fab-section-label {
     font-size: 12px; font-weight: 600; color: var(--fg3); text-transform: uppercase;
     letter-spacing: 0.5px; padding: 8px 16px 4px;
@@ -233,9 +255,7 @@
   .dd-item .dd-label { flex: 1; }
   .dd-item .dd-value { color: var(--fg3); font-size: 14px; flex-shrink: 0; }
   .dd-empty { padding: 16px; color: var(--fg3); font-size: 15px; text-align: center; }
-  .theme-mode-wrap {
-    display: grid; gap: 8px; padding: 12px 16px; border-bottom: 1px solid var(--border);
-  }
+  .theme-mode-wrap { display: grid; gap: 8px; }
   .theme-mode-label { font-size: 17px; color: var(--fg); }
   .theme-mode-control {
     display: grid; grid-template-columns: repeat(3, 1fr); gap: 4px;
@@ -248,9 +268,7 @@
   .theme-mode-button.active {
     background: var(--accent); color: var(--btn-active-text); box-shadow: 0 1px 6px var(--accent-glow);
   }
-  .font-slider-wrap {
-    display: grid; gap: 8px; padding: 12px 16px; border-bottom: 1px solid var(--border);
-  }
+  .font-slider-wrap { display: grid; gap: 8px; }
   .font-slider-row { display: flex; align-items: center; gap: 12px; }
   .font-slider-row label { flex: 1; font-size: 17px; color: var(--fg); }
   .font-slider-row output { min-width: 54px; text-align: right; color: var(--fg3); font-size: 14px; }
@@ -488,10 +506,7 @@
     width: 100%; height: 100%; min-width: 100%; min-height: 100%; max-width: none; border-radius: 0;
     object-fit: cover; border: 0;
   }
-  .dd-user {
-    display: flex; align-items: center; gap: 10px;
-    padding: 14px 16px; border-bottom: 1px solid var(--border);
-  }
+  .dd-user { display: flex; align-items: center; gap: 10px; }
   .dd-user-photo { width: 36px; height: 36px; border-radius: 50%; flex-shrink: 0; }
   .dd-user-info { flex: 1; min-width: 0; }
   .dd-user-name { font-size: 15px; font-weight: 600; color: var(--fg); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
@@ -505,7 +520,7 @@
   .dd-signout-button:focus-visible {
     color: var(--accent); border-color: var(--accent); background: var(--hover-bg); outline: none;
   }
-  .dd-sync-status { font-size: 12px; color: var(--fg4); padding: 4px 16px 8px; }
+  .dd-sync-status { font-size: 12px; color: var(--fg4); padding: 2px 0 0; }
 
   @media (prefers-reduced-motion: reduce) {
     *, *::before, *::after { transition-duration: 0.01ms !important; animation-duration: 0.01ms !important; }
@@ -525,16 +540,16 @@
   <div class="fab-root">
     <button type="button" id="fab-main" class="fab-main" aria-label="Menu" aria-expanded="false" aria-controls="fab-panel">☰</button>
     <div id="fab-panel" class="fab-panel">
-      <div id="auth-area"></div>
-      <div class="theme-mode-wrap">
-        <div class="theme-mode-label">Color Scheme</div>
+      <div id="auth-area" class="fab-card profile-card"></div>
+      <div class="fab-card theme-mode-wrap">
+        <div class="fab-card-title">Color Scheme</div>
         <div class="theme-mode-control" role="group" aria-label="Color scheme">
           <button class="theme-mode-button" type="button" data-theme-mode="light" aria-pressed="true">Light</button>
           <button class="theme-mode-button" type="button" data-theme-mode="dark" aria-pressed="false">Dark</button>
           <button class="theme-mode-button" type="button" data-theme-mode="auto" aria-pressed="false">Auto</button>
         </div>
       </div>
-      <div class="font-slider-wrap">
+      <div class="fab-card font-slider-wrap">
         <div class="font-slider-row">
           <label for="font-size-slider">Text Size</label>
           <output id="dd-font-val" for="font-size-slider">20px</output>
@@ -550,13 +565,17 @@
           </div>
         </div>
       </div>
-      <div class="fab-section-label">Recent reading</div>
-      <div id="history-menu" class="fab-history-menu"></div>
-      <div class="fab-section-label">Search</div>
-      <button class="dd-item" id="btn-search" type="button">
-        <span class="dd-icon">🔍</span>
-        <span class="dd-label">Search</span>
-      </button>
+      <div class="fab-card history-card">
+        <div class="fab-card-title">Recent Reading</div>
+        <div id="history-menu" class="fab-history-menu"></div>
+      </div>
+      <div class="fab-card search-card">
+        <div class="fab-card-title">Search</div>
+        <button class="dd-item" id="btn-search" type="button">
+          <span class="dd-icon">🔍</span>
+          <span class="dd-label">Search</span>
+        </button>
+      </div>
       <div class="app-version">Version <span id="app-version">3.0.0</span></div>
     </div>
   </div>
@@ -903,6 +922,11 @@
       email.className = 'dd-user-email';
       email.textContent = user.email || '';
       details.appendChild(email);
+      var status = document.createElement('div');
+      status.className = 'dd-sync-status';
+      status.textContent = navigator.onLine ? 'Synced \u2713' : 'Offline \u2014 will sync later';
+      _syncStatusEl = status;
+      details.appendChild(status);
       info.appendChild(details);
 
       var outBtn = document.createElement('button');
@@ -915,12 +939,6 @@
       });
       info.appendChild(outBtn);
       authArea.appendChild(info);
-
-      var status = document.createElement('div');
-      status.className = 'dd-sync-status';
-      status.textContent = navigator.onLine ? 'Synced \u2713' : 'Offline \u2014 will sync later';
-      _syncStatusEl = status;
-      authArea.appendChild(status);
     } else {
       var inBtn = document.createElement('button');
       inBtn.type = 'button';
