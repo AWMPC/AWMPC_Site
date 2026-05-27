@@ -223,7 +223,8 @@
     opacity: 1;
     transition: opacity 520ms ease-in-out;
   }
-  .view-inner.chapter-transition-in { opacity: 0; }
+  .view-inner.chapter-transition-ready { opacity: 0; }
+  .view-inner.chapter-transition-ready.chapter-transition-in { opacity: 1; }
   .view-inner.chapter-transition-retiring {
     position: absolute;
     top: 0;
@@ -499,7 +500,7 @@
       if (!doc) return;
       _setSyncStatus('Syncing\u2026');
       doc.set({
-        dark: State.getDark(),
+        themeMode: State.getThemeMode(),
         font: State.getFontStep(),
         history: State.getHistory(),
         searchHistory: State.getSearchHistory(),
@@ -522,8 +523,18 @@
       _scheduleSync();
     },
 
-    getDark: function () { return this._get('bible_dark', false); },
-    setDark: function (v) { this._set('bible_dark', v); },
+    getThemeMode: function () {
+      var mode = this._get('bible_theme_mode', null);
+      if (mode === 'light' || mode === 'dark' || mode === 'auto') return mode;
+      var legacyDark = this._get('bible_dark', null);
+      if (legacyDark === true) return 'dark';
+      if (legacyDark === false) return 'light';
+      return this._get('bible_theme_mode', 'light');
+    },
+    setThemeMode: function (mode) {
+      this._set('bible_theme_mode', mode === 'dark' || mode === 'auto' ? mode : 'light');
+      try { localStorage.removeItem('bible_dark'); } catch(e) {}
+    },
 
     getFontStep: function () {
       var step = this._get('bible_font_step', null);
@@ -562,7 +573,11 @@
 
     applyCloudData: function (data) {
       if (!data) return;
-      if (typeof data.dark === 'boolean') { try { localStorage.setItem('bible_dark', JSON.stringify(data.dark)); } catch(e) {} }
+      if (data.themeMode === 'light' || data.themeMode === 'dark' || data.themeMode === 'auto') {
+        try { localStorage.setItem('bible_theme_mode', JSON.stringify(data.themeMode)); } catch(e) {}
+      } else if (typeof data.dark === 'boolean') {
+        try { localStorage.setItem('bible_theme_mode', JSON.stringify(data.dark ? 'dark' : 'light')); } catch(e) {}
+      }
       if (typeof data.font === 'number') { try { localStorage.setItem('bible_font_step', JSON.stringify(data.font)); } catch(e) {} }
       else if (typeof data.font === 'boolean') { try { localStorage.setItem('bible_font_step', JSON.stringify(data.font ? FONT_STEPS.length - 1 : DEFAULT_FONT_STEP)); } catch(e) {} }
       if (Array.isArray(data.history)) { try { localStorage.setItem('bible_history', JSON.stringify(data.history)); } catch(e) {} }
@@ -653,16 +668,42 @@
   // ===================== DARK MODE =====================
   var ddDarkIcon = document.getElementById('dd-dark-icon');
   var ddDarkVal = document.getElementById('dd-dark-val');
-  function applyDark(on) {
-    document.documentElement.classList.toggle('dark', on);
-    ddDarkIcon.textContent = on ? '☀\uFE0F' : '🌙';
-    ddDarkVal.textContent = on ? 'On' : 'Off';
-    State.setDark(on);
+  var themeQuery = preferredDarkQuery();
+  function preferredDarkQuery() {
+    return window.matchMedia ? window.matchMedia('(prefers-color-scheme: dark)') : null;
   }
-  applyDark(State.getDark());
+  function resolveThemeMode(mode) {
+    if (mode !== 'auto') return mode === 'dark';
+    return preferredDarkQuery() ? preferredDarkQuery().matches : false;
+  }
+  function applyThemeMode(mode) {
+    mode = mode === 'dark' || mode === 'auto' ? mode : 'light';
+    document.documentElement.classList.toggle('dark', resolveThemeMode(mode));
+    ddDarkIcon.textContent = mode === 'auto' ? '◐' : (mode === 'dark' ? '☀\uFE0F' : '🌙');
+    ddDarkVal.textContent = mode === 'auto' ? 'Auto' : (mode === 'dark' ? 'Dark' : 'Light');
+    State.setThemeMode(mode);
+  }
+  function nextThemeMode(mode) {
+    if (mode === 'light') return 'dark';
+    if (mode === 'dark') return 'auto';
+    return 'light';
+  }
+  applyThemeMode(State.getThemeMode());
+  if (themeQuery) {
+    var onThemeQueryChange = function () {
+      if (State.getThemeMode() === 'auto') applyThemeMode('auto');
+    };
+    if (themeQuery.addEventListener) {
+      themeQuery.addEventListener('change', onThemeQueryChange);
+    } else if (themeQuery.addListener) {
+      themeQuery.addListener(function () {
+        onThemeQueryChange();
+      });
+    }
+  }
   document.getElementById('dd-dark').addEventListener('click', function (e) {
     e.stopPropagation();
-    applyDark(!document.documentElement.classList.contains('dark'));
+    applyThemeMode(nextThemeMode(State.getThemeMode()));
   });
 
   // ===================== FONT SIZE =====================
@@ -778,7 +819,7 @@
 
           if (cloudHasData && !localHasData) {
             State.applyCloudData(cloud);
-            applyDark(State.getDark());
+            applyThemeMode(State.getThemeMode());
             applyFontStep(State.getFontStep());
           } else if (localHasData) {
             _scheduleSync();
@@ -916,8 +957,8 @@
     fnNext.disabled = !n;
   }
 
-  function materialEaseOut(t) {
-    return 1 - Math.pow(1 - t, 3);
+  function materialEaseInOut(t) {
+    return t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2;
   }
 
   function scrollVerseToCenter(target) {
@@ -934,12 +975,12 @@
       viewEl.scrollTop = endTop;
       return;
     }
-    var duration = Math.min(620, Math.max(260, Math.abs(distance) * 0.45));
+    var duration = Math.min(780, Math.max(420, Math.abs(distance) * 0.55));
     var started = null;
     function step(ts) {
       if (started == null) started = ts;
       var t = Math.min(1, (ts - started) / duration);
-      viewEl.scrollTop = startTop + (distance * materialEaseOut(t));
+      viewEl.scrollTop = startTop + (distance * materialEaseInOut(t));
       if (t < 1) {
         activeVerseScrollFrame = requestAnimationFrame(step);
       } else {
@@ -1005,7 +1046,7 @@
     if (uiView !== 'verses' || shouldReduceChapterMotion()) {
       clearChapterCrossfadeTimer();
       clearRetiringChapterViews();
-      viewInner.classList.remove('chapter-transition-in');
+      viewInner.classList.remove('chapter-transition-ready', 'chapter-transition-in');
       showVersesView(bookName, chapterNum, scrollToVerse);
       return;
     }
@@ -1018,7 +1059,7 @@
     retiring.style.transform = 'translateY(-' + viewEl.scrollTop + 'px)';
     viewEl.appendChild(retiring);
 
-    viewInner.classList.add('chapter-transition-in');
+    viewInner.classList.add('chapter-transition-ready');
     preservingChapterCrossfade = true;
     try {
       showVersesView(bookName, chapterNum, scrollToVerse);
@@ -1027,13 +1068,14 @@
     }
     requestAnimationFrame(function () {
       requestAnimationFrame(function () {
-        viewInner.classList.remove('chapter-transition-in');
+        viewInner.classList.add('chapter-transition-in');
         retiring.classList.add('chapter-transition-out');
       });
     });
 
     chapterCrossfadeTimer = window.setTimeout(function () {
       retiring.remove();
+      viewInner.classList.remove('chapter-transition-ready', 'chapter-transition-in');
       chapterCrossfadeTimer = null;
     }, CHAPTER_CROSSFADE_MS);
   }
@@ -1223,7 +1265,7 @@
   function showBooksView() {
     viewEl.scrollTop = 0;
     viewInner.textContent = '';
-    viewInner.classList.remove('chapter-transition-in');
+    viewInner.classList.remove('chapter-transition-ready', 'chapter-transition-in');
     clearChapterCrossfadeTimer();
     clearRetiringChapterViews();
     currentBook = null;
@@ -1267,7 +1309,7 @@
   function showChaptersView(bookName) {
     viewEl.scrollTop = 0;
     viewInner.textContent = '';
-    viewInner.classList.remove('chapter-transition-in');
+    viewInner.classList.remove('chapter-transition-ready', 'chapter-transition-in');
     clearChapterCrossfadeTimer();
     clearRetiringChapterViews();
     currentBook = bookName;
@@ -1311,7 +1353,7 @@
   function showVersePickerView(bookName, chapterNum) {
     viewEl.scrollTop = 0;
     viewInner.textContent = '';
-    viewInner.classList.remove('chapter-transition-in');
+    viewInner.classList.remove('chapter-transition-ready', 'chapter-transition-in');
     clearChapterCrossfadeTimer();
     clearRetiringChapterViews();
     currentBook = bookName;
@@ -1350,7 +1392,7 @@
     viewEl.scrollTop = 0;
     viewInner.textContent = '';
     if (!preservingChapterCrossfade) {
-      viewInner.classList.remove('chapter-transition-in');
+      viewInner.classList.remove('chapter-transition-ready', 'chapter-transition-in');
       clearChapterCrossfadeTimer();
       clearRetiringChapterViews();
     }
