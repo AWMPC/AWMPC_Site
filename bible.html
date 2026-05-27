@@ -162,6 +162,7 @@
     background: var(--fab-bg); color: var(--fab-fg);
     border: 1px solid var(--border);
     font-size: 22px; cursor: pointer;
+    position: relative;
     display: flex; align-items: center; justify-content: center;
     box-shadow: var(--shadow);
     padding: 0;
@@ -483,7 +484,8 @@
   }
   .fab-main .profile-avatar {
     display: block;
-    width: 100%; height: 100%; max-width: none; border-radius: 0;
+    position: absolute; inset: 0;
+    width: 100%; height: 100%; min-width: 100%; min-height: 100%; max-width: none; border-radius: 0;
     object-fit: cover; border: 0;
   }
   .dd-user {
@@ -548,12 +550,13 @@
           </div>
         </div>
       </div>
+      <div class="fab-section-label">Recent reading</div>
+      <div id="history-menu" class="fab-history-menu"></div>
+      <div class="fab-section-label">Search</div>
       <button class="dd-item" id="btn-search" type="button">
         <span class="dd-icon">🔍</span>
         <span class="dd-label">Search</span>
       </button>
-      <div class="fab-section-label">Recent reading</div>
-      <div id="history-menu" class="fab-history-menu"></div>
       <div class="app-version">Version <span id="app-version">3.0.0</span></div>
     </div>
   </div>
