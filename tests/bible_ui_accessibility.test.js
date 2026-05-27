@@ -54,7 +54,7 @@ assert.match(bible, /\.fab-panel\.open \{[\s\S]*opacity: 1;[\s\S]*visibility: vi
 assert.doesNotMatch(bible, /\.fab-panel::before/);
 assert.match(bible, /\.fab-card \{[\s\S]*margin: 0;[\s\S]*padding: 12px;[\s\S]*border-radius: var\(--radius-sm\);[\s\S]*background: var\(--card-bg\);[\s\S]*border: var\(--card-border\);/);
 assert.match(bible, /\.fab-card-title \{[\s\S]*padding: 0 2px 8px;/);
-assert.match(bible, /\.profile-card \{[\s\S]*--profile-photo-width: 116px;[\s\S]*position: relative;[\s\S]*overflow: hidden;[\s\S]*min-height: 92px;/);
+assert.match(bible, /\.profile-card \{[\s\S]*--profile-photo-height: 92px;[\s\S]*position: relative;[\s\S]*overflow: hidden;[\s\S]*min-height: 92px;[\s\S]*padding: 0 12px 0 0;/);
 assert.doesNotMatch(bible, /\.profile-card \{[^}]*padding-left: 132px;/);
 assert.doesNotMatch(bible, /\.profile-card::after/);
 assert.doesNotMatch(bible, /html\.dark \.profile-card::after/);
@@ -93,9 +93,10 @@ assert.match(bible, /\.fab-main \{[\s\S]*position: relative;[\s\S]*padding: 0;[\
 assert.match(bible, /\.fab-main \.profile-avatar \{[\s\S]*position: absolute;[\s\S]*inset: 0;[\s\S]*width: 100%;[\s\S]*height: 100%;[\s\S]*min-width: 100%;[\s\S]*min-height: 100%;[\s\S]*max-width: none;[\s\S]*border-radius: 0;[\s\S]*object-fit: cover;[\s\S]*border: 0;/);
 assert.match(bible, /\.dd-signout-button \{[\s\S]*flex-shrink: 0;[\s\S]*border-radius: var\(--radius-xs\);/);
 assert.match(bible, /\.dd-sync-status \{[\s\S]*padding: 2px 0 0;/);
-assert.match(bible, /\.profile-card \.dd-user-photo \{[\s\S]*position: absolute;[\s\S]*left: 0;[\s\S]*top: 0;[\s\S]*bottom: 0;[\s\S]*width: var\(--profile-photo-width\);[\s\S]*height: 100%;[\s\S]*max-width: none;[\s\S]*object-fit: cover;[\s\S]*object-position: center top;[\s\S]*border-radius: 0;/);
+assert.match(bible, /\.profile-card \.dd-user-photo \{[\s\S]*position: relative;[\s\S]*left: auto;[\s\S]*top: auto;[\s\S]*bottom: auto;[\s\S]*width: auto;[\s\S]*height: var\(--profile-photo-height\);[\s\S]*max-width: 45%;[\s\S]*flex: 0 1 auto;[\s\S]*object-fit: contain;[\s\S]*object-position: center;[\s\S]*border-radius: 0;/);
 assert.doesNotMatch(bible, /clip-path: inset\(0 max\(0px, calc\(100% - var\(--profile-photo-width\)\)\) 0 0\);/);
-assert.match(bible, /\.profile-card \.dd-user \{[\s\S]*margin-left: var\(--profile-photo-width\);[\s\S]*\}/);
+assert.doesNotMatch(bible, /--profile-photo-width:/);
+assert.match(bible, /\.profile-card \.dd-user \{[\s\S]*min-height: var\(--profile-photo-height\);[\s\S]*gap: 12px;[\s\S]*margin-left: 0;[\s\S]*\}/);
 assert.match(bible, /\.profile-card \.dd-user-info \{[\s\S]*position: relative;[\s\S]*z-index: 1;/);
 assert.match(bible, /\.profile-card \.dd-signout-button \{[\s\S]*position: relative;[\s\S]*z-index: 1;/);
 assert.match(bible, /details\.appendChild\(status\);/);

@@ -296,10 +296,11 @@
     box-shadow: 0 1px 8px rgba(26,40,63,.08);
   }
   .profile-card {
-    --profile-photo-width: 116px;
+    --profile-photo-height: 92px;
     position: relative;
     overflow: hidden;
     min-height: 92px;
+    padding: 0 12px 0 0;
   }
   .fab-card-title {
     font-size: 12px; font-weight: 700; color: var(--fg3); text-transform: uppercase;
@@ -572,20 +573,23 @@
     color: var(--accent); border-color: var(--accent); background: var(--hover-bg); outline: none;
   }
   .profile-card .dd-user-photo {
-    position: absolute;
-    left: 0;
-    top: 0;
-    bottom: 0;
-    width: var(--profile-photo-width);
-    height: 100%;
-    max-width: none;
-    object-fit: cover;
-    object-position: center top;
+    position: relative;
+    left: auto;
+    top: auto;
+    bottom: auto;
+    width: auto;
+    height: var(--profile-photo-height);
+    max-width: 45%;
+    flex: 0 1 auto;
+    object-fit: contain;
+    object-position: center;
     border-radius: 0;
     border: 0;
   }
   .profile-card .dd-user {
-    margin-left: var(--profile-photo-width);
+    min-height: var(--profile-photo-height);
+    gap: 12px;
+    margin-left: 0;
   }
   .profile-card .dd-user-info {
     position: relative;
