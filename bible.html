@@ -306,20 +306,6 @@
     min-height: 92px;
     padding-left: 132px;
   }
-  .profile-card::after {
-    content: "";
-    position: absolute;
-    left: 48px;
-    top: 0;
-    bottom: 0;
-    width: 88px;
-    z-index: 0;
-    background: linear-gradient(90deg, transparent 0%, color-mix(in srgb, var(--surface) 58%, transparent) 36%, var(--surface) 88%);
-    pointer-events: none;
-  }
-  html.dark .profile-card::after {
-    background: linear-gradient(90deg, transparent 0%, color-mix(in srgb, var(--surface) 58%, transparent) 36%, var(--surface) 88%);
-  }
   .fab-card-title {
     font-size: 12px; font-weight: 700; color: var(--fg3); text-transform: uppercase;
     letter-spacing: 0.5px; padding: 0 2px 8px;
@@ -632,10 +618,12 @@
     left: 0;
     top: 0;
     bottom: 0;
-    width: 116px;
+    width: auto;
     height: 100%;
-    object-fit: cover;
-    object-position: center;
+    max-width: none;
+    object-fit: contain;
+    object-position: center top;
+    clip-path: inset(0 max(0px, calc(100% - 116px)) 0 0);
     border-radius: 0;
     border: 0;
   }
