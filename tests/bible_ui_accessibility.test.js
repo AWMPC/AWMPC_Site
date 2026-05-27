@@ -48,6 +48,7 @@ assert.match(bible, /function stopVerseChase\(\)/);
 assert.match(bible, /function setVerseChaseTarget\(target\)/);
 assert.match(bible, /function stepVerseChase\(ts\)/);
 assert.match(bible, /function scrollVerseToCenter\(target\)/);
+assert.match(bible, /if \(verseChaseTarget\) return;/);
 assert.match(bible, /Math\.min\(maxTop, Math\.max\(0, desiredTop\)\)/);
 assert.match(bible, /var pull = Math\.min\(0\.085, Math\.max\(0\.018, Math\.abs\(distance\) \/ 9000\)\);/);
 assert.match(bible, /var damping = Math\.abs\(distance\) < 80 \? 0\.72 : 0\.88;/);

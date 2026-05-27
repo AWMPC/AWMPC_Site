@@ -1058,6 +1058,7 @@
 
   function updateActiveVerseFromViewport() {
     if (uiView !== 'verses') return;
+    if (verseChaseTarget) return;
     var verses = viewInner.querySelectorAll('.verse');
     if (!verses.length) return;
     var viewRect = viewEl.getBoundingClientRect();
