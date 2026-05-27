@@ -31,15 +31,19 @@ assert.match(bible, /\.footnote-toggle \{[\s\S]*border-radius: var\(--radius-pil
 assert.match(bible, /\.footnote-body \{[\s\S]*margin: 0 0 0 20px;[\s\S]*max-height: 0;[\s\S]*opacity: 0;[\s\S]*overflow: hidden;[\s\S]*background: var\(--note-bg\);[\s\S]*border: 0 solid color-mix\(in srgb, var\(--note-border\) 45%, transparent\);[\s\S]*border-left-width: 0;[\s\S]*border-radius: var\(--radius-sm\);[\s\S]*transition: opacity 180ms ease, max-height 220ms ease, margin 220ms ease, padding 220ms ease, border-width 220ms ease, transform 220ms ease;/);
 assert.match(bible, /\.footnote-body\.visible \{[\s\S]*max-height: 40vh;[\s\S]*opacity: 1;[\s\S]*padding: 10px 12px;[\s\S]*border-width: 1px;[\s\S]*border-left-width: 4px;[\s\S]*transform: translateY\(0\);/);
 
-assert.match(bible, /id="font-size-slider"/);
-assert.match(bible, /var FONT_STEPS = \[16, 18, 20, 22, 24\];/);
+assert.doesNotMatch(bible, /id="font-size-slider"/);
+assert.match(bible, /var FONT_STEPS = \[16, 20, 24\];/);
+assert.match(bible, /var DEFAULT_FONT_STEP = 1;/);
 assert.match(bible, /--reader-font-size/);
 assert.match(bible, /bible_font_step/);
-assert.match(bible, /class="font-slider-track"/);
-assert.match(bible, /class="font-slider-ticks"/);
-assert.match(bible, /\.font-slider \{[\s\S]*width: 100%;[\s\S]*margin: 0;/);
-assert.match(bible, /\.font-slider-ticks \{[\s\S]*left: 16px;[\s\S]*right: 16px;/);
-assert.match(bible, /<span style="left: 0%;">16<\/span>[\s\S]*<span style="left: 25%;">18<\/span>[\s\S]*<span style="left: 50%;">20<\/span>[\s\S]*<span style="left: 75%;">22<\/span>[\s\S]*<span style="left: 100%;">24<\/span>/);
+assert.doesNotMatch(bible, /class="font-slider-track"/);
+assert.doesNotMatch(bible, /class="font-slider-ticks"/);
+assert.doesNotMatch(bible, /\.font-slider \{/);
+assert.match(bible, /\.font-size-wrap \{ display: grid; gap: 8px; \}/);
+assert.match(bible, /class="theme-mode-control font-size-control" role="group" aria-label="Font size"/);
+assert.match(bible, /class="theme-mode-button font-size-button" type="button" data-font-step="0" aria-pressed="false">Small<\/button>/);
+assert.match(bible, /class="theme-mode-button font-size-button" type="button" data-font-step="1" aria-pressed="true">Medium<\/button>/);
+assert.match(bible, /class="theme-mode-button font-size-button" type="button" data-font-step="2" aria-pressed="false">Large<\/button>/);
 
 assert.match(bible, /\.fab-panel \{[\s\S]*display: flex;[\s\S]*gap: 10px;[\s\S]*padding: 12px;[\s\S]*background: color-mix\(in srgb, var\(--surface\) 82%, transparent\);[\s\S]*box-shadow: var\(--float-nav-shadow\);[\s\S]*backdrop-filter: blur\(64px\) saturate\(220%\) brightness\(1\.06\);[\s\S]*-webkit-backdrop-filter: blur\(64px\) saturate\(220%\) brightness\(1\.06\);[\s\S]*isolation: isolate;[\s\S]*transition: opacity 180ms ease, transform 180ms ease, visibility 0s linear 180ms;/);
 assert.match(bible, /\.fab-panel\.open \{[\s\S]*opacity: 1;[\s\S]*visibility: visible;[\s\S]*pointer-events: auto;[\s\S]*transition: opacity 180ms ease, transform 180ms ease, visibility 0s;/);
@@ -68,7 +72,7 @@ assert.match(bible, /@media \(max-width: 640px\) \{[\s\S]*\.fab-root \{[\s\S]*gr
 assert.match(bible, /@media \(max-width: 640px\) \{[\s\S]*\.fab-main \{ height: 40px; min-height: 40px; \}/);
 assert.match(bible, /<div id="auth-area" class="fab-card profile-card"><\/div>/);
 assert.match(bible, /<div class="fab-card theme-mode-wrap">[\s\S]*<div class="fab-card-title">Display Mode<\/div>/);
-assert.match(bible, /<div class="fab-card font-slider-wrap">[\s\S]*<div class="fab-card-title">Font Size<\/div>[\s\S]*<input id="font-size-slider"/);
+assert.match(bible, /<div class="fab-card font-size-wrap">[\s\S]*<div class="fab-card-title">Font Size<\/div>[\s\S]*data-font-step="0"[\s\S]*Small[\s\S]*data-font-step="1"[\s\S]*Medium[\s\S]*data-font-step="2"[\s\S]*Large/);
 assert.doesNotMatch(bible, /<label for="font-size-slider">Text Size<\/label>/);
 assert.doesNotMatch(bible, /<output id="dd-font-val"/);
 assert.doesNotMatch(bible, /class="fab-card history-card"/);

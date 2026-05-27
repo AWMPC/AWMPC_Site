@@ -361,44 +361,7 @@
   .theme-mode-button.active {
     background: var(--accent); color: var(--btn-active-text); box-shadow: 0 1px 6px var(--accent-glow);
   }
-  .font-slider-wrap { display: grid; gap: 8px; }
-  .font-slider-row { display: flex; align-items: center; gap: 12px; }
-  .font-slider-row label { flex: 1; font-size: 17px; color: var(--fg); }
-  .font-slider-row output { min-width: 54px; text-align: right; color: var(--fg3); font-size: 14px; }
-  .font-slider {
-    width: 100%;
-    margin: 0;
-    accent-color: var(--accent);
-  }
-  .font-slider-track {
-    position: relative;
-    padding-bottom: 22px;
-  }
-  .font-slider-ticks {
-    position: absolute;
-    left: 16px;
-    right: 16px;
-    top: 26px;
-    height: 20px;
-    color: var(--fg4);
-    font-size: 12px;
-    line-height: 1.2;
-    pointer-events: none;
-  }
-  .font-slider-ticks span {
-    position: absolute;
-    top: 0;
-    transform: translateX(-50%);
-    text-align: center;
-  }
-  .font-slider-ticks span::before {
-    content: "";
-    display: block;
-    width: 1px;
-    height: 8px;
-    margin: 0 auto 3px;
-    background: var(--accent);
-  }
+  .font-size-wrap { display: grid; gap: 8px; }
   .app-version {
     flex: 0 0 auto;
     padding: 12px 16px 0;
@@ -674,20 +637,12 @@
           <button class="theme-mode-button" type="button" data-theme-mode="auto" aria-pressed="false">Auto</button>
         </div>
       </div>
-      <div class="fab-card font-slider-wrap">
+      <div class="fab-card font-size-wrap">
         <div class="fab-card-title">Font Size</div>
-        <div class="font-slider-row">
-          <label class="sr-only" for="font-size-slider">Font Size</label>
-        </div>
-        <div class="font-slider-track">
-          <input id="font-size-slider" class="font-slider" type="range" min="0" max="4" step="1" value="2" aria-label="Reader text size">
-          <div class="font-slider-ticks" aria-hidden="true">
-            <span style="left: 0%;">16</span>
-            <span style="left: 25%;">18</span>
-            <span style="left: 50%;">20</span>
-            <span style="left: 75%;">22</span>
-            <span style="left: 100%;">24</span>
-          </div>
+        <div class="theme-mode-control font-size-control" role="group" aria-label="Font size">
+          <button class="theme-mode-button font-size-button" type="button" data-font-step="0" aria-pressed="false">Small</button>
+          <button class="theme-mode-button font-size-button" type="button" data-font-step="1" aria-pressed="true">Medium</button>
+          <button class="theme-mode-button font-size-button" type="button" data-font-step="2" aria-pressed="false">Large</button>
         </div>
       </div>
       <div class="app-version">Version <span id="app-version">3.0.0</span></div>
@@ -708,8 +663,8 @@
 <script>
 (function () {
   var APP_VERSION = '3.0.0';
-  var FONT_STEPS = [16, 18, 20, 22, 24];
-  var DEFAULT_FONT_STEP = 2;
+  var FONT_STEPS = [16, 20, 24];
+  var DEFAULT_FONT_STEP = 1;
 
   // ===================== FIREBASE =====================
   var fbApp = firebase.initializeApp({
@@ -985,19 +940,25 @@
   });
 
   // ===================== FONT SIZE =====================
-  var fontSizeSlider = document.getElementById('font-size-slider');
+  var fontSizeButtons = Array.prototype.slice.call(document.querySelectorAll('.font-size-button'));
   function applyFontStep(step) {
     step = Math.max(0, Math.min(FONT_STEPS.length - 1, parseInt(step, 10) || 0));
     var size = FONT_STEPS[step];
     document.documentElement.style.setProperty('--reader-font-size', size + 'px');
-    document.documentElement.style.setProperty('--reader-line-height', step >= 3 ? '1.9' : '1.8');
-    fontSizeSlider.value = String(step);
+    document.documentElement.style.setProperty('--reader-line-height', step >= 2 ? '1.9' : '1.8');
+    fontSizeButtons.forEach(function (button) {
+      var active = parseInt(button.getAttribute('data-font-step'), 10) === step;
+      button.classList.toggle('active', active);
+      button.setAttribute('aria-pressed', active ? 'true' : 'false');
+    });
     State.setFontStep(step);
   }
   applyFontStep(State.getFontStep());
-  fontSizeSlider.addEventListener('input', function (e) {
-    e.stopPropagation();
-    applyFontStep(fontSizeSlider.value);
+  fontSizeButtons.forEach(function (button) {
+    button.addEventListener('click', function (e) {
+      e.stopPropagation();
+      applyFontStep(button.getAttribute('data-font-step'));
+    });
   });
 
   // ===================== FAB =====================
