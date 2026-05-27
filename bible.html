@@ -164,6 +164,7 @@
     font-size: 22px; cursor: pointer;
     display: flex; align-items: center; justify-content: center;
     box-shadow: var(--shadow);
+    padding: 0;
     overflow: hidden;
   }
   .fab-main:hover,
@@ -174,7 +175,7 @@
     outline: none;
   }
   .fab-panel {
-    display: none;
+    display: flex;
     position: absolute;
     right: 0;
     bottom: calc(100% + 8px);
@@ -183,12 +184,23 @@
     max-height: calc(100dvh - 96px - env(safe-area-inset-bottom, 0px));
     overflow: hidden;
     flex-direction: column;
-    background: var(--menu-bg); border: 1px solid var(--border); border-radius: var(--radius-sm);
-    box-shadow: var(--menu-shadow);
+    opacity: 0;
+    visibility: hidden;
+    pointer-events: none;
+    transform: translateY(6px);
+    background: var(--float-nav-bg); border: 1px solid var(--border); border-radius: var(--radius-sm);
+    box-shadow: var(--float-nav-shadow);
     backdrop-filter: var(--hdr-blur);
     -webkit-backdrop-filter: var(--hdr-blur);
+    transition: opacity 180ms ease, transform 180ms ease, visibility 0s linear 180ms;
   }
-  .fab-panel.open { display: flex; }
+  .fab-panel.open {
+    opacity: 1;
+    visibility: visible;
+    pointer-events: auto;
+    transform: translateY(0);
+    transition: opacity 180ms ease, transform 180ms ease, visibility 0s;
+  }
   .fab-history-menu { flex: 1 1 auto; min-height: 0; overflow-y: auto; }
   .fab-section-label {
     font-size: 12px; font-weight: 600; color: var(--fg3); text-transform: uppercase;
@@ -350,7 +362,12 @@
   .verse {
     margin-bottom: 12px; font-size: var(--reader-font-size); line-height: var(--reader-line-height); position: relative;
     border-radius: var(--radius-sm); padding: 8px 10px; border: 2px solid transparent;
-    transition: background 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease;
+    transition: background 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease, padding 0.2s ease, border-width 0.2s ease;
+  }
+  .verse.footnotes-open {
+    border-width: 3px;
+    padding: 10px 12px;
+    background: color-mix(in srgb, var(--pill-bg) 72%, transparent);
   }
   .verse.active {
     background: var(--pill-bg);
@@ -382,18 +399,25 @@
   .verse-tail-spacer { height: 50vh; pointer-events: none; }
   .footnote-toggle {
     display: inline-block; background: none; border: 1px solid var(--border3);
-    border-radius: var(--radius-xs); color: var(--fg3); font-size: 13px; font-family: inherit;
+    border-radius: var(--radius-pill); color: var(--fg3); font-size: 13px; font-family: inherit;
     padding: 1px 7px; margin-left: 4px; cursor: pointer; vertical-align: middle;
-    transition: background 0.12s, color 0.12s;
+    transition: background 0.16s ease, color 0.16s ease, border-color 0.16s ease, box-shadow 0.16s ease;
   }
   .footnote-toggle:hover { background: var(--bg4); color: var(--fg2); }
-  .footnote-toggle.open { background: var(--accent); color: var(--accent-fg); border-color: var(--accent); }
+  .footnote-toggle.open { background: var(--accent); color: var(--accent-fg); border-color: var(--accent); box-shadow: 0 3px 10px var(--accent-glow); }
   .footnote-body {
-    display: none; margin: 6px 0 4px 20px; padding: 8px 12px;
-    background: var(--note-bg); border-left: 3px solid var(--note-border);
-    border-radius: 0 var(--radius-xs) var(--radius-xs) 0; font-size: 17px; color: var(--fg2); line-height: 1.6;
+    margin: 0 0 0 20px; max-height: 0; opacity: 0; overflow: hidden;
+    padding: 0 12px; background: var(--note-bg);
+    border: 0 solid color-mix(in srgb, var(--note-border) 45%, transparent);
+    border-left-width: 0; border-radius: var(--radius-sm);
+    font-size: 17px; color: var(--fg2); line-height: 1.6;
+    transform: translateY(-4px);
+    transition: opacity 180ms ease, max-height 220ms ease, margin 220ms ease, padding 220ms ease, border-width 220ms ease, transform 220ms ease;
   }
-  .footnote-body.visible { display: block; }
+  .footnote-body.visible {
+    margin: 6px 0 4px 20px; max-height: 40vh; opacity: 1; padding: 10px 12px;
+    border-width: 1px; border-left-width: 4px; transform: translateY(0);
+  }
 
   /* Search view */
   .search-bar {
@@ -459,7 +483,7 @@
   }
   .fab-main .profile-avatar {
     display: block;
-    width: 100%; height: 100%; border-radius: inherit;
+    width: 100%; height: 100%; max-width: none; border-radius: 0;
     object-fit: cover; border: 0;
   }
   .dd-user {
@@ -524,12 +548,12 @@
           </div>
         </div>
       </div>
-      <div class="fab-section-label">Recent reading</div>
-      <div id="history-menu" class="fab-history-menu"></div>
       <button class="dd-item" id="btn-search" type="button">
         <span class="dd-icon">🔍</span>
         <span class="dd-label">Search</span>
       </button>
+      <div class="fab-section-label">Recent reading</div>
+      <div id="history-menu" class="fab-history-menu"></div>
       <div class="app-version">Version <span id="app-version">3.0.0</span></div>
     </div>
   </div>
@@ -709,6 +733,7 @@
   var errorEl = document.getElementById('error');
   var loadingEl = document.getElementById('loading');
   var floatingNav = document.getElementById('floating-nav');
+  var bottomChrome = document.getElementById('bottom-chrome');
   var fnPrev = document.getElementById('fn-prev');
   var fnBook = document.getElementById('fn-book');
   var fnChapter = document.getElementById('fn-chapter');
@@ -739,12 +764,41 @@
 
   // ===================== DROPDOWN MANAGER =====================
   var openMenu = null;
-  function closeMenus() {
+  var fabPanelHistoryOpen = false;
+  var suppressNextPopupPop = false;
+
+  function currentNavStateForHistory() {
+    if (uiView === 'verses') return { view: 'verses', book: navBook, chapter: navChapter, verse: activeVerse };
+    if (uiView === 'verse-picker') return { view: 'verse-picker', book: navBook, chapter: navChapter };
+    if (uiView === 'chapters') return { view: 'chapters', book: navBook };
+    if (uiView === 'search') return { view: 'search' };
+    return { view: 'books' };
+  }
+
+  function openFabPanel(pushHistory) {
+    fabPanel.classList.add('open');
+    fabMain.setAttribute('aria-expanded', 'true');
+    renderHistoryMenu();
+    if (pushHistory && !fabPanelHistoryOpen) {
+      history.pushState(Object.assign(currentNavStateForHistory(), { popup: 'menu' }), '');
+      fabPanelHistoryOpen = true;
+    }
+  }
+
+  function closeMenus(options) {
+    options = options || {};
+    var closedFab = false;
     if (fabPanel.classList.contains('open')) {
       fabPanel.classList.remove('open');
       fabMain.setAttribute('aria-expanded', 'false');
+      closedFab = true;
     }
     if (openMenu) { openMenu.classList.remove('open'); openMenu = null; }
+    if (closedFab && fabPanelHistoryOpen && !options.fromPop && !options.keepHistory) {
+      suppressNextPopupPop = true;
+      fabPanelHistoryOpen = false;
+      history.back();
+    }
   }
   function toggleMenu(menu, e) {
     if (e) e.stopPropagation();
@@ -817,9 +871,8 @@
   fabMain.addEventListener('click', function (e) {
     e.stopPropagation();
     var open = !fabPanel.classList.contains('open');
-    fabPanel.classList.toggle('open', open);
-    fabMain.setAttribute('aria-expanded', open ? 'true' : 'false');
-    if (open) renderHistoryMenu();
+    if (open) openFabPanel(true);
+    else closeMenus();
   });
   fabPanel.addEventListener('click', function (e) { e.stopPropagation(); });
 
@@ -855,7 +908,7 @@
       outBtn.textContent = 'Sign Out';
       outBtn.addEventListener('click', function () {
         auth.signOut();
-        closeMenus();
+        closeMenus({ keepHistory: true });
       });
       info.appendChild(outBtn);
       authArea.appendChild(info);
@@ -871,7 +924,7 @@
       inBtn.className = 'dd-item';
       inBtn.innerHTML = '<span class="dd-icon"><img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" style="width:20px;height:20px;" alt="G"></span><span class="dd-label">Sign in with Google</span>';
       inBtn.addEventListener('click', function () {
-        closeMenus();
+        closeMenus({ keepHistory: true });
         var provider = new firebase.auth.GoogleAuthProvider();
         auth.signInWithPopup(provider).catch(function (err) {
           if (err.code === 'auth/popup-blocked' || err.code === 'auth/cancelled-popup-request') {
@@ -953,7 +1006,7 @@
       btn.appendChild(hl);
       btn.addEventListener('click', (function (book, ch) {
         return function () {
-          closeMenus();
+          closeMenus({ keepHistory: true });
           if (bibleData && bibleData[book]) showVersesView(book, parseInt(ch, 10));
         };
       })(parts[0], parts[1]));
@@ -1046,11 +1099,24 @@
     fnNext.disabled = !n;
   }
 
-  function desiredVerseScrollTop(target) {
+  function readingViewportMetrics() {
     var viewRect = viewEl.getBoundingClientRect();
+    var bottomRect = bottomChrome ? bottomChrome.getBoundingClientRect() : null;
+    var bottomLimit = bottomRect ? Math.min(viewRect.bottom, bottomRect.top) : viewRect.bottom;
+    var height = Math.max(1, bottomLimit - viewRect.top);
+    return {
+      top: viewRect.top,
+      bottom: bottomLimit,
+      height: height,
+      centerY: viewRect.top + (height / 2)
+    };
+  }
+
+  function desiredVerseScrollTop(target) {
+    var metrics = readingViewportMetrics();
     var targetRect = target.getBoundingClientRect();
     var maxTop = Math.max(0, viewEl.scrollHeight - viewEl.clientHeight);
-    var desiredTop = viewEl.scrollTop + (targetRect.top - viewRect.top) - ((viewRect.height - targetRect.height) / 2);
+    var desiredTop = viewEl.scrollTop + (targetRect.top - metrics.top) - ((metrics.height - targetRect.height) / 2);
     return Math.min(maxTop, Math.max(0, desiredTop));
   }
 
@@ -1134,14 +1200,14 @@
     if (verseChaseTarget) return;
     var verses = viewInner.querySelectorAll('.verse');
     if (!verses.length) return;
-    var viewRect = viewEl.getBoundingClientRect();
-    var centerY = viewRect.top + (viewRect.height / 2);
+    var metrics = readingViewportMetrics();
+    var centerY = metrics.centerY;
     var best = null;
     var bestDist = Infinity;
     for (var i = 0; i < verses.length; i++) {
       var rect = verses[i].getBoundingClientRect();
       var verseCenter = rect.top + (rect.height / 2);
-      var visible = rect.bottom > viewRect.top && rect.top < viewRect.bottom;
+      var visible = rect.bottom > metrics.top && rect.top < metrics.bottom;
       var dist = Math.abs(verseCenter - centerY);
       if (visible && dist < bestDist) {
         best = verses[i];
@@ -1222,6 +1288,10 @@
 
   function showSelectedVerseWithTransition(bookName, chapterNum, verse) {
     showViewWithTransition(function () { showVersesView(bookName, chapterNum, verse); });
+  }
+
+  function showSearchViewWithTransition() {
+    showViewWithTransition(function () { showSearchView(); });
   }
 
   function showVersesViewWithTransition(bookName, chapterNum, scrollToVerse) {
@@ -1370,7 +1440,15 @@
     for (i = 0; i < noteButtons.length; i++) {
       noteButtons[i].className = shouldOpen ? 'footnote-toggle open' : 'footnote-toggle';
     }
+    active.classList.toggle('footnotes-open', shouldOpen);
     return true;
+  }
+
+  function syncFootnoteVerseState(verseEl) {
+    if (!verseEl) return;
+    var visibleNotes = verseEl.querySelectorAll('.footnote-body.visible');
+    var hasVisibleNote = visibleNotes.length > 0;
+    verseEl.classList.toggle('footnotes-open', hasVisibleNote);
   }
 
   function handleKeyboardBack() {
@@ -1435,12 +1513,26 @@
   window.addEventListener('popstate', function (e) {
     if (!bibleData) return;
     var s = e.state;
+    if (suppressNextPopupPop) {
+      suppressNextPopupPop = false;
+      return;
+    }
+    if (fabPanel.classList.contains('open')) {
+      closeMenus({ fromPop: true });
+      fabPanelHistoryOpen = false;
+      return;
+    }
+    if (s && s.popup === 'menu') {
+      openFabPanel(false);
+      fabPanelHistoryOpen = true;
+      return;
+    }
     navFromPop = true;
-    if (s && s.view === 'verses' && s.book && s.chapter) showVersesView(s.book, s.chapter, s.verse);
-    else if (s && s.view === 'verse-picker' && s.book && s.chapter) showVersePickerView(s.book, s.chapter);
-    else if (s && s.view === 'chapters' && s.book) showChaptersView(s.book);
-    else if (s && s.view === 'search') showSearchView();
-    else showBooksView();
+    if (s && s.view === 'verses' && s.book && s.chapter) showSelectedVerseWithTransition(s.book, s.chapter, s.verse);
+    else if (s && s.view === 'verse-picker' && s.book && s.chapter) showVersePickerViewWithTransition(s.book, s.chapter);
+    else if (s && s.view === 'chapters' && s.book) showChaptersViewWithTransition(s.book);
+    else if (s && s.view === 'search') showSearchViewWithTransition();
+    else showBooksViewWithTransition();
     navFromPop = false;
   });
 
@@ -1646,6 +1738,7 @@
               var on = bd.className.indexOf('visible') !== -1;
               bd.className = on ? 'footnote-body' : 'footnote-body visible';
               b.className = on ? 'footnote-toggle' : 'footnote-toggle open';
+              syncFootnoteVerseState(bd.parentElement);
             };
           })(noteBtn, noteBody));
           p.appendChild(noteBtn);
@@ -1989,8 +2082,8 @@
   document.getElementById('btn-search').addEventListener('click', function (e) {
     e.stopPropagation();
     if (bibleData) {
-      closeMenus();
-      showSearchView();
+      closeMenus({ keepHistory: true });
+      showSearchViewWithTransition();
     }
   });
 
