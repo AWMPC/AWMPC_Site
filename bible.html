@@ -371,13 +371,33 @@
   .theme-mode-control {
     display: grid; grid-template-columns: repeat(3, 1fr); gap: 4px;
     padding: 4px; border: 1px solid var(--border2); border-radius: var(--radius-sm); background: var(--pill-bg);
+    transition: background 180ms ease, border-color 180ms ease, box-shadow 180ms ease;
   }
   .theme-mode-button {
     min-height: 36px; border: 0; border-radius: var(--radius-xs); background: transparent;
     color: var(--fg2); font: inherit; cursor: pointer;
+    transition: background 180ms ease, color 180ms ease, box-shadow 180ms ease, transform 120ms ease;
+  }
+  .theme-mode-button:hover,
+  .theme-mode-button:focus-visible {
+    background: color-mix(in srgb, var(--accent) 12%, transparent);
+    color: var(--accent);
+    outline: none;
   }
   .theme-mode-button.active {
     background: var(--accent); color: var(--btn-active-text); box-shadow: 0 1px 6px var(--accent-glow);
+    transform: scale(1.01);
+  }
+  .theme-mode-button.active:hover,
+  .theme-mode-button.active:focus-visible {
+    background: var(--accent);
+    color: var(--btn-active-text);
+  }
+  .theme-mode-button:active {
+    transform: scale(.97);
+  }
+  .theme-mode-button.active:active {
+    transform: scale(.985);
   }
   .font-size-wrap { display: grid; gap: 8px; }
   .app-version {
