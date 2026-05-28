@@ -479,7 +479,7 @@
   .testament h2 {
     font-size: var(--display-control-font-size); font-weight: 600; color: var(--fg2);
     text-transform: uppercase; letter-spacing: 0.5px;
-    margin-bottom: 8px; padding-bottom: 5px; border-bottom: 1px solid var(--border2);
+    margin-bottom: 8px; padding-bottom: 0;
   }
   .testament {
     min-width: 0;
@@ -490,6 +490,13 @@
     padding: var(--display-panel-padding);
   }
   .testament ul { list-style: none; display: flex; flex-direction: column; gap: 5px; }
+  .selection-card {
+    background: var(--card-bg);
+    border: var(--card-border);
+    border-radius: var(--radius-md);
+    box-shadow: var(--shadow);
+    padding: var(--display-panel-padding);
+  }
   .book-btn {
     display: block; width: 100%;
     background: var(--card-bg); border: var(--card-border); border-radius: var(--radius-sm);
@@ -1878,12 +1885,13 @@
     updateNav();
     pushNav({ view: 'chapters', book: bookName });
 
+    var card = document.createElement('section');
+    card.className = 'selection-card';
     var chapterCount = Object.keys(bibleData[bookName]).length;
     var header = document.createElement('div');
     header.className = 'chapters-header';
-    var ko = koName(bookName);
-    header.textContent = (ko ? '(' + ko + ') ' : '') + bookName;
-    viewInner.appendChild(header);
+    header.textContent = bookName + ' - Chapters';
+    card.appendChild(header);
 
     var grid = document.createElement('div');
     grid.className = 'chapter-grid';
@@ -1897,7 +1905,8 @@
       })(bookName, c));
       grid.appendChild(btn);
     }
-    viewInner.appendChild(grid);
+    card.appendChild(grid);
+    viewInner.appendChild(card);
   }
 
   function showVersePickerView(bookName, chapterNum) {
@@ -1919,12 +1928,14 @@
     updateNav();
     pushNav({ view: 'verse-picker', book: bookName, chapter: chapterNum });
 
+    var card = document.createElement('section');
+    card.className = 'selection-card';
     var verses = bibleData[bookName][String(chapterNum)];
     var keys = Object.keys(verses);
     var header = document.createElement('div');
     header.className = 'chapters-header';
-    header.textContent = bookName + ' ' + chapterNum + ' - Verse';
-    viewInner.appendChild(header);
+    header.textContent = bookName + ' - ' + chapterNum + ' - Verses';
+    card.appendChild(header);
 
     var grid = document.createElement('div');
     grid.className = 'verse-grid';
@@ -1938,7 +1949,8 @@
       })(bookName, chapterNum, keys[i]));
       grid.appendChild(btn);
     }
-    viewInner.appendChild(grid);
+    card.appendChild(grid);
+    viewInner.appendChild(card);
   }
 
   // ===================== VIEW: VERSES =====================

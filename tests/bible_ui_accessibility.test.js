@@ -110,9 +110,13 @@ assert.doesNotMatch(bible, /\.theme-mode-button\.active \{[\s\S]*transform: scal
 assert.match(bible, /\.book-name-en \{ font-size: var\(--display-control-font-size\);/);
 assert.match(bible, /\.book-name-ko \{ font-size: max\(13px, calc\(var\(--display-control-font-size\) - 3px\)\);/);
 assert.match(bible, /\.testament \{[\s\S]*min-width: 0;[\s\S]*background: var\(--card-bg\);[\s\S]*border: var\(--card-border\);[\s\S]*border-radius: var\(--radius-md\);[\s\S]*box-shadow: var\(--shadow\);[\s\S]*padding: var\(--display-panel-padding\);/);
+assert.doesNotMatch(bible, /\.testament h2 \{[\s\S]*border-bottom: 1px solid var\(--border2\);/);
 assert.match(bible, /otDiv\.className = 'testament';[\s\S]*var otH = document\.createElement\('h2'\); otH\.textContent = 'Old Testament';/);
 assert.match(bible, /ntDiv\.className = 'testament';[\s\S]*var ntH = document\.createElement\('h2'\); ntH\.textContent = 'New Testament';/);
+assert.match(bible, /\.selection-card \{[\s\S]*background: var\(--card-bg\);[\s\S]*border: var\(--card-border\);[\s\S]*border-radius: var\(--radius-md\);[\s\S]*box-shadow: var\(--shadow\);[\s\S]*padding: var\(--display-panel-padding\);/);
 assert.match(bible, /\.chapters-header \{ font-size: calc\(var\(--display-control-font-size\) \+ 2px\);/);
+assert.match(bible, /var card = document\.createElement\('section'\);[\s\S]*card\.className = 'selection-card';[\s\S]*header\.textContent = bookName \+ ' - Chapters';[\s\S]*card\.appendChild\(header\);[\s\S]*card\.appendChild\(grid\);[\s\S]*viewInner\.appendChild\(card\);/);
+assert.match(bible, /var card = document\.createElement\('section'\);[\s\S]*card\.className = 'selection-card';[\s\S]*header\.textContent = bookName \+ ' - ' \+ chapterNum \+ ' - Verses';[\s\S]*card\.appendChild\(header\);[\s\S]*card\.appendChild\(grid\);[\s\S]*viewInner\.appendChild\(card\);/);
 assert.match(bible, /\.chapter-btn \{[\s\S]*min-height: var\(--display-control-height\);[\s\S]*font-size: var\(--display-control-font-size\);/);
 assert.match(bible, /\.search-input \{[\s\S]*font-size: var\(--display-control-font-size\);/);
 assert.match(bible, /\.search-hist-item \.sh-query \{ flex: 1; font-size: var\(--display-control-font-size\);/);
