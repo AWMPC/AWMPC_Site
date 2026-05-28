@@ -53,7 +53,7 @@
     --hover-bg: rgba(11,99,206,.08);
     --pill-bg: rgba(11,99,206,.08);
     --btn-active-text: #ffffff;
-    --bottom-chrome-clearance: 88px;
+    --bottom-chrome-clearance: calc(var(--display-control-height) + (var(--display-nav-padding) * 2) + 20px);
   }
   html.dark {
     --bg: #0d1017; --bg2: #171c28; --bg3: #111722; --bg4: #1e2538;
@@ -456,7 +456,7 @@
   .view-inner {
     max-width: 960px; margin: 0 auto;
     padding: 16px 12px;
-    padding-bottom: var(--bottom-chrome-clearance);
+    padding-bottom: calc(16px + var(--bottom-chrome-clearance));
     opacity: 1;
     transition: opacity 364ms ease-in-out;
   }
@@ -952,7 +952,7 @@
     if (!bottomChrome) return;
     var rect = bottomChrome.getBoundingClientRect();
     var viewportHeight = window.innerHeight || document.documentElement.clientHeight || 0;
-    var clearance = Math.max(88, viewportHeight - rect.top + 16);
+    var clearance = Math.max(0, viewportHeight - rect.top + 12);
     document.documentElement.style.setProperty('--bottom-chrome-clearance', Math.ceil(clearance) + 'px');
   }
 
