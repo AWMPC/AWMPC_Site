@@ -84,8 +84,9 @@ assert.match(bible, /\.bottom-history-menu\.open \{[\s\S]*opacity: 1;[\s\S]*visi
 assert.match(bible, /\.bottom-history-menu \.dd-item \{[\s\S]*background: color-mix\(in srgb, var\(--surface\) 72%, transparent\);[\s\S]*backdrop-filter: inherit;[\s\S]*-webkit-backdrop-filter: inherit;/);
 assert.match(bible, /\.dd-item \.dd-label \{ flex: 1; min-width: 0; \}/);
 assert.match(bible, /\.marquee-line \{[\s\S]*overflow: hidden;[\s\S]*white-space: nowrap;[\s\S]*\}/);
-assert.match(bible, /\.marquee-line\.is-marquee \{[\s\S]*mask-image: linear-gradient/);
-assert.match(bible, /\.marquee-line\.is-marquee \.marquee-text \{[\s\S]*animation: marquee-sway 6\.5s ease-in-out infinite alternate;/);
+assert.match(bible, /\.marquee-line\.is-marquee \{[\s\S]*animation: marquee-mask-breathe 5\.2s ease-in-out infinite alternate;/);
+assert.match(bible, /@keyframes marquee-mask-breathe \{[\s\S]*0%, 12%[\s\S]*88%, 100%/);
+assert.match(bible, /\.marquee-line\.is-marquee \.marquee-text \{[\s\S]*animation: marquee-sway 5\.2s ease-in-out infinite alternate;/);
 assert.match(bible, /@keyframes marquee-sway \{[\s\S]*translateX\(calc\(var\(--marquee-distance, 0px\) \* -1\)\)/);
 assert.match(bible, /\.dd-item \.dd-title \{[\s\S]*overflow: hidden;[\s\S]*white-space: nowrap;/);
 assert.match(bible, /\.dd-item \.dd-meta \{[\s\S]*overflow: hidden;[\s\S]*white-space: nowrap;[\s\S]*font-size: max\(12px, calc\(var\(--display-control-font-size\) - 5px\)\);/);

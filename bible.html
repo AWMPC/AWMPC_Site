@@ -152,8 +152,7 @@
     white-space: nowrap;
   }
   .marquee-line.is-marquee {
-    mask-image: linear-gradient(90deg, transparent 0, #000 14px, #000 calc(100% - 14px), transparent 100%);
-    -webkit-mask-image: linear-gradient(90deg, transparent 0, #000 14px, #000 calc(100% - 14px), transparent 100%);
+    animation: marquee-mask-breathe 5.2s ease-in-out infinite alternate;
   }
   .marquee-text {
     display: inline-block;
@@ -162,7 +161,21 @@
     will-change: transform;
   }
   .marquee-line.is-marquee .marquee-text {
-    animation: marquee-sway 6.5s ease-in-out infinite alternate;
+    animation: marquee-sway 5.2s ease-in-out infinite alternate;
+  }
+  @keyframes marquee-mask-breathe {
+    0%, 12% {
+      mask-image: linear-gradient(90deg, #000 0, #000 calc(100% - 14px), transparent 100%);
+      -webkit-mask-image: linear-gradient(90deg, #000 0, #000 calc(100% - 14px), transparent 100%);
+    }
+    38%, 62% {
+      mask-image: linear-gradient(90deg, transparent 0, #000 14px, #000 calc(100% - 14px), transparent 100%);
+      -webkit-mask-image: linear-gradient(90deg, transparent 0, #000 14px, #000 calc(100% - 14px), transparent 100%);
+    }
+    88%, 100% {
+      mask-image: linear-gradient(90deg, transparent 0, #000 14px, #000 100%);
+      -webkit-mask-image: linear-gradient(90deg, transparent 0, #000 14px, #000 100%);
+    }
   }
   @keyframes marquee-sway {
     from { transform: translateX(0); }
