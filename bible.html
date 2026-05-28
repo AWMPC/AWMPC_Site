@@ -14,6 +14,7 @@
   :root {
     --reader-font-size: 20px;
     --reader-line-height: 1.8;
+    --ui-control-font-size: 20px;
     --oneui-font: 'One UI Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
     --bg: #f4f7fb; --bg2: #ffffff; --bg3: #f8fbff; --bg4: #eef3f9;
     --surface: #ffffff;
@@ -178,7 +179,7 @@
   .floating-nav.hidden { display: none; }
   .floating-nav button {
     background: var(--surface); border: 1px solid var(--border);
-    color: inherit; font-size: 15px; font-family: inherit; border-radius: var(--radius-xs);
+    color: inherit; font-size: var(--ui-control-font-size); font-family: inherit; border-radius: var(--radius-xs);
     padding: 8px 10px; cursor: pointer; min-height: 40px;
     box-shadow: var(--shadow);
   }
@@ -213,7 +214,7 @@
   }
   .bottom-action-button {
     height: 40px; min-height: 40px; border-radius: var(--radius-xs); border: 1px solid var(--border);
-    background: var(--surface); color: inherit; font: inherit; font-size: 15px;
+    background: var(--surface); color: inherit; font: inherit; font-size: var(--ui-control-font-size);
     padding: 8px 10px; cursor: pointer; box-shadow: var(--shadow);
   }
   .bottom-action-button:hover,
@@ -389,7 +390,7 @@
   .dd-item {
     display: flex; align-items: center; gap: 10px; width: 100%;
     background: none; border: none; border-bottom: 1px solid var(--border);
-    padding: 12px 16px; text-align: left; font-size: 17px; font-family: inherit;
+    padding: 12px 16px; text-align: left; font-size: var(--ui-control-font-size); font-family: inherit;
     color: var(--fg); cursor: pointer;
   }
   .dd-item:last-child { border-bottom: none; }
@@ -407,7 +408,7 @@
   }
   .theme-mode-button {
     min-height: 36px; border: 0; border-radius: var(--radius-xs); background: transparent;
-    color: var(--fg2); font: inherit; cursor: pointer;
+    color: var(--fg2); font: inherit; font-size: var(--ui-control-font-size); cursor: pointer;
     transition: background 180ms ease, color 180ms ease, box-shadow 180ms ease, transform 120ms ease;
   }
   .theme-mode-button:hover,
@@ -466,7 +467,7 @@
   /* Books view */
   .testaments { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
   .testament h2 {
-    font-size: 18px; font-weight: 600; color: var(--fg2);
+    font-size: var(--ui-control-font-size); font-weight: 600; color: var(--fg2);
     text-transform: uppercase; letter-spacing: 0.5px;
     margin-bottom: 8px; padding-bottom: 5px; border-bottom: 1px solid var(--border2);
   }
@@ -482,19 +483,19 @@
   }
   .book-btn:hover { border-color: var(--accent); box-shadow: 0 1px 6px var(--accent-glow); background: var(--hover-bg); }
   .book-btn.active { background: var(--accent); color: var(--accent-fg); border-color: var(--accent); }
-  .book-name-en { font-size: 18px; line-height: 1.3; }
-  .book-name-ko { font-size: 15px; color: var(--fg3); line-height: 1.3; }
+  .book-name-en { font-size: var(--ui-control-font-size); line-height: 1.3; }
+  .book-name-ko { font-size: max(13px, calc(var(--ui-control-font-size) - 3px)); color: var(--fg3); line-height: 1.3; }
   .book-btn.active .book-name-ko { color: #bbb; }
 
   /* Chapters view */
-  .chapters-header { font-size: 22px; margin-bottom: 14px; color: var(--fg); }
+  .chapters-header { font-size: calc(var(--ui-control-font-size) + 2px); margin-bottom: 14px; color: var(--fg); }
   .chapter-grid {
     display: grid; grid-template-columns: repeat(auto-fill, minmax(52px, 1fr)); gap: 8px;
   }
   .chapter-btn {
     display: flex; align-items: center; justify-content: center;
     background: var(--card-bg); border: var(--card-border); border-radius: var(--radius-sm);
-    padding: 14px 0; font-size: 19px; font-family: inherit; color: var(--fg);
+    padding: 14px 0; font-size: var(--ui-control-font-size); font-family: inherit; color: var(--fg);
     cursor: pointer; transition: background 180ms ease, border-color 180ms ease, box-shadow 180ms ease, color 180ms ease, transform 120ms ease;
     box-shadow: var(--shadow);
   }
@@ -570,7 +571,7 @@
     display: flex; gap: 8px; margin-bottom: 16px;
   }
   .search-input {
-    flex: 1; font-size: 18px; font-family: inherit; padding: 10px 14px;
+    flex: 1; font-size: var(--ui-control-font-size); font-family: inherit; padding: 10px 14px;
     border: 1.5px solid var(--border); border-radius: var(--radius-sm);
     background: var(--surface); color: var(--fg); outline: none;
     transition: border-color 180ms ease, box-shadow 180ms ease;
@@ -590,7 +591,7 @@
     box-shadow: var(--shadow);
   }
   .search-hist-item:hover { background: var(--hover-bg); border-color: var(--accent); }
-  .search-hist-item .sh-query { flex: 1; font-size: 17px; color: var(--fg); }
+  .search-hist-item .sh-query { flex: 1; font-size: var(--ui-control-font-size); color: var(--fg); }
   .search-hist-item .sh-remove {
     background: none; border: none; color: var(--fg4); font-size: 16px;
     cursor: pointer; padding: 2px 6px; border-radius: var(--radius-xs);
@@ -611,7 +612,7 @@
   .search-ref { font-size: 14px; font-weight: 600; color: var(--accent-fg); background: var(--accent);
     display: inline-block; padding: 2px 8px; border-radius: var(--radius-xs); margin-bottom: 4px; }
   html.dark .search-ref { color: var(--accent-fg); background: var(--accent); }
-  .search-text { font-size: 16px; color: var(--fg2); }
+  .search-text { font-size: max(15px, calc(var(--ui-control-font-size) - 2px)); color: var(--fg2); }
   .search-text mark { background: #fff3a8; color: #222; border-radius: 2px; padding: 0 1px; }
   html.dark .search-text mark { background: #5a4a00; color: #e0e0e0; }
 
@@ -1065,6 +1066,7 @@
     step = Math.max(0, Math.min(FONT_STEPS.length - 1, parseInt(step, 10) || 0));
     var size = FONT_STEPS[step];
     document.documentElement.style.setProperty('--reader-font-size', size + 'px');
+    document.documentElement.style.setProperty('--ui-control-font-size', size + 'px');
     document.documentElement.style.setProperty('--reader-line-height', step >= 2 ? '1.9' : '1.8');
     fontSizeButtons.forEach(function (button) {
       var active = parseInt(button.getAttribute('data-font-step'), 10) === step;
