@@ -815,7 +815,7 @@
     border: 0;
   }
   .profile-card .dd-user {
-    height: var(--profile-photo-height);
+    height: max(92px, var(--profile-photo-height));
     min-height: 0;
     align-items: stretch;
     gap: 12px;
@@ -824,6 +824,10 @@
   .profile-card .dd-user-info {
     position: relative;
     z-index: 1;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    padding: var(--display-panel-padding) var(--display-panel-padding) var(--display-panel-padding) 0;
   }
   .profile-card .dd-signin-button {
     width: 100%;
