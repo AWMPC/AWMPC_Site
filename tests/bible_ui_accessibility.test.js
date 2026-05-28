@@ -329,7 +329,7 @@ assert.match(bible, /renderHistoryMenu\(\);[\s\S]*toggleMenu\(historyMenu, e\);/
 assert.match(bible, /normalizeHistoryEntry: function \(entry\) \{[\s\S]*typeof entry === 'string'[\s\S]*return \{ book: parts\[0\], ch: String\(parts\[1\]\), verse: String\(parts\[2\] \|\| '1'\), selectedAt: '' \};/);
 assert.match(bible, /pushHistory: function \(book, ch, verse\) \{[\s\S]*selectedAt: new Date\(\)\.toISOString\(\)[\s\S]*var key = normalized\.book \+ '\|' \+ normalized\.ch \+ '\|' \+ normalized\.verse;/);
 assert.match(bible, /function formatHistoryTimestamp\(value\) \{[\s\S]*new Intl\.DateTimeFormat\(undefined,[\s\S]*minute: '2-digit'[\s\S]*\}\)\.format\(date\);/);
-assert.match(bible, /title\.textContent = item\.book \+ ' ' \+ item\.ch \+ ' Verse ' \+ item\.verse;/);
+assert.match(bible, /title\.textContent = item\.book \+ ' ' \+ item\.ch \+ ':' \+ item\.verse;/);
 assert.match(bible, /meta\.textContent = formatHistoryTimestamp\(item\.selectedAt\);/);
 assert.match(bible, /showVersesView\(book, parseInt\(ch, 10\), verse\);/);
 assert.match(bible, /var selectedHistoryVerse = scrollToVerse \|\| activeVerse \|\| keys\[0\] \|\| '1';[\s\S]*State\.pushHistory\(bookName, chapterNum, selectedHistoryVerse\);/);
