@@ -80,6 +80,9 @@ assert.match(bible, /\.bottom-action-button \{[\s\S]*min-height: var\(--display-
 assert.match(bible, /\.bottom-history-menu \{[\s\S]*position: fixed;[\s\S]*bottom: var\(--bottom-chrome-clearance\);[\s\S]*display: grid;[\s\S]*background: var\(--float-nav-bg\);[\s\S]*backdrop-filter: var\(--hdr-blur\);[\s\S]*-webkit-backdrop-filter: var\(--hdr-blur\);[\s\S]*isolation: isolate;[\s\S]*z-index: 132;[\s\S]*opacity: 0;[\s\S]*visibility: hidden;[\s\S]*pointer-events: none;[\s\S]*transform: translateY\(6px\) scale\(\.98\);[\s\S]*transition: opacity 180ms ease, transform 180ms ease, visibility 0s linear 180ms;/);
 assert.match(bible, /\.bottom-history-menu\.open \{[\s\S]*opacity: 1;[\s\S]*visibility: visible;[\s\S]*pointer-events: auto;[\s\S]*transform: translateY\(0\) scale\(1\);[\s\S]*transition: opacity 180ms ease, transform 180ms ease, visibility 0s;/);
 assert.match(bible, /\.bottom-history-menu \.dd-item \{[\s\S]*background: color-mix\(in srgb, var\(--surface\) 72%, transparent\);[\s\S]*backdrop-filter: inherit;[\s\S]*-webkit-backdrop-filter: inherit;/);
+assert.match(bible, /\.dd-item \.dd-label \{ flex: 1; min-width: 0; \}/);
+assert.match(bible, /\.dd-item \.dd-title \{[\s\S]*text-overflow: ellipsis;[\s\S]*white-space: nowrap;/);
+assert.match(bible, /\.dd-item \.dd-meta \{[\s\S]*font-size: max\(12px, calc\(var\(--display-control-font-size\) - 5px\)\);/);
 assert.match(bible, /@media \(max-width: 640px\) \{[\s\S]*\.bottom-chrome \{[\s\S]*display: grid;[\s\S]*grid-template-columns: minmax\(0, 1fr\) var\(--display-icon-button-size\);[\s\S]*grid-template-rows: auto auto;/);
 assert.match(bible, /@media \(max-width: 640px\) \{[\s\S]*\.floating-nav \{ grid-column: 1 \/ -1; grid-row: 1; width: 100%; \}/);
 assert.match(bible, /@media \(max-width: 640px\) \{[\s\S]*\.floating-nav \.fn-book \{ flex: 1 1 auto; max-width: none; \}/);
@@ -95,8 +98,8 @@ assert.doesNotMatch(bible, /<label for="font-size-slider">Text Size<\/label>/);
 assert.doesNotMatch(bible, /<output id="dd-font-val"/);
 assert.doesNotMatch(bible, /class="fab-card history-card"/);
 assert.doesNotMatch(bible, /class="fab-card search-card"/);
-assert.match(bible, /<\/div>\s*<div class="bottom-actions" aria-label="Quick actions">[\s\S]*<button class="bottom-action-button" id="btn-history" type="button">[\s\S]*Recent[\s\S]*<button class="bottom-action-button" id="btn-search" type="button">[\s\S]*Search[\s\S]*<\/div>\s*<div class="fab-root">/);
-assert.match(bible, /<\/div>\s*<div id="history-menu" class="bottom-history-menu" aria-label="Recent reading"><\/div>\s*<div id="fab-panel" class="fab-panel">/);
+assert.match(bible, /<\/div>\s*<div class="bottom-actions" aria-label="Quick actions">[\s\S]*<button class="bottom-action-button" id="btn-history" type="button">[\s\S]*History[\s\S]*<button class="bottom-action-button" id="btn-search" type="button">[\s\S]*Search[\s\S]*<\/div>\s*<div class="fab-root">/);
+assert.match(bible, /<\/div>\s*<div id="history-menu" class="bottom-history-menu" aria-label="Reading history"><\/div>\s*<div id="fab-panel" class="fab-panel">/);
 assert.match(bible, /\.bottom-chrome \{[\s\S]*justify-content: stretch;/);
 assert.match(bible, /\.view-inner \{[\s\S]*padding: 16px 12px;[\s\S]*padding-bottom: calc\(16px \+ var\(--bottom-chrome-clearance\)\);/);
 assert.match(bible, /\.floating-nav \{[\s\S]*justify-content: flex-start;[\s\S]*flex: 1 1 0;[\s\S]*width: auto;[\s\S]*max-width: none;/);
@@ -137,7 +140,7 @@ assert.match(bible, /\.profile-card \.dd-user-info \{[\s\S]*position: relative;[
 assert.match(bible, /\.profile-card \.dd-signout-button \{[\s\S]*position: relative;[\s\S]*z-index: 1;/);
 assert.match(bible, /details\.appendChild\(status\);/);
 assert.doesNotMatch(bible, /authArea\.appendChild\(status\);/);
-assert.match(bible, /<div id="floating-nav" class="floating-nav hidden" role="navigation" aria-label="Chapter">[\s\S]*<\/div>\s*<div class="bottom-actions" aria-label="Quick actions">[\s\S]*<\/div>\s*<div class="fab-root">[\s\S]*id="fab-main"[\s\S]*<\/div>\s*<\/div>\s*<div id="history-menu" class="bottom-history-menu" aria-label="Recent reading"><\/div>\s*<div id="fab-panel" class="fab-panel">/);
+assert.match(bible, /<div id="floating-nav" class="floating-nav hidden" role="navigation" aria-label="Chapter">[\s\S]*<\/div>\s*<div class="bottom-actions" aria-label="Quick actions">[\s\S]*<\/div>\s*<div class="fab-root">[\s\S]*id="fab-main"[\s\S]*<\/div>\s*<\/div>\s*<div id="history-menu" class="bottom-history-menu" aria-label="Reading history"><\/div>\s*<div id="fab-panel" class="fab-panel">/);
 assert.doesNotMatch(bible, /width: 100vw;/);
 assert.match(bible, /var fabPanelHistoryOpen = false;/);
 assert.match(bible, /var suppressNextPopupPop = false;/);
@@ -317,6 +320,13 @@ assert.match(bible, /showSelectedVerseWithTransition\(s\.book, s\.chapter, s\.ve
 assert.match(bible, /showSearchViewWithTransition\(\);/);
 assert.match(bible, /document\.getElementById\('btn-history'\)\.addEventListener\('click'/);
 assert.match(bible, /renderHistoryMenu\(\);[\s\S]*toggleMenu\(historyMenu, e\);/);
+assert.match(bible, /normalizeHistoryEntry: function \(entry\) \{[\s\S]*typeof entry === 'string'[\s\S]*return \{ book: parts\[0\], ch: String\(parts\[1\]\), verse: String\(parts\[2\] \|\| '1'\), selectedAt: '' \};/);
+assert.match(bible, /pushHistory: function \(book, ch, verse\) \{[\s\S]*selectedAt: new Date\(\)\.toISOString\(\)[\s\S]*var key = normalized\.book \+ '\|' \+ normalized\.ch \+ '\|' \+ normalized\.verse;/);
+assert.match(bible, /function formatHistoryTimestamp\(value\) \{[\s\S]*new Intl\.DateTimeFormat\(undefined,[\s\S]*minute: '2-digit'[\s\S]*\}\)\.format\(date\);/);
+assert.match(bible, /title\.textContent = item\.book \+ ' ' \+ item\.ch \+ ' Verse ' \+ item\.verse;/);
+assert.match(bible, /meta\.textContent = formatHistoryTimestamp\(item\.selectedAt\);/);
+assert.match(bible, /showVersesView\(book, parseInt\(ch, 10\), verse\);/);
+assert.match(bible, /var selectedHistoryVerse = scrollToVerse \|\| activeVerse \|\| keys\[0\] \|\| '1';[\s\S]*State\.pushHistory\(bookName, chapterNum, selectedHistoryVerse\);/);
 assert.match(bible, /function toggleMenu\(menu, e\) \{[\s\S]*setBottomChromeHidden\(false\);[\s\S]*menu\.classList\.add\('open'\);[\s\S]*openMenu = menu;[\s\S]*scheduleBottomChromeClearanceUpdate\(\);[\s\S]*\}/);
 assert.match(bible, /function applyDisplayStep\(step\) \{[\s\S]*State\.setDisplayStep\(step\);[\s\S]*scheduleBottomChromeClearanceUpdate\(\);[\s\S]*\}/);
 

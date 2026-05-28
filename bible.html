@@ -405,7 +405,19 @@
   .dd-item:last-child { border-bottom: none; }
   .dd-item:hover { background: var(--bg4); }
   .dd-item .dd-icon { flex-shrink: 0; width: 24px; text-align: center; }
-  .dd-item .dd-label { flex: 1; }
+  .dd-item .dd-label { flex: 1; min-width: 0; }
+  .dd-item .dd-title {
+    display: block;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .dd-item .dd-meta {
+    display: block;
+    color: var(--fg3);
+    font-size: max(12px, calc(var(--display-control-font-size) - 5px));
+    line-height: 1.25;
+  }
   .dd-item .dd-value { color: var(--fg3); font-size: 14px; flex-shrink: 0; }
   .dd-empty { padding: 16px; color: var(--fg3); font-size: 15px; text-align: center; }
   .theme-mode-wrap { display: grid; gap: var(--display-panel-gap); }
@@ -719,14 +731,14 @@
   <button type="button" id="fn-next" aria-label="Next chapter">→</button>
 </div>
 <div class="bottom-actions" aria-label="Quick actions">
-  <button class="bottom-action-button" id="btn-history" type="button">Recent</button>
+  <button class="bottom-action-button" id="btn-history" type="button">History</button>
   <button class="bottom-action-button" id="btn-search" type="button">Search</button>
 </div>
 <div class="fab-root">
     <button type="button" id="fab-main" class="fab-main" aria-label="Menu" aria-expanded="false" aria-controls="fab-panel">☰</button>
 </div>
 </div>
-<div id="history-menu" class="bottom-history-menu" aria-label="Recent reading"></div>
+<div id="history-menu" class="bottom-history-menu" aria-label="Reading history"></div>
 <div id="fab-panel" class="fab-panel">
       <div id="auth-area" class="fab-card profile-card"></div>
       <div class="fab-card theme-mode-wrap">
@@ -850,12 +862,39 @@
       try { localStorage.removeItem('bible_large_font'); } catch(e) {}
     },
 
-    getHistory: function () { return this._get('bible_history', []); },
-    pushHistory: function (book, ch) {
-      var list = this.getHistory();
-      var key = book + '|' + ch;
-      list = list.filter(function (x) { return x !== key; });
-      list.unshift(key);
+    normalizeHistoryEntry: function (entry) {
+      if (typeof entry === 'string') {
+        var parts = entry.split('|');
+        if (parts.length < 2 || !parts[0] || !parts[1]) return null;
+        return { book: parts[0], ch: String(parts[1]), verse: String(parts[2] || '1'), selectedAt: '' };
+      }
+      if (!entry || typeof entry !== 'object' || !entry.book || !entry.ch) return null;
+      return {
+        book: String(entry.book),
+        ch: String(entry.ch),
+        verse: String(entry.verse || '1'),
+        selectedAt: entry.selectedAt ? String(entry.selectedAt) : ''
+      };
+    },
+    getHistory: function () {
+      var self = this;
+      return this._get('bible_history', []).map(function (entry) {
+        return self.normalizeHistoryEntry(entry);
+      }).filter(Boolean);
+    },
+    pushHistory: function (book, ch, verse) {
+      var normalized = this.normalizeHistoryEntry({
+        book: book,
+        ch: ch,
+        verse: verse || '1',
+        selectedAt: new Date().toISOString()
+      });
+      if (!normalized) return;
+      var key = normalized.book + '|' + normalized.ch + '|' + normalized.verse;
+      var list = this.getHistory().filter(function (entry) {
+        return entry.book + '|' + entry.ch + '|' + entry.verse !== key;
+      });
+      list.unshift(normalized);
       if (list.length > 30) list = list.slice(0, 30);
       this._set('bible_history', list);
     },
@@ -1253,6 +1292,16 @@
   });
 
   // ===================== HISTORY (inside FAB) =====================
+  function formatHistoryTimestamp(value) {
+    var date = new Date(value);
+    if (!value || isNaN(date.getTime())) return 'Saved earlier';
+    return new Intl.DateTimeFormat(undefined, {
+      month: 'short',
+      day: 'numeric',
+      hour: 'numeric',
+      minute: '2-digit'
+    }).format(date);
+  }
   function renderHistoryMenu() {
     historyMenu.textContent = '';
     var list = State.getHistory();
@@ -1264,7 +1313,8 @@
       return;
     }
     for (var i = 0; i < list.length; i++) {
-      var parts = list[i].split('|');
+      var item = State.normalizeHistoryEntry(list[i]);
+      if (!item) continue;
       var btn = document.createElement('button');
       btn.type = 'button';
       btn.className = 'dd-item';
@@ -1273,15 +1323,22 @@
       hi.textContent = '📄';
       var hl = document.createElement('span');
       hl.className = 'dd-label';
-      hl.textContent = parts[0] + ' ' + parts[1];
+      var title = document.createElement('span');
+      title.className = 'dd-title';
+      title.textContent = item.book + ' ' + item.ch + ' Verse ' + item.verse;
+      var meta = document.createElement('span');
+      meta.className = 'dd-meta';
+      meta.textContent = formatHistoryTimestamp(item.selectedAt);
+      hl.appendChild(title);
+      hl.appendChild(meta);
       btn.appendChild(hi);
       btn.appendChild(hl);
-      btn.addEventListener('click', (function (book, ch) {
+      btn.addEventListener('click', (function (book, ch, verse) {
         return function () {
           closeMenus({ keepHistory: true });
-          if (bibleData && bibleData[book]) showVersesView(book, parseInt(ch, 10));
+          if (bibleData && bibleData[book]) showVersesView(book, parseInt(ch, 10), verse);
         };
-      })(parts[0], parts[1]));
+      })(item.book, item.ch, item.verse));
       historyMenu.appendChild(btn);
     }
   }
@@ -1972,11 +2029,12 @@
     resetBottomChromeScrollState();
     updateNav();
     pushNav({ view: 'verses', book: bookName, chapter: chapterNum, verse: scrollToVerse || null });
-    State.pushHistory(bookName, chapterNum);
 
     var chapters = bibleData[bookName];
     var verses = chapters[String(chapterNum)];
     var keys = Object.keys(verses);
+    var selectedHistoryVerse = scrollToVerse || activeVerse || keys[0] || '1';
+    State.pushHistory(bookName, chapterNum, selectedHistoryVerse);
     var headSpacer = document.createElement('div');
     headSpacer.className = 'verse-edge-spacer verse-head-spacer';
     headSpacer.setAttribute('aria-hidden', 'true');
