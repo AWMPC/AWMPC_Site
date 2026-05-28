@@ -85,6 +85,7 @@ assert.match(bible, /\.bottom-history-menu \.dd-item \{[\s\S]*min-width: 0;[\s\S
 assert.match(bible, /\.bottom-history-menu \.dd-title \{[\s\S]*font-size: min\(var\(--display-control-font-size\), 22px\);[\s\S]*line-height: 1\.15;/);
 assert.match(bible, /\.bottom-history-menu \.dd-meta \{[\s\S]*font-size: min\(max\(12px, calc\(var\(--display-control-font-size\) - 5px\)\), 18px\);[\s\S]*line-height: 1\.15;/);
 assert.match(bible, /\.dd-item \.dd-label \{ flex: 1; min-width: 0; \}/);
+assert.match(bible, /\.dd-empty \{[\s\S]*padding: var\(--display-panel-padding\);[\s\S]*font-size: var\(--display-control-font-size\);[\s\S]*text-align: center;/);
 assert.match(bible, /\.marquee-line \{[\s\S]*overflow: hidden;[\s\S]*white-space: nowrap;[\s\S]*\}/);
 assert.match(bible, /@property --marquee-left-fade \{[\s\S]*syntax: '<length>';[\s\S]*initial-value: 14px;/);
 assert.match(bible, /@property --marquee-right-fade \{[\s\S]*syntax: '<length>';[\s\S]*initial-value: 14px;/);
