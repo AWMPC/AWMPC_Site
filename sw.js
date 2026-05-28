@@ -1,4 +1,4 @@
-var CACHE_NAME = 'bible-v7';
+var CACHE_NAME = 'bible-v3.0.0';
 var ASSETS = [
   'bible.html',
   'bible.json',
