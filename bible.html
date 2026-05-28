@@ -235,7 +235,7 @@
   .bottom-history-menu {
     position: fixed;
     right: 0;
-    bottom: calc(var(--bottom-chrome-clearance) - 8px);
+    bottom: var(--bottom-chrome-clearance);
     width: min(280px, calc(100vw - 24px));
     max-height: min(360px, calc(100dvh - 120px));
     display: grid;
@@ -952,8 +952,16 @@
     if (!bottomChrome) return;
     var rect = bottomChrome.getBoundingClientRect();
     var viewportHeight = window.innerHeight || document.documentElement.clientHeight || 0;
-    var clearance = Math.max(0, viewportHeight - rect.top + 12);
+    var height = rect.height;
+    var layoutTop = typeof bottomChrome.offsetTop === 'number' ? bottomChrome.offsetTop : rect.top;
+    var layoutBottom = Math.max(0, viewportHeight - layoutTop - height);
+    var clearance = Math.max(0, height + layoutBottom + 12);
     document.documentElement.style.setProperty('--bottom-chrome-clearance', Math.ceil(clearance) + 'px');
+  }
+
+  function scheduleBottomChromeClearanceUpdate() {
+    updateBottomChromeClearance();
+    requestAnimationFrame(updateBottomChromeClearance);
   }
 
   function observeBottomChromeClearance() {
@@ -970,6 +978,7 @@
     if (!bottomChrome) return;
     if (fabPanel.classList.contains('open') || openMenu) hidden = false;
     bottomChrome.classList.toggle('scroll-hidden', hidden);
+    scheduleBottomChromeClearanceUpdate();
   }
 
   function updateBottomChromeFromScroll() {
@@ -1012,6 +1021,7 @@
     fabPanel.classList.add('open');
     fabMain.setAttribute('aria-expanded', 'true');
     renderHistoryMenu();
+    scheduleBottomChromeClearanceUpdate();
     ensurePopupHistory(pushHistory);
   }
 
@@ -1034,11 +1044,13 @@
   }
   function toggleMenu(menu, e) {
     if (e) e.stopPropagation();
+    setBottomChromeHidden(false);
     if (openMenu === menu) { closeMenus(); return; }
     closeMenus({ exceptMenu: menu, keepHistory: true });
     ensurePopupHistory(true);
     menu.classList.add('open');
     openMenu = menu;
+    scheduleBottomChromeClearanceUpdate();
   }
   document.addEventListener('click', closeMenus);
 
@@ -1104,6 +1116,7 @@
       button.setAttribute('aria-pressed', active ? 'true' : 'false');
     });
     State.setDisplayStep(step);
+    scheduleBottomChromeClearanceUpdate();
   }
   applyDisplayStep(State.getDisplayStep());
   displaySizeButtons.forEach(function (button) {
