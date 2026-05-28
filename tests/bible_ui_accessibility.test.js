@@ -109,6 +109,9 @@ assert.match(bible, /\.theme-mode-button\.active \{[\s\S]*background: var\(--acc
 assert.doesNotMatch(bible, /\.theme-mode-button\.active \{[\s\S]*transform: scale\(1\.01\);/);
 assert.match(bible, /\.book-name-en \{ font-size: var\(--display-control-font-size\);/);
 assert.match(bible, /\.book-name-ko \{ font-size: max\(13px, calc\(var\(--display-control-font-size\) - 3px\)\);/);
+assert.match(bible, /\.testament \{[\s\S]*min-width: 0;[\s\S]*background: var\(--card-bg\);[\s\S]*border: var\(--card-border\);[\s\S]*border-radius: var\(--radius-md\);[\s\S]*box-shadow: var\(--shadow\);[\s\S]*padding: var\(--display-panel-padding\);/);
+assert.match(bible, /otDiv\.className = 'testament';[\s\S]*var otH = document\.createElement\('h2'\); otH\.textContent = 'Old Testament';/);
+assert.match(bible, /ntDiv\.className = 'testament';[\s\S]*var ntH = document\.createElement\('h2'\); ntH\.textContent = 'New Testament';/);
 assert.match(bible, /\.chapters-header \{ font-size: calc\(var\(--display-control-font-size\) \+ 2px\);/);
 assert.match(bible, /\.chapter-btn \{[\s\S]*min-height: var\(--display-control-height\);[\s\S]*font-size: var\(--display-control-font-size\);/);
 assert.match(bible, /\.search-input \{[\s\S]*font-size: var\(--display-control-font-size\);/);
