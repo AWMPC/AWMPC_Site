@@ -161,7 +161,8 @@ assert.match(bible, /\.profile-card \.dd-user-info \{[\s\S]*position: relative;[
 assert.doesNotMatch(bible, /\.profile-card \.dd-signout-button/);
 assert.match(bible, /\.profile-card \.dd-signin-button \{[\s\S]*width: 100%;[\s\S]*min-height: calc\(var\(--display-control-height\) \+ \(var\(--display-panel-padding\) \* 2\)\);[\s\S]*justify-content: center;[\s\S]*border: 0;[\s\S]*border-bottom: 0;[\s\S]*border-radius: var\(--radius-sm\);[\s\S]*background: transparent;/);
 assert.match(bible, /\.profile-card \.dd-signin-button \.dd-label \{[\s\S]*flex: 0 1 auto;/);
-assert.match(bible, /\.profile-card\.signed-out \.dd-signin-button:hover,\n  \.profile-card\.signed-out \.dd-signin-button:focus-visible \{[\s\S]*background: var\(--hover-bg\);[\s\S]*box-shadow: inset 0 0 0 1px var\(--accent\), 0 1px 8px var\(--accent-glow\);[\s\S]*transform: translateY\(-1px\);/);
+assert.match(bible, /\.profile-card\.signed-out \.dd-signin-button:hover,\n  \.profile-card\.signed-out \.dd-signin-button:focus-visible \{[\s\S]*background: var\(--hover-bg\);[\s\S]*box-shadow: inset 0 0 0 1px var\(--accent\), 0 1px 8px var\(--accent-glow\);[\s\S]*transform: none;/);
+assert.doesNotMatch(bible, /\.profile-card\.signed-out \.dd-signin-button:hover,[\s\S]*transform: translateY\(-1px\);/);
 assert.match(bible, /\.profile-card\.signed-out \.dd-signin-button:active \{[\s\S]*transform: scale\(\.985\);/);
 assert.match(bible, /details\.appendChild\(account\);/);
 assert.doesNotMatch(bible, /details\.appendChild\(status\);/);
