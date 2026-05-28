@@ -116,7 +116,7 @@ assert.match(bible, /ntDiv\.className = 'testament';[\s\S]*var ntH = document\.c
 assert.match(bible, /\.selection-card \{[\s\S]*background: var\(--card-bg\);[\s\S]*border: var\(--card-border\);[\s\S]*border-radius: var\(--radius-md\);[\s\S]*box-shadow: var\(--shadow\);[\s\S]*padding: var\(--display-panel-padding\);/);
 assert.match(bible, /\.chapters-header \{ font-size: calc\(var\(--display-control-font-size\) \+ 2px\);/);
 assert.match(bible, /var card = document\.createElement\('section'\);[\s\S]*card\.className = 'selection-card';[\s\S]*header\.textContent = bookName \+ ' - Chapters';[\s\S]*card\.appendChild\(header\);[\s\S]*card\.appendChild\(grid\);[\s\S]*viewInner\.appendChild\(card\);/);
-assert.match(bible, /var card = document\.createElement\('section'\);[\s\S]*card\.className = 'selection-card';[\s\S]*header\.textContent = bookName \+ ' - ' \+ chapterNum \+ ' - Verses';[\s\S]*card\.appendChild\(header\);[\s\S]*card\.appendChild\(grid\);[\s\S]*viewInner\.appendChild\(card\);/);
+assert.match(bible, /var card = document\.createElement\('section'\);[\s\S]*card\.className = 'selection-card';[\s\S]*header\.textContent = bookName \+ ' - Chapter ' \+ chapterNum \+ ' - Verses';[\s\S]*card\.appendChild\(header\);[\s\S]*card\.appendChild\(grid\);[\s\S]*viewInner\.appendChild\(card\);/);
 assert.match(bible, /\.chapter-btn \{[\s\S]*min-height: var\(--display-control-height\);[\s\S]*font-size: var\(--display-control-font-size\);/);
 assert.match(bible, /\.search-input \{[\s\S]*font-size: var\(--display-control-font-size\);/);
 assert.match(bible, /\.search-hist-item \.sh-query \{ flex: 1; font-size: var\(--display-control-font-size\);/);
