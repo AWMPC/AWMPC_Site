@@ -144,6 +144,8 @@ assert.match(bible, /\.profile-card \.dd-user-info \{[\s\S]*position: relative;[
 assert.match(bible, /\.profile-card \.dd-signout-button \{[\s\S]*position: relative;[\s\S]*z-index: 1;/);
 assert.match(bible, /\.profile-card \.dd-signin-button \{[\s\S]*width: 100%;[\s\S]*min-height: calc\(var\(--display-control-height\) \+ \(var\(--display-panel-padding\) \* 2\)\);[\s\S]*justify-content: center;[\s\S]*border: 0;[\s\S]*border-bottom: 0;[\s\S]*border-radius: var\(--radius-sm\);[\s\S]*background: transparent;/);
 assert.match(bible, /\.profile-card \.dd-signin-button \.dd-label \{[\s\S]*flex: 0 1 auto;/);
+assert.match(bible, /\.profile-card\.signed-out \.dd-signin-button:hover,\n  \.profile-card\.signed-out \.dd-signin-button:focus-visible \{[\s\S]*background: var\(--hover-bg\);[\s\S]*box-shadow: inset 0 0 0 1px var\(--accent\), 0 1px 8px var\(--accent-glow\);[\s\S]*transform: translateY\(-1px\);/);
+assert.match(bible, /\.profile-card\.signed-out \.dd-signin-button:active \{[\s\S]*transform: scale\(\.985\);/);
 assert.match(bible, /details\.appendChild\(status\);/);
 assert.doesNotMatch(bible, /authArea\.appendChild\(status\);/);
 assert.match(bible, /<div id="floating-nav" class="floating-nav hidden" role="navigation" aria-label="Chapter">[\s\S]*<\/div>\s*<div class="bottom-actions" aria-label="Quick actions">[\s\S]*<\/div>\s*<div class="fab-root">[\s\S]*id="fab-main"[\s\S]*<\/div>\s*<\/div>\s*<div id="history-menu" class="bottom-history-menu" aria-label="Reading history"><\/div>\s*<div id="fab-panel" class="fab-panel">/);
