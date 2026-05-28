@@ -392,7 +392,7 @@
   .profile-card.signed-out {
     overflow: visible;
     min-height: 0;
-    padding: var(--display-panel-padding);
+    padding: 0;
   }
   .fab-card-title {
     font-size: 12px; font-weight: 700; color: var(--fg3); text-transform: uppercase;
@@ -740,9 +740,12 @@
   }
   .profile-card .dd-signin-button {
     width: 100%;
-    min-height: var(--display-control-height);
+    min-height: calc(var(--display-control-height) + (var(--display-panel-padding) * 2));
     justify-content: center;
+    border: 0;
     border-bottom: 0;
+    border-radius: var(--radius-sm);
+    background: transparent;
   }
   .profile-card .dd-signin-button .dd-label {
     flex: 0 1 auto;
