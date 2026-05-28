@@ -14,7 +14,15 @@
   :root {
     --reader-font-size: 20px;
     --reader-line-height: 1.8;
-    --ui-control-font-size: 20px;
+    --display-control-font-size: 20px;
+    --display-control-height: 48px;
+    --display-icon-button-size: 48px;
+    --display-control-pad-y: 8px;
+    --display-control-pad-x: 12px;
+    --display-segment-height: 48px;
+    --display-panel-padding: 12px;
+    --display-panel-gap: 8px;
+    --display-nav-padding: 6px;
     --oneui-font: 'One UI Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
     --bg: #f4f7fb; --bg2: #ffffff; --bg3: #f8fbff; --bg4: #eef3f9;
     --surface: #ffffff;
@@ -134,9 +142,9 @@
     flex-direction: row;
     align-items: center;
     justify-content: stretch;
-    gap: 8px;
-    padding: 6px;
-    min-height: 52px;
+    gap: var(--display-panel-gap);
+    padding: var(--display-nav-padding);
+    min-height: calc(var(--display-control-height) + (var(--display-nav-padding) * 2));
     overflow: visible;
     pointer-events: none;
     background: var(--float-nav-bg);
@@ -166,7 +174,7 @@
     width: auto;
     max-width: none;
     min-width: 0;
-    min-height: 40px;
+    min-height: var(--display-control-height);
     margin-right: 0;
     z-index: 120;
     background: transparent; color: inherit;
@@ -179,9 +187,10 @@
   .floating-nav.hidden { display: none; }
   .floating-nav button {
     background: var(--surface); border: 1px solid var(--border);
-    color: inherit; font-size: var(--ui-control-font-size); font-family: inherit; border-radius: var(--radius-xs);
-    padding: 8px 10px; cursor: pointer; min-height: 40px;
+    color: inherit; font-size: var(--display-control-font-size); font-family: inherit; border-radius: var(--radius-xs);
+    padding: var(--display-control-pad-y) var(--display-control-pad-x); cursor: pointer; min-height: var(--display-control-height);
     box-shadow: var(--shadow);
+    display: inline-flex; align-items: center; justify-content: center; line-height: 1.15;
   }
   .floating-nav button:hover,
   .floating-nav button:focus-visible {
@@ -201,10 +210,10 @@
     font-weight: 600; min-width: 44px;
   }
   .bottom-actions {
-    display: flex; align-items: center; justify-content: center; gap: 6px;
+    display: flex; align-items: center; justify-content: center; gap: var(--display-panel-gap);
     position: relative;
     flex: 0 0 auto;
-    min-height: 40px;
+    min-height: var(--display-control-height);
     z-index: 121;
     background: transparent; color: inherit;
     border: 0; border-radius: var(--radius-sm); padding: 0;
@@ -213,9 +222,10 @@
     -webkit-backdrop-filter: none;
   }
   .bottom-action-button {
-    height: 40px; min-height: 40px; border-radius: var(--radius-xs); border: 1px solid var(--border);
-    background: var(--surface); color: inherit; font: inherit; font-size: var(--ui-control-font-size);
-    padding: 8px 10px; cursor: pointer; box-shadow: var(--shadow);
+    min-height: var(--display-control-height); border-radius: var(--radius-xs); border: 1px solid var(--border);
+    background: var(--surface); color: inherit; font: inherit; font-size: var(--display-control-font-size);
+    padding: var(--display-control-pad-y) var(--display-control-pad-x); cursor: pointer; box-shadow: var(--shadow);
+    display: inline-flex; align-items: center; justify-content: center; line-height: 1.15;
   }
   .bottom-action-button:hover,
   .bottom-action-button:focus-visible {
@@ -228,9 +238,9 @@
     width: min(280px, calc(100vw - 24px));
     max-height: min(360px, calc(100dvh - 120px));
     display: grid;
-    gap: 6px;
+    gap: var(--display-panel-gap);
     overflow-y: auto;
-    padding: 10px;
+    padding: var(--display-panel-padding);
     background: var(--float-nav-bg);
     border: var(--card-border);
     border-radius: var(--radius-sm);
@@ -264,9 +274,9 @@
   @media (max-width: 640px) {
     .bottom-chrome {
       display: grid;
-      grid-template-columns: minmax(0, 1fr) 48px;
+      grid-template-columns: minmax(0, 1fr) var(--display-icon-button-size);
       grid-template-rows: auto auto;
-      gap: 6px;
+      gap: var(--display-panel-gap);
       align-items: center;
     }
     .floating-nav { grid-column: 1 / -1; grid-row: 1; width: 100%; }
@@ -274,7 +284,7 @@
     .bottom-actions { grid-column: 1; grid-row: 2; justify-content: flex-start; }
     .bottom-actions .bottom-action-button { flex: 1 1 0; }
     .fab-root { grid-column: 2; grid-row: 2; align-self: center; }
-    .fab-main { height: 40px; min-height: 40px; }
+    .fab-main { width: var(--display-icon-button-size); height: var(--display-control-height); min-height: var(--display-control-height); }
   }
 
   /* FAB */
@@ -291,10 +301,10 @@
     align-items: flex-end;
     justify-content: flex-end;
     gap: 0;
-    min-height: 40px;
+    min-height: var(--display-control-height);
   }
   .fab-main {
-    width: 44px; height: 40px; border-radius: var(--radius-xs);
+    width: var(--display-icon-button-size); height: var(--display-control-height); border-radius: var(--radius-xs);
     background: var(--fab-bg); color: var(--fab-fg);
     border: 1px solid var(--border);
     font-size: 22px; cursor: pointer;
@@ -321,8 +331,8 @@
     max-height: calc(100dvh - 96px - env(safe-area-inset-bottom, 0px));
     overflow: hidden;
     flex-direction: column;
-    gap: 10px;
-    padding: 12px;
+    gap: var(--display-panel-gap);
+    padding: var(--display-panel-padding);
     opacity: 0;
     visibility: hidden;
     pointer-events: none;
@@ -346,7 +356,7 @@
   }
   .fab-card {
     margin: 0;
-    padding: 12px;
+    padding: var(--display-panel-padding);
     border-radius: var(--radius-sm);
     background: var(--card-bg);
     border: var(--card-border);
@@ -391,7 +401,7 @@
   .dd-item {
     display: flex; align-items: center; gap: 10px; width: 100%;
     background: none; border: none; border-bottom: 1px solid var(--border);
-    padding: 12px 16px; text-align: left; font-size: var(--ui-control-font-size); font-family: inherit;
+    padding: var(--display-control-pad-y) var(--display-control-pad-x); text-align: left; font-size: var(--display-control-font-size); font-family: inherit;
     color: var(--fg); cursor: pointer;
   }
   .dd-item:last-child { border-bottom: none; }
@@ -400,16 +410,17 @@
   .dd-item .dd-label { flex: 1; }
   .dd-item .dd-value { color: var(--fg3); font-size: 14px; flex-shrink: 0; }
   .dd-empty { padding: 16px; color: var(--fg3); font-size: 15px; text-align: center; }
-  .theme-mode-wrap { display: grid; gap: 8px; }
+  .theme-mode-wrap { display: grid; gap: var(--display-panel-gap); }
   .theme-mode-label { font-size: 17px; color: var(--fg); }
   .theme-mode-control {
-    display: grid; grid-template-columns: repeat(3, 1fr); gap: 4px;
-    padding: 4px; border: 1px solid var(--border2); border-radius: var(--radius-sm); background: var(--pill-bg);
+    display: grid; grid-template-columns: repeat(3, 1fr); gap: max(4px, calc(var(--display-panel-gap) / 2));
+    padding: max(4px, calc(var(--display-panel-padding) / 3)); border: 1px solid var(--border2); border-radius: var(--radius-sm); background: var(--pill-bg);
     transition: background 180ms ease, border-color 180ms ease, box-shadow 180ms ease;
   }
   .theme-mode-button {
-    min-height: 36px; border: 0; border-radius: var(--radius-xs); background: transparent;
-    color: var(--fg2); font: inherit; font-size: var(--ui-control-font-size); cursor: pointer;
+    min-height: var(--display-segment-height); border: 0; border-radius: var(--radius-xs); background: transparent;
+    color: var(--fg2); font: inherit; font-size: var(--display-control-font-size); cursor: pointer;
+    display: inline-flex; align-items: center; justify-content: center; line-height: 1.15; padding: 0 var(--display-control-pad-x);
     transition: background 180ms ease, color 180ms ease, box-shadow 180ms ease, transform 120ms ease;
   }
   .theme-mode-button:hover,
@@ -433,7 +444,7 @@
   .theme-mode-button.active:active {
     transform: scale(.985);
   }
-  .font-size-wrap { display: grid; gap: 8px; }
+  .display-size-wrap { display: grid; gap: var(--display-panel-gap); }
   .app-version {
     flex: 0 0 auto;
     padding: 12px 16px 0;
@@ -468,7 +479,7 @@
   /* Books view */
   .testaments { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
   .testament h2 {
-    font-size: var(--ui-control-font-size); font-weight: 600; color: var(--fg2);
+    font-size: var(--display-control-font-size); font-weight: 600; color: var(--fg2);
     text-transform: uppercase; letter-spacing: 0.5px;
     margin-bottom: 8px; padding-bottom: 5px; border-bottom: 1px solid var(--border2);
   }
@@ -484,19 +495,19 @@
   }
   .book-btn:hover { border-color: var(--accent); box-shadow: 0 1px 6px var(--accent-glow); background: var(--hover-bg); }
   .book-btn.active { background: var(--accent); color: var(--accent-fg); border-color: var(--accent); }
-  .book-name-en { font-size: var(--ui-control-font-size); line-height: 1.3; }
-  .book-name-ko { font-size: max(13px, calc(var(--ui-control-font-size) - 3px)); color: var(--fg3); line-height: 1.3; }
+  .book-name-en { font-size: var(--display-control-font-size); line-height: 1.3; }
+  .book-name-ko { font-size: max(13px, calc(var(--display-control-font-size) - 3px)); color: var(--fg3); line-height: 1.3; }
   .book-btn.active .book-name-ko { color: #bbb; }
 
   /* Chapters view */
-  .chapters-header { font-size: calc(var(--ui-control-font-size) + 2px); margin-bottom: 14px; color: var(--fg); }
+  .chapters-header { font-size: calc(var(--display-control-font-size) + 2px); margin-bottom: 14px; color: var(--fg); }
   .chapter-grid {
     display: grid; grid-template-columns: repeat(auto-fill, minmax(52px, 1fr)); gap: 8px;
   }
   .chapter-btn {
     display: flex; align-items: center; justify-content: center;
     background: var(--card-bg); border: var(--card-border); border-radius: var(--radius-sm);
-    padding: 14px 0; font-size: var(--ui-control-font-size); font-family: inherit; color: var(--fg);
+    min-height: var(--display-control-height); padding: var(--display-control-pad-y) var(--display-control-pad-x); font-size: var(--display-control-font-size); font-family: inherit; color: var(--fg);
     cursor: pointer; transition: background 180ms ease, border-color 180ms ease, box-shadow 180ms ease, color 180ms ease, transform 120ms ease;
     box-shadow: var(--shadow);
   }
@@ -572,7 +583,7 @@
     display: flex; gap: 8px; margin-bottom: 16px;
   }
   .search-input {
-    flex: 1; font-size: var(--ui-control-font-size); font-family: inherit; padding: 10px 14px;
+    flex: 1; font-size: var(--display-control-font-size); font-family: inherit; padding: var(--display-control-pad-y) var(--display-control-pad-x);
     border: 1.5px solid var(--border); border-radius: var(--radius-sm);
     background: var(--surface); color: var(--fg); outline: none;
     transition: border-color 180ms ease, box-shadow 180ms ease;
@@ -586,13 +597,13 @@
     letter-spacing: 0.5px; margin-bottom: 8px;
   }
   .search-hist-item {
-    display: flex; align-items: center; gap: 10px; padding: 10px 12px;
+    display: flex; align-items: center; gap: var(--display-panel-gap); padding: var(--display-control-pad-y) var(--display-control-pad-x);
     background: var(--card-bg); border: var(--card-border); border-radius: var(--radius-sm);
     margin-bottom: 5px; cursor: pointer; transition: background 180ms ease, border-color 180ms ease, box-shadow 180ms ease, transform 120ms ease;
     box-shadow: var(--shadow);
   }
   .search-hist-item:hover { background: var(--hover-bg); border-color: var(--accent); }
-  .search-hist-item .sh-query { flex: 1; font-size: var(--ui-control-font-size); color: var(--fg); }
+  .search-hist-item .sh-query { flex: 1; font-size: var(--display-control-font-size); color: var(--fg); }
   .search-hist-item .sh-remove {
     background: none; border: none; color: var(--fg4); font-size: 16px;
     cursor: pointer; padding: 2px 6px; border-radius: var(--radius-xs);
@@ -613,7 +624,7 @@
   .search-ref { font-size: 14px; font-weight: 600; color: var(--accent-fg); background: var(--accent);
     display: inline-block; padding: 2px 8px; border-radius: var(--radius-xs); margin-bottom: 4px; }
   html.dark .search-ref { color: var(--accent-fg); background: var(--accent); }
-  .search-text { font-size: max(15px, calc(var(--ui-control-font-size) - 2px)); color: var(--fg2); }
+  .search-text { font-size: max(15px, calc(var(--display-control-font-size) - 2px)); color: var(--fg2); }
   .search-text mark { background: #fff3a8; color: #222; border-radius: 2px; padding: 0 1px; }
   html.dark .search-text mark { background: #5a4a00; color: #e0e0e0; }
 
@@ -714,12 +725,12 @@
           <button class="theme-mode-button" type="button" data-theme-mode="auto" aria-pressed="false">Auto</button>
         </div>
       </div>
-      <div class="fab-card font-size-wrap">
-        <div class="fab-card-title">Font Size</div>
-        <div class="theme-mode-control font-size-control" role="group" aria-label="Font size">
-          <button class="theme-mode-button font-size-button" type="button" data-font-step="0" aria-pressed="false">Small</button>
-          <button class="theme-mode-button font-size-button" type="button" data-font-step="1" aria-pressed="true">Medium</button>
-          <button class="theme-mode-button font-size-button" type="button" data-font-step="2" aria-pressed="false">Large</button>
+      <div class="fab-card display-size-wrap">
+        <div class="fab-card-title">Display Size</div>
+        <div class="theme-mode-control display-size-control" role="group" aria-label="Display size">
+          <button class="theme-mode-button display-size-button" type="button" data-display-step="0" aria-pressed="false">Small</button>
+          <button class="theme-mode-button display-size-button" type="button" data-display-step="1" aria-pressed="true">Medium</button>
+          <button class="theme-mode-button display-size-button" type="button" data-display-step="2" aria-pressed="false">Large</button>
         </div>
       </div>
       <div class="app-version">Version <span id="app-version">3.0.0</span></div>
@@ -738,8 +749,12 @@
 <script>
 (function () {
   var APP_VERSION = '3.0.0';
-  var FONT_STEPS = [16, 20, 24];
-  var DEFAULT_FONT_STEP = 1;
+  var DISPLAY_SIZE_STEPS = [
+    { reader: 16, control: 16, lineHeight: '1.8', controlHeight: 40, iconSize: 40, padY: 7, padX: 10, segmentHeight: 40, panelPadding: 10, panelGap: 6, navPadding: 6 },
+    { reader: 20, control: 20, lineHeight: '1.8', controlHeight: 48, iconSize: 48, padY: 8, padX: 12, segmentHeight: 48, panelPadding: 12, panelGap: 8, navPadding: 6 },
+    { reader: 24, control: 24, lineHeight: '1.9', controlHeight: 58, iconSize: 58, padY: 10, padX: 14, segmentHeight: 56, panelPadding: 14, panelGap: 10, navPadding: 7 }
+  ];
+  var DEFAULT_DISPLAY_STEP = 1;
 
   // ===================== FIREBASE =====================
   var fbApp = firebase.initializeApp({
@@ -777,7 +792,7 @@
       _setSyncStatus('Syncing\u2026');
       doc.set({
         themeMode: State.getThemeMode(),
-        font: State.getFontStep(),
+        font: State.getDisplayStep(),
         history: State.getHistory(),
         searchHistory: State.getSearchHistory(),
         updatedAt: firebase.firestore.FieldValue.serverTimestamp()
@@ -812,13 +827,13 @@
       try { localStorage.removeItem('bible_dark'); } catch(e) {}
     },
 
-    getFontStep: function () {
+    getDisplayStep: function () {
       var step = this._get('bible_font_step', null);
-      if (typeof step === 'number' && step >= 0 && step < FONT_STEPS.length) return step;
-      return this._get('bible_large_font', false) ? FONT_STEPS.length - 1 : DEFAULT_FONT_STEP;
+      if (typeof step === 'number' && step >= 0 && step < DISPLAY_SIZE_STEPS.length) return step;
+      return this._get('bible_large_font', false) ? DISPLAY_SIZE_STEPS.length - 1 : DEFAULT_DISPLAY_STEP;
     },
-    setFontStep: function (v) {
-      var step = Math.max(0, Math.min(FONT_STEPS.length - 1, parseInt(v, 10) || 0));
+    setDisplayStep: function (v) {
+      var step = Math.max(0, Math.min(DISPLAY_SIZE_STEPS.length - 1, parseInt(v, 10) || 0));
       this._set('bible_font_step', step);
       try { localStorage.removeItem('bible_large_font'); } catch(e) {}
     },
@@ -855,7 +870,7 @@
         try { localStorage.setItem('bible_theme_mode', JSON.stringify(data.dark ? 'dark' : 'light')); } catch(e) {}
       }
       if (typeof data.font === 'number') { try { localStorage.setItem('bible_font_step', JSON.stringify(data.font)); } catch(e) {} }
-      else if (typeof data.font === 'boolean') { try { localStorage.setItem('bible_font_step', JSON.stringify(data.font ? FONT_STEPS.length - 1 : DEFAULT_FONT_STEP)); } catch(e) {} }
+      else if (typeof data.font === 'boolean') { try { localStorage.setItem('bible_font_step', JSON.stringify(data.font ? DISPLAY_SIZE_STEPS.length - 1 : DEFAULT_DISPLAY_STEP)); } catch(e) {} }
       if (Array.isArray(data.history)) { try { localStorage.setItem('bible_history', JSON.stringify(data.history)); } catch(e) {} }
       if (Array.isArray(data.searchHistory)) { try { localStorage.setItem('bible_search_hist', JSON.stringify(data.searchHistory)); } catch(e) {} }
     }
@@ -1061,26 +1076,34 @@
     });
   });
 
-  // ===================== FONT SIZE =====================
-  var fontSizeButtons = Array.prototype.slice.call(document.querySelectorAll('.font-size-button'));
-  function applyFontStep(step) {
-    step = Math.max(0, Math.min(FONT_STEPS.length - 1, parseInt(step, 10) || 0));
-    var size = FONT_STEPS[step];
-    document.documentElement.style.setProperty('--reader-font-size', size + 'px');
-    document.documentElement.style.setProperty('--ui-control-font-size', size + 'px');
-    document.documentElement.style.setProperty('--reader-line-height', step >= 2 ? '1.9' : '1.8');
-    fontSizeButtons.forEach(function (button) {
-      var active = parseInt(button.getAttribute('data-font-step'), 10) === step;
+  // ===================== DISPLAY SIZE =====================
+  var displaySizeButtons = Array.prototype.slice.call(document.querySelectorAll('.display-size-button'));
+  function applyDisplayStep(step) {
+    step = Math.max(0, Math.min(DISPLAY_SIZE_STEPS.length - 1, parseInt(step, 10) || 0));
+    var size = DISPLAY_SIZE_STEPS[step];
+    document.documentElement.style.setProperty('--reader-font-size', size.reader + 'px');
+    document.documentElement.style.setProperty('--display-control-font-size', size.control + 'px');
+    document.documentElement.style.setProperty('--display-control-height', size.controlHeight + 'px');
+    document.documentElement.style.setProperty('--display-icon-button-size', size.iconSize + 'px');
+    document.documentElement.style.setProperty('--display-control-pad-y', size.padY + 'px');
+    document.documentElement.style.setProperty('--display-control-pad-x', size.padX + 'px');
+    document.documentElement.style.setProperty('--display-segment-height', size.segmentHeight + 'px');
+    document.documentElement.style.setProperty('--display-panel-padding', size.panelPadding + 'px');
+    document.documentElement.style.setProperty('--display-panel-gap', size.panelGap + 'px');
+    document.documentElement.style.setProperty('--display-nav-padding', size.navPadding + 'px');
+    document.documentElement.style.setProperty('--reader-line-height', size.lineHeight);
+    displaySizeButtons.forEach(function (button) {
+      var active = parseInt(button.getAttribute('data-display-step'), 10) === step;
       button.classList.toggle('active', active);
       button.setAttribute('aria-pressed', active ? 'true' : 'false');
     });
-    State.setFontStep(step);
+    State.setDisplayStep(step);
   }
-  applyFontStep(State.getFontStep());
-  fontSizeButtons.forEach(function (button) {
+  applyDisplayStep(State.getDisplayStep());
+  displaySizeButtons.forEach(function (button) {
     button.addEventListener('click', function (e) {
       e.stopPropagation();
-      applyFontStep(button.getAttribute('data-font-step'));
+      applyDisplayStep(button.getAttribute('data-display-step'));
     });
   });
 
@@ -1178,7 +1201,7 @@
           if (cloudHasData && !localHasData) {
             State.applyCloudData(cloud);
             applyThemeMode(State.getThemeMode());
-            applyFontStep(State.getFontStep());
+            applyDisplayStep(State.getDisplayStep());
           } else if (localHasData) {
             _scheduleSync();
           }
