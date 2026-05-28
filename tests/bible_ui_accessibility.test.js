@@ -224,12 +224,11 @@ assert.match(bible, /if \(suppressNextPopupPop\) \{[\s\S]*suppressNextPopupPop =
 assert.match(bible, /if \(fabPanel\.classList\.contains\('open'\)\) \{[\s\S]*closeMenus\(\{ fromPop: true \}\);[\s\S]*return;[\s\S]*\}/);
 assert.match(bible, /if \(s && s\.popup === 'menu'\) \{[\s\S]*openFabPanel\(false\);[\s\S]*return;[\s\S]*\}/);
 
-assert.match(bible, /var CHAPTER_CROSSFADE_MS = 520;/);
 assert.match(bible, /var chapterCrossfadeTimer = null;/);
 assert.match(bible, /\.view-inner\.chapter-transition-retiring/);
 assert.match(bible, /\.view-inner\.chapter-transition-ready \{ opacity: 0; transition: none; \}/);
-assert.match(bible, /\.view-inner\.chapter-transition-ready\.chapter-transition-in \{ opacity: 1; transition: opacity 520ms ease-in-out; \}/);
-assert.match(bible, /transition: opacity 520ms ease-in-out/);
+assert.match(bible, /\.view-inner\.chapter-transition-ready\.chapter-transition-in \{ opacity: 1; transition: opacity 364ms ease-in-out; \}/);
+assert.match(bible, /transition: opacity 364ms ease-in-out/);
 assert.match(bible, /@media \(prefers-reduced-motion: reduce\) \{[\s\S]*?\.view-inner \{[\s\S]*?transition: none;/);
 assert.match(bible, /function clearChapterCrossfadeTimer\(\)/);
 assert.match(bible, /window\.clearTimeout\(chapterCrossfadeTimer\);/);
