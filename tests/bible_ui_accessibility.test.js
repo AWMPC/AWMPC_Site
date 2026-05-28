@@ -30,6 +30,8 @@ assert.match(bible, /html\.dark \{[\s\S]*--float-nav-shadow: 0 8px 22px rgba\(0,
 assert.match(bible, /font-family: var\(--oneui-font\);/);
 assert.match(bible, /backdrop-filter: var\(--hdr-blur\);/);
 assert.match(bible, /background: var\(--card-bg\); border: var\(--card-border\); border-radius: var\(--radius-sm\);/);
+assert.match(bible, /button,\n  \.dd-item,\n  \.book-btn,\n  \.chapter-btn \{[\s\S]*transition:[\s\S]*background 180ms ease,[\s\S]*border-color 180ms ease,[\s\S]*box-shadow 180ms ease,[\s\S]*color 180ms ease,[\s\S]*transform 120ms ease;/);
+assert.match(bible, /button:active,\n  \.dd-item:active,\n  \.book-btn:active,\n  \.chapter-btn:active \{[\s\S]*transform: scale\(\.975\);[\s\S]*transition-duration: 80ms;/);
 assert.match(bible, /\.verse \{[\s\S]*border-radius: var\(--radius-sm\);[\s\S]*border: 2px solid transparent;[\s\S]*transition: background 0\.2s ease, border-color 0\.2s ease, box-shadow 0\.2s ease, padding 0\.2s ease, border-width 0\.2s ease;/);
 assert.match(bible, /\.verse\.footnotes-open \{[\s\S]*border-width: 3px;[\s\S]*padding: 10px 12px;[\s\S]*background: color-mix\(in srgb, var\(--pill-bg\) 72%, transparent\);/);
 assert.match(bible, /\.footnote-toggle \{[\s\S]*border-radius: var\(--radius-pill\);[\s\S]*transition: background 0\.16s ease, color 0\.16s ease, border-color 0\.16s ease, box-shadow 0\.16s ease;/);
