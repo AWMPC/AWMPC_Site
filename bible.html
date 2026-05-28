@@ -151,8 +151,22 @@
     overflow: hidden;
     white-space: nowrap;
   }
+  @property --marquee-left-fade {
+    syntax: '<length>';
+    inherits: false;
+    initial-value: 14px;
+  }
+  @property --marquee-right-fade {
+    syntax: '<length>';
+    inherits: false;
+    initial-value: 14px;
+  }
   .marquee-line.is-marquee {
-    animation: marquee-mask-breathe 5.2s ease-in-out infinite alternate;
+    --marquee-left-fade: 0px;
+    --marquee-right-fade: 14px;
+    mask-image: linear-gradient(90deg, transparent 0, #000 var(--marquee-left-fade), #000 calc(100% - var(--marquee-right-fade)), transparent 100%);
+    -webkit-mask-image: linear-gradient(90deg, transparent 0, #000 var(--marquee-left-fade), #000 calc(100% - var(--marquee-right-fade)), transparent 100%);
+    animation: marquee-mask-breathe 3s ease-in-out infinite alternate;
   }
   .marquee-text {
     display: inline-block;
@@ -161,20 +175,20 @@
     will-change: transform;
   }
   .marquee-line.is-marquee .marquee-text {
-    animation: marquee-sway 5.2s ease-in-out infinite alternate;
+    animation: marquee-sway 3s ease-in-out infinite alternate;
   }
   @keyframes marquee-mask-breathe {
-    0%, 12% {
-      mask-image: linear-gradient(90deg, #000 0, #000 calc(100% - 14px), transparent 100%);
-      -webkit-mask-image: linear-gradient(90deg, #000 0, #000 calc(100% - 14px), transparent 100%);
+    0%, 18% {
+      --marquee-left-fade: 0px;
+      --marquee-right-fade: 14px;
     }
-    38%, 62% {
-      mask-image: linear-gradient(90deg, transparent 0, #000 14px, #000 calc(100% - 14px), transparent 100%);
-      -webkit-mask-image: linear-gradient(90deg, transparent 0, #000 14px, #000 calc(100% - 14px), transparent 100%);
+    44%, 56% {
+      --marquee-left-fade: 14px;
+      --marquee-right-fade: 14px;
     }
-    88%, 100% {
-      mask-image: linear-gradient(90deg, transparent 0, #000 14px, #000 100%);
-      -webkit-mask-image: linear-gradient(90deg, transparent 0, #000 14px, #000 100%);
+    82%, 100% {
+      --marquee-left-fade: 14px;
+      --marquee-right-fade: 0px;
     }
   }
   @keyframes marquee-sway {
