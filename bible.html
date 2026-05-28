@@ -121,6 +121,28 @@
   .chapter-btn:focus-visible {
     transition-duration: 220ms;
   }
+  html.theme-transitioning,
+  html.theme-transitioning body,
+  html.theme-transitioning .bottom-chrome,
+  html.theme-transitioning .fab-panel,
+  html.theme-transitioning .fab-card,
+  html.theme-transitioning .bottom-history-menu,
+  html.theme-transitioning .dd-item,
+  html.theme-transitioning .theme-mode-control,
+  html.theme-transitioning .theme-mode-button,
+  html.theme-transitioning .book-btn,
+  html.theme-transitioning .chapter-btn,
+  html.theme-transitioning .verse,
+  html.theme-transitioning .search-result {
+    transition:
+      background 260ms ease,
+      background-color 260ms ease,
+      border-color 260ms ease,
+      box-shadow 260ms ease,
+      color 260ms ease,
+      opacity 260ms ease,
+      transform 220ms ease;
+  }
   button:active,
   .dd-item:active,
   .book-btn:active,
@@ -1117,15 +1139,29 @@
     if (mode !== 'auto') return mode === 'dark';
     return preferredDarkQuery() ? preferredDarkQuery().matches : false;
   }
+  var themeTransitionTimer = null;
+  var themeModeApplied = false;
+  function beginThemeTransition() {
+    if (window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+    document.documentElement.classList.add('theme-transitioning');
+    if (themeTransitionTimer) clearTimeout(themeTransitionTimer);
+    themeTransitionTimer = setTimeout(function () {
+      document.documentElement.classList.remove('theme-transitioning');
+    }, 320);
+  }
   function applyThemeMode(mode) {
     mode = mode === 'dark' || mode === 'auto' ? mode : 'light';
-    document.documentElement.classList.toggle('dark', resolveThemeMode(mode));
+    var nextDark = resolveThemeMode(mode);
+    var currentDark = document.documentElement.classList.contains('dark');
+    if (themeModeApplied && currentDark !== nextDark) beginThemeTransition();
+    document.documentElement.classList.toggle('dark', nextDark);
     themeModeButtons.forEach(function (button) {
       var selected = button.getAttribute('data-theme-mode') === mode;
       button.classList.toggle('active', selected);
       button.setAttribute('aria-pressed', selected ? 'true' : 'false');
     });
     State.setThemeMode(mode);
+    themeModeApplied = true;
   }
   applyThemeMode(State.getThemeMode());
   if (themeQuery) {
