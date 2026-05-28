@@ -39,7 +39,8 @@
     --float-nav-fg: #172033;
     --float-nav-shadow: 0 8px 22px rgba(26,40,63,.12);
     --oneui-radius: 20px;
-    --radius-xs: var(--oneui-radius);
+    --oneui-inset-radius: calc(var(--oneui-radius) - max(4px, calc(var(--display-panel-padding) / 3)));
+    --radius-xs: max(12px, var(--oneui-inset-radius));
     --radius-sm: var(--oneui-radius);
     --radius-md: var(--oneui-radius);
     --radius-pill: 100px;
@@ -431,7 +432,7 @@
   }
   .theme-mode-button.active {
     background: var(--accent); color: var(--btn-active-text); box-shadow: 0 1px 6px var(--accent-glow);
-    transform: scale(1.01);
+    transform: none;
   }
   .theme-mode-button.active:hover,
   .theme-mode-button.active:focus-visible {

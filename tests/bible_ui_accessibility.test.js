@@ -19,7 +19,8 @@ assert.match(bible, /--accent-glow: rgba\(11,99,206,\.22\);/);
 assert.match(bible, /--float-nav-bg: rgba\(255,255,255,\.64\);/);
 assert.match(bible, /--float-nav-shadow: 0 8px 22px rgba\(26,40,63,\.12\);/);
 assert.match(bible, /--oneui-radius: 20px;/);
-assert.match(bible, /--radius-xs: var\(--oneui-radius\);/);
+assert.match(bible, /--oneui-inset-radius: calc\(var\(--oneui-radius\) - max\(4px, calc\(var\(--display-panel-padding\) \/ 3\)\)\);/);
+assert.match(bible, /--radius-xs: max\(12px, var\(--oneui-inset-radius\)\);/);
 assert.match(bible, /--radius-sm: var\(--oneui-radius\);/);
 assert.match(bible, /--radius-md: var\(--oneui-radius\);/);
 assert.match(bible, /--bottom-chrome-clearance: 88px;/);
@@ -104,6 +105,8 @@ assert.match(bible, /\.bottom-action-button \{[\s\S]*font-size: var\(--display-c
 assert.match(bible, /\.dd-item \{[\s\S]*font-size: var\(--display-control-font-size\);/);
 assert.match(bible, /\.theme-mode-button \{[\s\S]*min-height: var\(--display-segment-height\);[\s\S]*font-size: var\(--display-control-font-size\);[\s\S]*display: inline-flex;[\s\S]*align-items: center;[\s\S]*justify-content: center;[\s\S]*line-height: 1\.15;/);
 assert.match(bible, /\.theme-mode-control \{[\s\S]*gap: max\(4px, calc\(var\(--display-panel-gap\) \/ 2\)\);[\s\S]*padding: max\(4px, calc\(var\(--display-panel-padding\) \/ 3\)\);/);
+assert.match(bible, /\.theme-mode-button\.active \{[\s\S]*background: var\(--accent\); color: var\(--btn-active-text\); box-shadow: 0 1px 6px var\(--accent-glow\);[\s\S]*transform: none;/);
+assert.doesNotMatch(bible, /\.theme-mode-button\.active \{[\s\S]*transform: scale\(1\.01\);/);
 assert.match(bible, /\.book-name-en \{ font-size: var\(--display-control-font-size\);/);
 assert.match(bible, /\.book-name-ko \{ font-size: max\(13px, calc\(var\(--display-control-font-size\) - 3px\)\);/);
 assert.match(bible, /\.chapters-header \{ font-size: calc\(var\(--display-control-font-size\) \+ 2px\);/);
@@ -317,7 +320,7 @@ assert.match(bible, /class="theme-mode-control" role="group" aria-label="Color s
 assert.match(bible, /\.theme-mode-control \{[\s\S]*transition: background 180ms ease, border-color 180ms ease, box-shadow 180ms ease;/);
 assert.match(bible, /\.theme-mode-button \{[\s\S]*transition: background 180ms ease, color 180ms ease, box-shadow 180ms ease, transform 120ms ease;/);
 assert.match(bible, /\.theme-mode-button:hover,\n  \.theme-mode-button:focus-visible \{[\s\S]*background: color-mix\(in srgb, var\(--accent\) 12%, transparent\);[\s\S]*color: var\(--accent\);/);
-assert.match(bible, /\.theme-mode-button\.active \{[\s\S]*background: var\(--accent\);[\s\S]*transform: scale\(1\.01\);/);
+assert.match(bible, /\.theme-mode-button\.active \{[\s\S]*background: var\(--accent\);[\s\S]*transform: none;/);
 assert.match(bible, /\.theme-mode-button:active \{[\s\S]*transform: scale\(\.97\);/);
 assert.match(bible, /\.theme-mode-button\.active:active \{[\s\S]*transform: scale\(\.985\);/);
 assert.match(bible, /data-theme-mode="light" aria-pressed="true">Light<\/button>/);
