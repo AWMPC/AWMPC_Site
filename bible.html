@@ -750,8 +750,8 @@
   .dd-user-email { font-size: max(12px, calc(var(--display-control-font-size) - 5px)); color: var(--fg3); overflow: hidden; white-space: nowrap; }
   .dd-signout-button {
     flex-shrink: 0; border-radius: var(--radius-xs); border: 1px solid var(--border2);
-    background: var(--surface); color: var(--fg2); font: inherit; font-size: max(13px, calc(var(--display-control-font-size) - 5px));
-    min-height: var(--display-control-height); padding: var(--display-control-pad-y) var(--display-control-pad-x); cursor: pointer;
+    background: var(--surface); color: var(--fg2); font: inherit; font-size: 13px;
+    min-height: 34px; padding: 6px 10px; cursor: pointer;
   }
   .dd-signout-button:hover,
   .dd-signout-button:focus-visible {
@@ -786,6 +786,8 @@
   .profile-card .dd-signout-button {
     position: relative;
     z-index: 1;
+    align-self: flex-start;
+    margin-top: var(--display-panel-padding);
   }
   .profile-card .dd-signin-button {
     width: 100%;

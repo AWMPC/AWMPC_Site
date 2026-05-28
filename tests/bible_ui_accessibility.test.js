@@ -139,7 +139,7 @@ assert.doesNotMatch(bible, /\.floating-nav \.fn-chapter \{[\s\S]*min-width: 36px
 assert.match(bible, /\.fab-root \{[\s\S]*margin-left: auto;/);
 assert.match(bible, /\.fab-main \{[\s\S]*position: relative;[\s\S]*padding: 0;[\s\S]*overflow: hidden;/);
 assert.match(bible, /\.fab-main \.profile-avatar \{[\s\S]*position: absolute;[\s\S]*inset: 0;[\s\S]*width: 100%;[\s\S]*height: 100%;[\s\S]*min-width: 100%;[\s\S]*min-height: 100%;[\s\S]*max-width: none;[\s\S]*border-radius: 0;[\s\S]*object-fit: cover;[\s\S]*border: 0;/);
-assert.match(bible, /\.dd-signout-button \{[\s\S]*flex-shrink: 0;[\s\S]*border-radius: var\(--radius-xs\);[\s\S]*font-size: max\(13px, calc\(var\(--display-control-font-size\) - 5px\)\);[\s\S]*min-height: var\(--display-control-height\);[\s\S]*padding: var\(--display-control-pad-y\) var\(--display-control-pad-x\);/);
+assert.match(bible, /\.dd-signout-button \{[\s\S]*flex-shrink: 0;[\s\S]*border-radius: var\(--radius-xs\);[\s\S]*font-size: 13px;[\s\S]*min-height: 34px; padding: 6px 10px;/);
 assert.match(bible, /\.dd-user-name \{[\s\S]*font-size: var\(--display-control-font-size\);[\s\S]*overflow: hidden; white-space: nowrap;/);
 assert.match(bible, /\.dd-user-email \{[\s\S]*font-size: max\(12px, calc\(var\(--display-control-font-size\) - 5px\)\);[\s\S]*overflow: hidden; white-space: nowrap;/);
 assert.match(bible, /\.dd-sync-status \{[\s\S]*font-size: max\(12px, calc\(var\(--display-control-font-size\) - 6px\)\);[\s\S]*padding: 2px 0 0;[\s\S]*overflow: hidden; white-space: nowrap;/);
@@ -148,7 +148,7 @@ assert.doesNotMatch(bible, /clip-path: inset\(0 max\(0px, calc\(100% - var\(--pr
 assert.doesNotMatch(bible, /--profile-photo-width:/);
 assert.match(bible, /\.profile-card \.dd-user \{[\s\S]*min-height: var\(--profile-photo-height\);[\s\S]*align-items: stretch;[\s\S]*gap: 12px;[\s\S]*margin-left: 0;[\s\S]*\}/);
 assert.match(bible, /\.profile-card \.dd-user-info \{[\s\S]*position: relative;[\s\S]*z-index: 1;/);
-assert.match(bible, /\.profile-card \.dd-signout-button \{[\s\S]*position: relative;[\s\S]*z-index: 1;/);
+assert.match(bible, /\.profile-card \.dd-signout-button \{[\s\S]*position: relative;[\s\S]*z-index: 1;[\s\S]*align-self: flex-start;[\s\S]*margin-top: var\(--display-panel-padding\);/);
 assert.match(bible, /\.profile-card \.dd-signin-button \{[\s\S]*width: 100%;[\s\S]*min-height: calc\(var\(--display-control-height\) \+ \(var\(--display-panel-padding\) \* 2\)\);[\s\S]*justify-content: center;[\s\S]*border: 0;[\s\S]*border-bottom: 0;[\s\S]*border-radius: var\(--radius-sm\);[\s\S]*background: transparent;/);
 assert.match(bible, /\.profile-card \.dd-signin-button \.dd-label \{[\s\S]*flex: 0 1 auto;/);
 assert.match(bible, /\.profile-card\.signed-out \.dd-signin-button:hover,\n  \.profile-card\.signed-out \.dd-signin-button:focus-visible \{[\s\S]*background: var\(--hover-bg\);[\s\S]*box-shadow: inset 0 0 0 1px var\(--accent\), 0 1px 8px var\(--accent-glow\);[\s\S]*transform: translateY\(-1px\);/);
