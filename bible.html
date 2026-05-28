@@ -562,6 +562,7 @@
     font-size: var(--display-control-font-size); font-weight: 600; color: var(--fg2);
     text-transform: uppercase; letter-spacing: 0.5px;
     margin-bottom: 8px; padding-bottom: 0;
+    overflow: hidden; white-space: nowrap;
   }
   .testament {
     min-width: 0;
@@ -594,7 +595,7 @@
   .book-btn.active .book-name-ko { color: #bbb; }
 
   /* Chapters view */
-  .chapters-header { font-size: calc(var(--display-control-font-size) + 2px); margin-bottom: 14px; color: var(--fg); }
+  .chapters-header { font-size: calc(var(--display-control-font-size) + 2px); margin-bottom: 14px; color: var(--fg); overflow: hidden; white-space: nowrap; }
   .chapter-grid {
     display: grid; grid-template-columns: repeat(auto-fill, minmax(52px, 1fr)); gap: 8px;
   }
@@ -2052,13 +2053,13 @@
 
     var otDiv = document.createElement('div');
     otDiv.className = 'testament';
-    var otH = document.createElement('h2'); otH.textContent = 'Old Testament';
+    var otH = document.createElement('h2'); setMarqueeText(otH, 'Old Testament');
     otDiv.appendChild(otH);
     var otUl = document.createElement('ul'); otDiv.appendChild(otUl);
 
     var ntDiv = document.createElement('div');
     ntDiv.className = 'testament';
-    var ntH = document.createElement('h2'); ntH.textContent = 'New Testament';
+    var ntH = document.createElement('h2'); setMarqueeText(ntH, 'New Testament');
     ntDiv.appendChild(ntH);
     var ntUl = document.createElement('ul'); ntDiv.appendChild(ntUl);
 
@@ -2105,7 +2106,7 @@
     var chapterCount = Object.keys(bibleData[bookName]).length;
     var header = document.createElement('div');
     header.className = 'chapters-header';
-    header.textContent = bookName + ' - Chapters';
+    setMarqueeText(header, bookName + ' - Chapters');
     card.appendChild(header);
 
     var grid = document.createElement('div');
@@ -2149,7 +2150,7 @@
     var keys = Object.keys(verses);
     var header = document.createElement('div');
     header.className = 'chapters-header';
-    header.textContent = bookName + ' - Chapter ' + chapterNum + ' - Verses';
+    setMarqueeText(header, bookName + ' - Chapter ' + chapterNum + ' - Verses');
     card.appendChild(header);
 
     var grid = document.createElement('div');
