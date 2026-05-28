@@ -391,7 +391,8 @@
     z-index: 131;
     width: min(360px, calc(100vw - 24px));
     max-height: calc(100dvh - var(--bottom-chrome-clearance) - 12px);
-    overflow: hidden;
+    overflow-y: auto;
+    overscroll-behavior: contain;
     flex-direction: column;
     gap: var(--display-panel-gap);
     padding: var(--display-panel-padding);
@@ -525,7 +526,7 @@
   .display-size-wrap { display: grid; gap: var(--display-panel-gap); }
   .app-version {
     flex: 0 0 auto;
-    padding: 12px 16px 0;
+    padding: var(--display-panel-gap) 16px max(2px, env(safe-area-inset-bottom, 0px));
     color: var(--fg4);
     font-size: max(12px, calc(var(--display-control-font-size) - 6px));
     text-align: center;
