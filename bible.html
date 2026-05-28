@@ -98,6 +98,7 @@
     background: var(--bg); color: var(--fg); line-height: 1.6;
     display: flex; flex-direction: column;
     -webkit-font-smoothing: antialiased;
+    white-space: nowrap;
   }
   button,
   .dd-item,
@@ -418,8 +419,9 @@
     padding: 0;
   }
   .fab-card-title {
-    font-size: 12px; font-weight: 700; color: var(--fg3); text-transform: uppercase;
+    font-size: max(12px, calc(var(--display-control-font-size) - 6px)); font-weight: 700; color: var(--fg3); text-transform: uppercase;
     letter-spacing: 0.5px; padding: 0 2px 8px;
+    white-space: nowrap; overflow: hidden;
   }
   .fab-card .dd-item {
     border: 1px solid var(--border);
@@ -510,8 +512,9 @@
     flex: 0 0 auto;
     padding: 12px 16px 0;
     color: var(--fg4);
-    font-size: 12px;
+    font-size: max(12px, calc(var(--display-control-font-size) - 6px));
     text-align: center;
+    white-space: nowrap;
   }
 
   /* Shell view area */
@@ -597,6 +600,8 @@
     margin-bottom: 12px; font-size: var(--reader-font-size); line-height: var(--reader-line-height); position: relative;
     border-radius: var(--radius-sm); padding: 8px 10px; border: 2px solid transparent;
     transition: background 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease, padding 0.2s ease, border-width 0.2s ease;
+    white-space: normal;
+    overflow-wrap: anywhere;
   }
   .verse.footnotes-open {
     border-width: 3px;
@@ -724,8 +729,8 @@
   .dd-user { display: flex; align-items: center; gap: 10px; }
   .dd-user-photo { width: 36px; height: 36px; border-radius: 50%; flex-shrink: 0; }
   .dd-user-info { flex: 1; min-width: 0; }
-  .dd-user-name { font-size: 15px; font-weight: 600; color: var(--fg); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-  .dd-user-email { font-size: 12px; color: var(--fg3); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .dd-user-name { font-size: var(--display-control-font-size); font-weight: 600; color: var(--fg); overflow: hidden; white-space: nowrap; }
+  .dd-user-email { font-size: max(12px, calc(var(--display-control-font-size) - 5px)); color: var(--fg3); overflow: hidden; white-space: nowrap; }
   .dd-signout-button {
     flex-shrink: 0; border-radius: var(--radius-xs); border: 1px solid var(--border2);
     background: var(--surface); color: var(--fg2); font: inherit; font-size: 13px;
@@ -785,7 +790,7 @@
   .profile-card.signed-out .dd-signin-button:active {
     transform: scale(.985);
   }
-  .dd-sync-status { font-size: 12px; color: var(--fg4); padding: 2px 0 0; }
+  .dd-sync-status { font-size: max(12px, calc(var(--display-control-font-size) - 6px)); color: var(--fg4); padding: 2px 0 0; overflow: hidden; white-space: nowrap; }
 
   @media (prefers-reduced-motion: reduce) {
     *, *::before, *::after { transition-duration: 0.01ms !important; animation-duration: 0.01ms !important; }
@@ -878,7 +883,7 @@
 
   var _syncStatusEl = null;
   function _setSyncStatus(text) {
-    if (_syncStatusEl) _syncStatusEl.textContent = text;
+    if (_syncStatusEl) setMarqueeText(_syncStatusEl, text);
   }
 
   function _scheduleSync() {
@@ -1339,15 +1344,15 @@
       details.className = 'dd-user-info';
       var name = document.createElement('div');
       name.className = 'dd-user-name';
-      name.textContent = user.displayName || 'Signed In';
+      setMarqueeText(name, user.displayName || 'Signed In');
       details.appendChild(name);
       var email = document.createElement('div');
       email.className = 'dd-user-email';
-      email.textContent = user.email || '';
+      setMarqueeText(email, user.email || '');
       details.appendChild(email);
       var status = document.createElement('div');
       status.className = 'dd-sync-status';
-      status.textContent = navigator.onLine ? 'Synced \u2713' : 'Offline \u2014 will sync later';
+      setMarqueeText(status, navigator.onLine ? 'Synced \u2713' : 'Offline \u2014 will sync later');
       _syncStatusEl = status;
       details.appendChild(status);
       info.appendChild(details);
