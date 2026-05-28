@@ -194,7 +194,7 @@
     bottom: calc(100% + 8px);
     width: min(280px, calc(100vw - 24px));
     max-height: min(360px, calc(100dvh - 120px));
-    display: none;
+    display: grid;
     gap: 6px;
     overflow-y: auto;
     padding: 10px;
@@ -202,15 +202,29 @@
     border: var(--card-border);
     border-radius: var(--radius-sm);
     box-shadow: var(--float-nav-shadow);
-    backdrop-filter: blur(28px) saturate(180%);
-    -webkit-backdrop-filter: blur(28px) saturate(180%);
+    backdrop-filter: var(--hdr-blur);
+    -webkit-backdrop-filter: var(--hdr-blur);
+    isolation: isolate;
+    opacity: 0;
+    visibility: hidden;
+    pointer-events: none;
+    transform: translateY(6px) scale(.98);
+    transition: opacity 180ms ease, transform 180ms ease, visibility 0s linear 180ms;
   }
-  .bottom-history-menu.open { display: grid; }
+  .bottom-history-menu.open {
+    opacity: 1;
+    visibility: visible;
+    pointer-events: auto;
+    transform: translateY(0) scale(1);
+    transition: opacity 180ms ease, transform 180ms ease, visibility 0s;
+  }
   .bottom-history-menu .dd-item {
     border: 1px solid var(--border);
     border-radius: var(--radius-xs);
-    background: var(--surface);
+    background: color-mix(in srgb, var(--surface) 72%, transparent);
     box-shadow: var(--shadow);
+    backdrop-filter: inherit;
+    -webkit-backdrop-filter: inherit;
   }
 
   @media (max-width: 640px) {

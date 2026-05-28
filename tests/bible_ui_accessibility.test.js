@@ -68,8 +68,9 @@ assert.match(bible, /\.bottom-chrome\.scroll-hidden \{[\s\S]*transform: translat
 assert.match(bible, /\.floating-nav \{[\s\S]*background: transparent;[\s\S]*border: 0;[\s\S]*box-shadow: none;[\s\S]*backdrop-filter: none;/);
 assert.match(bible, /\.bottom-actions \{[\s\S]*display: flex;[\s\S]*background: transparent;[\s\S]*border: 0;[\s\S]*box-shadow: none;[\s\S]*backdrop-filter: none;/);
 assert.match(bible, /\.bottom-action-button \{[\s\S]*height: 40px;[\s\S]*min-height: 40px;/);
-assert.match(bible, /\.bottom-history-menu \{[\s\S]*position: absolute;[\s\S]*bottom: calc\(100% \+ 8px\);[\s\S]*display: none;/);
-assert.match(bible, /\.bottom-history-menu\.open \{ display: grid; \}/);
+assert.match(bible, /\.bottom-history-menu \{[\s\S]*position: absolute;[\s\S]*bottom: calc\(100% \+ 8px\);[\s\S]*display: grid;[\s\S]*background: var\(--float-nav-bg\);[\s\S]*backdrop-filter: var\(--hdr-blur\);[\s\S]*-webkit-backdrop-filter: var\(--hdr-blur\);[\s\S]*isolation: isolate;[\s\S]*opacity: 0;[\s\S]*visibility: hidden;[\s\S]*pointer-events: none;[\s\S]*transform: translateY\(6px\) scale\(\.98\);[\s\S]*transition: opacity 180ms ease, transform 180ms ease, visibility 0s linear 180ms;/);
+assert.match(bible, /\.bottom-history-menu\.open \{[\s\S]*opacity: 1;[\s\S]*visibility: visible;[\s\S]*pointer-events: auto;[\s\S]*transform: translateY\(0\) scale\(1\);[\s\S]*transition: opacity 180ms ease, transform 180ms ease, visibility 0s;/);
+assert.match(bible, /\.bottom-history-menu \.dd-item \{[\s\S]*background: color-mix\(in srgb, var\(--surface\) 72%, transparent\);[\s\S]*backdrop-filter: inherit;[\s\S]*-webkit-backdrop-filter: inherit;/);
 assert.match(bible, /@media \(max-width: 640px\) \{[\s\S]*\.bottom-chrome \{[\s\S]*display: grid;[\s\S]*grid-template-columns: minmax\(0, 1fr\) 48px;[\s\S]*grid-template-rows: auto auto;/);
 assert.match(bible, /@media \(max-width: 640px\) \{[\s\S]*\.floating-nav \{ grid-column: 1 \/ -1; grid-row: 1; width: 100%; \}/);
 assert.match(bible, /@media \(max-width: 640px\) \{[\s\S]*\.floating-nav \.fn-book \{ flex: 1 1 auto; max-width: none; \}/);
