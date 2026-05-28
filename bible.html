@@ -804,8 +804,8 @@
   .dd-user { display: flex; align-items: center; gap: 10px; }
   .dd-user-photo { width: 36px; height: 36px; border-radius: 50%; flex-shrink: 0; }
   .dd-user-info { flex: 1; min-width: 0; }
-  .dd-user-name { font-size: var(--display-control-font-size); font-weight: 600; color: var(--fg); overflow: hidden; white-space: nowrap; }
-  .dd-user-email { font-size: max(12px, calc(var(--display-control-font-size) - 5px)); color: var(--fg3); overflow: hidden; white-space: nowrap; }
+  .dd-user-name { font-size: var(--display-control-font-size); line-height: 1.2; font-weight: 600; color: var(--fg); overflow: hidden; white-space: nowrap; }
+  .dd-user-email { font-size: max(12px, calc(var(--display-control-font-size) - 5px)); line-height: 1.2; color: var(--fg3); overflow: hidden; white-space: nowrap; }
   .dd-signout-button {
     flex-shrink: 0; border-radius: var(--radius-xs); border: 1px solid var(--border2);
     background: var(--surface); color: var(--fg2); font: inherit; font-size: 13px;
@@ -844,6 +844,7 @@
     display: flex;
     flex-direction: column;
     justify-content: center;
+    gap: 2px;
     padding: var(--display-panel-padding) var(--display-panel-padding) var(--display-panel-padding) 0;
   }
   .profile-card .dd-signin-button {
@@ -871,7 +872,7 @@
   .profile-card.signed-out .dd-signin-button:active {
     transform: scale(.985);
   }
-  .dd-sync-status { font-size: max(12px, calc(var(--display-control-font-size) - 6px)); color: var(--fg4); padding: 2px 0 0; overflow: hidden; white-space: nowrap; }
+  .dd-sync-status { font-size: max(12px, calc(var(--display-control-font-size) - 6px)); line-height: 1.2; color: var(--fg4); overflow: hidden; white-space: nowrap; }
 
   @media (prefers-reduced-motion: reduce) {
     *, *::before, *::after { transition-duration: 0.01ms !important; animation-duration: 0.01ms !important; }
