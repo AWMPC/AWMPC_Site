@@ -311,11 +311,13 @@
     position: fixed;
     right: 12px;
     bottom: var(--bottom-chrome-clearance);
-    width: min(280px, calc(100vw - 24px));
-    max-height: min(360px, calc(100dvh - 120px));
+    width: min(420px, calc(100vw - 24px));
+    max-height: calc(100dvh - var(--bottom-chrome-clearance) - 12px);
     display: grid;
+    grid-auto-rows: minmax(0, auto);
     gap: var(--display-panel-gap);
     overflow-y: auto;
+    overscroll-behavior: contain;
     padding: var(--display-panel-padding);
     background: var(--float-nav-bg);
     border: var(--card-border);
@@ -339,12 +341,27 @@
     transition: opacity 180ms ease, transform 180ms ease, visibility 0s;
   }
   .bottom-history-menu .dd-item {
+    min-width: 0;
+    min-height: 0;
+    align-items: center;
+    padding: max(7px, calc(var(--display-control-pad-y) - 3px)) max(10px, calc(var(--display-control-pad-x) - 2px));
     border: 1px solid var(--border);
     border-radius: var(--radius-xs);
     background: color-mix(in srgb, var(--surface) 72%, transparent);
     box-shadow: var(--shadow);
     backdrop-filter: inherit;
     -webkit-backdrop-filter: inherit;
+  }
+  .bottom-history-menu .dd-icon {
+    flex: 0 0 auto;
+  }
+  .bottom-history-menu .dd-title {
+    font-size: min(var(--display-control-font-size), 22px);
+    line-height: 1.15;
+  }
+  .bottom-history-menu .dd-meta {
+    font-size: min(max(12px, calc(var(--display-control-font-size) - 5px)), 18px);
+    line-height: 1.15;
   }
 
   @media (max-width: 640px) {
