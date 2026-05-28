@@ -423,7 +423,7 @@
     box-shadow: 0 1px 8px rgba(26,40,63,.08);
   }
   .profile-card {
-    --profile-photo-height: 92px;
+    --profile-photo-height: calc(var(--display-control-height) + (var(--display-panel-padding) * 4));
     position: relative;
     overflow: hidden;
     min-height: 92px;
@@ -749,8 +749,8 @@
   .dd-user-email { font-size: max(12px, calc(var(--display-control-font-size) - 5px)); color: var(--fg3); overflow: hidden; white-space: nowrap; }
   .dd-signout-button {
     flex-shrink: 0; border-radius: var(--radius-xs); border: 1px solid var(--border2);
-    background: var(--surface); color: var(--fg2); font: inherit; font-size: 13px;
-    min-height: 34px; padding: 6px 10px; cursor: pointer;
+    background: var(--surface); color: var(--fg2); font: inherit; font-size: max(13px, calc(var(--display-control-font-size) - 5px));
+    min-height: var(--display-control-height); padding: var(--display-control-pad-y) var(--display-control-pad-x); cursor: pointer;
   }
   .dd-signout-button:hover,
   .dd-signout-button:focus-visible {
@@ -762,16 +762,19 @@
     top: auto;
     bottom: auto;
     width: auto;
-    height: var(--profile-photo-height);
+    height: auto;
+    min-height: var(--profile-photo-height);
     max-width: 45%;
     flex: 0 1 auto;
-    object-fit: contain;
+    align-self: stretch;
+    object-fit: cover;
     object-position: center;
     border-radius: 0;
     border: 0;
   }
   .profile-card .dd-user {
     min-height: var(--profile-photo-height);
+    align-items: stretch;
     gap: 12px;
     margin-left: 0;
   }
