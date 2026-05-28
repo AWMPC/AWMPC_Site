@@ -1002,27 +1002,34 @@
     return { view: 'books' };
   }
 
-  function openFabPanel(pushHistory) {
-    setBottomChromeHidden(false);
-    fabPanel.classList.add('open');
-    fabMain.setAttribute('aria-expanded', 'true');
-    renderHistoryMenu();
+  function ensurePopupHistory(pushHistory) {
     if (pushHistory && !fabPanelHistoryOpen) {
       history.pushState(Object.assign(currentNavStateForHistory(), { popup: 'menu' }), '');
       fabPanelHistoryOpen = true;
     }
   }
 
+  function openFabPanel(pushHistory) {
+    setBottomChromeHidden(false);
+    closeMenus({ exceptFab: true, keepHistory: true });
+    fabPanel.classList.add('open');
+    fabMain.setAttribute('aria-expanded', 'true');
+    renderHistoryMenu();
+    ensurePopupHistory(pushHistory);
+  }
+
   function closeMenus(options) {
     options = options || {};
-    var closedFab = false;
-    if (fabPanel.classList.contains('open')) {
+    var exceptFab = options.exceptFab === true;
+    var exceptMenu = options.exceptMenu || null;
+    var closedPopup = false;
+    if (fabPanel.classList.contains('open') && !exceptFab) {
       fabPanel.classList.remove('open');
       fabMain.setAttribute('aria-expanded', 'false');
-      closedFab = true;
+      closedPopup = true;
     }
-    if (openMenu) { openMenu.classList.remove('open'); openMenu = null; }
-    if (closedFab && fabPanelHistoryOpen && !options.fromPop && !options.keepHistory) {
+    if (openMenu && openMenu !== exceptMenu) { openMenu.classList.remove('open'); openMenu = null; closedPopup = true; }
+    if (closedPopup && fabPanelHistoryOpen && !options.fromPop && !options.keepHistory) {
       suppressNextPopupPop = true;
       fabPanelHistoryOpen = false;
       history.back();
@@ -1031,7 +1038,8 @@
   function toggleMenu(menu, e) {
     if (e) e.stopPropagation();
     if (openMenu === menu) { closeMenus(); return; }
-    closeMenus();
+    closeMenus({ exceptMenu: menu, keepHistory: true });
+    ensurePopupHistory(true);
     menu.classList.add('open');
     openMenu = menu;
   }
@@ -1759,7 +1767,7 @@
       suppressNextPopupPop = false;
       return;
     }
-    if (fabPanel.classList.contains('open')) {
+    if (fabPanel.classList.contains('open') || openMenu) {
       closeMenus({ fromPop: true });
       fabPanelHistoryOpen = false;
       return;
