@@ -326,10 +326,10 @@
     display: flex;
     position: fixed;
     right: 12px;
-    bottom: calc(76px + env(safe-area-inset-bottom, 0px));
+    bottom: var(--bottom-chrome-clearance);
     z-index: 131;
     width: min(360px, calc(100vw - 24px));
-    max-height: calc(100dvh - 96px - env(safe-area-inset-bottom, 0px));
+    max-height: calc(100dvh - var(--bottom-chrome-clearance) - 12px);
     overflow: hidden;
     flex-direction: column;
     gap: var(--display-panel-gap);
@@ -351,9 +351,6 @@
     pointer-events: auto;
     transform: translateY(0);
     transition: opacity 180ms ease, transform 180ms ease, visibility 0s;
-  }
-  @media (max-width: 640px) {
-    .fab-panel { bottom: calc(118px + env(safe-area-inset-bottom, 0px)); }
   }
   .fab-card {
     margin: 0;
@@ -729,9 +726,9 @@
       <div class="fab-card display-size-wrap">
         <div class="fab-card-title">Display Size</div>
         <div class="theme-mode-control display-size-control" role="group" aria-label="Display size">
-          <button class="theme-mode-button display-size-button" type="button" data-display-step="0" aria-pressed="false">Small</button>
-          <button class="theme-mode-button display-size-button" type="button" data-display-step="1" aria-pressed="true">Medium</button>
-          <button class="theme-mode-button display-size-button" type="button" data-display-step="2" aria-pressed="false">Large</button>
+          <button class="theme-mode-button display-size-button" type="button" data-display-step="0" aria-label="Small display size" aria-pressed="false">S</button>
+          <button class="theme-mode-button display-size-button" type="button" data-display-step="1" aria-label="Medium display size" aria-pressed="true">M</button>
+          <button class="theme-mode-button display-size-button" type="button" data-display-step="2" aria-label="Large display size" aria-pressed="false">L</button>
         </div>
       </div>
       <div class="app-version">Version <span id="app-version">3.0.0</span></div>
