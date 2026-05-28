@@ -441,6 +441,7 @@
     position: relative;
     overflow: hidden;
     min-height: 92px;
+    flex-shrink: 1;
     padding: 0 12px 0 0;
   }
   .profile-card.signed-out {
@@ -794,8 +795,8 @@
     top: auto;
     bottom: auto;
     width: auto;
-    height: auto;
-    min-height: var(--profile-photo-height);
+    height: 100%;
+    min-height: 0;
     max-width: 45%;
     flex: 0 1 auto;
     align-self: stretch;
@@ -805,7 +806,8 @@
     border: 0;
   }
   .profile-card .dd-user {
-    min-height: var(--profile-photo-height);
+    height: var(--profile-photo-height);
+    min-height: 0;
     align-items: stretch;
     gap: 12px;
     margin-left: 0;
