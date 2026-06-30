@@ -2058,6 +2058,8 @@
   var footerSignout = document.getElementById('footer-signout');
   var footerSignoutSeparator = document.getElementById('footer-signout-separator');
   _syncStatusEl = footerStatus;
+  var authHasResolved = false;
+  var priorAuthenticatedUid = null;
   footerSignout.addEventListener('click', function () {
     auth.signOut();
     closeMenus({ keepHistory: true });
@@ -2114,6 +2116,8 @@
   }
 
   auth.onAuthStateChanged(function (user) {
+    var ownerAtAuthResolution = _localOwnerUid();
+    var wasAuthenticated = authHasResolved && !!priorAuthenticatedUid;
     _resetSyncForUser(user ? user.uid : null);
     var authGeneration = _syncGeneration;
     var authUid = _currentUid;
@@ -2132,6 +2136,16 @@
     renderAuthArea(user);
 
     if (!user) {
+      authHasResolved = true;
+      priorAuthenticatedUid = null;
+      if (!wasAuthenticated && !ownerAtAuthResolution) {
+        _syncedLocalStateQuarantined = false;
+        chapterPositions = State.getChapterPositions();
+        applyThemeMode(State.getThemeMode(), false);
+        renderSeason(State.getSeason());
+        applyDisplayStep(State.getDisplayStep(), false);
+        return;
+      }
       var signoutStorageCleared = _clearSyncedLocalState();
       _setDirtySyncUid(null);
       _setLocalOwnerUid(null);
@@ -2156,6 +2170,8 @@
     }
 
     if (user) {
+      authHasResolved = true;
+      priorAuthenticatedUid = user.uid;
       var previousOwnerUid = _localOwnerUid();
       var isFirstOwner = !previousOwnerUid;
       var isOwnerSwitch = !!previousOwnerUid && previousOwnerUid !== authUid;
@@ -2217,7 +2233,6 @@
         if (localRevisionAtGet !== _localRevision) {
           _scheduleSync();
           if (hydrationOffline) {
-            _clearSyncTimers();
             _setSyncStatus('Offline \u2014 local changes safe');
           }
           return;
@@ -2260,7 +2275,6 @@
           }
           _scheduleSync();
           if (hydrationOffline) {
-            _clearSyncTimers();
             _setSyncStatus('Offline \u2014 local changes safe');
           }
           return;
@@ -2273,7 +2287,6 @@
           }
           _scheduleSync();
           if (hydrationOffline) {
-            _clearSyncTimers();
             _setSyncStatus('Offline \u2014 local changes safe');
           }
           return;
@@ -2295,11 +2308,13 @@
             renderSeason(State.getSeason());
           }
           if (localHasData) {
-            _scheduleSync();
             if (hydrationOffline) {
               _clearSyncTimers();
+              _syncPending = false;
               _setSyncStatus('Offline \u2014 local changes safe');
+              return;
             }
+            _scheduleSync();
             return;
           }
         }
