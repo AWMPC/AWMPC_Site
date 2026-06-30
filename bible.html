@@ -1226,9 +1226,13 @@
   var _syncBlockedGeneration = -1;
   var _syncGeneration = 0;
   var _syncHydrationPending = false;
+  var _syncHydrationInFlight = false;
+  var _syncHydrationAuthoritative = false;
+  var _syncHydrationCacheOnly = false;
+  var _retryCurrentHydration = null;
   var _localRevision = 0;
   var _currentUid = null;
-  var _syncedLocalStateQuarantined = false;
+  var _syncedLocalStateQuarantined = !!_localOwnerUid();
 
   function _readLocalUid(key) {
     try {
@@ -1298,6 +1302,10 @@
     _syncBlockedUid = null;
     _syncBlockedGeneration = -1;
     _syncHydrationPending = false;
+    _syncHydrationInFlight = false;
+    _syncHydrationAuthoritative = false;
+    _syncHydrationCacheOnly = false;
+    _retryCurrentHydration = null;
   }
 
   function _syncPermanentlyBlocked() {
@@ -1448,7 +1456,7 @@
         _syncExhausted = true;
         _syncRetryDelayIndex = null;
       }
-      _setSyncStatus('Offline \u2014 local changes safe');
+      _setSyncStatus(navigator.onLine ? 'Sync paused \u2014 local changes safe' : 'Offline \u2014 local changes safe');
       return;
     }
     var delay = _jitteredSyncDelay(SYNC_RETRY_DELAYS[_syncAttempt]);
@@ -1606,6 +1614,7 @@
       return normalized;
     },
     getChapterPositions: function () {
+      if (_syncedLocalStateQuarantined) return [];
       var raw;
       try { raw = JSON.parse(localStorage.getItem('bible_chapter_positions') || '[]'); }
       catch(e) { raw = []; }
@@ -1913,7 +1922,7 @@
       document.documentElement.classList.remove('theme-transitioning');
     }, THEME_TRANSITION_MS + 20);
   }
-  function applyThemeMode(mode) {
+  function applyThemeMode(mode, persist) {
     mode = mode === 'dark' || mode === 'auto' ? mode : 'light';
     var nextDark = resolveThemeMode(mode);
     var currentDark = document.documentElement.classList.contains('dark');
@@ -1925,13 +1934,13 @@
       button.setAttribute('aria-pressed', selected ? 'true' : 'false');
     });
     updateThemeColor();
-    State.setThemeMode(mode);
+    if (persist !== false) State.setThemeMode(mode);
     themeModeApplied = true;
   }
-  applyThemeMode(State.getThemeMode());
+  applyThemeMode(State.getThemeMode(), false);
   if (themeQuery) {
     var onThemeQueryChange = function () {
-      if (State.getThemeMode() === 'auto') applyThemeMode('auto');
+      if (State.getThemeMode() === 'auto') applyThemeMode('auto', false);
     };
     if (themeQuery.addEventListener) {
       themeQuery.addEventListener('change', onThemeQueryChange);
@@ -2122,6 +2131,30 @@
     }
     renderAuthArea(user);
 
+    if (!user) {
+      var signoutStorageCleared = _clearSyncedLocalState();
+      _setDirtySyncUid(null);
+      _setLocalOwnerUid(null);
+      try {
+        localStorage.removeItem('bible_chapter_positions');
+        if (localStorage.getItem('bible_chapter_positions') !== null) signoutStorageCleared = false;
+      } catch (error) { signoutStorageCleared = false; }
+      if (_dirtySyncUid() || _localOwnerUid()) signoutStorageCleared = false;
+      chapterPositions = [];
+      chapterPositionsDirty = false;
+      historyMenu.textContent = '';
+      historyMenu.classList.remove('open');
+      if (openMenu === historyMenu) openMenu = null;
+      if (verseActionsDialog && verseActionsDialog.open) verseActionsDialog.close();
+      clearVerseActionState();
+      _syncedLocalStateQuarantined = !signoutStorageCleared;
+      applyThemeMode('light', false);
+      renderSeason('auto');
+      applyDisplayStep(DEFAULT_DISPLAY_STEP, false);
+      if (bibleData) showBooksView();
+      return;
+    }
+
     if (user) {
       var previousOwnerUid = _localOwnerUid();
       var isFirstOwner = !previousOwnerUid;
@@ -2130,7 +2163,9 @@
       if (isOwnerSwitch) {
         if (!_clearSyncedLocalState()) {
           _syncedLocalStateQuarantined = true;
-          applyThemeMode('light');
+          chapterPositions = [];
+          chapterPositionsDirty = false;
+          applyThemeMode('light', false);
           renderSeason('auto');
           applyDisplayStep(DEFAULT_DISPLAY_STEP, false);
           historyMenu.textContent = '';
@@ -2139,9 +2174,12 @@
           return;
         }
         _syncedLocalStateQuarantined = false;
+        try { localStorage.removeItem('bible_chapter_positions'); } catch (error) {}
+        chapterPositions = [];
+        chapterPositionsDirty = false;
         _setDirtySyncUid(null);
         _setLocalOwnerUid(authUid);
-        applyThemeMode(State.getThemeMode());
+        applyThemeMode(State.getThemeMode(), false);
         renderSeason(State.getSeason());
         applyDisplayStep(State.getDisplayStep(), false);
         historyMenu.textContent = '';
@@ -2154,20 +2192,28 @@
       } else {
         _syncedLocalStateQuarantined = false;
       }
+      chapterPositions = State.getChapterPositions();
 
-      var localRevisionAtGet = _localRevision;
-      var localHasData = _hasSyncedLocalState();
-      var localHasHistory = State.getHistory().length > 0;
-      var localHasSeason = State.hasStoredSeason();
-      var isAnonymousMigration = isFirstOwner && localHasData;
-      if (isAnonymousMigration) _setDirtySyncUid(authUid);
-      _syncHydrationPending = true;
-      _setSyncStatus('Checking sync\u2026');
+      _retryCurrentHydration = function () {
+        if (authGeneration !== _syncGeneration || authUid !== _currentUid || _syncHydrationInFlight) return;
+        var localRevisionAtGet = _localRevision;
+        var replacingCachedState = _syncHydrationCacheOnly;
+        var localHasData = _hasSyncedLocalState();
+        var localHasHistory = State.getHistory().length > 0;
+        var localHasSeason = State.hasStoredSeason();
+        var isAnonymousMigration = isFirstOwner && localHasData;
+        if (isAnonymousMigration) _setDirtySyncUid(authUid);
+        _syncHydrationPending = true;
+        _syncHydrationInFlight = true;
+        _setSyncStatus('Checking sync\u2026');
 
-      _userDoc().get().then(function (snap) {
+        _userDoc().get().then(function (snap) {
         if (authGeneration !== _syncGeneration || authUid !== _currentUid) return;
         _syncHydrationPending = false;
+        _syncHydrationInFlight = false;
         var hydrationOffline = !navigator.onLine || !!(snap.metadata && snap.metadata.fromCache);
+        _syncHydrationAuthoritative = !hydrationOffline;
+        _syncHydrationCacheOnly = hydrationOffline;
         if (localRevisionAtGet !== _localRevision) {
           _scheduleSync();
           if (hydrationOffline) {
@@ -2181,9 +2227,23 @@
         var cloudHasHistory = !!(cloud && cloud.history && cloud.history.length > 0);
         var cloudHasSeason = !!(cloud && typeof cloud.season === 'string' && /^(auto|spring|summer|fall|winter)$/.test(cloud.season));
 
+        if (replacingCachedState && !hydrationOffline && _dirtySyncUid() !== authUid) {
+          _clearSyncedLocalState();
+          if (cloud) State.applyCloudData(cloud);
+          applyThemeMode(State.getThemeMode(), false);
+          renderSeason(State.getSeason());
+          applyDisplayStep(State.getDisplayStep(), false);
+          _clearSyncTimers();
+          _syncPending = false;
+          _syncAttempt = 0;
+          _clearDirtySyncUid(authUid);
+          _setSyncStatus('Synced \u2713');
+          return;
+        }
+
         if (isOwnerSwitch) {
           if (cloud) State.applyCloudData(cloud);
-          applyThemeMode(State.getThemeMode());
+          applyThemeMode(State.getThemeMode(), false);
           renderSeason(State.getSeason());
           applyDisplayStep(State.getDisplayStep(), false);
           _clearSyncTimers();
@@ -2221,13 +2281,13 @@
 
         if (cloudHasHistory && !localHasHistory) {
           State.applyCloudData(cloud);
-          applyThemeMode(State.getThemeMode());
+          applyThemeMode(State.getThemeMode(), false);
           renderSeason(State.getSeason());
           applyDisplayStep(State.getDisplayStep(), false);
         } else {
           if (!localHasData && cloud) {
             State.applyCloudData(cloud);
-            applyThemeMode(State.getThemeMode());
+            applyThemeMode(State.getThemeMode(), false);
             renderSeason(State.getSeason());
             applyDisplayStep(State.getDisplayStep(), false);
           } else if (!localHasSeason && cloudHasSeason) {
@@ -2250,6 +2310,8 @@
       }).catch(function (error) {
         if (authGeneration !== _syncGeneration || authUid !== _currentUid) return;
         _syncHydrationPending = false;
+        _syncHydrationInFlight = false;
+        _syncHydrationAuthoritative = false;
         if (_isPermanentSyncError(error)) {
           _blockSyncForGeneration(authUid, authGeneration);
           return;
@@ -2262,6 +2324,8 @@
           _syncPending = false;
         }
       });
+      };
+      _retryCurrentHydration();
     }
   });
 
@@ -2273,14 +2337,16 @@
         _setSyncStatus('Sync unavailable');
         return;
       }
-      _syncAttempt = 0;
-      _syncExhausted = false;
-      _syncRetryDelayIndex = null;
-      _syncPending = true;
-      if (_syncRetryTimer !== null) clearTimeout(_syncRetryTimer);
-      _syncRetryTimer = null;
-      _setSyncStatus('Back online \u2014 syncing\u2026');
-      _queueSync(0, false);
+      if (_dirtySyncUid() === _currentUid) {
+        _syncAttempt = 0;
+        _syncExhausted = false;
+        _syncRetryDelayIndex = null;
+        _syncPending = true;
+        _setSyncStatus('Back online \u2014 syncing\u2026');
+        _queueSync(0, false);
+      } else if (!_syncHydrationAuthoritative && !_syncHydrationInFlight && _retryCurrentHydration) {
+        _retryCurrentHydration();
+      }
     }
   });
   window.addEventListener('offline', function () {
@@ -4109,7 +4175,6 @@
 
     var xhr = new XMLHttpRequest();
     bibleLoadRequest = xhr;
-    xhr._bibleIntentionalAbort = false;
     xhr.open('GET', 'bible.json', true);
     xhr.responseType = 'json';
     xhr.timeout = 15000;
@@ -4144,7 +4209,7 @@
     xhr.onabort = function () {
       if (generation !== bibleLoadGeneration || bibleLoadRequest !== xhr) return;
       bibleLoadRequest = null;
-      if (!xhr._bibleIntentionalAbort) showLoadError('Bible data loading was interrupted.');
+      showLoadError('Bible data loading was interrupted.');
     };
 
     xhr.send();
