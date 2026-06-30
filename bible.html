@@ -136,13 +136,32 @@
   html.theme-transitioning .verse,
   html.theme-transitioning .search-result {
     transition:
-      background 260ms ease,
-      background-color 260ms ease,
-      border-color 260ms ease,
-      box-shadow 260ms ease,
-      color 260ms ease,
-      opacity 260ms ease,
-      transform 220ms ease;
+      background 200ms cubic-bezier(.2,.8,.2,1),
+      background-color 200ms cubic-bezier(.2,.8,.2,1),
+      border-color 200ms cubic-bezier(.2,.8,.2,1),
+      box-shadow 200ms cubic-bezier(.2,.8,.2,1),
+      color 200ms cubic-bezier(.2,.8,.2,1),
+      opacity 200ms cubic-bezier(.2,.8,.2,1),
+      transform 200ms cubic-bezier(.2,.8,.2,1);
+  }
+  .press-ripple-host {
+    position: relative;
+    overflow: hidden;
+    isolation: isolate;
+  }
+  .press-ripple {
+    position: absolute;
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    pointer-events: none;
+    background: color-mix(in srgb, var(--accent) 32%, transparent);
+    transform: translate(-50%, -50%) scale(0);
+    animation: press-ripple 320ms cubic-bezier(.16,.84,.32,1) forwards;
+  }
+  @keyframes press-ripple {
+    0% { opacity: .42; transform: translate(-50%, -50%) scale(0); }
+    100% { opacity: 0; transform: translate(-50%, -50%) scale(24); }
   }
   .marquee-line {
     display: block;
@@ -598,10 +617,10 @@
     padding: 16px 12px;
     padding-bottom: calc(16px + var(--bottom-chrome-clearance));
     opacity: 1;
-    transition: opacity 364ms ease-in-out;
+    transition: opacity 200ms cubic-bezier(.2,.8,.2,1);
   }
   .view-inner.chapter-transition-ready { opacity: 0; transition: none; }
-  .view-inner.chapter-transition-ready.chapter-transition-in { opacity: 1; transition: opacity 364ms ease-in-out; }
+  .view-inner.chapter-transition-ready.chapter-transition-in { opacity: 1; transition: opacity 200ms cubic-bezier(.2,.8,.2,1); }
   .view-inner.chapter-transition-retiring {
     position: absolute;
     top: 0;
@@ -707,7 +726,7 @@
     border-color: rgba(91,155,244,.55);
     box-shadow: 0 8px 28px rgba(91,155,244,.14);
   }
-  .verse-num { font-size: 14px; font-weight: 700; color: var(--verse-num); vertical-align: super; margin-right: 4px; }
+  .verse-num { font-size: .7em; font-weight: 700; color: var(--verse-num); vertical-align: super; margin-right: .2em; }
   .verse-edge-spacer,
   .verse-head-spacer,
   .verse-tail-spacer { height: 50vh; pointer-events: none; }
@@ -735,10 +754,10 @@
 
   /* Search view */
   .search-bar {
-    display: flex; gap: 8px; margin-bottom: 16px;
+    display: flex; gap: 8px; margin-bottom: 16px; width: 100%; min-width: 0; max-width: 100%;
   }
   .search-input {
-    flex: 1; font-size: var(--display-control-font-size); font-family: inherit; padding: var(--display-control-pad-y) var(--display-control-pad-x);
+    flex: 1; width: 100%; min-width: 0; max-width: 100%; font-size: var(--display-control-font-size); font-family: inherit; padding: var(--display-control-pad-y) var(--display-control-pad-x);
     border: 1.5px solid var(--border); border-radius: var(--radius-sm);
     background: var(--surface); color: var(--fg); outline: none;
     transition: border-color 180ms ease, box-shadow 180ms ease;
@@ -755,10 +774,13 @@
     display: flex; align-items: center; gap: var(--display-panel-gap); padding: var(--display-control-pad-y) var(--display-control-pad-x);
     background: var(--card-bg); border: var(--card-border); border-radius: var(--radius-sm);
     margin-bottom: 5px; cursor: pointer; transition: background 180ms ease, border-color 180ms ease, box-shadow 180ms ease, transform 120ms ease;
-    box-shadow: var(--shadow);
+    box-shadow: var(--shadow); min-width: 0; max-width: 100%;
   }
   .search-hist-item:hover { background: var(--hover-bg); border-color: var(--accent); }
-  .search-hist-item .sh-query { flex: 1; font-size: var(--display-control-font-size); color: var(--fg); }
+  .search-hist-item .sh-query {
+    flex: 1; min-width: 0; max-width: 100%; font-size: var(--display-control-font-size); color: var(--fg);
+    white-space: normal; overflow-wrap: anywhere; word-break: break-word;
+  }
   .search-hist-item .sh-remove {
     background: none; border: none; color: var(--fg4); font-size: 16px;
     cursor: pointer; padding: 2px 6px; border-radius: var(--radius-xs);
@@ -773,13 +795,17 @@
     padding: 12px; margin-bottom: 8px; background: var(--card-bg);
     border: var(--card-border); border-radius: var(--radius-sm); cursor: pointer;
     transition: background 180ms ease, border-color 180ms ease, box-shadow 180ms ease, transform 120ms ease;
-    box-shadow: var(--shadow);
+    box-shadow: var(--shadow); min-width: 0; max-width: 100%;
   }
   .search-result:hover { background: var(--hover-bg); border-color: var(--accent); }
   .search-ref { font-size: 14px; font-weight: 600; color: var(--accent-fg); background: var(--accent);
-    display: inline-block; padding: 2px 8px; border-radius: var(--radius-xs); margin-bottom: 4px; }
+    display: inline-block; min-width: 0; max-width: 100%; padding: 2px 8px; border-radius: var(--radius-xs); margin-bottom: 4px;
+    white-space: normal; overflow-wrap: anywhere; word-break: break-word; }
   html.dark .search-ref { color: var(--accent-fg); background: var(--accent); }
-  .search-text { font-size: max(15px, calc(var(--display-control-font-size) - 2px)); color: var(--fg2); }
+  .search-text {
+    min-width: 0; max-width: 100%; font-size: max(15px, calc(var(--display-control-font-size) - 2px)); color: var(--fg2);
+    white-space: normal; overflow-wrap: anywhere; word-break: break-word;
+  }
   .search-text mark { background: #fff3a8; color: #222; border-radius: 2px; padding: 0 1px; }
   html.dark .search-text mark { background: #5a4a00; color: #e0e0e0; }
 
@@ -788,7 +814,89 @@
     padding: 12px 16px; border-radius: var(--radius-sm); margin-bottom: 16px;
     border: 1px solid color-mix(in srgb, var(--err-fg) 20%, transparent);
   }
-  #loading { color: var(--fg3); font-size: 15px; padding: 40px 20px; text-align: center; }
+  #loading.loading-skeleton {
+    display: grid;
+    gap: 14px;
+    padding: 24px 0;
+    color: var(--fg3);
+  }
+  .loading-skeleton span {
+    display: block;
+    height: 1.1em;
+    border-radius: var(--radius-xs);
+    background: linear-gradient(90deg, var(--bg4) 20%, var(--surface-hi) 45%, var(--bg4) 70%);
+    background-size: 240% 100%;
+    animation: loading-skeleton-shimmer 1.1s ease-in-out infinite;
+  }
+  .loading-skeleton span:nth-child(1) { width: 92%; }
+  .loading-skeleton span:nth-child(2) { width: 78%; }
+  .loading-skeleton span:nth-child(3) { width: 86%; }
+  .loading-skeleton span:nth-child(4) { width: 64%; }
+  @keyframes loading-skeleton-shimmer {
+    from { background-position: 100% 0; }
+    to { background-position: -100% 0; }
+  }
+
+  .verse-actions {
+    width: min(420px, calc(100% - 32px));
+    max-width: 100%;
+    margin: auto;
+    padding: 0;
+    border: 1px solid var(--border2);
+    border-radius: var(--radius-md);
+    background: var(--surface);
+    color: var(--fg);
+    box-shadow: var(--menu-shadow);
+  }
+  .verse-actions::backdrop {
+    background: rgba(5, 10, 20, .48);
+    backdrop-filter: blur(3px);
+    -webkit-backdrop-filter: blur(3px);
+  }
+  .verse-actions form {
+    display: grid;
+    gap: 10px;
+    padding: 20px;
+    white-space: normal;
+  }
+  .verse-actions h2 {
+    margin: 0 0 2px;
+    font-size: 20px;
+    line-height: 1.3;
+  }
+  .verse-actions button {
+    width: 100%;
+    min-height: 44px;
+    padding: 10px 14px;
+    border: 1px solid var(--border2);
+    border-radius: var(--radius-sm);
+    background: var(--surface-hi);
+    color: var(--fg);
+    font: inherit;
+    cursor: pointer;
+  }
+  .verse-actions button:hover,
+  .verse-actions button:focus-visible {
+    border-color: var(--accent);
+    background: var(--hover-bg);
+    outline: none;
+  }
+  .verse-actions .verse-actions-cancel { color: var(--fg3); background: transparent; }
+
+  @media (max-width: 640px) {
+    .search-bar { display: grid; grid-template-columns: minmax(0, 1fr); }
+    .search-input { font-size: min(var(--display-control-font-size), 20px); padding-inline: 12px; }
+    .search-text { font-size: min(max(15px, calc(var(--display-control-font-size) - 2px)), 20px); }
+    .search-hist-item .sh-query { font-size: min(var(--display-control-font-size), 20px); }
+    .verse-actions {
+      width: 100%;
+      max-width: none;
+      margin: auto 0 0;
+      border-width: 1px 0 0;
+      border-radius: var(--radius-md) var(--radius-md) 0 0;
+    }
+    .verse-actions form { padding: 18px 16px max(18px, env(safe-area-inset-bottom)); }
+  }
 
   /* Auth UI */
   .profile-avatar {
@@ -879,6 +987,8 @@
     .view-inner { transition: none; }
     .bottom-chrome { transition: none; }
     .marquee-line.is-marquee .marquee-text { animation: none; transform: none; }
+    .loading-skeleton span { animation: none; background-position: 50% 0; }
+    .press-ripple { animation: none; opacity: .12; transform: translate(-50%, -50%); }
   }
 </style>
 </head>
@@ -925,9 +1035,24 @@
 <div id="view">
   <div class="view-inner" id="view-inner">
     <div id="error"></div>
-    <p id="loading">Loading&hellip;</p>
+    <div id="loading" class="loading-skeleton" role="status" aria-label="Loading Bible">
+      <span></span>
+      <span></span>
+      <span></span>
+      <span></span>
+    </div>
+    <div id="status-live" class="sr-only" aria-live="polite" aria-atomic="true"></div>
   </div>
 </div>
+
+<dialog id="verse-actions" class="verse-actions" aria-labelledby="verse-actions-title">
+  <form method="dialog">
+    <h2 id="verse-actions-title">Verse Actions</h2>
+    <button type="button" value="copy">Copy Verse Text</button>
+    <button type="button" value="share">Share Link to Verse</button>
+    <button type="submit" value="cancel" class="verse-actions-cancel">Cancel</button>
+  </form>
+</dialog>
 
 <script src="https://www.gstatic.com/firebasejs/11.2.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/11.2.0/firebase-auth-compat.js"></script>
@@ -1149,7 +1274,7 @@
   var verseChaseVelocity = 0;
   var verseChaseTarget = null;
   var verseChaseLastTs = null;
-  var CHAPTER_CROSSFADE_MS = 364;
+  var CHAPTER_CROSSFADE_MS = 200;
   var chapterCrossfadeTimer = null;
   var preservingChapterCrossfade = false;
   var lastViewScrollTop = 0;
