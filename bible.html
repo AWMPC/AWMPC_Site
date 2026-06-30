@@ -1151,7 +1151,7 @@
           <button class="theme-mode-button display-size-button" type="button" data-display-step="2" aria-label="Large display size" aria-pressed="false">L</button>
         </div>
       </div>
-      <div class="app-version"><span class="app-version-label">Version <span id="app-version">3.0.0</span></span><span class="app-version-separator">|</span><span id="footer-status" class="app-version-status">Signed out</span><span id="footer-signout-separator" class="app-version-separator" hidden>|</span><button type="button" id="footer-signout" class="dd-signout-button" hidden>Sign Out</button></div>
+      <div class="app-version"><span class="app-version-label">Version <span id="app-version">3.0.0</span></span><span class="app-version-separator">|</span><span id="footer-status" class="app-version-status" role="status" aria-live="polite">Signed out</span><span id="footer-signout-separator" class="app-version-separator" hidden>|</span><button type="button" id="footer-signout" class="dd-signout-button" hidden>Sign Out</button></div>
 </div>
 
 <div id="view">
@@ -1206,6 +1206,14 @@
   // ===================== STATE WRAPPER =====================
   var SYNC_DEBOUNCE_MS = 1500;
   var SYNC_RETRY_DELAYS = [1000, 2000, 4000, 8000, 16000];
+  var LOCAL_OWNER_KEY = 'bible_local_owner_uid';
+  var LOCAL_DIRTY_KEY = 'bible_sync_dirty_uid';
+  var SYNCED_LOCAL_KEYS = [
+    'bible_theme_mode', 'bible_dark',
+    'bible_season',
+    'bible_font_step', 'bible_large_font',
+    'bible_history', 'bible_search_hist'
+  ];
   var _syncDebounceTimer = null;
   var _syncRetryTimer = null;
   var _syncInFlight = false;
@@ -1213,7 +1221,50 @@
   var _syncPending = false;
   var _syncAttempt = 0;
   var _syncGeneration = 0;
+  var _syncHydrationPending = false;
+  var _localRevision = 0;
   var _currentUid = null;
+  var _syncedLocalStateQuarantined = false;
+
+  function _readLocalUid(key) {
+    try {
+      var value = localStorage.getItem(key);
+      return typeof value === 'string' && value ? value : null;
+    } catch (error) { return null; }
+  }
+
+  function _writeLocalUid(key, uid) {
+    try {
+      if (uid) localStorage.setItem(key, String(uid));
+      else localStorage.removeItem(key);
+    } catch (error) {}
+  }
+
+  function _localOwnerUid() { return _readLocalUid(LOCAL_OWNER_KEY); }
+  function _dirtySyncUid() { return _readLocalUid(LOCAL_DIRTY_KEY); }
+  function _setLocalOwnerUid(uid) { _writeLocalUid(LOCAL_OWNER_KEY, uid); }
+  function _setDirtySyncUid(uid) { _writeLocalUid(LOCAL_DIRTY_KEY, uid); }
+
+  function _clearDirtySyncUid(uid) {
+    if (_dirtySyncUid() === uid) _setDirtySyncUid(null);
+  }
+
+  function _hasSyncedLocalState() {
+    try {
+      return SYNCED_LOCAL_KEYS.some(function (key) { return localStorage.getItem(key) !== null; });
+    } catch (error) { return false; }
+  }
+
+  function _clearSyncedLocalState() {
+    var cleared = true;
+    SYNCED_LOCAL_KEYS.forEach(function (key) {
+      try {
+        localStorage.removeItem(key);
+        if (localStorage.getItem(key) !== null) cleared = false;
+      } catch (error) { cleared = false; }
+    });
+    return cleared;
+  }
 
   function _userDoc() {
     return _currentUid ? db.collection('users').doc(_currentUid) : null;
@@ -1238,6 +1289,7 @@
     _syncInFlight = false;
     _syncPending = false;
     _syncAttempt = 0;
+    _syncHydrationPending = false;
   }
 
   function _jitteredSyncDelay(delay) {
@@ -1259,6 +1311,11 @@
       searchHistory: State.getSearchHistory(),
       updatedAt: firebase.firestore.FieldValue.serverTimestamp()
     };
+  }
+
+  function _markCurrentStateDirty() {
+    var ownerUid = _currentUid || _localOwnerUid();
+    if (ownerUid) _setDirtySyncUid(ownerUid);
   }
 
   function _queueSync(delay, retry) {
@@ -1291,7 +1348,8 @@
   }
 
   function _scheduleSync() {
-    if (!_currentUid) return;
+    _markCurrentStateDirty();
+    if (!_currentUid || _localOwnerUid() !== _currentUid) return;
     _syncPending = true;
     if (_syncAttempt >= SYNC_RETRY_DELAYS.length) _syncAttempt = 0;
     _setSyncStatus(navigator.onLine ? 'Pending\u2026' : 'Offline \u2014 will sync later');
@@ -1310,6 +1368,9 @@
     _syncInFlight = false;
     if (!failed) {
       _syncAttempt = 0;
+      if (!_syncPending && activeWrite.revision === _localRevision) {
+        _clearDirtySyncUid(activeWrite.uid);
+      }
       _setSyncStatus('Synced \u2713');
       if (_syncPending) _queueSync(SYNC_DEBOUNCE_MS, false);
       return;
@@ -1332,7 +1393,7 @@
   }
 
   function _runSync() {
-    if (!_currentUid || !_syncPending || _syncInFlight || _activeSyncWrite) return;
+    if (!_currentUid || !_syncPending || _syncHydrationPending || _syncInFlight || _activeSyncWrite) return;
     if (!navigator.onLine) {
       _setSyncStatus('Offline \u2014 will sync later');
       return;
@@ -1347,6 +1408,7 @@
     var activeWrite = {
       generation: generation,
       uid: uid,
+      revision: _localRevision,
       promise: doc.set(_syncPayload(), { merge: true })
     };
     _activeSyncWrite = activeWrite;
@@ -1359,11 +1421,17 @@
 
   var State = {
     _get: function (k, fallback) {
+      if (_syncedLocalStateQuarantined && SYNCED_LOCAL_KEYS.indexOf(k) !== -1) return fallback;
       try { var v = localStorage.getItem(k); return v !== null ? JSON.parse(v) : fallback; }
       catch(e) { return fallback; }
     },
     _set: function (k, v) {
+      if (_syncedLocalStateQuarantined) {
+        _localRevision += 1;
+        return;
+      }
       try { localStorage.setItem(k, JSON.stringify(v)); } catch(e) {}
+      _localRevision += 1;
       _scheduleSync();
     },
 
@@ -1385,6 +1453,7 @@
       return /^(auto|spring|summer|fall|winter)$/.test(season) ? season : 'auto';
     },
     hasStoredSeason: function () {
+      if (_syncedLocalStateQuarantined) return false;
       try {
         var raw = localStorage.getItem('bible_season');
         if (raw === null) return false;
@@ -1869,7 +1938,7 @@
 
   // ===================== DISPLAY SIZE =====================
   var displaySizeButtons = Array.prototype.slice.call(document.querySelectorAll('.display-size-button'));
-  function applyDisplayStep(step) {
+  function applyDisplayStep(step, persist) {
     step = Math.max(0, Math.min(DISPLAY_SIZE_STEPS.length - 1, parseInt(step, 10) || 0));
     var size = DISPLAY_SIZE_STEPS[step];
     document.documentElement.style.setProperty('--reader-font-size', size.reader + 'px');
@@ -1888,11 +1957,11 @@
       button.classList.toggle('active', active);
       button.setAttribute('aria-pressed', active ? 'true' : 'false');
     });
-    State.setDisplayStep(step);
+    if (persist !== false) State.setDisplayStep(step);
     scheduleBottomChromeClearanceUpdate();
     scheduleMarqueeMeasure();
   }
-  applyDisplayStep(State.getDisplayStep());
+  applyDisplayStep(State.getDisplayStep(), false);
   displaySizeButtons.forEach(function (button) {
     button.addEventListener('click', function (e) {
       e.stopPropagation();
@@ -1926,7 +1995,7 @@
     authArea.classList.toggle('signed-out', !user);
     footerSignout.hidden = !user;
     footerSignoutSeparator.hidden = !user;
-    setMarqueeText(footerStatus, user ? (navigator.onLine ? 'Synced \u2713' : 'Offline \u2014 will sync later') : 'Signed out');
+    setMarqueeText(footerStatus, user ? 'Checking sync\u2026' : 'Signed out');
     if (user) {
       var info = document.createElement('div');
       info.className = 'dd-user';
@@ -1989,31 +2058,130 @@
     renderAuthArea(user);
 
     if (user) {
+      var previousOwnerUid = _localOwnerUid();
+      var isFirstOwner = !previousOwnerUid;
+      var isOwnerSwitch = !!previousOwnerUid && previousOwnerUid !== authUid;
+
+      if (isOwnerSwitch) {
+        if (!_clearSyncedLocalState()) {
+          _syncedLocalStateQuarantined = true;
+          applyThemeMode('light');
+          renderSeason('auto');
+          applyDisplayStep(DEFAULT_DISPLAY_STEP, false);
+          historyMenu.textContent = '';
+          if (uiView === 'search' && bibleData) showBooksView();
+          _setSyncStatus('Sync unavailable');
+          return;
+        }
+        _syncedLocalStateQuarantined = false;
+        _setDirtySyncUid(null);
+        _setLocalOwnerUid(authUid);
+        applyThemeMode(State.getThemeMode());
+        renderSeason(State.getSeason());
+        applyDisplayStep(State.getDisplayStep(), false);
+        historyMenu.textContent = '';
+        if (uiView === 'search') showSearchView();
+      } else if (isFirstOwner) {
+        _syncedLocalStateQuarantined = false;
+        // First sign-in may adopt existing anonymous preferences/history for this UID.
+        _setLocalOwnerUid(authUid);
+        if (_dirtySyncUid() && _dirtySyncUid() !== authUid) _setDirtySyncUid(null);
+      } else {
+        _syncedLocalStateQuarantined = false;
+      }
+
+      var localRevisionAtGet = _localRevision;
+      var localHasData = _hasSyncedLocalState();
+      var localHasHistory = State.getHistory().length > 0;
+      var localHasSeason = State.hasStoredSeason();
+      var isAnonymousMigration = isFirstOwner && localHasData;
+      if (isAnonymousMigration) _setDirtySyncUid(authUid);
+      _syncHydrationPending = true;
+      _setSyncStatus('Checking sync\u2026');
+
       _userDoc().get().then(function (snap) {
         if (authGeneration !== _syncGeneration || authUid !== _currentUid) return;
-        if (snap.exists) {
-          var cloud = snap.data();
-          var localHasData = State.getHistory().length > 0;
-          var cloudHasData = (cloud.history && cloud.history.length > 0);
-          var localHasSeason = State.hasStoredSeason();
-          var cloudHasSeason = typeof cloud.season === 'string' && /^(auto|spring|summer|fall|winter)$/.test(cloud.season);
+        _syncHydrationPending = false;
+        if (localRevisionAtGet !== _localRevision) {
+          _scheduleSync();
+          return;
+        }
 
-          if (cloudHasData && !localHasData) {
+        var cloud = snap.exists ? snap.data() : null;
+        var cloudHasHistory = !!(cloud && cloud.history && cloud.history.length > 0);
+        var cloudHasSeason = !!(cloud && typeof cloud.season === 'string' && /^(auto|spring|summer|fall|winter)$/.test(cloud.season));
+
+        if (isOwnerSwitch) {
+          if (cloud) State.applyCloudData(cloud);
+          applyThemeMode(State.getThemeMode());
+          renderSeason(State.getSeason());
+          applyDisplayStep(State.getDisplayStep(), false);
+          _clearSyncTimers();
+          _syncPending = false;
+          _syncAttempt = 0;
+          _setSyncStatus('Synced \u2713');
+          return;
+        }
+
+        if (isAnonymousMigration) {
+          if (!localHasSeason && cloudHasSeason) {
+            State.applyCloudData({ season: cloud.season });
+            renderSeason(State.getSeason());
+          }
+          _scheduleSync();
+          return;
+        }
+
+        if (_dirtySyncUid() === authUid) {
+          if (!localHasSeason && cloudHasSeason) {
+            State.applyCloudData({ season: cloud.season });
+            renderSeason(State.getSeason());
+          }
+          _scheduleSync();
+          return;
+        }
+
+        if (cloudHasHistory && !localHasHistory) {
+          State.applyCloudData(cloud);
+          applyThemeMode(State.getThemeMode());
+          renderSeason(State.getSeason());
+          applyDisplayStep(State.getDisplayStep(), false);
+        } else {
+          if (!localHasData && cloud) {
             State.applyCloudData(cloud);
             applyThemeMode(State.getThemeMode());
             renderSeason(State.getSeason());
-            applyDisplayStep(State.getDisplayStep());
-          } else {
-            if (!localHasSeason && cloudHasSeason) {
-              State.applyCloudData({ season: cloud.season });
-              renderSeason(State.getSeason());
-            }
-            if (localHasData || localHasSeason) _scheduleSync();
+            applyDisplayStep(State.getDisplayStep(), false);
+          } else if (!localHasSeason && cloudHasSeason) {
+            State.applyCloudData({ season: cloud.season });
+            renderSeason(State.getSeason());
           }
-        } else {
-          _scheduleSync();
+          if (localHasData) {
+            _scheduleSync();
+            return;
+          }
         }
-      }).catch(function () {});
+        _clearSyncTimers();
+        _syncPending = false;
+        _syncAttempt = 0;
+        _setSyncStatus('Synced \u2713');
+      }).catch(function (error) {
+        if (authGeneration !== _syncGeneration || authUid !== _currentUid) return;
+        _syncHydrationPending = false;
+        if (_isPermanentSyncError(error)) {
+          _clearSyncTimers();
+          _syncPending = false;
+          _setSyncStatus('Sync unavailable');
+          return;
+        }
+        _setSyncStatus('Sync delayed \u2014 local changes safe');
+        if (_dirtySyncUid() === authUid && navigator.onLine) {
+          _syncPending = true;
+          _queueSync(SYNC_DEBOUNCE_MS, false);
+        } else {
+          _syncPending = false;
+        }
+      });
     }
   });
 
@@ -2040,6 +2208,9 @@
     cancelHistorySettle();
   });
   window.addEventListener('pageshow', function (event) {
+    if (event.persisted && _currentUid && _localOwnerUid() === _currentUid && _dirtySyncUid() === _currentUid) {
+      _scheduleSync();
+    }
     if (event.persisted && isCurrentVersesView(currentBook, currentChapter)) scheduleSettledHistory();
   });
 
@@ -3850,8 +4021,10 @@
 
     var xhr = new XMLHttpRequest();
     bibleLoadRequest = xhr;
+    xhr._bibleIntentionalAbort = false;
     xhr.open('GET', 'bible.json', true);
     xhr.responseType = 'json';
+    xhr.timeout = 15000;
 
     xhr.onload = function () {
       if (generation !== bibleLoadGeneration || bibleLoadRequest !== xhr) return;
@@ -3872,6 +4045,18 @@
       if (generation !== bibleLoadGeneration || bibleLoadRequest !== xhr) return;
       bibleLoadRequest = null;
       showLoadError('Network error while loading Bible data.');
+    };
+
+    xhr.ontimeout = function () {
+      if (generation !== bibleLoadGeneration || bibleLoadRequest !== xhr) return;
+      bibleLoadRequest = null;
+      showLoadError('Bible data took too long to load.');
+    };
+
+    xhr.onabort = function () {
+      if (generation !== bibleLoadGeneration || bibleLoadRequest !== xhr) return;
+      bibleLoadRequest = null;
+      if (!xhr._bibleIntentionalAbort) showLoadError('Bible data loading was interrupted.');
     };
 
     xhr.send();
