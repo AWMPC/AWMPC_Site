@@ -1240,6 +1240,9 @@
   var _hydrationRetryTimer = null;
   var _hydrationRetryAttempt = 0;
   var _hydrationRetryExhausted = false;
+  var _hydrationRetryDeadline = 0;
+  var _hydrationRetryUid = null;
+  var _hydrationRetryGeneration = -1;
   var _retryCurrentHydration = null;
   var _localRevision = 0;
   var _localFieldRevisions = { themeMode: 0, season: 0, font: 0, history: 0, searchHistory: 0 };
@@ -1372,6 +1375,9 @@
     _syncHydrationCacheOnly = false;
     _hydrationRetryAttempt = 0;
     _hydrationRetryExhausted = false;
+    _hydrationRetryDeadline = 0;
+    _hydrationRetryUid = null;
+    _hydrationRetryGeneration = -1;
     _retryCurrentHydration = null;
   }
 
@@ -1382,6 +1388,24 @@
 
   function _jitteredSyncDelay(delay) {
     return Math.round(delay * (0.8 + Math.random() * 0.4));
+  }
+
+  function _armHydrationRetry(delay) {
+    if (!_currentUid || !_retryCurrentHydration || _syncPermanentlyBlocked()) return;
+    var uid = _currentUid;
+    var generation = _syncGeneration;
+    _hydrationRetryUid = uid;
+    _hydrationRetryGeneration = generation;
+    _hydrationRetryDeadline = Date.now() + Math.max(0, delay);
+    _hydrationRetryTimer = setTimeout(function () {
+      _hydrationRetryTimer = null;
+      if (uid !== _currentUid || generation !== _syncGeneration) return;
+      _hydrationRetryDeadline = 0;
+      _hydrationRetryUid = null;
+      _hydrationRetryGeneration = -1;
+      _hydrationRetryAttempt += 1;
+      _retryCurrentHydration();
+    }, Math.max(0, delay));
   }
 
   function _isPermanentSyncError(error) {
@@ -1398,6 +1422,9 @@
     _syncAttempt = 0;
     _syncExhausted = false;
     _syncRetryDelayIndex = null;
+    _hydrationRetryDeadline = 0;
+    _hydrationRetryUid = null;
+    _hydrationRetryGeneration = -1;
     _syncBlockedUid = uid;
     _syncBlockedGeneration = generation;
     _clearDirtySyncUid(uid);
@@ -2428,11 +2455,7 @@
           return;
         }
         var retryDelay = _jitteredSyncDelay(HYDRATION_RETRY_DELAYS[_hydrationRetryAttempt]);
-        _hydrationRetryTimer = setTimeout(function () {
-          _hydrationRetryTimer = null;
-          _hydrationRetryAttempt += 1;
-          _retryCurrentHydration();
-        }, retryDelay);
+        _armHydrationRetry(retryDelay);
       });
       };
       _retryCurrentHydration();
@@ -2452,6 +2475,9 @@
         _hydrationRetryExhausted = false;
         if (_hydrationRetryTimer !== null) clearTimeout(_hydrationRetryTimer);
         _hydrationRetryTimer = null;
+        _hydrationRetryDeadline = 0;
+        _hydrationRetryUid = null;
+        _hydrationRetryGeneration = -1;
         if (!_syncHydrationInFlight && _retryCurrentHydration) _retryCurrentHydration();
       } else if (_dirtySyncFields(_currentUid).length) {
         _syncAttempt = 0;
@@ -2480,7 +2506,14 @@
   window.addEventListener('pageshow', function (event) {
     if (event.persisted && _currentUid && _localOwnerUid() === _currentUid) {
       if (!_syncHydrationAuthoritative && !_hydrationRetryExhausted && !_syncHydrationInFlight && _retryCurrentHydration) {
-        _retryCurrentHydration();
+        if (_hydrationRetryTimer !== null) {
+          // An earlier pageshow already restored this retry.
+        } else if (_hydrationRetryDeadline && _hydrationRetryUid === _currentUid &&
+            _hydrationRetryGeneration === _syncGeneration) {
+          _armHydrationRetry(Math.max(0, _hydrationRetryDeadline - Date.now()));
+        } else {
+          _retryCurrentHydration();
+        }
       } else if (_dirtySyncFields(_currentUid).length) {
         _resumePendingSync();
       }
