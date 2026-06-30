@@ -1298,6 +1298,39 @@
     _queueSync(SYNC_DEBOUNCE_MS, false);
   }
 
+  function _settleSyncWrite(activeWrite, failed, error) {
+    if (_activeSyncWrite !== activeWrite) return;
+    _activeSyncWrite = null;
+    if (activeWrite.generation !== _syncGeneration || activeWrite.uid !== _currentUid) {
+      if (_currentUid && _syncPending && navigator.onLine) {
+        _queueSync(SYNC_DEBOUNCE_MS, false);
+      }
+      return;
+    }
+    _syncInFlight = false;
+    if (!failed) {
+      _syncAttempt = 0;
+      _setSyncStatus('Synced \u2713');
+      if (_syncPending) _queueSync(SYNC_DEBOUNCE_MS, false);
+      return;
+    }
+    if (_isPermanentSyncError(error)) {
+      _syncPending = false;
+      _syncAttempt = 0;
+      _setSyncStatus('Sync unavailable');
+      return;
+    }
+    _syncPending = true;
+    if (!navigator.onLine || _syncAttempt >= SYNC_RETRY_DELAYS.length) {
+      _setSyncStatus('Offline \u2014 will sync later');
+      return;
+    }
+    var delay = _jitteredSyncDelay(SYNC_RETRY_DELAYS[_syncAttempt]);
+    _syncAttempt += 1;
+    _setSyncStatus('Sync delayed \u2014 retrying\u2026');
+    _queueSync(delay, true);
+  }
+
   function _runSync() {
     if (!_currentUid || !_syncPending || _syncInFlight || _activeSyncWrite) return;
     if (!navigator.onLine) {
@@ -1311,33 +1344,16 @@
     _syncInFlight = true;
     _syncPending = false;
     _setSyncStatus('Syncing\u2026');
-    _activeSyncWrite = doc.set(_syncPayload(), { merge: true });
-    _activeSyncWrite.then(function () {
-      _activeSyncWrite = null;
-      if (generation !== _syncGeneration || uid !== _currentUid) return;
-      _syncInFlight = false;
-      _syncAttempt = 0;
-      _setSyncStatus('Synced \u2713');
-      if (_syncPending) _queueSync(SYNC_DEBOUNCE_MS, false);
+    var activeWrite = {
+      generation: generation,
+      uid: uid,
+      promise: doc.set(_syncPayload(), { merge: true })
+    };
+    _activeSyncWrite = activeWrite;
+    activeWrite.promise.then(function () {
+      _settleSyncWrite(activeWrite, false, null);
     }).catch(function (error) {
-      _activeSyncWrite = null;
-      if (generation !== _syncGeneration || uid !== _currentUid) return;
-      _syncInFlight = false;
-      if (_isPermanentSyncError(error)) {
-        _syncPending = false;
-        _syncAttempt = 0;
-        _setSyncStatus('Sync unavailable');
-        return;
-      }
-      _syncPending = true;
-      if (!navigator.onLine || _syncAttempt >= SYNC_RETRY_DELAYS.length) {
-        _setSyncStatus('Offline \u2014 will sync later');
-        return;
-      }
-      var delay = _jitteredSyncDelay(SYNC_RETRY_DELAYS[_syncAttempt]);
-      _syncAttempt += 1;
-      _setSyncStatus('Sync delayed \u2014 retrying\u2026');
-      _queueSync(delay, true);
+      _settleSyncWrite(activeWrite, true, error);
     });
   }
 
