@@ -796,6 +796,10 @@
     border-color: color-mix(in srgb, var(--accent) 55%, transparent);
     box-shadow: 0 8px 28px var(--accent-glow);
   }
+  .verse:focus-visible {
+    outline: 3px solid var(--accent);
+    outline-offset: 2px;
+  }
   .verse.highlight {
     background: rgba(197, 160, 50, 0.18);
     border-color: rgba(197, 160, 50, 0.6);
@@ -2785,6 +2789,9 @@
     var verse = next.getAttribute('data-v');
     setActiveVerse(verse, false);
     var target = getVerseElement(currentBook, currentChapter, verse);
+    if (target) {
+      try { target.focus({ preventScroll: true }); } catch (e) { target.focus(); }
+    }
     scrollVerseToCenter(target);
     return true;
   }
@@ -2798,9 +2805,15 @@
   }
 
   function handleBibleKeyboardNavigation(e) {
+    if (verseActionsDialog && verseActionsDialog.open) return;
     if (shouldIgnoreBibleShortcut(e)) return;
     var key = e.key;
     var handled = false;
+    if (uiView === 'verses' && (key === 'ContextMenu' || (key === 'F10' && e.shiftKey))) {
+      handled = openVerseActions(viewInner.querySelector('.verse.active'));
+      if (handled) e.preventDefault();
+      return;
+    }
     if (key === 'Enter') handled = uiView === 'verses' ? handleReadingEnterKey() : handleSelectionEnterKey();
     if (key === 'Escape' || key === 'Backspace' || key === 'Delete') handled = handleKeyboardBack();
     if (!handled && (key === 'ArrowLeft' || key === 'ArrowRight' || key === 'ArrowUp' || key === 'ArrowDown')) {
@@ -3033,6 +3046,7 @@
       div.setAttribute('data-v', keys[i]);
       div.setAttribute('tabindex', '-1');
       div.setAttribute('aria-label', bookName + ' ' + chapterNum + ':' + keys[i]);
+      div.setAttribute('aria-keyshortcuts', 'Shift+F10');
 
       var p = document.createElement('p');
       p.className = 'verse-reading-text';
@@ -3504,6 +3518,10 @@
     window.setTimeout(removeRipple, 340);
   });
   document.addEventListener('pointerdown', function (e) {
+    if (readerPointerState && !e.isPrimary) {
+      clearReaderPointerState();
+      return;
+    }
     if (uiView !== 'verses' || !e.isPrimary || e.button !== 0 || (e.pointerType !== 'touch' && e.pointerType !== 'pen')) return;
     if (!viewInner.contains(e.target) || e.target.closest('button,dialog,a,input,select,textarea,[role="button"],.verse-actions')) return;
     var verseEl = e.target.closest('.verse');

@@ -34,6 +34,7 @@ self.addEventListener('activate', function (e) {
 
 self.addEventListener('fetch', function (e) {
   var url = new URL(e.request.url);
+  var biblePageUrl = new URL('bible.html', self.registration.scope);
 
   if (
     e.request.method !== 'GET' ||
@@ -46,10 +47,14 @@ self.addEventListener('fetch', function (e) {
   }
 
   function cacheIfComplete(cache, request, response) {
-    if (response.status === 200) {
-      cache.put(request, response.clone());
+    if (response.status !== 200) return Promise.resolve(response);
+    try {
+      return Promise.resolve(cache.put(request, response.clone()))
+        .catch(function () {})
+        .then(function () { return response; });
+    } catch (error) {
+      return Promise.resolve(response);
     }
-    return response;
   }
 
   function cachedOrError(cache, request) {
@@ -59,8 +64,8 @@ self.addEventListener('fetch', function (e) {
   }
 
   // Preserve deep links offline without fragmenting the cache by query string.
-  if (e.request.mode === 'navigate' && url.pathname.endsWith('bible.html')) {
-    var biblePageKey = new Request(new URL('bible.html', self.registration.scope).href);
+  if (e.request.mode === 'navigate' && url.pathname === biblePageUrl.pathname) {
+    var biblePageKey = new Request(biblePageUrl.href);
     e.respondWith(
       caches.open(CACHE_NAME).then(function (cache) {
         return fetch(e.request)
