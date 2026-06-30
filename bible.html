@@ -1426,6 +1426,11 @@
   var fabMain = document.getElementById('fab-main');
   var fabPanel = document.getElementById('fab-panel');
   var historyMenu = document.getElementById('history-menu');
+  var statusLive = document.getElementById('status-live');
+  var verseActionsDialog = document.getElementById('verse-actions');
+  var verseActionsTitle = document.getElementById('verse-actions-title');
+  var copyVerseButton = document.getElementById('copy-verse');
+  var shareVerseButton = document.getElementById('share-verse');
   document.getElementById('app-version').textContent = APP_VERSION;
   var bottomChromeResizeObserver = null;
 
@@ -1452,6 +1457,8 @@
   var chapterCrossfadeTimer = null;
   var preservingChapterCrossfade = false;
   var readerPointerState = null;
+  var readerLongPressTimer = null;
+  var READER_LONG_PRESS_MS = 500;
   var suppressReaderClick = null;
   var suppressReaderClickTimer = null;
   var lastViewScrollTop = 0;
@@ -1459,6 +1466,9 @@
   var uiView = 'books';
   var booksHTML = null;
   var searchIndex = null;
+  var verseActionTarget = null;
+  var verseActionGeneration = 0;
+  var verseActionInFlight = false;
 
   // ===================== DROPDOWN MANAGER =====================
   var openMenu = null;
@@ -2040,6 +2050,206 @@
     return verses && Object.prototype.hasOwnProperty.call(verses, verseKey) ? verseKey : null;
   }
 
+  function normalizeVerseReference(book, chapter, verse) {
+    if (typeof book !== 'string' || book.length === 0 || book.length > 80 ||
+        !/^\d{1,3}$/.test(String(chapter)) || String(chapter).length > 4 ||
+        !/^\d{1,3}$/.test(String(verse)) || String(verse).length > 4 ||
+        !Object.prototype.hasOwnProperty.call(bibleData || {}, book)) return null;
+    var chapterKey = String(chapter);
+    var chapters = bibleData[book];
+    if (!chapters || !Object.prototype.hasOwnProperty.call(chapters, chapterKey)) return null;
+    var verseKey = String(verse);
+    var verses = chapters[chapterKey];
+    if (!verses || !Object.prototype.hasOwnProperty.call(verses, verseKey)) return null;
+    return { book: book, chapter: parseInt(chapterKey, 10), verse: verseKey };
+  }
+
+  function normalizeBookChapter(book, chapter) {
+    if (typeof book !== 'string' || book.length === 0 || book.length > 80 ||
+        !/^\d{1,3}$/.test(String(chapter)) || String(chapter).length > 4 ||
+        !Object.prototype.hasOwnProperty.call(bibleData || {}, book)) return null;
+    var chapterKey = String(chapter);
+    if (!Object.prototype.hasOwnProperty.call(bibleData[book], chapterKey)) return null;
+    return { book: book, chapter: parseInt(chapterKey, 10) };
+  }
+
+  function parseVerseReferenceQuery(search) {
+    if (!bibleData) return null;
+    var params;
+    var rawSearch = search == null ? window.location.search : String(search);
+    if (rawSearch.length === 0 || rawSearch.length > 256) return null;
+    try {
+      params = new URLSearchParams(rawSearch);
+    } catch (e) {
+      return null;
+    }
+    var allowed = { book: true, chapter: true, verse: true };
+    var count = 0;
+    var invalidKey = false;
+    params.forEach(function (_value, key) {
+      count++;
+      if (!Object.prototype.hasOwnProperty.call(allowed, key)) invalidKey = true;
+    });
+    if (invalidKey || count !== 3 ||
+        params.getAll('book').length !== 1 ||
+        params.getAll('chapter').length !== 1 ||
+        params.getAll('verse').length !== 1) return null;
+    var book = params.get('book');
+    var chapter = params.get('chapter');
+    var verse = params.get('verse');
+    if (book == null || chapter == null || verse == null ||
+        book.length > 80 || chapter.length > 4 || verse.length > 4) return null;
+    return normalizeVerseReference(book, chapter, verse);
+  }
+
+  function cleanBibleUrl() {
+    var url = new URL(window.location.href);
+    url.search = '';
+    url.hash = '';
+    return url.href;
+  }
+
+  function canonicalVerseUrl(book, chapter, verse) {
+    var reference = normalizeVerseReference(book, chapter, verse);
+    if (!reference) return null;
+    var url = new URL(cleanBibleUrl());
+    url.searchParams.set('book', reference.book);
+    url.searchParams.set('chapter', String(reference.chapter));
+    url.searchParams.set('verse', reference.verse);
+    return url.href;
+  }
+
+  function verseElementId(book, chapter, verse) {
+    return 'bible-verse-' + encodeURIComponent(String(book)) + '-' +
+      encodeURIComponent(String(chapter)) + '-' + encodeURIComponent(String(verse));
+  }
+
+  function getVerseElement(book, chapter, verse) {
+    var el = document.getElementById(verseElementId(book, chapter, verse));
+    return el && viewInner.contains(el) && el.classList.contains('verse') ? el : null;
+  }
+
+  function renderedVerseText(verseEl) {
+    if (!verseEl) return '';
+    var readingText = verseEl.querySelector('.verse-reading-text');
+    if (!readingText) return '';
+    var copy = readingText.cloneNode(true);
+    var excluded = copy.querySelectorAll('.verse-num,.footnote-toggle');
+    for (var i = 0; i < excluded.length; i++) excluded[i].remove();
+    return String(copy.textContent || '').replace(/\s+/g, ' ').trim();
+  }
+
+  function verseActionPayload(verseEl) {
+    if (!verseEl || !verseEl.isConnected || !viewInner.contains(verseEl) ||
+        !verseEl.classList.contains('active')) return null;
+    var verse = validChapterVerse(currentBook, currentChapter, verseEl.getAttribute('data-v'));
+    var text = renderedVerseText(verseEl);
+    var url = verse && canonicalVerseUrl(currentBook, currentChapter, verse);
+    if (!verse || !text || !url) return null;
+    var reference = currentBook + ' ' + currentChapter + ':' + verse;
+    return {
+      reference: reference,
+      text: text,
+      copy: reference + ' \u2014 ' + text,
+      url: url
+    };
+  }
+
+  function announceStatus(message) {
+    if (!statusLive) return;
+    statusLive.textContent = '';
+    window.requestAnimationFrame(function () {
+      statusLive.textContent = String(message || '');
+    });
+  }
+
+  function writeClipboardText(text) {
+    var value = String(text);
+    try {
+      if (navigator.clipboard && typeof navigator.clipboard.writeText === 'function') {
+        return Promise.resolve(navigator.clipboard.writeText(value));
+      }
+    } catch (e) {
+      return Promise.reject(e);
+    }
+    return new Promise(function (resolve, reject) {
+      var previousFocus = document.activeElement;
+      var textarea = document.createElement('textarea');
+      textarea.value = value;
+      textarea.readOnly = true;
+      textarea.setAttribute('aria-hidden', 'true');
+      textarea.style.position = 'fixed';
+      textarea.style.left = '-9999px';
+      textarea.style.top = '0';
+      document.body.appendChild(textarea);
+      var copied = false;
+      try {
+        textarea.focus({ preventScroll: true });
+        textarea.select();
+        copied = !!document.execCommand('copy');
+      } catch (error) {
+        reject(error);
+        return;
+      } finally {
+        textarea.remove();
+        if (previousFocus && previousFocus.isConnected && typeof previousFocus.focus === 'function') {
+          try { previousFocus.focus({ preventScroll: true }); } catch (_focusError) { previousFocus.focus(); }
+        }
+      }
+      if (copied) resolve();
+      else reject(new Error('Clipboard copy was not available.'));
+    });
+  }
+
+  function restoreVerseActionFocus(target) {
+    if (!target || !target.isConnected || typeof target.focus !== 'function') return;
+    try { target.focus({ preventScroll: true }); } catch (e) { target.focus(); }
+  }
+
+  function clearVerseActionState() {
+    var target = verseActionTarget;
+    verseActionTarget = null;
+    verseActionInFlight = false;
+    verseActionGeneration++;
+    restoreVerseActionFocus(target);
+  }
+
+  function closeVerseActions() {
+    if (!verseActionsDialog) return;
+    if (verseActionsDialog.open) verseActionsDialog.close();
+    else if (verseActionTarget) clearVerseActionState();
+  }
+
+  function openVerseActions(verseEl) {
+    var payload = verseActionPayload(verseEl);
+    if (!payload || !verseActionsDialog || typeof verseActionsDialog.showModal !== 'function') return false;
+    if (verseActionsDialog.open) closeVerseActions();
+    verseActionTarget = verseEl;
+    verseActionInFlight = false;
+    verseActionGeneration++;
+    verseActionsTitle.textContent = payload.reference;
+    try {
+      verseActionsDialog.showModal();
+    } catch (e) {
+      clearVerseActionState();
+      announceStatus('Verse actions are unavailable.');
+      return false;
+    }
+    return true;
+  }
+
+  function currentVerseAction(token) {
+    if (token !== verseActionGeneration || !verseActionsDialog || !verseActionsDialog.open) return null;
+    return verseActionPayload(verseActionTarget);
+  }
+
+  function finishVerseAction(token, message, shouldClose) {
+    if (!currentVerseAction(token)) return;
+    verseActionInFlight = false;
+    if (shouldClose) closeVerseActions();
+    if (message) announceStatus(message);
+  }
+
   function isCurrentVersesView(book, chapter) {
     return uiView === 'verses' && currentBook === book &&
       String(currentChapter) === String(chapter) && !!getChapterData(book, chapter);
@@ -2123,6 +2333,8 @@
   }
 
   function clearReaderPointerState() {
+    if (readerLongPressTimer) window.clearTimeout(readerLongPressTimer);
+    readerLongPressTimer = null;
     readerPointerState = null;
   }
 
@@ -2145,6 +2357,7 @@
   }
 
   function prepareToLeaveReadingView() {
+    closeVerseActions();
     clearReaderPointerState();
     clearVerseHighlightTimers();
     if (uiView === 'verses') rememberCurrentChapterPosition();
@@ -2239,7 +2452,7 @@
     if (!verse || uiView !== 'verses') return;
     var nextVerse = validChapterVerse(currentBook, currentChapter, verse);
     if (!nextVerse) return;
-    var target = viewInner.querySelector('[data-v="' + nextVerse + '"]');
+    var target = getVerseElement(currentBook, currentChapter, nextVerse);
     if (!target) return;
     var prev = viewInner.querySelector('.verse.active');
     if (prev) prev.classList.remove('active');
@@ -2304,6 +2517,8 @@
   }
 
   function showViewWithTransition(renderView) {
+    closeVerseActions();
+    clearReaderPointerState();
     if (shouldReduceChapterMotion() || !viewInner.children.length) {
       clearChapterCrossfadeTimer();
       clearRetiringChapterViews();
@@ -2363,6 +2578,8 @@
   }
 
   function showVersesViewWithTransition(bookName, chapterNum, scrollToVerse) {
+    closeVerseActions();
+    clearReaderPointerState();
     if (uiView !== 'verses' || shouldReduceChapterMotion()) {
       clearChapterCrossfadeTimer();
       clearRetiringChapterViews();
@@ -2565,7 +2782,7 @@
     if (!next) return false;
     var verse = next.getAttribute('data-v');
     setActiveVerse(verse, false);
-    var target = viewInner.querySelector('[data-v="' + verse + '"]');
+    var target = getVerseElement(currentBook, currentChapter, verse);
     scrollVerseToCenter(target);
     return true;
   }
@@ -2592,7 +2809,15 @@
 
   // ===================== BROWSER HISTORY =====================
   var navFromPop = false;
-  function pushNav(state) { if (!navFromPop) history.pushState(state, ''); }
+  function pushNav(state) {
+    if (navFromPop) return;
+    var url = cleanBibleUrl();
+    if (state && state.view === 'verses') {
+      var reference = normalizeVerseReference(state.book, state.chapter, state.verse);
+      if (reference) url = canonicalVerseUrl(reference.book, reference.chapter, reference.verse);
+    }
+    history.pushState(state, '', url);
+  }
   window.addEventListener('popstate', function (e) {
     if (!bibleData) return;
     var s = e.state;
@@ -2611,9 +2836,12 @@
       return;
     }
     navFromPop = true;
-    if (s && s.view === 'verses' && s.book && s.chapter) showSelectedVerseWithTransition(s.book, s.chapter, s.verse);
-    else if (s && s.view === 'verse-picker' && s.book && s.chapter) showVersePickerViewWithTransition(s.book, s.chapter);
-    else if (s && s.view === 'chapters' && s.book) showChaptersViewWithTransition(s.book);
+    var poppedVerse = s && s.view === 'verses' ? normalizeVerseReference(s.book, s.chapter, s.verse) : null;
+    var poppedChapter = s && (s.view === 'verse-picker' || s.view === 'chapters') ?
+      normalizeBookChapter(s.book, s.chapter || '1') : null;
+    if (poppedVerse) showSelectedVerseWithTransition(poppedVerse.book, poppedVerse.chapter, poppedVerse.verse);
+    else if (s && s.view === 'verse-picker' && poppedChapter) showVersePickerViewWithTransition(poppedChapter.book, poppedChapter.chapter);
+    else if (s && s.view === 'chapters' && poppedChapter) showChaptersViewWithTransition(poppedChapter.book);
     else if (s && s.view === 'search') showSearchViewWithTransition();
     else showBooksViewWithTransition();
     navFromPop = false;
@@ -2799,9 +3027,13 @@
       var segments = parseVerse(verses[keys[i]]);
       var div = document.createElement('div');
       div.className = 'verse';
+      div.id = verseElementId(bookName, chapterNum, keys[i]);
       div.setAttribute('data-v', keys[i]);
+      div.setAttribute('tabindex', '-1');
+      div.setAttribute('aria-label', bookName + ' ' + chapterNum + ':' + keys[i]);
 
       var p = document.createElement('p');
+      p.className = 'verse-reading-text';
       var sup = document.createElement('span');
       sup.className = 'verse-num';
       sup.textContent = keys[i];
@@ -2861,7 +3093,7 @@
     if (validChapterVerse(bookName, chapterNum, scrollToVerse)) {
       requestAnimationFrame(function () {
         if (!isCurrentVersesView(bookName, chapterNum)) return;
-        var target = viewInner.querySelector('[data-v="' + selectedVerse + '"]');
+        var target = getVerseElement(bookName, chapterNum, selectedVerse);
         if (target) {
           clearVerseHighlightTimers();
           setActiveVerse(selectedVerse, false);
@@ -3165,6 +3397,66 @@
     list.appendChild(li);
   }
   // ===================== NAV HANDLERS =====================
+  if (verseActionsDialog) {
+    verseActionsDialog.addEventListener('close', clearVerseActionState);
+    verseActionsDialog.addEventListener('click', function (e) {
+      if (e.target === verseActionsDialog) closeVerseActions();
+    });
+  }
+  if (copyVerseButton) {
+    copyVerseButton.addEventListener('click', function () {
+      if (verseActionInFlight) return;
+      var token = verseActionGeneration;
+      var payload = currentVerseAction(token);
+      if (!payload) {
+        announceStatus('Select an active verse first.');
+        return;
+      }
+      verseActionInFlight = true;
+      writeClipboardText(payload.copy).then(function () {
+        finishVerseAction(token, 'Verse copied.', true);
+      }).catch(function () {
+        finishVerseAction(token, 'Unable to copy the verse. Try again.', false);
+      });
+    });
+  }
+  if (shareVerseButton) {
+    shareVerseButton.addEventListener('click', function () {
+      if (verseActionInFlight) return;
+      var token = verseActionGeneration;
+      var payload = currentVerseAction(token);
+      if (!payload) {
+        announceStatus('Select an active verse first.');
+        return;
+      }
+      verseActionInFlight = true;
+      if (typeof navigator.share === 'function') {
+        var sharePromise;
+        try {
+          sharePromise = navigator.share({
+            title: payload.reference,
+            text: payload.text,
+            url: payload.url
+          });
+        } catch (error) {
+          finishVerseAction(token, 'Unable to share the verse. Try again.', false);
+          return;
+        }
+        Promise.resolve(sharePromise).then(function () {
+          finishVerseAction(token, 'Verse shared.', true);
+        }).catch(function (error) {
+          if (error && error.name === 'AbortError') finishVerseAction(token, '', true);
+          else finishVerseAction(token, 'Unable to share the verse. Try again.', false);
+        });
+        return;
+      }
+      writeClipboardText(payload.url).then(function () {
+        finishVerseAction(token, 'Verse link copied.', true);
+      }).catch(function () {
+        finishVerseAction(token, 'Unable to copy the verse link. Try again.', false);
+      });
+    });
+  }
   fnPrev.addEventListener('click', function () {
     showAdjacentChapter(-1);
   });
@@ -3213,20 +3505,42 @@
     if (uiView !== 'verses' || !e.isPrimary || e.button !== 0 || (e.pointerType !== 'touch' && e.pointerType !== 'pen')) return;
     if (!viewInner.contains(e.target) || e.target.closest('button,dialog,a,input,select,textarea,[role="button"],.verse-actions')) return;
     var verseEl = e.target.closest('.verse');
+    clearReaderPointerState();
     readerPointerState = {
       id: e.pointerId,
       x: e.clientX,
       y: e.clientY,
+      pointerType: e.pointerType,
       target: e.target,
       verse: verseEl,
       moved: false
     };
+    if (verseEl && verseEl.classList.contains('active')) {
+      var longPressState = readerPointerState;
+      readerLongPressTimer = window.setTimeout(function () {
+        readerLongPressTimer = null;
+        if (readerPointerState !== longPressState || longPressState.moved ||
+            uiView !== 'verses' || !longPressState.verse.isConnected ||
+            !longPressState.verse.classList.contains('active')) return;
+        suppressFollowingReaderClick({
+          pointerType: longPressState.pointerType,
+          clientX: longPressState.x,
+          clientY: longPressState.y
+        }, longPressState.verse);
+        openVerseActions(longPressState.verse);
+        clearReaderPointerState();
+      }, READER_LONG_PRESS_MS);
+    }
   });
   document.addEventListener('pointermove', function (e) {
     if (!readerPointerState || readerPointerState.id !== e.pointerId) return;
     var dx = e.clientX - readerPointerState.x;
     var dy = e.clientY - readerPointerState.y;
-    if (Math.sqrt((dx * dx) + (dy * dy)) > 10) readerPointerState.moved = true;
+    if (Math.sqrt((dx * dx) + (dy * dy)) > 10) {
+      readerPointerState.moved = true;
+      if (readerLongPressTimer) window.clearTimeout(readerLongPressTimer);
+      readerLongPressTimer = null;
+    }
   }, { passive: true });
   document.addEventListener('pointerup', function (e) {
     if (!readerPointerState || readerPointerState.id !== e.pointerId) return;
@@ -3277,6 +3591,13 @@
     if (verseEl.classList.contains('active')) toggleAllVerseFootnotes(verseEl);
     else setActiveVerse(verseEl.getAttribute('data-v'), true);
   });
+  document.addEventListener('contextmenu', function (e) {
+    if (uiView !== 'verses' || e.target.closest('button,dialog,a,input,select,textarea,[role="button"],.verse-actions')) return;
+    var verseEl = e.target.closest('.verse');
+    if (!verseEl || !viewInner.contains(verseEl) || !verseEl.classList.contains('active')) return;
+    e.preventDefault();
+    openVerseActions(verseEl);
+  });
   viewEl.addEventListener('scroll', function () {
     scheduleBottomChromeScrollUpdate();
     requestAnimationFrame(updateActiveVerseFromViewport);
@@ -3313,10 +3634,28 @@
     }
     bibleData = xhr.response;
     initNavAnchor();
-    history.replaceState({ view: 'books' }, '');
+    var hasReferenceQuery = window.location.search.length > 0;
+    var linkedReference = hasReferenceQuery ? parseVerseReferenceQuery(window.location.search) : null;
+    if (linkedReference) {
+      history.replaceState({
+        view: 'verses',
+        book: linkedReference.book,
+        chapter: linkedReference.chapter,
+        verse: linkedReference.verse
+      }, '', canonicalVerseUrl(linkedReference.book, linkedReference.chapter, linkedReference.verse));
+    } else if (hasReferenceQuery) {
+      history.replaceState({ view: 'books' }, '', cleanBibleUrl());
+    } else {
+      history.replaceState({ view: 'books' }, '');
+    }
     navFromPop = true;
-    showBooksView();
+    if (linkedReference) {
+      showVersesView(linkedReference.book, linkedReference.chapter, linkedReference.verse);
+    } else {
+      showBooksView();
+    }
     navFromPop = false;
+    if (hasReferenceQuery && !linkedReference) announceStatus('That Bible link is invalid. Showing books instead.');
   };
 
   xhr.onerror = function () {

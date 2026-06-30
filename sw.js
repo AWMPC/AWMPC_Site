@@ -58,6 +58,25 @@ self.addEventListener('fetch', function (e) {
     });
   }
 
+  // Preserve deep links offline without fragmenting the cache by query string.
+  if (e.request.mode === 'navigate' && url.pathname.endsWith('bible.html')) {
+    var biblePageKey = new Request(new URL('bible.html', self.registration.scope).href);
+    e.respondWith(
+      caches.open(CACHE_NAME).then(function (cache) {
+        return fetch(e.request)
+          .then(function (response) {
+            return cacheIfComplete(cache, biblePageKey, response);
+          })
+          .catch(function () {
+            return cache.match(biblePageKey, { ignoreSearch: true }).then(function (cached) {
+              return cached || Response.error();
+            });
+          });
+      })
+    );
+    return;
+  }
+
   // bible.json must be network-first: cache-on-hit was serving stale JSON forever
   // (cached || fetch never reached the network when any cached Response existed).
   if (url.pathname.endsWith('bible.json')) {
