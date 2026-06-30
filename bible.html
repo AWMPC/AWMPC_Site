@@ -906,6 +906,20 @@
     display: none; background: var(--err-bg); color: var(--err-fg);
     padding: 12px 16px; border-radius: var(--radius-sm); margin-bottom: 16px;
     border: 1px solid color-mix(in srgb, var(--err-fg) 20%, transparent);
+    max-width: 100%; white-space: normal; overflow-wrap: anywhere;
+  }
+  #error p { margin-bottom: 10px; }
+  #error button {
+    min-height: 44px; max-width: 100%; padding: 9px 16px;
+    border: 1px solid var(--err-fg); border-radius: var(--radius-pill);
+    background: transparent; color: inherit; font: inherit; font-weight: 700;
+    cursor: pointer;
+  }
+  #error button:hover,
+  #error button:focus-visible {
+    background: color-mix(in srgb, var(--err-fg) 10%, transparent);
+    outline: 2px solid color-mix(in srgb, var(--err-fg) 45%, transparent);
+    outline-offset: 2px;
   }
   #loading.loading-skeleton {
     display: grid;
@@ -1142,7 +1156,7 @@
 
 <div id="view">
   <div class="view-inner" id="view-inner">
-    <div id="error"></div>
+    <div id="error" role="alert"></div>
     <div id="loading" class="loading-skeleton" role="status" aria-label="Loading Bible">
       <span></span>
       <span></span>
@@ -1190,7 +1204,15 @@
   db.enablePersistence({ synchronizeTabs: true }).catch(function () {});
 
   // ===================== STATE WRAPPER =====================
-  var _syncTimer = null;
+  var SYNC_DEBOUNCE_MS = 1500;
+  var SYNC_RETRY_DELAYS = [1000, 2000, 4000, 8000, 16000];
+  var _syncDebounceTimer = null;
+  var _syncRetryTimer = null;
+  var _syncInFlight = false;
+  var _activeSyncWrite = null;
+  var _syncPending = false;
+  var _syncAttempt = 0;
+  var _syncGeneration = 0;
   var _currentUid = null;
 
   function _userDoc() {
@@ -1202,27 +1224,121 @@
     if (_syncStatusEl) setMarqueeText(_syncStatusEl, text);
   }
 
+  function _clearSyncTimers() {
+    if (_syncDebounceTimer !== null) clearTimeout(_syncDebounceTimer);
+    if (_syncRetryTimer !== null) clearTimeout(_syncRetryTimer);
+    _syncDebounceTimer = null;
+    _syncRetryTimer = null;
+  }
+
+  function _resetSyncForUser(uid) {
+    _clearSyncTimers();
+    _syncGeneration += 1;
+    _currentUid = uid || null;
+    _syncInFlight = false;
+    _syncPending = false;
+    _syncAttempt = 0;
+  }
+
+  function _jitteredSyncDelay(delay) {
+    return Math.round(delay * (0.8 + Math.random() * 0.4));
+  }
+
+  function _isPermanentSyncError(error) {
+    var code = error && typeof error.code === 'string' ? error.code : '';
+    code = code.indexOf('/') >= 0 ? code.slice(code.lastIndexOf('/') + 1) : code;
+    return code === 'permission-denied' || code === 'unauthenticated' || code === 'invalid-argument';
+  }
+
+  function _syncPayload() {
+    return {
+      themeMode: State.getThemeMode(),
+      season: State.getSeason(),
+      font: State.getDisplayStep(),
+      history: State.getHistory(),
+      searchHistory: State.getSearchHistory(),
+      updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+    };
+  }
+
+  function _queueSync(delay, retry) {
+    if (!_currentUid || !_syncPending || _syncInFlight) return;
+    if (!navigator.onLine) {
+      _setSyncStatus('Offline \u2014 will sync later');
+      return;
+    }
+    if (retry) {
+      if (_syncRetryTimer !== null) return;
+      if (_syncDebounceTimer !== null) {
+        clearTimeout(_syncDebounceTimer);
+        _syncDebounceTimer = null;
+      }
+      _syncRetryTimer = setTimeout(function () {
+        _syncRetryTimer = null;
+        _runSync();
+      }, delay);
+      return;
+    }
+    if (_syncRetryTimer !== null) {
+      clearTimeout(_syncRetryTimer);
+      _syncRetryTimer = null;
+    }
+    if (_syncDebounceTimer !== null) clearTimeout(_syncDebounceTimer);
+    _syncDebounceTimer = setTimeout(function () {
+      _syncDebounceTimer = null;
+      _runSync();
+    }, delay);
+  }
+
   function _scheduleSync() {
     if (!_currentUid) return;
-    clearTimeout(_syncTimer);
-    _setSyncStatus('Pending\u2026');
-    _syncTimer = setTimeout(function () {
-      var doc = _userDoc();
-      if (!doc) return;
-      _setSyncStatus('Syncing\u2026');
-      doc.set({
-        themeMode: State.getThemeMode(),
-        season: State.getSeason(),
-        font: State.getDisplayStep(),
-        history: State.getHistory(),
-        searchHistory: State.getSearchHistory(),
-        updatedAt: firebase.firestore.FieldValue.serverTimestamp()
-      }, { merge: true }).then(function () {
-        _setSyncStatus('Synced \u2713');
-      }).catch(function () {
+    _syncPending = true;
+    if (_syncAttempt >= SYNC_RETRY_DELAYS.length) _syncAttempt = 0;
+    _setSyncStatus(navigator.onLine ? 'Pending\u2026' : 'Offline \u2014 will sync later');
+    _queueSync(SYNC_DEBOUNCE_MS, false);
+  }
+
+  function _runSync() {
+    if (!_currentUid || !_syncPending || _syncInFlight || _activeSyncWrite) return;
+    if (!navigator.onLine) {
+      _setSyncStatus('Offline \u2014 will sync later');
+      return;
+    }
+    var uid = _currentUid;
+    var generation = _syncGeneration;
+    var doc = _userDoc();
+    if (!doc) return;
+    _syncInFlight = true;
+    _syncPending = false;
+    _setSyncStatus('Syncing\u2026');
+    _activeSyncWrite = doc.set(_syncPayload(), { merge: true });
+    _activeSyncWrite.then(function () {
+      _activeSyncWrite = null;
+      if (generation !== _syncGeneration || uid !== _currentUid) return;
+      _syncInFlight = false;
+      _syncAttempt = 0;
+      _setSyncStatus('Synced \u2713');
+      if (_syncPending) _queueSync(SYNC_DEBOUNCE_MS, false);
+    }).catch(function (error) {
+      _activeSyncWrite = null;
+      if (generation !== _syncGeneration || uid !== _currentUid) return;
+      _syncInFlight = false;
+      if (_isPermanentSyncError(error)) {
+        _syncPending = false;
+        _syncAttempt = 0;
+        _setSyncStatus('Sync unavailable');
+        return;
+      }
+      _syncPending = true;
+      if (!navigator.onLine || _syncAttempt >= SYNC_RETRY_DELAYS.length) {
         _setSyncStatus('Offline \u2014 will sync later');
-      });
-    }, 1500);
+        return;
+      }
+      var delay = _jitteredSyncDelay(SYNC_RETRY_DELAYS[_syncAttempt]);
+      _syncAttempt += 1;
+      _setSyncStatus('Sync delayed \u2014 retrying\u2026');
+      _queueSync(delay, true);
+    });
   }
 
   var State = {
@@ -1839,7 +1955,9 @@
   }
 
   auth.onAuthStateChanged(function (user) {
-    _currentUid = user ? user.uid : null;
+    _resetSyncForUser(user ? user.uid : null);
+    var authGeneration = _syncGeneration;
+    var authUid = _currentUid;
 
     if (user) {
       fabMain.textContent = '';
@@ -1856,6 +1974,7 @@
 
     if (user) {
       _userDoc().get().then(function (snap) {
+        if (authGeneration !== _syncGeneration || authUid !== _currentUid) return;
         if (snap.exists) {
           var cloud = snap.data();
           var localHasData = State.getHistory().length > 0;
@@ -1883,12 +2002,23 @@
   });
 
   window.addEventListener('online', function () {
-    if (_currentUid) { _setSyncStatus('Back online \u2014 syncing\u2026'); _scheduleSync(); }
+    if (_currentUid) {
+      _syncAttempt = 0;
+      _syncPending = true;
+      if (_syncRetryTimer !== null) clearTimeout(_syncRetryTimer);
+      _syncRetryTimer = null;
+      _setSyncStatus('Back online \u2014 syncing\u2026');
+      _queueSync(0, false);
+    }
   });
   window.addEventListener('offline', function () {
-    if (_currentUid) _setSyncStatus('Offline \u2014 will sync later');
+    if (_currentUid) {
+      _clearSyncTimers();
+      _setSyncStatus('Offline \u2014 will sync later');
+    }
   });
   window.addEventListener('pagehide', function () {
+    _clearSyncTimers();
     if (uiView === 'verses') rememberCurrentChapterPosition();
     flushChapterPositions();
     cancelHistorySettle();
@@ -3649,19 +3779,11 @@
   // ===================== LOAD DATA =====================
   observeBottomChromeClearance();
 
-  var xhr = new XMLHttpRequest();
-  xhr.open('GET', 'bible.json', true);
-  xhr.responseType = 'json';
+  var bibleLoadRequest = null;
+  var bibleLoadGeneration = 0;
+  var bibleStartupComplete = false;
 
-  xhr.onload = function () {
-    loadingEl.style.display = 'none';
-    if (xhr.status !== 200 || !xhr.response) {
-      errorEl.style.display = 'block';
-      errorEl.textContent = 'Failed to load bible.json (status ' + xhr.status + ').';
-      return;
-    }
-    bibleData = xhr.response;
-    initNavAnchor();
+  function openInitialViewFromUrl() {
     var hasReferenceQuery = window.location.search.length > 0;
     var linkedReference = hasReferenceQuery ? parseVerseReferenceQuery(window.location.search) : null;
     if (linkedReference) {
@@ -3684,15 +3806,62 @@
     }
     navFromPop = false;
     if (hasReferenceQuery && !linkedReference) announceStatus('That Bible link is invalid. Showing books instead.');
-  };
+  }
 
-  xhr.onerror = function () {
+  function showLoadError(message) {
     loadingEl.style.display = 'none';
+    errorEl.textContent = '';
     errorEl.style.display = 'block';
-    errorEl.textContent = 'Network error loading bible.json.';
-  };
+    var errorMessage = document.createElement('p');
+    errorMessage.textContent = message;
+    var retryButton = document.createElement('button');
+    retryButton.type = 'button';
+    retryButton.textContent = 'Retry';
+    retryButton.addEventListener('click', function () {
+      loadBibleData();
+    }, { once: true });
+    errorEl.appendChild(errorMessage);
+    errorEl.appendChild(retryButton);
+  }
 
-  xhr.send();
+  function loadBibleData() {
+    if (bibleLoadRequest || bibleStartupComplete) return;
+    bibleLoadGeneration += 1;
+    var generation = bibleLoadGeneration;
+    errorEl.textContent = '';
+    errorEl.style.display = 'none';
+    loadingEl.style.display = 'grid';
+
+    var xhr = new XMLHttpRequest();
+    bibleLoadRequest = xhr;
+    xhr.open('GET', 'bible.json', true);
+    xhr.responseType = 'json';
+
+    xhr.onload = function () {
+      if (generation !== bibleLoadGeneration || bibleLoadRequest !== xhr) return;
+      bibleLoadRequest = null;
+      if (xhr.status !== 200 || !xhr.response) {
+        showLoadError('Unable to load Bible data.');
+        return;
+      }
+      loadingEl.style.display = 'none';
+      bibleData = xhr.response;
+      initNavAnchor();
+      if (bibleStartupComplete) return;
+      bibleStartupComplete = true;
+      openInitialViewFromUrl();
+    };
+
+    xhr.onerror = function () {
+      if (generation !== bibleLoadGeneration || bibleLoadRequest !== xhr) return;
+      bibleLoadRequest = null;
+      showLoadError('Network error while loading Bible data.');
+    };
+
+    xhr.send();
+  }
+
+  loadBibleData();
 
   if ('serviceWorker' in navigator) {
     navigator.serviceWorker.register('sw.js').catch(function () {});
