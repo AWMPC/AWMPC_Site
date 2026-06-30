@@ -1206,8 +1206,16 @@
   // ===================== STATE WRAPPER =====================
   var SYNC_DEBOUNCE_MS = 1500;
   var SYNC_RETRY_DELAYS = [1000, 2000, 4000, 8000, 16000];
+  var HYDRATION_RETRY_DELAYS = [1000, 2000, 4000, 8000, 16000];
   var LOCAL_OWNER_KEY = 'bible_local_owner_uid';
   var LOCAL_DIRTY_KEY = 'bible_sync_dirty_uid';
+  var LOCAL_DIRTY_FIELDS_KEY = 'bible_sync_dirty_fields';
+  var SYNC_FIELDS = ['themeMode', 'season', 'font', 'history', 'searchHistory'];
+  var LOCAL_KEY_TO_SYNC_FIELD = {
+    bible_theme_mode: 'themeMode', bible_dark: 'themeMode',
+    bible_season: 'season', bible_font_step: 'font', bible_large_font: 'font',
+    bible_history: 'history', bible_search_hist: 'searchHistory'
+  };
   var SYNCED_LOCAL_KEYS = [
     'bible_theme_mode', 'bible_dark',
     'bible_season',
@@ -1229,8 +1237,12 @@
   var _syncHydrationInFlight = false;
   var _syncHydrationAuthoritative = false;
   var _syncHydrationCacheOnly = false;
+  var _hydrationRetryTimer = null;
+  var _hydrationRetryAttempt = 0;
+  var _hydrationRetryExhausted = false;
   var _retryCurrentHydration = null;
   var _localRevision = 0;
+  var _localFieldRevisions = { themeMode: 0, season: 0, font: 0, history: 0, searchHistory: 0 };
   var _currentUid = null;
   var _syncedLocalStateQuarantined = !!_localOwnerUid();
 
@@ -1251,10 +1263,61 @@
   function _localOwnerUid() { return _readLocalUid(LOCAL_OWNER_KEY); }
   function _dirtySyncUid() { return _readLocalUid(LOCAL_DIRTY_KEY); }
   function _setLocalOwnerUid(uid) { _writeLocalUid(LOCAL_OWNER_KEY, uid); }
-  function _setDirtySyncUid(uid) { _writeLocalUid(LOCAL_DIRTY_KEY, uid); }
+  function _setDirtySyncUid(uid) {
+    _writeLocalUid(LOCAL_DIRTY_KEY, uid);
+    if (!uid) { try { localStorage.removeItem(LOCAL_DIRTY_FIELDS_KEY); } catch (error) {} }
+  }
 
   function _clearDirtySyncUid(uid) {
-    if (_dirtySyncUid() === uid) _setDirtySyncUid(null);
+    if (_dirtySyncUid() === uid) {
+      _setDirtySyncUid(null);
+      try { localStorage.removeItem(LOCAL_DIRTY_FIELDS_KEY); } catch (error) {}
+    }
+  }
+
+  function _dirtySyncFields(uid) {
+    if (!uid || _dirtySyncUid() !== uid) return [];
+    try {
+      var marker = JSON.parse(localStorage.getItem(LOCAL_DIRTY_FIELDS_KEY) || 'null');
+      if (!marker || marker.uid !== uid || !Array.isArray(marker.fields)) return [];
+      return marker.fields.filter(function (field, index, fields) {
+        return SYNC_FIELDS.indexOf(field) !== -1 && fields.indexOf(field) === index;
+      });
+    } catch (error) { return []; }
+  }
+
+  function _setDirtySyncFields(uid, fields) {
+    fields = fields.filter(function (field, index) {
+      return SYNC_FIELDS.indexOf(field) !== -1 && fields.indexOf(field) === index;
+    });
+    if (!uid || !fields.length) { _clearDirtySyncUid(uid); return; }
+    _setDirtySyncUid(uid);
+    try { localStorage.setItem(LOCAL_DIRTY_FIELDS_KEY, JSON.stringify({ uid: uid, fields: fields })); } catch (error) {}
+  }
+
+  function _markDirtySyncField(uid, field) {
+    if (!uid || SYNC_FIELDS.indexOf(field) === -1) return;
+    var fields = _dirtySyncFields(uid);
+    if (fields.indexOf(field) === -1) fields.push(field);
+    _setDirtySyncFields(uid, fields);
+  }
+
+  function _presentSyncedLocalFields() {
+    var fields = [];
+    Object.keys(LOCAL_KEY_TO_SYNC_FIELD).forEach(function (key) {
+      try {
+        var field = LOCAL_KEY_TO_SYNC_FIELD[key];
+        if (localStorage.getItem(key) !== null && fields.indexOf(field) === -1) fields.push(field);
+      } catch (error) {}
+    });
+    return fields;
+  }
+
+  function _clearSyncedFieldsExcept(keptFields) {
+    SYNCED_LOCAL_KEYS.forEach(function (key) {
+      if (keptFields.indexOf(LOCAL_KEY_TO_SYNC_FIELD[key]) !== -1) return;
+      try { localStorage.removeItem(key); } catch (error) {}
+    });
   }
 
   function _hasSyncedLocalState() {
@@ -1286,8 +1349,10 @@
   function _clearSyncTimers() {
     if (_syncDebounceTimer !== null) clearTimeout(_syncDebounceTimer);
     if (_syncRetryTimer !== null) clearTimeout(_syncRetryTimer);
+    if (_hydrationRetryTimer !== null) clearTimeout(_hydrationRetryTimer);
     _syncDebounceTimer = null;
     _syncRetryTimer = null;
+    _hydrationRetryTimer = null;
   }
 
   function _resetSyncForUser(uid) {
@@ -1305,6 +1370,8 @@
     _syncHydrationInFlight = false;
     _syncHydrationAuthoritative = false;
     _syncHydrationCacheOnly = false;
+    _hydrationRetryAttempt = 0;
+    _hydrationRetryExhausted = false;
     _retryCurrentHydration = null;
   }
 
@@ -1349,9 +1416,9 @@
     };
   }
 
-  function _markCurrentStateDirty() {
+  function _markCurrentStateDirty(field) {
     var ownerUid = _currentUid || _localOwnerUid();
-    if (ownerUid) _setDirtySyncUid(ownerUid);
+    if (ownerUid) _markDirtySyncField(ownerUid, field);
   }
 
   function _queueSync(delay, retry) {
@@ -1387,14 +1454,14 @@
     }, delay);
   }
 
-  function _scheduleSync() {
+  function _scheduleSync(field) {
     if (_syncPermanentlyBlocked()) {
       _clearDirtySyncUid(_currentUid);
       _syncPending = false;
       _setSyncStatus('Sync unavailable');
       return;
     }
-    _markCurrentStateDirty();
+    _markCurrentStateDirty(field);
     if (!_currentUid || _localOwnerUid() !== _currentUid) return;
     _syncPending = true;
     _syncRetryDelayIndex = null;
@@ -1403,6 +1470,14 @@
       _syncExhausted = false;
     }
     _setSyncStatus(navigator.onLine ? 'Pending\u2026' : 'Offline \u2014 local changes safe');
+    if (!_syncHydrationAuthoritative) {
+      if (_hydrationRetryExhausted) {
+        _hydrationRetryAttempt = 0;
+        _hydrationRetryExhausted = false;
+      }
+      if (navigator.onLine && !_syncHydrationInFlight && !_hydrationRetryTimer && _retryCurrentHydration) _retryCurrentHydration();
+      return;
+    }
     _queueSync(SYNC_DEBOUNCE_MS, false);
   }
 
@@ -1436,12 +1511,16 @@
       _syncAttempt = 0;
       _syncExhausted = false;
       _syncRetryDelayIndex = null;
-      if (_syncPending || activeWrite.revision !== _localRevision) {
+      var remainingFields = _dirtySyncFields(activeWrite.uid).filter(function (field) {
+        return activeWrite.fields.indexOf(field) === -1 ||
+          _localFieldRevisions[field] !== activeWrite.fieldRevisions[field];
+      });
+      _setDirtySyncFields(activeWrite.uid, remainingFields);
+      if (_syncPending || remainingFields.length) {
         _syncPending = true;
         _setSyncStatus('Changes pending\u2026');
         _queueSync(SYNC_DEBOUNCE_MS, false);
       } else {
-        _clearDirtySyncUid(activeWrite.uid);
         _setSyncStatus('Synced \u2713');
       }
       return;
@@ -1466,7 +1545,8 @@
 
   function _runSync() {
     if (!_currentUid || !_syncPending || _syncPermanentlyBlocked() ||
-        _syncHydrationPending || _syncInFlight || _activeSyncWrite) return;
+        !_syncHydrationAuthoritative || _syncHydrationPending || _syncInFlight || _activeSyncWrite ||
+        !_dirtySyncFields(_currentUid).length) return;
     if (!navigator.onLine) {
       _setSyncStatus('Offline \u2014 local changes safe');
       return;
@@ -1482,6 +1562,8 @@
       generation: generation,
       uid: uid,
       revision: _localRevision,
+      fields: _dirtySyncFields(uid),
+      fieldRevisions: Object.assign({}, _localFieldRevisions),
       promise: doc.set(_syncPayload(), { merge: true })
     };
     _activeSyncWrite = activeWrite;
@@ -1505,7 +1587,9 @@
       }
       try { localStorage.setItem(k, JSON.stringify(v)); } catch(e) {}
       _localRevision += 1;
-      _scheduleSync();
+      var field = LOCAL_KEY_TO_SYNC_FIELD[k];
+      if (field) _localFieldRevisions[field] += 1;
+      _scheduleSync(field);
     },
 
     getThemeMode: function () {
@@ -1621,6 +1705,7 @@
       return this.normalizeChapterPositions(raw);
     },
     setChapterPositions: function (positions) {
+      if (_syncedLocalStateQuarantined) return false;
       var normalized = this.normalizeChapterPositions(positions);
       try {
         localStorage.setItem('bible_chapter_positions', JSON.stringify(normalized));
@@ -1642,20 +1727,21 @@
     },
     clearSearchHistory: function () { this._set('bible_search_hist', []); },
 
-    applyCloudData: function (data) {
+    applyCloudData: function (data, skippedFields) {
       if (!data) return;
-      if (data.themeMode === 'light' || data.themeMode === 'dark' || data.themeMode === 'auto') {
+      skippedFields = skippedFields || [];
+      if (skippedFields.indexOf('themeMode') === -1 && (data.themeMode === 'light' || data.themeMode === 'dark' || data.themeMode === 'auto')) {
         try { localStorage.setItem('bible_theme_mode', JSON.stringify(data.themeMode)); } catch(e) {}
-      } else if (typeof data.dark === 'boolean') {
+      } else if (skippedFields.indexOf('themeMode') === -1 && typeof data.dark === 'boolean') {
         try { localStorage.setItem('bible_theme_mode', JSON.stringify(data.dark ? 'dark' : 'light')); } catch(e) {}
       }
-      if (!this.hasStoredSeason() && typeof data.season === 'string' && /^(auto|spring|summer|fall|winter)$/.test(data.season)) {
+      if (skippedFields.indexOf('season') === -1 && !this.hasStoredSeason() && typeof data.season === 'string' && /^(auto|spring|summer|fall|winter)$/.test(data.season)) {
         try { localStorage.setItem('bible_season', JSON.stringify(data.season)); } catch(e) {}
       }
-      if (typeof data.font === 'number') { try { localStorage.setItem('bible_font_step', JSON.stringify(data.font)); } catch(e) {} }
-      else if (typeof data.font === 'boolean') { try { localStorage.setItem('bible_font_step', JSON.stringify(data.font ? DISPLAY_SIZE_STEPS.length - 1 : DEFAULT_DISPLAY_STEP)); } catch(e) {} }
-      if (Array.isArray(data.history)) { try { localStorage.setItem('bible_history', JSON.stringify(data.history)); } catch(e) {} }
-      if (Array.isArray(data.searchHistory)) { try { localStorage.setItem('bible_search_hist', JSON.stringify(data.searchHistory)); } catch(e) {} }
+      if (skippedFields.indexOf('font') === -1 && typeof data.font === 'number') { try { localStorage.setItem('bible_font_step', JSON.stringify(data.font)); } catch(e) {} }
+      else if (skippedFields.indexOf('font') === -1 && typeof data.font === 'boolean') { try { localStorage.setItem('bible_font_step', JSON.stringify(data.font ? DISPLAY_SIZE_STEPS.length - 1 : DEFAULT_DISPLAY_STEP)); } catch(e) {} }
+      if (skippedFields.indexOf('history') === -1 && Array.isArray(data.history)) { try { localStorage.setItem('bible_history', JSON.stringify(data.history)); } catch(e) {} }
+      if (skippedFields.indexOf('searchHistory') === -1 && Array.isArray(data.searchHistory)) { try { localStorage.setItem('bible_search_hist', JSON.stringify(data.searchHistory)); } catch(e) {} }
     }
   };
 
@@ -2209,16 +2295,17 @@
         _syncedLocalStateQuarantined = false;
       }
       chapterPositions = State.getChapterPositions();
+      var anonymousMigrationFields = isFirstOwner ? _presentSyncedLocalFields() : [];
 
       _retryCurrentHydration = function () {
         if (authGeneration !== _syncGeneration || authUid !== _currentUid || _syncHydrationInFlight) return;
-        var localRevisionAtGet = _localRevision;
-        var replacingCachedState = _syncHydrationCacheOnly;
         var localHasData = _hasSyncedLocalState();
         var localHasHistory = State.getHistory().length > 0;
         var localHasSeason = State.hasStoredSeason();
-        var isAnonymousMigration = isFirstOwner && localHasData;
-        if (isAnonymousMigration) _setDirtySyncUid(authUid);
+        var isAnonymousMigration = anonymousMigrationFields.length > 0;
+        if (isAnonymousMigration) {
+          _setDirtySyncFields(authUid, _dirtySyncFields(authUid).concat(anonymousMigrationFields));
+        }
         _syncHydrationPending = true;
         _syncHydrationInFlight = true;
         _setSyncStatus('Checking sync\u2026');
@@ -2227,32 +2314,33 @@
         if (authGeneration !== _syncGeneration || authUid !== _currentUid) return;
         _syncHydrationPending = false;
         _syncHydrationInFlight = false;
+        _hydrationRetryAttempt = 0;
+        _hydrationRetryExhausted = false;
         var hydrationOffline = !navigator.onLine || !!(snap.metadata && snap.metadata.fromCache);
         _syncHydrationAuthoritative = !hydrationOffline;
         _syncHydrationCacheOnly = hydrationOffline;
-        if (localRevisionAtGet !== _localRevision) {
-          _scheduleSync();
-          if (hydrationOffline) {
-            _setSyncStatus('Offline \u2014 local changes safe');
-          }
-          return;
-        }
-
         var cloud = snap.exists ? snap.data() : null;
         var cloudHasHistory = !!(cloud && cloud.history && cloud.history.length > 0);
         var cloudHasSeason = !!(cloud && typeof cloud.season === 'string' && /^(auto|spring|summer|fall|winter)$/.test(cloud.season));
 
-        if (replacingCachedState && !hydrationOffline && _dirtySyncUid() !== authUid) {
-          _clearSyncedLocalState();
-          if (cloud) State.applyCloudData(cloud);
+        if (!hydrationOffline) {
+          var dirtyFields = _dirtySyncFields(authUid);
+          _clearSyncedFieldsExcept(dirtyFields);
+          if (cloud) State.applyCloudData(cloud, dirtyFields);
           applyThemeMode(State.getThemeMode(), false);
           renderSeason(State.getSeason());
           applyDisplayStep(State.getDisplayStep(), false);
           _clearSyncTimers();
-          _syncPending = false;
           _syncAttempt = 0;
-          _clearDirtySyncUid(authUid);
-          _setSyncStatus('Synced \u2713');
+          if (dirtyFields.length) {
+            _syncPending = true;
+            _setSyncStatus('Pending\u2026');
+            _queueSync(SYNC_DEBOUNCE_MS, false);
+          } else {
+            _syncPending = false;
+            _clearDirtySyncUid(authUid);
+            _setSyncStatus('Synced \u2713');
+          }
           return;
         }
 
@@ -2332,12 +2420,19 @@
           return;
         }
         _setSyncStatus(navigator.onLine ? 'Sync delayed \u2014 local changes safe' : 'Offline \u2014 local changes safe');
-        if (_dirtySyncUid() === authUid && navigator.onLine) {
-          _syncPending = true;
-          _queueSync(SYNC_DEBOUNCE_MS, false);
-        } else {
-          _syncPending = false;
+        _syncPending = _dirtySyncFields(authUid).length > 0;
+        if (!navigator.onLine) return;
+        if (_hydrationRetryAttempt >= HYDRATION_RETRY_DELAYS.length) {
+          _hydrationRetryExhausted = true;
+          _setSyncStatus('Sync paused \u2014 local changes safe');
+          return;
         }
+        var retryDelay = _jitteredSyncDelay(HYDRATION_RETRY_DELAYS[_hydrationRetryAttempt]);
+        _hydrationRetryTimer = setTimeout(function () {
+          _hydrationRetryTimer = null;
+          _hydrationRetryAttempt += 1;
+          _retryCurrentHydration();
+        }, retryDelay);
       });
       };
       _retryCurrentHydration();
@@ -2352,21 +2447,27 @@
         _setSyncStatus('Sync unavailable');
         return;
       }
-      if (_dirtySyncUid() === _currentUid) {
+      if (!_syncHydrationAuthoritative) {
+        _hydrationRetryAttempt = 0;
+        _hydrationRetryExhausted = false;
+        if (_hydrationRetryTimer !== null) clearTimeout(_hydrationRetryTimer);
+        _hydrationRetryTimer = null;
+        if (!_syncHydrationInFlight && _retryCurrentHydration) _retryCurrentHydration();
+      } else if (_dirtySyncFields(_currentUid).length) {
         _syncAttempt = 0;
         _syncExhausted = false;
         _syncRetryDelayIndex = null;
         _syncPending = true;
         _setSyncStatus('Back online \u2014 syncing\u2026');
         _queueSync(0, false);
-      } else if (!_syncHydrationAuthoritative && !_syncHydrationInFlight && _retryCurrentHydration) {
-        _retryCurrentHydration();
       }
     }
   });
   window.addEventListener('offline', function () {
     if (_currentUid) {
       _clearSyncTimers();
+      _syncHydrationAuthoritative = false;
+      _syncHydrationCacheOnly = true;
       _setSyncStatus('Offline \u2014 local changes safe');
     }
   });
@@ -2377,8 +2478,12 @@
     cancelHistorySettle();
   });
   window.addEventListener('pageshow', function (event) {
-    if (event.persisted && _currentUid && _localOwnerUid() === _currentUid && _dirtySyncUid() === _currentUid) {
-      _resumePendingSync();
+    if (event.persisted && _currentUid && _localOwnerUid() === _currentUid) {
+      if (!_syncHydrationAuthoritative && !_hydrationRetryExhausted && !_syncHydrationInFlight && _retryCurrentHydration) {
+        _retryCurrentHydration();
+      } else if (_dirtySyncFields(_currentUid).length) {
+        _resumePendingSync();
+      }
     }
     if (event.persisted && isCurrentVersesView(currentBook, currentChapter)) scheduleSettledHistory();
   });
