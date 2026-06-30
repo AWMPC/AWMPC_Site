@@ -2478,9 +2478,9 @@
 
   function showAdjacentChapter(direction) {
     if (!bibleData || navBook == null || navChapter == null) return false;
-    prepareToLeaveReadingView();
     var next = direction < 0 ? prevChapterNav(navBook, navChapter) : nextChapterNav(navBook, navChapter);
     if (!next) return false;
+    prepareToLeaveReadingView();
     showVersesViewWithTransition(next.book, next.chapter, recalledChapterVerse(next.book, next.chapter) || '1');
     return true;
   }
