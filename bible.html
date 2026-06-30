@@ -161,7 +161,7 @@
   }
   @keyframes press-ripple {
     0% { opacity: .42; transform: translate(-50%, -50%) scale(0); }
-    100% { opacity: 0; transform: translate(-50%, -50%) scale(24); }
+    100% { opacity: 0; transform: translate(-50%, -50%) scale(var(--ripple-scale, 16)); }
   }
   .marquee-line {
     display: block;
@@ -1049,8 +1049,8 @@
 <dialog id="verse-actions" class="verse-actions" aria-labelledby="verse-actions-title">
   <form method="dialog">
     <h2 id="verse-actions-title">Verse Actions</h2>
-    <button type="button" value="copy">Copy Verse Text</button>
-    <button type="button" value="share">Share Link to Verse</button>
+    <button type="button" id="copy-verse" value="copy">Copy Verse Text</button>
+    <button type="button" id="share-verse" value="share">Share Link to Verse</button>
     <button type="submit" value="cancel" class="verse-actions-cancel">Cancel</button>
   </form>
 </dialog>
@@ -1446,6 +1446,7 @@
     if (mode !== 'auto') return mode === 'dark';
     return preferredDarkQuery() ? preferredDarkQuery().matches : false;
   }
+  var THEME_TRANSITION_MS = 200;
   var themeTransitionTimer = null;
   var themeModeApplied = false;
   function beginThemeTransition() {
@@ -1454,7 +1455,7 @@
     if (themeTransitionTimer) clearTimeout(themeTransitionTimer);
     themeTransitionTimer = setTimeout(function () {
       document.documentElement.classList.remove('theme-transitioning');
-    }, 320);
+    }, THEME_TRANSITION_MS + 20);
   }
   function applyThemeMode(mode) {
     mode = mode === 'dark' || mode === 'auto' ? mode : 'light';
