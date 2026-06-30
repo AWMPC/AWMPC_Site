@@ -1248,6 +1248,14 @@
       var season = this._get('bible_season', 'auto');
       return /^(auto|spring|summer|fall|winter)$/.test(season) ? season : 'auto';
     },
+    hasStoredSeason: function () {
+      try {
+        var raw = localStorage.getItem('bible_season');
+        if (raw === null) return false;
+        var season = JSON.parse(raw);
+        return typeof season === 'string' && /^(auto|spring|summer|fall|winter)$/.test(season);
+      } catch(e) { return false; }
+    },
     setSeason: function (season) {
       this._set('bible_season', /^(spring|summer|fall|winter)$/.test(season) ? season : 'auto');
     },
@@ -1321,7 +1329,7 @@
       } else if (typeof data.dark === 'boolean') {
         try { localStorage.setItem('bible_theme_mode', JSON.stringify(data.dark ? 'dark' : 'light')); } catch(e) {}
       }
-      if (typeof data.season === 'string' && /^(auto|spring|summer|fall|winter)$/.test(data.season)) {
+      if (!this.hasStoredSeason() && typeof data.season === 'string' && /^(auto|spring|summer|fall|winter)$/.test(data.season)) {
         try { localStorage.setItem('bible_season', JSON.stringify(data.season)); } catch(e) {}
       }
       if (typeof data.font === 'number') { try { localStorage.setItem('bible_font_step', JSON.stringify(data.font)); } catch(e) {} }
@@ -1584,6 +1592,7 @@
       button.classList.toggle('active', selected);
       button.setAttribute('aria-pressed', selected ? 'true' : 'false');
     });
+    updateThemeColor();
     State.setThemeMode(mode);
     themeModeApplied = true;
   }
@@ -1608,7 +1617,7 @@
   });
 
   // ===================== SEASONAL THEME =====================
-  var seasonButtons = Array.prototype.slice.call(document.querySelectorAll('[data-season]'));
+  var seasonButtons = Array.prototype.slice.call(document.querySelectorAll('.season-control button[data-season]'));
   var seasonApplied = false;
   function automaticSeason(date) {
     var monthDay = ((date.getMonth() + 1) * 100) + date.getDate();
@@ -1620,7 +1629,19 @@
   function resolvedSeason(choice) {
     return choice === 'auto' ? automaticSeason(new Date()) : choice;
   }
-  function applySeason(choice) {
+  function updateThemeColor() {
+    var resolved = document.documentElement.getAttribute('data-season');
+    if (!/^(spring|summer|fall|winter)$/.test(resolved)) resolved = automaticSeason(new Date());
+    var palette = {
+      spring: { light: '#2f7d32', dark: '#78c96e' },
+      summer: { light: '#9a6c10', dark: '#e2bd55' },
+      fall: { light: '#b94d19', dark: '#ee7b3c' },
+      winter: { light: '#146fa3', dark: '#69b9e8' }
+    };
+    var appearance = document.documentElement.classList.contains('dark') ? 'dark' : 'light';
+    document.querySelector('meta[name="theme-color"]').setAttribute('content', palette[resolved][appearance]);
+  }
+  function renderSeason(choice) {
     choice = /^(spring|summer|fall|winter)$/.test(choice) ? choice : 'auto';
     var resolved = resolvedSeason(choice);
     var current = document.documentElement.getAttribute('data-season');
@@ -1631,20 +1652,21 @@
       button.classList.toggle('active', selected);
       button.setAttribute('aria-pressed', selected ? 'true' : 'false');
     });
-    var themeColor = { spring: '#2f7d32', summer: '#9a6c10', fall: '#b94d19', winter: '#146fa3' }[resolved];
-    document.querySelector('meta[name="theme-color"]').setAttribute('content', themeColor);
-    State.setSeason(choice);
+    updateThemeColor();
     seasonApplied = true;
   }
-  applySeason(State.getSeason());
+  renderSeason(State.getSeason());
   seasonButtons.forEach(function (button) {
     button.addEventListener('click', function (event) {
       event.stopPropagation();
-      applySeason(button.getAttribute('data-season'));
+      var choice = button.getAttribute('data-season');
+      State.setSeason(choice);
+      renderSeason(choice);
     });
   });
   document.addEventListener('visibilitychange', function () {
-    if (!document.hidden && State.getSeason() === 'auto') applySeason('auto');
+    if (document.hidden || State.getSeason() !== 'auto') return;
+    if (document.documentElement.getAttribute('data-season') !== resolvedSeason('auto')) renderSeason('auto');
   });
 
   // ===================== DISPLAY SIZE =====================
@@ -1772,14 +1794,20 @@
           var cloud = snap.data();
           var localHasData = State.getHistory().length > 0;
           var cloudHasData = (cloud.history && cloud.history.length > 0);
+          var localHasSeason = State.hasStoredSeason();
+          var cloudHasSeason = typeof cloud.season === 'string' && /^(auto|spring|summer|fall|winter)$/.test(cloud.season);
 
           if (cloudHasData && !localHasData) {
             State.applyCloudData(cloud);
             applyThemeMode(State.getThemeMode());
-            applySeason(State.getSeason());
+            renderSeason(State.getSeason());
             applyDisplayStep(State.getDisplayStep());
-          } else if (localHasData) {
-            _scheduleSync();
+          } else {
+            if (!localHasSeason && cloudHasSeason) {
+              State.applyCloudData({ season: cloud.season });
+              renderSeason(State.getSeason());
+            }
+            if (localHasData || localHasSeason) _scheduleSync();
           }
         } else {
           _scheduleSync();
