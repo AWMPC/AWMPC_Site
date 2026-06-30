@@ -1315,6 +1315,21 @@
     return code === 'permission-denied' || code === 'unauthenticated' || code === 'invalid-argument';
   }
 
+  function _blockSyncForGeneration(uid, generation) {
+    if (!uid || uid !== _currentUid || generation !== _syncGeneration) return false;
+    _clearSyncTimers();
+    _syncInFlight = false;
+    _syncPending = false;
+    _syncAttempt = 0;
+    _syncExhausted = false;
+    _syncRetryDelayIndex = null;
+    _syncBlockedUid = uid;
+    _syncBlockedGeneration = generation;
+    _clearDirtySyncUid(uid);
+    _setSyncStatus('Sync unavailable');
+    return true;
+  }
+
   function _syncPayload() {
     return {
       themeMode: State.getThemeMode(),
@@ -1424,15 +1439,7 @@
       return;
     }
     if (_isPermanentSyncError(error)) {
-      _clearSyncTimers();
-      _syncPending = false;
-      _syncAttempt = 0;
-      _syncExhausted = false;
-      _syncRetryDelayIndex = null;
-      _syncBlockedUid = activeWrite.uid;
-      _syncBlockedGeneration = activeWrite.generation;
-      _clearDirtySyncUid(activeWrite.uid);
-      _setSyncStatus('Sync unavailable');
+      _blockSyncForGeneration(activeWrite.uid, activeWrite.generation);
       return;
     }
     _syncPending = true;
@@ -2243,6 +2250,10 @@
       }).catch(function (error) {
         if (authGeneration !== _syncGeneration || authUid !== _currentUid) return;
         _syncHydrationPending = false;
+        if (_isPermanentSyncError(error)) {
+          _blockSyncForGeneration(authUid, authGeneration);
+          return;
+        }
         _setSyncStatus(navigator.onLine ? 'Sync delayed \u2014 local changes safe' : 'Offline \u2014 local changes safe');
         if (_dirtySyncUid() === authUid && navigator.onLine) {
           _syncPending = true;
