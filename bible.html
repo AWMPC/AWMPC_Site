@@ -2291,6 +2291,18 @@
       window.matchMedia('(prefers-reduced-motion: reduce)').matches;
   }
 
+  function prepareRetiringView(retiring) {
+    retiring.removeAttribute('id');
+    retiring.setAttribute('aria-hidden', 'true');
+    retiring.setAttribute('inert', '');
+    if ('inert' in retiring) retiring.inert = true;
+    var semanticNodes = retiring.querySelectorAll('[id], [aria-controls]');
+    for (var i = 0; i < semanticNodes.length; i++) {
+      semanticNodes[i].removeAttribute('id');
+      semanticNodes[i].removeAttribute('aria-controls');
+    }
+  }
+
   function showViewWithTransition(renderView) {
     if (shouldReduceChapterMotion() || !viewInner.children.length) {
       clearChapterCrossfadeTimer();
@@ -2303,7 +2315,7 @@
     clearChapterCrossfadeTimer();
     clearRetiringChapterViews();
     var retiring = viewInner.cloneNode(true);
-    retiring.removeAttribute('id');
+    prepareRetiringView(retiring);
     retiring.className = 'view-inner chapter-transition-retiring';
     retiring.style.transform = 'translateY(-' + viewEl.scrollTop + 'px)';
     viewEl.appendChild(retiring);
@@ -2362,7 +2374,7 @@
     clearChapterCrossfadeTimer();
     clearRetiringChapterViews();
     var retiring = viewInner.cloneNode(true);
-    retiring.removeAttribute('id');
+    prepareRetiringView(retiring);
     retiring.className = 'view-inner chapter-transition-retiring';
     retiring.style.transform = 'translateY(-' + viewEl.scrollTop + 'px)';
     viewEl.appendChild(retiring);
@@ -3246,17 +3258,14 @@
   document.addEventListener('click', function (e) {
     if (!suppressReaderClick) return;
     var pendingClick = suppressReaderClick;
-    clearSuppressReaderClick();
-    if (e.detail === 0 || Date.now() - pendingClick.time > 800) return;
+    if (e.detail === 0) return;
+    if (Date.now() - pendingClick.time > 800) {
+      clearSuppressReaderClick();
+      return;
+    }
     if (e.pointerType && e.pointerType !== pendingClick.pointerType) return;
     if (Math.abs(e.clientX - pendingClick.x) > 28 || Math.abs(e.clientY - pendingClick.y) > 28) return;
-    if (!viewEl.contains(e.target) || e.target.closest('button,dialog,a,input,select,textarea,[role="button"],.verse-actions')) return;
-    var targetMatches = !pendingClick.target || !pendingClick.target.isConnected ||
-      e.target === pendingClick.target || pendingClick.target.contains(e.target) ||
-      e.target.contains(pendingClick.target) ||
-      (pendingClick.target.classList && pendingClick.target.classList.contains('verse') &&
-        e.target.closest('.verse') === pendingClick.target);
-    if (!targetMatches) return;
+    clearSuppressReaderClick();
     e.preventDefault();
     e.stopImmediatePropagation();
   }, true);
