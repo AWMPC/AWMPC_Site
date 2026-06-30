@@ -1452,7 +1452,7 @@
   var chapterCrossfadeTimer = null;
   var preservingChapterCrossfade = false;
   var readerPointerState = null;
-  var suppressReaderClick = false;
+  var suppressReaderClick = null;
   var suppressReaderClickTimer = null;
   var lastViewScrollTop = 0;
   var bottomChromeScrollFrame = null;
@@ -2129,12 +2129,18 @@
   function clearSuppressReaderClick() {
     if (suppressReaderClickTimer) window.clearTimeout(suppressReaderClickTimer);
     suppressReaderClickTimer = null;
-    suppressReaderClick = false;
+    suppressReaderClick = null;
   }
 
-  function suppressFollowingReaderClick() {
+  function suppressFollowingReaderClick(e, target) {
     clearSuppressReaderClick();
-    suppressReaderClick = true;
+    suppressReaderClick = {
+      time: Date.now(),
+      pointerType: e.pointerType,
+      x: e.clientX,
+      y: e.clientY,
+      target: target
+    };
     suppressReaderClickTimer = window.setTimeout(clearSuppressReaderClick, 800);
   }
 
@@ -2490,6 +2496,7 @@
     }
     for (i = 0; i < noteBodies.length; i++) {
       noteBodies[i].classList.toggle('visible', shouldOpen);
+      noteBodies[i].setAttribute('aria-hidden', shouldOpen ? 'false' : 'true');
     }
     for (i = 0; i < noteButtons.length; i++) {
       noteButtons[i].classList.toggle('open', shouldOpen);
@@ -2505,6 +2512,7 @@
     var noteBodies = verseEl.querySelectorAll('.footnote-body');
     for (var i = 0; i < noteButtons.length; i++) {
       var isOpen = !!noteBodies[i] && noteBodies[i].classList.contains('visible');
+      if (noteBodies[i]) noteBodies[i].setAttribute('aria-hidden', isOpen ? 'false' : 'true');
       noteButtons[i].classList.toggle('open', isOpen);
       noteButtons[i].setAttribute('aria-expanded', isOpen ? 'true' : 'false');
     }
@@ -2802,6 +2810,10 @@
           noteBtn.setAttribute('aria-expanded', 'false');
           var noteBody = document.createElement('div');
           noteBody.className = 'footnote-body';
+          var noteId = 'bible-note-' + String(chapterNum).replace(/[^A-Za-z0-9_-]/g, '-') + '-' + i + '-' + fnIdx;
+          noteBody.id = noteId;
+          noteBody.setAttribute('aria-hidden', 'true');
+          noteBtn.setAttribute('aria-controls', noteId);
           var refLabel = String(seg.ref).trim();
           var bodyText = String(seg.text).replace(/  +/g, ' ').trim();
           noteBody.textContent =
@@ -2814,6 +2826,7 @@
             return function () {
               var on = bd.classList.contains('visible');
               bd.classList.toggle('visible', !on);
+              bd.setAttribute('aria-hidden', on ? 'true' : 'false');
               b.classList.toggle('open', !on);
               b.setAttribute('aria-expanded', on ? 'false' : 'true');
               syncFootnoteVerseState(bd.parentElement);
@@ -3156,6 +3169,7 @@
     if (bibleData && navBook && navChapter) showVersePickerViewWithTransition(navBook, navChapter);
   });
   document.addEventListener('pointerdown', function (e) {
+    clearSuppressReaderClick();
     if (!e.isPrimary || e.button !== 0) return;
     var host = e.target.closest && e.target.closest('button,.dd-item,.book-btn,.chapter-btn,.search-result,.search-hist-item,.verse');
     if (!host || host.matches(':disabled,[aria-disabled="true"]')) return;
@@ -3171,6 +3185,14 @@
     host.appendChild(ripple);
     var removeRipple = function () {
       if (ripple.parentNode) ripple.parentNode.removeChild(ripple);
+      var hasRipple = false;
+      for (var i = 0; i < host.children.length; i++) {
+        if (host.children[i].classList.contains('press-ripple')) {
+          hasRipple = true;
+          break;
+        }
+      }
+      if (!hasRipple) host.classList.remove('press-ripple-host');
     };
     ripple.addEventListener('animationend', removeRipple, { once: true });
     window.setTimeout(removeRipple, 340);
@@ -3183,6 +3205,7 @@
       id: e.pointerId,
       x: e.clientX,
       y: e.clientY,
+      target: e.target,
       verse: verseEl,
       moved: false
     };
@@ -3203,24 +3226,37 @@
     var hasSelection = selection && !selection.isCollapsed;
     if (Math.abs(dx) >= 72 && Math.abs(dx) >= Math.abs(dy) * 1.25 && !hasSelection) {
       e.preventDefault();
-      suppressFollowingReaderClick();
+      suppressFollowingReaderClick(e, state.verse || state.target);
       showAdjacentChapter(dx < 0 ? 1 : -1);
       return;
     }
     if (state.moved) {
-      suppressFollowingReaderClick();
+      suppressFollowingReaderClick(e, state.verse || state.target);
       return;
     }
     if (!state.verse || hasSelection || !state.verse.isConnected) return;
     e.preventDefault();
-    suppressFollowingReaderClick();
+    suppressFollowingReaderClick(e, state.verse);
     if (state.verse.classList.contains('active')) toggleAllVerseFootnotes(state.verse);
     else setActiveVerse(state.verse.getAttribute('data-v'), true);
   });
-  document.addEventListener('pointercancel', clearReaderPointerState);
+  document.addEventListener('pointercancel', function (e) {
+    if (readerPointerState && readerPointerState.id === e.pointerId) clearReaderPointerState();
+  });
   document.addEventListener('click', function (e) {
     if (!suppressReaderClick) return;
+    var pendingClick = suppressReaderClick;
     clearSuppressReaderClick();
+    if (e.detail === 0 || Date.now() - pendingClick.time > 800) return;
+    if (e.pointerType && e.pointerType !== pendingClick.pointerType) return;
+    if (Math.abs(e.clientX - pendingClick.x) > 28 || Math.abs(e.clientY - pendingClick.y) > 28) return;
+    if (!viewEl.contains(e.target) || e.target.closest('button,dialog,a,input,select,textarea,[role="button"],.verse-actions')) return;
+    var targetMatches = !pendingClick.target || !pendingClick.target.isConnected ||
+      e.target === pendingClick.target || pendingClick.target.contains(e.target) ||
+      e.target.contains(pendingClick.target) ||
+      (pendingClick.target.classList && pendingClick.target.classList.contains('verse') &&
+        e.target.closest('.verse') === pendingClick.target);
+    if (!targetMatches) return;
     e.preventDefault();
     e.stopImmediatePropagation();
   }, true);
