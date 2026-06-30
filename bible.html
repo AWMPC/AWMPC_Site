@@ -1220,6 +1220,10 @@
   var _activeSyncWrite = null;
   var _syncPending = false;
   var _syncAttempt = 0;
+  var _syncExhausted = false;
+  var _syncRetryDelayIndex = null;
+  var _syncBlockedUid = null;
+  var _syncBlockedGeneration = -1;
   var _syncGeneration = 0;
   var _syncHydrationPending = false;
   var _localRevision = 0;
@@ -1289,7 +1293,16 @@
     _syncInFlight = false;
     _syncPending = false;
     _syncAttempt = 0;
+    _syncExhausted = false;
+    _syncRetryDelayIndex = null;
+    _syncBlockedUid = null;
+    _syncBlockedGeneration = -1;
     _syncHydrationPending = false;
+  }
+
+  function _syncPermanentlyBlocked() {
+    return !!_currentUid && _syncBlockedUid === _currentUid &&
+      _syncBlockedGeneration === _syncGeneration;
   }
 
   function _jitteredSyncDelay(delay) {
@@ -1319,9 +1332,9 @@
   }
 
   function _queueSync(delay, retry) {
-    if (!_currentUid || !_syncPending || _syncInFlight) return;
+    if (!_currentUid || !_syncPending || _syncPermanentlyBlocked() || _syncInFlight) return;
     if (!navigator.onLine) {
-      _setSyncStatus('Offline \u2014 will sync later');
+      _setSyncStatus('Offline \u2014 local changes safe');
       return;
     }
     if (retry) {
@@ -1330,8 +1343,11 @@
         clearTimeout(_syncDebounceTimer);
         _syncDebounceTimer = null;
       }
+      _syncRetryDelayIndex = _syncAttempt;
       _syncRetryTimer = setTimeout(function () {
         _syncRetryTimer = null;
+        _syncRetryDelayIndex = null;
+        _syncAttempt += 1;
         _runSync();
       }, delay);
       return;
@@ -1340,6 +1356,7 @@
       clearTimeout(_syncRetryTimer);
       _syncRetryTimer = null;
     }
+    _syncRetryDelayIndex = null;
     if (_syncDebounceTimer !== null) clearTimeout(_syncDebounceTimer);
     _syncDebounceTimer = setTimeout(function () {
       _syncDebounceTimer = null;
@@ -1348,12 +1365,38 @@
   }
 
   function _scheduleSync() {
+    if (_syncPermanentlyBlocked()) {
+      _clearDirtySyncUid(_currentUid);
+      _syncPending = false;
+      _setSyncStatus('Sync unavailable');
+      return;
+    }
     _markCurrentStateDirty();
     if (!_currentUid || _localOwnerUid() !== _currentUid) return;
     _syncPending = true;
-    if (_syncAttempt >= SYNC_RETRY_DELAYS.length) _syncAttempt = 0;
-    _setSyncStatus(navigator.onLine ? 'Pending\u2026' : 'Offline \u2014 will sync later');
+    _syncRetryDelayIndex = null;
+    if (_syncExhausted || _syncAttempt >= SYNC_RETRY_DELAYS.length) {
+      _syncAttempt = 0;
+      _syncExhausted = false;
+    }
+    _setSyncStatus(navigator.onLine ? 'Pending\u2026' : 'Offline \u2014 local changes safe');
     _queueSync(SYNC_DEBOUNCE_MS, false);
+  }
+
+  function _resumePendingSync() {
+    if (!_currentUid || _localOwnerUid() !== _currentUid ||
+        _dirtySyncUid() !== _currentUid || _syncPermanentlyBlocked() ||
+        _syncExhausted || _syncAttempt >= SYNC_RETRY_DELAYS.length) return;
+    _syncPending = true;
+    _setSyncStatus(navigator.onLine ? 'Pending\u2026' : 'Offline \u2014 local changes safe');
+    if (!navigator.onLine) return;
+    if (_syncRetryDelayIndex !== null) {
+      _queueSync(_jitteredSyncDelay(SYNC_RETRY_DELAYS[_syncRetryDelayIndex]), true);
+    } else if (_syncAttempt > 0) {
+      _queueSync(_jitteredSyncDelay(SYNC_RETRY_DELAYS[_syncAttempt]), true);
+    } else {
+      _queueSync(SYNC_DEBOUNCE_MS, false);
+    }
   }
 
   function _settleSyncWrite(activeWrite, failed, error) {
@@ -1368,34 +1411,49 @@
     _syncInFlight = false;
     if (!failed) {
       _syncAttempt = 0;
-      if (!_syncPending && activeWrite.revision === _localRevision) {
+      _syncExhausted = false;
+      _syncRetryDelayIndex = null;
+      if (_syncPending || activeWrite.revision !== _localRevision) {
+        _syncPending = true;
+        _setSyncStatus('Changes pending\u2026');
+        _queueSync(SYNC_DEBOUNCE_MS, false);
+      } else {
         _clearDirtySyncUid(activeWrite.uid);
+        _setSyncStatus('Synced \u2713');
       }
-      _setSyncStatus('Synced \u2713');
-      if (_syncPending) _queueSync(SYNC_DEBOUNCE_MS, false);
       return;
     }
     if (_isPermanentSyncError(error)) {
+      _clearSyncTimers();
       _syncPending = false;
       _syncAttempt = 0;
+      _syncExhausted = false;
+      _syncRetryDelayIndex = null;
+      _syncBlockedUid = activeWrite.uid;
+      _syncBlockedGeneration = activeWrite.generation;
+      _clearDirtySyncUid(activeWrite.uid);
       _setSyncStatus('Sync unavailable');
       return;
     }
     _syncPending = true;
     if (!navigator.onLine || _syncAttempt >= SYNC_RETRY_DELAYS.length) {
-      _setSyncStatus('Offline \u2014 will sync later');
+      if (_syncAttempt >= SYNC_RETRY_DELAYS.length) {
+        _syncExhausted = true;
+        _syncRetryDelayIndex = null;
+      }
+      _setSyncStatus('Offline \u2014 local changes safe');
       return;
     }
     var delay = _jitteredSyncDelay(SYNC_RETRY_DELAYS[_syncAttempt]);
-    _syncAttempt += 1;
     _setSyncStatus('Sync delayed \u2014 retrying\u2026');
     _queueSync(delay, true);
   }
 
   function _runSync() {
-    if (!_currentUid || !_syncPending || _syncHydrationPending || _syncInFlight || _activeSyncWrite) return;
+    if (!_currentUid || !_syncPending || _syncPermanentlyBlocked() ||
+        _syncHydrationPending || _syncInFlight || _activeSyncWrite) return;
     if (!navigator.onLine) {
-      _setSyncStatus('Offline \u2014 will sync later');
+      _setSyncStatus('Offline \u2014 local changes safe');
       return;
     }
     var uid = _currentUid;
@@ -2102,8 +2160,13 @@
       _userDoc().get().then(function (snap) {
         if (authGeneration !== _syncGeneration || authUid !== _currentUid) return;
         _syncHydrationPending = false;
+        var hydrationOffline = !navigator.onLine || !!(snap.metadata && snap.metadata.fromCache);
         if (localRevisionAtGet !== _localRevision) {
           _scheduleSync();
+          if (hydrationOffline) {
+            _clearSyncTimers();
+            _setSyncStatus('Offline \u2014 local changes safe');
+          }
           return;
         }
 
@@ -2119,7 +2182,7 @@
           _clearSyncTimers();
           _syncPending = false;
           _syncAttempt = 0;
-          _setSyncStatus('Synced \u2713');
+          _setSyncStatus(hydrationOffline ? 'Offline \u2014 local changes safe' : 'Synced \u2713');
           return;
         }
 
@@ -2129,6 +2192,10 @@
             renderSeason(State.getSeason());
           }
           _scheduleSync();
+          if (hydrationOffline) {
+            _clearSyncTimers();
+            _setSyncStatus('Offline \u2014 local changes safe');
+          }
           return;
         }
 
@@ -2138,6 +2205,10 @@
             renderSeason(State.getSeason());
           }
           _scheduleSync();
+          if (hydrationOffline) {
+            _clearSyncTimers();
+            _setSyncStatus('Offline \u2014 local changes safe');
+          }
           return;
         }
 
@@ -2158,23 +2229,21 @@
           }
           if (localHasData) {
             _scheduleSync();
+            if (hydrationOffline) {
+              _clearSyncTimers();
+              _setSyncStatus('Offline \u2014 local changes safe');
+            }
             return;
           }
         }
         _clearSyncTimers();
         _syncPending = false;
         _syncAttempt = 0;
-        _setSyncStatus('Synced \u2713');
+        _setSyncStatus(hydrationOffline ? 'Offline \u2014 local changes safe' : 'Synced \u2713');
       }).catch(function (error) {
         if (authGeneration !== _syncGeneration || authUid !== _currentUid) return;
         _syncHydrationPending = false;
-        if (_isPermanentSyncError(error)) {
-          _clearSyncTimers();
-          _syncPending = false;
-          _setSyncStatus('Sync unavailable');
-          return;
-        }
-        _setSyncStatus('Sync delayed \u2014 local changes safe');
+        _setSyncStatus(navigator.onLine ? 'Sync delayed \u2014 local changes safe' : 'Offline \u2014 local changes safe');
         if (_dirtySyncUid() === authUid && navigator.onLine) {
           _syncPending = true;
           _queueSync(SYNC_DEBOUNCE_MS, false);
@@ -2187,7 +2256,15 @@
 
   window.addEventListener('online', function () {
     if (_currentUid) {
+      if (_syncPermanentlyBlocked()) {
+        _clearSyncTimers();
+        _syncPending = false;
+        _setSyncStatus('Sync unavailable');
+        return;
+      }
       _syncAttempt = 0;
+      _syncExhausted = false;
+      _syncRetryDelayIndex = null;
       _syncPending = true;
       if (_syncRetryTimer !== null) clearTimeout(_syncRetryTimer);
       _syncRetryTimer = null;
@@ -2198,7 +2275,7 @@
   window.addEventListener('offline', function () {
     if (_currentUid) {
       _clearSyncTimers();
-      _setSyncStatus('Offline \u2014 will sync later');
+      _setSyncStatus('Offline \u2014 local changes safe');
     }
   });
   window.addEventListener('pagehide', function () {
@@ -2209,7 +2286,7 @@
   });
   window.addEventListener('pageshow', function (event) {
     if (event.persisted && _currentUid && _localOwnerUid() === _currentUid && _dirtySyncUid() === _currentUid) {
-      _scheduleSync();
+      _resumePendingSync();
     }
     if (event.persisted && isCurrentVersesView(currentBook, currentChapter)) scheduleSettledHistory();
   });
