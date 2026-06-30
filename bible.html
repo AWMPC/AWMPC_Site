@@ -1299,13 +1299,51 @@
         selectedAt: new Date().toISOString()
       });
       if (!normalized) return;
-      var key = normalized.book + '|' + normalized.ch + '|' + normalized.verse;
+      var key = normalized.book + '|' + normalized.ch;
       var list = this.getHistory().filter(function (entry) {
-        return entry.book + '|' + entry.ch + '|' + entry.verse !== key;
+        return entry.book + '|' + entry.ch !== key;
       });
       list.unshift(normalized);
       if (list.length > 30) list = list.slice(0, 30);
       this._set('bible_history', list);
+    },
+
+    normalizeChapterPosition: function (entry) {
+      if (!entry || typeof entry !== 'object') return null;
+      var hasOwn = Object.prototype.hasOwnProperty;
+      if (!hasOwn.call(entry, 'book') || !hasOwn.call(entry, 'chapter') || !hasOwn.call(entry, 'verse')) return null;
+      var book = String(entry.book).trim();
+      var chapter = String(entry.chapter).trim();
+      var verse = String(entry.verse).trim();
+      if (!book || !chapter || !verse) return null;
+      return {
+        key: book + '|' + chapter,
+        book: book,
+        chapter: chapter,
+        verse: verse
+      };
+    },
+    normalizeChapterPositions: function (positions) {
+      if (!Array.isArray(positions)) return [];
+      var normalized = [];
+      var seen = Object.create(null);
+      for (var i = 0; i < positions.length && normalized.length < 200; i++) {
+        var entry = this.normalizeChapterPosition(positions[i]);
+        if (!entry || seen[entry.key]) continue;
+        seen[entry.key] = true;
+        normalized.push(entry);
+      }
+      return normalized;
+    },
+    getChapterPositions: function () {
+      var raw;
+      try { raw = JSON.parse(localStorage.getItem('bible_chapter_positions') || '[]'); }
+      catch(e) { raw = []; }
+      return this.normalizeChapterPositions(raw);
+    },
+    setChapterPositions: function (positions) {
+      var normalized = this.normalizeChapterPositions(positions);
+      try { localStorage.setItem('bible_chapter_positions', JSON.stringify(normalized)); } catch(e) {}
     },
 
     getSearchHistory: function () { return this._get('bible_search_hist', []); },
@@ -1395,6 +1433,12 @@
   var navBook = null;
   var navChapter = null;
   var activeVerse = null;
+  var HISTORY_SETTLE_MS = 7000;
+  var POSITION_FLUSH_MS = 500;
+  var historySettleTimer = null;
+  var chapterPositionFlushTimer = null;
+  var chapterPositions = State.getChapterPositions();
+  var chapterPositionsDirty = false;
   var verseChaseFrame = null;
   var verseChaseVelocity = 0;
   var verseChaseTarget = null;
@@ -1822,6 +1866,11 @@
   window.addEventListener('offline', function () {
     if (_currentUid) _setSyncStatus('Offline \u2014 will sync later');
   });
+  window.addEventListener('pagehide', function () {
+    if (uiView === 'verses') rememberCurrentChapterPosition();
+    flushChapterPositions();
+    cancelHistorySettle();
+  });
 
   // ===================== HISTORY (inside FAB) =====================
   function formatHistoryTimestamp(value) {
@@ -1963,6 +2012,103 @@
     updateBottomChromeClearance();
   }
 
+  function getChapterData(book, chapter) {
+    if (!bibleData || !book || chapter == null ||
+        !Object.prototype.hasOwnProperty.call(bibleData, book)) return null;
+    var chapters = bibleData[book];
+    var chapterKey = String(chapter);
+    if (!chapters || typeof chapters !== 'object' ||
+        !Object.prototype.hasOwnProperty.call(chapters, chapterKey)) return null;
+    var verses = chapters[chapterKey];
+    return verses && typeof verses === 'object' ? verses : null;
+  }
+
+  function validChapterVerse(book, chapter, verse) {
+    var verses = getChapterData(book, chapter);
+    var verseKey = verse == null ? '' : String(verse);
+    return verses && Object.prototype.hasOwnProperty.call(verses, verseKey) ? verseKey : null;
+  }
+
+  function isCurrentVersesView(book, chapter) {
+    return uiView === 'verses' && currentBook === book &&
+      String(currentChapter) === String(chapter) && !!getChapterData(book, chapter);
+  }
+
+  function flushChapterPositions() {
+    if (chapterPositionFlushTimer) window.clearTimeout(chapterPositionFlushTimer);
+    chapterPositionFlushTimer = null;
+    if (!chapterPositionsDirty) return;
+    State.setChapterPositions(chapterPositions);
+    chapterPositionsDirty = false;
+  }
+
+  function scheduleChapterPositionFlush() {
+    if (chapterPositionFlushTimer) window.clearTimeout(chapterPositionFlushTimer);
+    chapterPositionFlushTimer = window.setTimeout(flushChapterPositions, POSITION_FLUSH_MS);
+  }
+
+  function rememberCurrentChapterPosition() {
+    if (!isCurrentVersesView(currentBook, currentChapter)) return;
+    var verse = validChapterVerse(currentBook, currentChapter, activeVerse || '1');
+    if (!verse) return;
+    var entry = {
+      key: currentBook + '|' + String(currentChapter),
+      book: String(currentBook),
+      chapter: String(currentChapter),
+      verse: verse
+    };
+    var existingIndex = -1;
+    for (var i = 0; i < chapterPositions.length; i++) {
+      if (chapterPositions[i].key === entry.key) {
+        existingIndex = i;
+        break;
+      }
+    }
+    if (existingIndex === 0 && chapterPositions[0].verse === entry.verse) return;
+    if (existingIndex !== -1) chapterPositions.splice(existingIndex, 1);
+    chapterPositions.unshift(entry);
+    if (chapterPositions.length > 200) chapterPositions = chapterPositions.slice(0, 200);
+    chapterPositionsDirty = true;
+    scheduleChapterPositionFlush();
+  }
+
+  function recalledChapterVerse(book, chapter) {
+    var key = String(book) + '|' + String(chapter);
+    for (var i = 0; i < chapterPositions.length; i++) {
+      if (chapterPositions[i].key !== key) continue;
+      var verse = validChapterVerse(book, chapter, chapterPositions[i].verse);
+      if (verse) return verse;
+      chapterPositions.splice(i, 1);
+      chapterPositionsDirty = true;
+      scheduleChapterPositionFlush();
+      return null;
+    }
+    return null;
+  }
+
+  function cancelHistorySettle() {
+    if (historySettleTimer) window.clearTimeout(historySettleTimer);
+    historySettleTimer = null;
+  }
+
+  function scheduleSettledHistory() {
+    cancelHistorySettle();
+    if (!isCurrentVersesView(currentBook, currentChapter)) return;
+    var book = currentBook;
+    var chapter = currentChapter;
+    historySettleTimer = window.setTimeout(function () {
+      historySettleTimer = null;
+      if (!isCurrentVersesView(book, chapter)) return;
+      State.pushHistory(book, chapter, validChapterVerse(book, chapter, activeVerse) || '1');
+    }, HISTORY_SETTLE_MS);
+  }
+
+  function prepareToLeaveReadingView() {
+    if (uiView === 'verses') rememberCurrentChapterPosition();
+    flushChapterPositions();
+    cancelHistorySettle();
+  }
+
   function readingViewportMetrics() {
     var viewRect = viewEl.getBoundingClientRect();
     var bottomRect = bottomChrome ? bottomChrome.getBoundingClientRect() : null;
@@ -2048,15 +2194,18 @@
 
   function setActiveVerse(verse, center) {
     if (!verse || uiView !== 'verses') return;
+    var nextVerse = validChapterVerse(currentBook, currentChapter, verse);
+    if (!nextVerse) return;
+    var target = viewInner.querySelector('[data-v="' + nextVerse + '"]');
+    if (!target) return;
     var prev = viewInner.querySelector('.verse.active');
     if (prev) prev.classList.remove('active');
-    activeVerse = String(verse);
-    var target = viewInner.querySelector('[data-v="' + activeVerse + '"]');
-    if (target) {
-      target.classList.add('active');
-      if (center) scrollVerseToCenter(target);
-    }
+    activeVerse = nextVerse;
+    target.classList.add('active');
+    if (center) scrollVerseToCenter(target);
     updateNav();
+    rememberCurrentChapterPosition();
+    scheduleSettledHistory();
   }
 
   function updateActiveVerseFromViewport() {
@@ -2329,9 +2478,10 @@
 
   function showAdjacentChapter(direction) {
     if (!bibleData || navBook == null || navChapter == null) return false;
+    prepareToLeaveReadingView();
     var next = direction < 0 ? prevChapterNav(navBook, navChapter) : nextChapterNav(navBook, navChapter);
     if (!next) return false;
-    showVersesViewWithTransition(next.book, next.chapter);
+    showVersesViewWithTransition(next.book, next.chapter, recalledChapterVerse(next.book, next.chapter) || '1');
     return true;
   }
 
@@ -2402,6 +2552,7 @@
 
   // ===================== VIEW: BOOKS =====================
   function showBooksView() {
+    prepareToLeaveReadingView();
     stopVerseChase();
     viewEl.scrollTop = 0;
     viewInner.textContent = '';
@@ -2450,6 +2601,7 @@
 
   // ===================== VIEW: CHAPTERS =====================
   function showChaptersView(bookName) {
+    prepareToLeaveReadingView();
     stopVerseChase();
     viewEl.scrollTop = 0;
     viewInner.textContent = '';
@@ -2500,6 +2652,7 @@
   }
 
   function showVersePickerView(bookName, chapterNum) {
+    prepareToLeaveReadingView();
     stopVerseChase();
     viewEl.scrollTop = 0;
     viewInner.textContent = '';
@@ -2545,6 +2698,7 @@
 
   // ===================== VIEW: VERSES =====================
   function showVersesView(bookName, chapterNum, scrollToVerse) {
+    prepareToLeaveReadingView();
     stopVerseChase();
     viewEl.scrollTop = 0;
     viewInner.textContent = '';
@@ -2566,8 +2720,7 @@
     var chapters = bibleData[bookName];
     var verses = chapters[String(chapterNum)];
     var keys = Object.keys(verses);
-    var selectedHistoryVerse = scrollToVerse || activeVerse || keys[0] || '1';
-    State.pushHistory(bookName, chapterNum, selectedHistoryVerse);
+    var selectedVerse = validChapterVerse(bookName, chapterNum, scrollToVerse) || keys[0] || '1';
     var headSpacer = document.createElement('div');
     headSpacer.className = 'verse-edge-spacer verse-head-spacer';
     headSpacer.setAttribute('aria-hidden', 'true');
@@ -2629,11 +2782,12 @@
     tailSpacer.setAttribute('aria-hidden', 'true');
     viewInner.appendChild(tailSpacer);
 
-    if (scrollToVerse) {
+    if (validChapterVerse(bookName, chapterNum, scrollToVerse)) {
       requestAnimationFrame(function () {
-        var target = viewInner.querySelector('[data-v="' + scrollToVerse + '"]');
+        if (!isCurrentVersesView(bookName, chapterNum)) return;
+        var target = viewInner.querySelector('[data-v="' + selectedVerse + '"]');
         if (target) {
-          setActiveVerse(scrollToVerse, false);
+          setActiveVerse(selectedVerse, false);
           scrollVerseToCenter(target);
           target.classList.add('highlight');
           setTimeout(function () {
@@ -2646,7 +2800,7 @@
         }
       });
     } else if (keys.length) {
-      setActiveVerse(keys[0], false);
+      setActiveVerse(selectedVerse, false);
     }
   }
 
@@ -2770,6 +2924,7 @@
   }
 
   function showSearchView() {
+    prepareToLeaveReadingView();
     viewEl.scrollTop = 0;
     viewInner.textContent = '';
     currentBook = null;
@@ -2930,14 +3085,10 @@
   }
   // ===================== NAV HANDLERS =====================
   fnPrev.addEventListener('click', function () {
-    if (!bibleData || navBook == null || navChapter == null) return;
-    var p = prevChapterNav(navBook, navChapter);
-    if (p) showVersesViewWithTransition(p.book, p.chapter);
+    showAdjacentChapter(-1);
   });
   fnNext.addEventListener('click', function () {
-    if (!bibleData || navBook == null || navChapter == null) return;
-    var n = nextChapterNav(navBook, navChapter);
-    if (n) showVersesViewWithTransition(n.book, n.chapter);
+    showAdjacentChapter(1);
   });
   fnBook.addEventListener('click', function () {
     if (bibleData) showBooksViewWithTransition();
