@@ -80,6 +80,86 @@
     --pill-bg: rgba(255,255,255,.05);
     --btn-active-text: #0d1017;
   }
+  html[data-season="spring"] {
+    --bg: #f3faef; --bg2: #fbfff9; --bg3: #f7fcf3; --bg4: #e6f3df;
+    --surface: #fbfff9; --surface-hi: #e6f3df;
+    --fg: #18301b; --fg2: #345438; --fg3: #536f56; --fg4: #536f56;
+    --verse-num: #236c29;
+    --accent: #2f7d32; --accent-fg: #fff;
+    --accent-glow: rgba(47,125,50,.25);
+    --note-bg: rgba(47,125,50,.1); --note-border: #2f7d32;
+    --pill-bg: rgba(47,125,50,.1);
+  }
+  html[data-season="spring"].dark {
+    --bg: #101b12; --bg2: #162419; --bg3: #132016; --bg4: #203323;
+    --surface: #162419; --surface-hi: #203323;
+    --fg: #ecf7e8; --fg2: #c8dec2; --fg3: #a9c4a4; --fg4: #91aa8e;
+    --verse-num: #95dc88;
+    --accent: #78c96e; --accent-fg: #10210f;
+    --accent-glow: rgba(120,201,110,.3);
+    --note-bg: rgba(120,201,110,.13); --note-border: #78c96e;
+    --pill-bg: rgba(120,201,110,.12);
+  }
+  html[data-season="summer"] {
+    --bg: #fff9df; --bg2: #fffdf2; --bg3: #fffbea; --bg4: #f7edc7;
+    --surface: #fffdf2; --surface-hi: #f7edc7;
+    --fg: #352c14; --fg2: #5e512d; --fg3: #766840; --fg4: #766840;
+    --verse-num: #84600e;
+    --accent: #9a6c10; --accent-fg: #fff;
+    --accent-glow: rgba(154,108,16,.24);
+    --note-bg: rgba(154,108,16,.1); --note-border: #9a6c10;
+    --pill-bg: rgba(154,108,16,.1);
+  }
+  html[data-season="summer"].dark {
+    --bg: #211c0f; --bg2: #2a2413; --bg3: #251f11; --bg4: #3a3118;
+    --surface: #2a2413; --surface-hi: #3a3118;
+    --fg: #fff5ce; --fg2: #e8dcae; --fg3: #cdbf8e; --fg4: #b4a67c;
+    --verse-num: #f0cf6a;
+    --accent: #e2bd55; --accent-fg: #2c2208;
+    --accent-glow: rgba(226,189,85,.3);
+    --note-bg: rgba(226,189,85,.13); --note-border: #e2bd55;
+    --pill-bg: rgba(226,189,85,.12);
+  }
+  html[data-season="fall"] {
+    --bg: #fff3e8; --bg2: #fffaf6; --bg3: #fff6ef; --bg4: #f7dfce;
+    --surface: #fffaf6; --surface-hi: #f7dfce;
+    --fg: #3c2116; --fg2: #674233; --fg3: #815e4d; --fg4: #815e4d;
+    --verse-num: #a34116;
+    --accent: #b94d19; --accent-fg: #fff;
+    --accent-glow: rgba(185,77,25,.25);
+    --note-bg: rgba(185,77,25,.1); --note-border: #b94d19;
+    --pill-bg: rgba(185,77,25,.1);
+  }
+  html[data-season="fall"].dark {
+    --bg: #24140e; --bg2: #301b13; --bg3: #291710; --bg4: #42251a;
+    --surface: #301b13; --surface-hi: #42251a;
+    --fg: #ffe9d8; --fg2: #edcbb4; --fg3: #d1ad95; --fg4: #b99580;
+    --verse-num: #ff9a61;
+    --accent: #ee7b3c; --accent-fg: #2f1004;
+    --accent-glow: rgba(238,123,60,.31);
+    --note-bg: rgba(238,123,60,.14); --note-border: #ee7b3c;
+    --pill-bg: rgba(238,123,60,.13);
+  }
+  html[data-season="winter"] {
+    --bg: #eef7ff; --bg2: #fbfdff; --bg3: #f4faff; --bg4: #dfeef9;
+    --surface: #fbfdff; --surface-hi: #dfeef9;
+    --fg: #142b3e; --fg2: #38566d; --fg3: #506a7e; --fg4: #506a7e;
+    --verse-num: #0d669a;
+    --accent: #146fa3; --accent-fg: #fff;
+    --accent-glow: rgba(20,111,163,.24);
+    --note-bg: rgba(20,111,163,.1); --note-border: #146fa3;
+    --pill-bg: rgba(20,111,163,.1);
+  }
+  html[data-season="winter"].dark {
+    --bg: #0c1722; --bg2: #122130; --bg3: #0f1c29; --bg4: #1b3042;
+    --surface: #122130; --surface-hi: #1b3042;
+    --fg: #e9f6ff; --fg2: #c5ddeb; --fg3: #a5c2d3; --fg4: #8ba9bb;
+    --verse-num: #8bd1f8;
+    --accent: #69b9e8; --accent-fg: #082033;
+    --accent-glow: rgba(105,185,232,.32);
+    --note-bg: rgba(105,185,232,.13); --note-border: #69b9e8;
+    --pill-bg: rgba(105,185,232,.12);
+  }
   * { margin: 0; padding: 0; box-sizing: border-box; }
   html, body { height: 100%; overflow: hidden; }
   .sr-only {
@@ -130,6 +210,7 @@
   html.theme-transitioning .bottom-history-menu,
   html.theme-transitioning .dd-item,
   html.theme-transitioning .theme-mode-control,
+  html.theme-transitioning .season-control,
   html.theme-transitioning .theme-mode-button,
   html.theme-transitioning .book-btn,
   html.theme-transitioning .chapter-btn,
@@ -547,6 +628,14 @@
     padding: max(4px, calc(var(--display-panel-padding) / 3)); border: 1px solid var(--border2); border-radius: var(--radius-sm); background: var(--pill-bg);
     transition: background 180ms ease, border-color 180ms ease, box-shadow 180ms ease;
   }
+  .season-control {
+    display: grid; grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: max(4px, calc(var(--display-panel-gap) / 2));
+    padding: max(4px, calc(var(--display-panel-padding) / 3));
+    border: 1px solid var(--border); border-radius: var(--radius-sm); background: var(--bg4);
+    transition: background 180ms ease, border-color 180ms ease, box-shadow 180ms ease;
+  }
+  .season-control .theme-mode-button { min-width: 0; padding-inline: max(4px, calc(var(--display-control-pad-x) / 2)); }
   .theme-mode-button {
     min-height: var(--display-segment-height); border: 0; border-radius: var(--radius-xs); background: transparent;
     color: var(--fg2); font: inherit; font-size: var(--display-control-font-size); cursor: pointer;
@@ -888,6 +977,11 @@
     .search-input { font-size: min(var(--display-control-font-size), 20px); padding-inline: 12px; }
     .search-text { font-size: min(max(15px, calc(var(--display-control-font-size) - 2px)), 20px); }
     .search-hist-item .sh-query { font-size: min(var(--display-control-font-size), 20px); }
+    .season-control .theme-mode-button {
+      font-size: min(var(--display-control-font-size), 18px);
+      white-space: normal;
+      overflow-wrap: anywhere;
+    }
     .verse-actions {
       width: 100%;
       max-width: none;
@@ -1014,11 +1108,21 @@
 <div id="fab-panel" class="fab-panel">
       <div id="auth-area" class="fab-card profile-card"></div>
       <div class="fab-card theme-mode-wrap">
-        <div class="fab-card-title">Display Mode</div>
-        <div class="theme-mode-control" role="group" aria-label="Color scheme">
+        <div class="fab-card-title">Appearance</div>
+        <div class="theme-mode-control" role="group" aria-label="Appearance">
           <button class="theme-mode-button" type="button" data-theme-mode="light" aria-pressed="true">Light</button>
           <button class="theme-mode-button" type="button" data-theme-mode="dark" aria-pressed="false">Dark</button>
-          <button class="theme-mode-button" type="button" data-theme-mode="auto" aria-pressed="false">Auto</button>
+          <button class="theme-mode-button" type="button" data-theme-mode="auto" aria-pressed="false">System</button>
+        </div>
+      </div>
+      <div class="fab-card theme-mode-wrap">
+        <div class="fab-card-title">Season</div>
+        <div class="season-control" role="group" aria-label="Seasonal color scheme">
+          <button class="theme-mode-button" type="button" data-season="auto" aria-pressed="true">Auto</button>
+          <button class="theme-mode-button" type="button" data-season="spring" aria-pressed="false">Spring</button>
+          <button class="theme-mode-button" type="button" data-season="summer" aria-pressed="false">Summer</button>
+          <button class="theme-mode-button" type="button" data-season="fall" aria-pressed="false">Fall</button>
+          <button class="theme-mode-button" type="button" data-season="winter" aria-pressed="false">Winter</button>
         </div>
       </div>
       <div class="fab-card display-size-wrap">
@@ -1104,6 +1208,7 @@
       _setSyncStatus('Syncing\u2026');
       doc.set({
         themeMode: State.getThemeMode(),
+        season: State.getSeason(),
         font: State.getDisplayStep(),
         history: State.getHistory(),
         searchHistory: State.getSearchHistory(),
@@ -1137,6 +1242,14 @@
     setThemeMode: function (mode) {
       this._set('bible_theme_mode', mode === 'dark' || mode === 'auto' ? mode : 'light');
       try { localStorage.removeItem('bible_dark'); } catch(e) {}
+    },
+
+    getSeason: function () {
+      var season = this._get('bible_season', 'auto');
+      return /^(auto|spring|summer|fall|winter)$/.test(season) ? season : 'auto';
+    },
+    setSeason: function (season) {
+      this._set('bible_season', /^(spring|summer|fall|winter)$/.test(season) ? season : 'auto');
     },
 
     getDisplayStep: function () {
@@ -1207,6 +1320,9 @@
         try { localStorage.setItem('bible_theme_mode', JSON.stringify(data.themeMode)); } catch(e) {}
       } else if (typeof data.dark === 'boolean') {
         try { localStorage.setItem('bible_theme_mode', JSON.stringify(data.dark ? 'dark' : 'light')); } catch(e) {}
+      }
+      if (typeof data.season === 'string' && /^(auto|spring|summer|fall|winter)$/.test(data.season)) {
+        try { localStorage.setItem('bible_season', JSON.stringify(data.season)); } catch(e) {}
       }
       if (typeof data.font === 'number') { try { localStorage.setItem('bible_font_step', JSON.stringify(data.font)); } catch(e) {} }
       else if (typeof data.font === 'boolean') { try { localStorage.setItem('bible_font_step', JSON.stringify(data.font ? DISPLAY_SIZE_STEPS.length - 1 : DEFAULT_DISPLAY_STEP)); } catch(e) {} }
@@ -1491,6 +1607,46 @@
     });
   });
 
+  // ===================== SEASONAL THEME =====================
+  var seasonButtons = Array.prototype.slice.call(document.querySelectorAll('[data-season]'));
+  var seasonApplied = false;
+  function automaticSeason(date) {
+    var monthDay = ((date.getMonth() + 1) * 100) + date.getDate();
+    if (monthDay >= 320 && monthDay < 621) return 'spring';
+    if (monthDay >= 621 && monthDay < 922) return 'summer';
+    if (monthDay >= 922 && monthDay < 1221) return 'fall';
+    return 'winter';
+  }
+  function resolvedSeason(choice) {
+    return choice === 'auto' ? automaticSeason(new Date()) : choice;
+  }
+  function applySeason(choice) {
+    choice = /^(spring|summer|fall|winter)$/.test(choice) ? choice : 'auto';
+    var resolved = resolvedSeason(choice);
+    var current = document.documentElement.getAttribute('data-season');
+    if (seasonApplied && current !== resolved) beginThemeTransition();
+    document.documentElement.setAttribute('data-season', resolved);
+    seasonButtons.forEach(function (button) {
+      var selected = button.getAttribute('data-season') === choice;
+      button.classList.toggle('active', selected);
+      button.setAttribute('aria-pressed', selected ? 'true' : 'false');
+    });
+    var themeColor = { spring: '#2f7d32', summer: '#9a6c10', fall: '#b94d19', winter: '#146fa3' }[resolved];
+    document.querySelector('meta[name="theme-color"]').setAttribute('content', themeColor);
+    State.setSeason(choice);
+    seasonApplied = true;
+  }
+  applySeason(State.getSeason());
+  seasonButtons.forEach(function (button) {
+    button.addEventListener('click', function (event) {
+      event.stopPropagation();
+      applySeason(button.getAttribute('data-season'));
+    });
+  });
+  document.addEventListener('visibilitychange', function () {
+    if (!document.hidden && State.getSeason() === 'auto') applySeason('auto');
+  });
+
   // ===================== DISPLAY SIZE =====================
   var displaySizeButtons = Array.prototype.slice.call(document.querySelectorAll('.display-size-button'));
   function applyDisplayStep(step) {
@@ -1620,6 +1776,7 @@
           if (cloudHasData && !localHasData) {
             State.applyCloudData(cloud);
             applyThemeMode(State.getThemeMode());
+            applySeason(State.getSeason());
             applyDisplayStep(State.getDisplayStep());
           } else if (localHasData) {
             _scheduleSync();
