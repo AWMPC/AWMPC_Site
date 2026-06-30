@@ -1343,7 +1343,10 @@
     },
     setChapterPositions: function (positions) {
       var normalized = this.normalizeChapterPositions(positions);
-      try { localStorage.setItem('bible_chapter_positions', JSON.stringify(normalized)); } catch(e) {}
+      try {
+        localStorage.setItem('bible_chapter_positions', JSON.stringify(normalized));
+        return true;
+      } catch(e) { return false; }
     },
 
     getSearchHistory: function () { return this._get('bible_search_hist', []); },
@@ -1437,6 +1440,8 @@
   var POSITION_FLUSH_MS = 500;
   var historySettleTimer = null;
   var chapterPositionFlushTimer = null;
+  var verseHighlightFadeTimer = null;
+  var verseHighlightCleanupTimer = null;
   var chapterPositions = State.getChapterPositions();
   var chapterPositionsDirty = false;
   var verseChaseFrame = null;
@@ -1871,6 +1876,9 @@
     flushChapterPositions();
     cancelHistorySettle();
   });
+  window.addEventListener('pageshow', function (event) {
+    if (event.persisted && isCurrentVersesView(currentBook, currentChapter)) scheduleSettledHistory();
+  });
 
   // ===================== HISTORY (inside FAB) =====================
   function formatHistoryTimestamp(value) {
@@ -2037,9 +2045,10 @@
   function flushChapterPositions() {
     if (chapterPositionFlushTimer) window.clearTimeout(chapterPositionFlushTimer);
     chapterPositionFlushTimer = null;
-    if (!chapterPositionsDirty) return;
-    State.setChapterPositions(chapterPositions);
+    if (!chapterPositionsDirty) return true;
+    if (!State.setChapterPositions(chapterPositions)) return false;
     chapterPositionsDirty = false;
+    return true;
   }
 
   function scheduleChapterPositionFlush() {
@@ -2103,7 +2112,15 @@
     }, HISTORY_SETTLE_MS);
   }
 
+  function clearVerseHighlightTimers() {
+    if (verseHighlightFadeTimer) window.clearTimeout(verseHighlightFadeTimer);
+    if (verseHighlightCleanupTimer) window.clearTimeout(verseHighlightCleanupTimer);
+    verseHighlightFadeTimer = null;
+    verseHighlightCleanupTimer = null;
+  }
+
   function prepareToLeaveReadingView() {
+    clearVerseHighlightTimers();
     if (uiView === 'verses') rememberCurrentChapterPosition();
     flushChapterPositions();
     cancelHistorySettle();
@@ -2787,14 +2804,19 @@
         if (!isCurrentVersesView(bookName, chapterNum)) return;
         var target = viewInner.querySelector('[data-v="' + selectedVerse + '"]');
         if (target) {
+          clearVerseHighlightTimers();
           setActiveVerse(selectedVerse, false);
           scrollVerseToCenter(target);
           target.classList.add('highlight');
-          setTimeout(function () {
+          verseHighlightFadeTimer = window.setTimeout(function () {
+            verseHighlightFadeTimer = null;
+            if (!isCurrentVersesView(bookName, chapterNum) || !viewInner.contains(target)) return;
             target.classList.add('highlight-fade');
             target.classList.remove('highlight');
           }, 1800);
-          setTimeout(function () {
+          verseHighlightCleanupTimer = window.setTimeout(function () {
+            verseHighlightCleanupTimer = null;
+            if (!isCurrentVersesView(bookName, chapterNum) || !viewInner.contains(target)) return;
             target.classList.remove('highlight-fade');
           }, 3500);
         }
