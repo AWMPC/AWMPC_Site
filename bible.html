@@ -2208,7 +2208,8 @@
   }
 
   function restoreVerseActionFocus(target) {
-    if (!target || !target.isConnected || typeof target.focus !== 'function') return;
+    if (!target || !target.isConnected || !viewInner.contains(target) ||
+        !target.classList.contains('active') || typeof target.focus !== 'function') return;
     try { target.focus({ preventScroll: true }); } catch (e) { target.focus(); }
   }
 
@@ -2461,9 +2462,13 @@
     var target = getVerseElement(currentBook, currentChapter, nextVerse);
     if (!target) return;
     var prev = viewInner.querySelector('.verse.active');
-    if (prev) prev.classList.remove('active');
+    if (prev) {
+      prev.classList.remove('active');
+      prev.removeAttribute('aria-keyshortcuts');
+    }
     activeVerse = nextVerse;
     target.classList.add('active');
+    target.setAttribute('aria-keyshortcuts', 'Shift+F10');
     if (center) scrollVerseToCenter(target);
     updateNav();
     rememberCurrentChapterPosition();
@@ -2515,10 +2520,11 @@
     retiring.setAttribute('aria-hidden', 'true');
     retiring.setAttribute('inert', '');
     if ('inert' in retiring) retiring.inert = true;
-    var semanticNodes = retiring.querySelectorAll('[id], [aria-controls]');
+    var semanticNodes = retiring.querySelectorAll('[id], [aria-controls], [aria-keyshortcuts]');
     for (var i = 0; i < semanticNodes.length; i++) {
       semanticNodes[i].removeAttribute('id');
       semanticNodes[i].removeAttribute('aria-controls');
+      semanticNodes[i].removeAttribute('aria-keyshortcuts');
     }
   }
 
@@ -2810,7 +2816,10 @@
     var key = e.key;
     var handled = false;
     if (uiView === 'verses' && (key === 'ContextMenu' || (key === 'F10' && e.shiftKey))) {
-      handled = openVerseActions(viewInner.querySelector('.verse.active'));
+      var shortcutVerse = e.target && e.target.closest ? e.target.closest('.verse') : null;
+      if (!shortcutVerse || !shortcutVerse.isConnected || !viewInner.contains(shortcutVerse) ||
+          !shortcutVerse.classList.contains('active')) return;
+      handled = openVerseActions(shortcutVerse);
       if (handled) e.preventDefault();
       return;
     }
@@ -3046,7 +3055,6 @@
       div.setAttribute('data-v', keys[i]);
       div.setAttribute('tabindex', '-1');
       div.setAttribute('aria-label', bookName + ' ' + chapterNum + ':' + keys[i]);
-      div.setAttribute('aria-keyshortcuts', 'Shift+F10');
 
       var p = document.createElement('p');
       p.className = 'verse-reading-text';
