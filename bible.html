@@ -2112,7 +2112,9 @@
   function canonicalVerseUrl(book, chapter, verse) {
     var reference = normalizeVerseReference(book, chapter, verse);
     if (!reference) return null;
-    var url = new URL(cleanBibleUrl());
+    var url = new URL('bible.html', window.location.href);
+    url.search = '';
+    url.hash = '';
     url.searchParams.set('book', reference.book);
     url.searchParams.set('chapter', String(reference.chapter));
     url.searchParams.set('verse', reference.verse);
