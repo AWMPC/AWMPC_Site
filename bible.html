@@ -1451,6 +1451,9 @@
   var CHAPTER_CROSSFADE_MS = 200;
   var chapterCrossfadeTimer = null;
   var preservingChapterCrossfade = false;
+  var readerPointerState = null;
+  var suppressReaderClick = false;
+  var suppressReaderClickTimer = null;
   var lastViewScrollTop = 0;
   var bottomChromeScrollFrame = null;
   var uiView = 'books';
@@ -2119,7 +2122,24 @@
     verseHighlightCleanupTimer = null;
   }
 
+  function clearReaderPointerState() {
+    readerPointerState = null;
+  }
+
+  function clearSuppressReaderClick() {
+    if (suppressReaderClickTimer) window.clearTimeout(suppressReaderClickTimer);
+    suppressReaderClickTimer = null;
+    suppressReaderClick = false;
+  }
+
+  function suppressFollowingReaderClick() {
+    clearSuppressReaderClick();
+    suppressReaderClick = true;
+    suppressReaderClickTimer = window.setTimeout(clearSuppressReaderClick, 800);
+  }
+
   function prepareToLeaveReadingView() {
+    clearReaderPointerState();
     clearVerseHighlightTimers();
     if (uiView === 'verses') rememberCurrentChapterPosition();
     flushChapterPositions();
@@ -2453,29 +2473,41 @@
 
   function handleReadingEnterKey() {
     var active = viewInner.querySelector('.verse.active');
-    if (!active) return false;
-    var noteButtons = active.querySelectorAll('.footnote-toggle');
-    var noteBodies = active.querySelectorAll('.footnote-body');
-    if (!noteButtons.length || !noteBodies.length) return false;
+    return active ? toggleAllVerseFootnotes(active) : false;
+  }
+
+  function toggleAllVerseFootnotes(verseEl) {
+    if (!verseEl) return false;
+    var noteButtons = verseEl.querySelectorAll('.footnote-toggle');
+    var noteBodies = verseEl.querySelectorAll('.footnote-body');
+    if (!noteBodies.length) return false;
     var shouldOpen = false;
     for (var i = 0; i < noteBodies.length; i++) {
-      if (noteBodies[i].className.indexOf('visible') === -1) {
+      if (!noteBodies[i].classList.contains('visible')) {
         shouldOpen = true;
         break;
       }
     }
     for (i = 0; i < noteBodies.length; i++) {
-      noteBodies[i].className = shouldOpen ? 'footnote-body visible' : 'footnote-body';
+      noteBodies[i].classList.toggle('visible', shouldOpen);
     }
     for (i = 0; i < noteButtons.length; i++) {
-      noteButtons[i].className = shouldOpen ? 'footnote-toggle open' : 'footnote-toggle';
+      noteButtons[i].classList.toggle('open', shouldOpen);
+      noteButtons[i].setAttribute('aria-expanded', shouldOpen ? 'true' : 'false');
     }
-    active.classList.toggle('footnotes-open', shouldOpen);
+    verseEl.classList.toggle('footnotes-open', shouldOpen);
     return true;
   }
 
   function syncFootnoteVerseState(verseEl) {
     if (!verseEl) return;
+    var noteButtons = verseEl.querySelectorAll('.footnote-toggle');
+    var noteBodies = verseEl.querySelectorAll('.footnote-body');
+    for (var i = 0; i < noteButtons.length; i++) {
+      var isOpen = !!noteBodies[i] && noteBodies[i].classList.contains('visible');
+      noteButtons[i].classList.toggle('open', isOpen);
+      noteButtons[i].setAttribute('aria-expanded', isOpen ? 'true' : 'false');
+    }
     var visibleNotes = verseEl.querySelectorAll('.footnote-body.visible');
     var hasVisibleNote = visibleNotes.length > 0;
     verseEl.classList.toggle('footnotes-open', hasVisibleNote);
@@ -2767,6 +2799,7 @@
           noteBtn.type = 'button';
           noteBtn.className = 'footnote-toggle';
           noteBtn.textContent = keys[i] + '.' + fnIdx;
+          noteBtn.setAttribute('aria-expanded', 'false');
           var noteBody = document.createElement('div');
           noteBody.className = 'footnote-body';
           var refLabel = String(seg.ref).trim();
@@ -2779,9 +2812,10 @@
           );
           noteBtn.addEventListener('click', (function (b, bd) {
             return function () {
-              var on = bd.className.indexOf('visible') !== -1;
-              bd.className = on ? 'footnote-body' : 'footnote-body visible';
-              b.className = on ? 'footnote-toggle' : 'footnote-toggle open';
+              var on = bd.classList.contains('visible');
+              bd.classList.toggle('visible', !on);
+              b.classList.toggle('open', !on);
+              b.setAttribute('aria-expanded', on ? 'false' : 'true');
               syncFootnoteVerseState(bd.parentElement);
             };
           })(noteBtn, noteBody));
@@ -3120,6 +3154,79 @@
   });
   fnVerse.addEventListener('click', function () {
     if (bibleData && navBook && navChapter) showVersePickerViewWithTransition(navBook, navChapter);
+  });
+  document.addEventListener('pointerdown', function (e) {
+    if (!e.isPrimary || e.button !== 0) return;
+    var host = e.target.closest && e.target.closest('button,.dd-item,.book-btn,.chapter-btn,.search-result,.search-hist-item,.verse');
+    if (!host || host.matches(':disabled,[aria-disabled="true"]')) return;
+    var rect = host.getBoundingClientRect();
+    if (!rect.width || !rect.height) return;
+    host.classList.add('press-ripple-host');
+    var ripple = document.createElement('span');
+    ripple.className = 'press-ripple';
+    ripple.setAttribute('aria-hidden', 'true');
+    ripple.style.left = (e.clientX - rect.left) + 'px';
+    ripple.style.top = (e.clientY - rect.top) + 'px';
+    ripple.style.setProperty('--ripple-scale', String(Math.max(rect.width, rect.height) / 6));
+    host.appendChild(ripple);
+    var removeRipple = function () {
+      if (ripple.parentNode) ripple.parentNode.removeChild(ripple);
+    };
+    ripple.addEventListener('animationend', removeRipple, { once: true });
+    window.setTimeout(removeRipple, 340);
+  });
+  document.addEventListener('pointerdown', function (e) {
+    if (uiView !== 'verses' || !e.isPrimary || e.button !== 0 || (e.pointerType !== 'touch' && e.pointerType !== 'pen')) return;
+    if (!viewInner.contains(e.target) || e.target.closest('button,dialog,a,input,select,textarea,[role="button"],.verse-actions')) return;
+    var verseEl = e.target.closest('.verse');
+    readerPointerState = {
+      id: e.pointerId,
+      x: e.clientX,
+      y: e.clientY,
+      verse: verseEl,
+      moved: false
+    };
+  });
+  document.addEventListener('pointermove', function (e) {
+    if (!readerPointerState || readerPointerState.id !== e.pointerId) return;
+    var dx = e.clientX - readerPointerState.x;
+    var dy = e.clientY - readerPointerState.y;
+    if (Math.sqrt((dx * dx) + (dy * dy)) > 10) readerPointerState.moved = true;
+  }, { passive: true });
+  document.addEventListener('pointerup', function (e) {
+    if (!readerPointerState || readerPointerState.id !== e.pointerId) return;
+    var state = readerPointerState;
+    clearReaderPointerState();
+    var dx = e.clientX - state.x;
+    var dy = e.clientY - state.y;
+    var selection = window.getSelection && window.getSelection();
+    var hasSelection = selection && !selection.isCollapsed;
+    if (Math.abs(dx) >= 72 && Math.abs(dx) >= Math.abs(dy) * 1.25 && !hasSelection) {
+      e.preventDefault();
+      suppressFollowingReaderClick();
+      showAdjacentChapter(dx < 0 ? 1 : -1);
+      return;
+    }
+    if (state.moved || !state.verse || hasSelection || !state.verse.isConnected) return;
+    e.preventDefault();
+    suppressFollowingReaderClick();
+    if (state.verse.classList.contains('active')) toggleAllVerseFootnotes(state.verse);
+    else setActiveVerse(state.verse.getAttribute('data-v'), true);
+  });
+  document.addEventListener('pointercancel', clearReaderPointerState);
+  document.addEventListener('click', function (e) {
+    if (!suppressReaderClick) return;
+    clearSuppressReaderClick();
+    e.preventDefault();
+    e.stopImmediatePropagation();
+  }, true);
+  document.addEventListener('click', function (e) {
+    if (uiView !== 'verses' || e.detail === 0 || e.button !== 0) return;
+    if (e.target.closest('button,dialog,a,input,select,textarea,[role="button"],.verse-actions')) return;
+    var verseEl = e.target.closest('.verse');
+    if (!verseEl || !viewInner.contains(verseEl)) return;
+    if (verseEl.classList.contains('active')) toggleAllVerseFootnotes(verseEl);
+    else setActiveVerse(verseEl.getAttribute('data-v'), true);
   });
   viewEl.addEventListener('scroll', function () {
     scheduleBottomChromeScrollUpdate();
