@@ -3207,7 +3207,11 @@
       showAdjacentChapter(dx < 0 ? 1 : -1);
       return;
     }
-    if (state.moved || !state.verse || hasSelection || !state.verse.isConnected) return;
+    if (state.moved) {
+      suppressFollowingReaderClick();
+      return;
+    }
+    if (!state.verse || hasSelection || !state.verse.isConnected) return;
     e.preventDefault();
     suppressFollowingReaderClick();
     if (state.verse.classList.contains('active')) toggleAllVerseFootnotes(state.verse);
@@ -3221,7 +3225,7 @@
     e.stopImmediatePropagation();
   }, true);
   document.addEventListener('click', function (e) {
-    if (uiView !== 'verses' || e.detail === 0 || e.button !== 0) return;
+    if (uiView !== 'verses' || e.detail === 0 || e.button !== 0 || e.pointerType === 'touch' || e.pointerType === 'pen') return;
     if (e.target.closest('button,dialog,a,input,select,textarea,[role="button"],.verse-actions')) return;
     var verseEl = e.target.closest('.verse');
     if (!verseEl || !viewInner.contains(verseEl)) return;
