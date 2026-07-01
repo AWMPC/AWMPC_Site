@@ -1170,8 +1170,9 @@
 <dialog id="verse-actions" class="verse-actions" aria-labelledby="verse-actions-title">
   <form method="dialog">
     <h2 id="verse-actions-title">Verse Actions</h2>
-    <button type="button" id="copy-verse" value="copy">Copy Verse Text</button>
-    <button type="button" id="share-verse" value="share">Share Link to Verse</button>
+    <button type="button" id="copy-verse" value="copy-text"><span class="setting-emoji" aria-hidden="true">📋</span><span>Copy Verse Text</span></button>
+    <button type="button" id="copy-verse-link" value="copy-link"><span class="setting-emoji" aria-hidden="true">🔗</span><span>Copy Verse Link</span></button>
+    <button type="button" id="share-verse" value="share"><span class="setting-emoji" aria-hidden="true">📤</span><span>Share Verse</span></button>
     <button type="submit" value="cancel" class="verse-actions-cancel">Cancel</button>
   </form>
 </dialog>
@@ -1860,6 +1861,7 @@
   var verseActionsDialog = document.getElementById('verse-actions');
   var verseActionsTitle = document.getElementById('verse-actions-title');
   var copyVerseButton = document.getElementById('copy-verse');
+  var copyVerseLinkButton = document.getElementById('copy-verse-link');
   var shareVerseButton = document.getElementById('share-verse');
   document.getElementById('app-version').textContent = APP_VERSION;
   var bottomChromeResizeObserver = null;
@@ -2864,10 +2866,13 @@
     var url = verse && canonicalVerseUrl(currentBook, currentChapter, verse);
     if (!verse || !text || !url) return null;
     var reference = currentBook + ' ' + currentChapter + ':' + verse;
+    var copyText = reference + ' \u2014 ' + text;
     return {
       reference: reference,
       text: text,
-      copy: reference + ' \u2014 ' + text,
+      copyText: copyText,
+      copyLink: url,
+      combined: copyText + '\n' + url,
       url: url
     };
   }
@@ -4155,10 +4160,27 @@
         return;
       }
       verseActionInFlight = true;
-      writeClipboardText(payload.copy).then(function () {
+      writeClipboardText(payload.copyText).then(function () {
         finishVerseAction(token, 'Verse copied.', true);
       }).catch(function () {
         finishVerseAction(token, 'Unable to copy the verse. Try again.', false);
+      });
+    });
+  }
+  if (copyVerseLinkButton) {
+    copyVerseLinkButton.addEventListener('click', function () {
+      if (verseActionInFlight) return;
+      var token = verseActionGeneration;
+      var payload = currentVerseAction(token);
+      if (!payload) {
+        announceStatus('Select an active verse first.');
+        return;
+      }
+      verseActionInFlight = true;
+      writeClipboardText(payload.copyLink).then(function () {
+        finishVerseAction(token, 'Verse link copied.', true);
+      }).catch(function () {
+        finishVerseAction(token, 'Unable to copy the verse link. Try again.', false);
       });
     });
   }
@@ -4177,7 +4199,7 @@
         try {
           sharePromise = navigator.share({
             title: payload.reference,
-            text: payload.text,
+            text: payload.copyText,
             url: payload.url
           });
         } catch (error) {
@@ -4192,10 +4214,10 @@
         });
         return;
       }
-      writeClipboardText(payload.url).then(function () {
-        finishVerseAction(token, 'Verse link copied.', true);
+      writeClipboardText(payload.combined).then(function () {
+        finishVerseAction(token, 'Verse text and link copied.', true);
       }).catch(function () {
-        finishVerseAction(token, 'Unable to copy the verse link. Try again.', false);
+        finishVerseAction(token, 'Unable to copy the verse and link. Try again.', false);
       });
     });
   }
