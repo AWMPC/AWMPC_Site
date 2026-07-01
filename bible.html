@@ -814,11 +814,6 @@
     border-color: rgba(224, 192, 48, 0.5);
     box-shadow: 0 0 22px rgba(224, 192, 48, 0.3), inset 0 0 8px rgba(224, 192, 48, 0.08);
   }
-  html.dark .verse.active {
-    background: rgba(91,155,244,.13);
-    border-color: rgba(91,155,244,.55);
-    box-shadow: 0 8px 28px rgba(91,155,244,.14);
-  }
   .verse-num { font-size: .7em; font-weight: 700; color: var(--verse-num); vertical-align: super; margin-right: .2em; }
   .verse-edge-spacer,
   .verse-head-spacer,
@@ -2632,6 +2627,7 @@
   var footnoteRe = /\{\[([^\]]+)\]\s*(.*?)\}/g;
   var footnoteStripRe = /\{\[[^\]]+\]\s*.*?\}/g;
   function parseVerse(raw) {
+    raw = raw == null ? '' : String(raw);
     var segments = [];
     var last = 0;
     var m;
@@ -2647,6 +2643,43 @@
       segments.push({ type: 'text', value: raw.slice(last).replace(/  +/g, ' ') });
     }
     return segments;
+  }
+
+  function footnoteRefCoversVerse(ref, verse) {
+    var verseKey = String(verse == null ? '' : verse).trim();
+    if (!/^\d{1,3}$/.test(verseKey)) return false;
+    var target = parseInt(verseKey, 10);
+    var rawRef = String(ref == null ? '' : ref).trim();
+    if (!/^\d{1,3}(?:\s*[-\u2013\u2014]\s*\d{1,3})?(?:\s*(?:[,;]|\s)\s*\d{1,3}(?:\s*[-\u2013\u2014]\s*\d{1,3})?)*$/.test(rawRef)) return false;
+    var tokens = rawRef.replace(/\s*([-\u2013\u2014])\s*/g, '$1').split(/[,;\s]+/);
+    for (var i = 0; i < tokens.length; i++) {
+      var token = tokens[i].trim();
+      if (/^\d{1,3}$/.test(token) && parseInt(token, 10) === target) return true;
+      var range = token.match(/^(\d{1,3})[-\u2013\u2014](\d{1,3})$/);
+      if (!range) continue;
+      var start = parseInt(range[1], 10);
+      var end = parseInt(range[2], 10);
+      if (start <= target && target <= end) return true;
+    }
+    return false;
+  }
+
+  function resolvedVerseSource(verses, verse) {
+    var verseKey = String(verse == null ? '' : verse);
+    if (!verses || typeof verses !== 'object' ||
+        !Object.prototype.hasOwnProperty.call(verses, verseKey)) return '';
+    var ownSource = verses[verseKey] == null ? '' : String(verses[verseKey]);
+    if (ownSource.trim()) return ownSource;
+    var keys = Object.keys(verses);
+    for (var i = 0; i < keys.length; i++) {
+      var segments = parseVerse(verses[keys[i]]);
+      for (var s = 0; s < segments.length; s++) {
+        if (segments[s].type !== 'note' || !footnoteRefCoversVerse(segments[s].ref, verseKey)) continue;
+        var candidate = String(segments[s].text == null ? '' : segments[s].text).trim();
+        if (candidate) return candidate;
+      }
+    }
+    return ownSource;
   }
 
   // ===================== NAV STATE =====================
@@ -3730,7 +3763,7 @@
     viewInner.appendChild(headSpacer);
 
     for (var i = 0; i < keys.length; i++) {
-      var segments = parseVerse(verses[keys[i]]);
+      var segments = parseVerse(resolvedVerseSource(verses, keys[i]));
       var div = document.createElement('div');
       div.className = 'verse';
       div.id = verseElementId(bookName, chapterNum, keys[i]);
@@ -3877,7 +3910,7 @@
         var vs = chs[chKeys[c]];
         var vKeys = Object.keys(vs);
         for (var v = 0; v < vKeys.length; v++) {
-          var txt = vs[vKeys[v]];
+          var txt = resolvedVerseSource(vs, vKeys[v]);
           searchIndex.push({
             book: books[b], ch: chKeys[c], v: vKeys[v],
             text: txt,
