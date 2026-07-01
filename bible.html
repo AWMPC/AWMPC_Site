@@ -1230,6 +1230,9 @@
   var _syncAttempt = 0;
   var _syncExhausted = false;
   var _syncRetryDelayIndex = null;
+  var _syncRetryDeadline = 0;
+  var _syncRetryUid = null;
+  var _syncRetryGeneration = -1;
   var _syncBlockedUid = null;
   var _syncBlockedGeneration = -1;
   var _syncGeneration = 0;
@@ -1367,6 +1370,9 @@
     _syncAttempt = 0;
     _syncExhausted = false;
     _syncRetryDelayIndex = null;
+    _syncRetryDeadline = 0;
+    _syncRetryUid = null;
+    _syncRetryGeneration = -1;
     _syncBlockedUid = null;
     _syncBlockedGeneration = -1;
     _syncHydrationPending = false;
@@ -1388,6 +1394,12 @@
 
   function _jitteredSyncDelay(delay) {
     return Math.round(delay * (0.8 + Math.random() * 0.4));
+  }
+
+  function _setNonAuthoritativeSyncStatus() {
+    if (!navigator.onLine) _setSyncStatus('Offline \u2014 local changes safe');
+    else if (_hydrationRetryExhausted) _setSyncStatus('Sync paused \u2014 local changes safe');
+    else _setSyncStatus('Sync delayed \u2014 local changes safe');
   }
 
   function _armHydrationRetry(delay) {
@@ -1422,6 +1434,9 @@
     _syncAttempt = 0;
     _syncExhausted = false;
     _syncRetryDelayIndex = null;
+    _syncRetryDeadline = 0;
+    _syncRetryUid = null;
+    _syncRetryGeneration = -1;
     _hydrationRetryDeadline = 0;
     _hydrationRetryUid = null;
     _hydrationRetryGeneration = -1;
@@ -1460,9 +1475,18 @@
         clearTimeout(_syncDebounceTimer);
         _syncDebounceTimer = null;
       }
+      var retryUid = _currentUid;
+      var retryGeneration = _syncGeneration;
       _syncRetryDelayIndex = _syncAttempt;
+      _syncRetryUid = retryUid;
+      _syncRetryGeneration = retryGeneration;
+      _syncRetryDeadline = Date.now() + Math.max(0, delay);
       _syncRetryTimer = setTimeout(function () {
         _syncRetryTimer = null;
+        if (retryUid !== _currentUid || retryGeneration !== _syncGeneration) return;
+        _syncRetryDeadline = 0;
+        _syncRetryUid = null;
+        _syncRetryGeneration = -1;
         _syncRetryDelayIndex = null;
         _syncAttempt += 1;
         _runSync();
@@ -1474,6 +1498,9 @@
       _syncRetryTimer = null;
     }
     _syncRetryDelayIndex = null;
+    _syncRetryDeadline = 0;
+    _syncRetryUid = null;
+    _syncRetryGeneration = -1;
     if (_syncDebounceTimer !== null) clearTimeout(_syncDebounceTimer);
     _syncDebounceTimer = setTimeout(function () {
       _syncDebounceTimer = null;
@@ -1492,6 +1519,9 @@
     if (!_currentUid || _localOwnerUid() !== _currentUid) return;
     _syncPending = true;
     _syncRetryDelayIndex = null;
+    _syncRetryDeadline = 0;
+    _syncRetryUid = null;
+    _syncRetryGeneration = -1;
     if (_syncExhausted || _syncAttempt >= SYNC_RETRY_DELAYS.length) {
       _syncAttempt = 0;
       _syncExhausted = false;
@@ -1515,7 +1545,10 @@
     _syncPending = true;
     _setSyncStatus(navigator.onLine ? 'Pending\u2026' : 'Offline \u2014 local changes safe');
     if (!navigator.onLine) return;
-    if (_syncRetryDelayIndex !== null) {
+    if (_syncRetryDeadline && _syncRetryUid === _currentUid &&
+        _syncRetryGeneration === _syncGeneration) {
+      _queueSync(Math.max(0, _syncRetryDeadline - Date.now()), true);
+    } else if (_syncRetryDelayIndex !== null) {
       _queueSync(_jitteredSyncDelay(SYNC_RETRY_DELAYS[_syncRetryDelayIndex]), true);
     } else if (_syncAttempt > 0) {
       _queueSync(_jitteredSyncDelay(SYNC_RETRY_DELAYS[_syncAttempt]), true);
@@ -1538,6 +1571,9 @@
       _syncAttempt = 0;
       _syncExhausted = false;
       _syncRetryDelayIndex = null;
+      _syncRetryDeadline = 0;
+      _syncRetryUid = null;
+      _syncRetryGeneration = -1;
       var remainingFields = _dirtySyncFields(activeWrite.uid).filter(function (field) {
         return activeWrite.fields.indexOf(field) === -1 ||
           _localFieldRevisions[field] !== activeWrite.fieldRevisions[field];
@@ -1561,6 +1597,9 @@
       if (_syncAttempt >= SYNC_RETRY_DELAYS.length) {
         _syncExhausted = true;
         _syncRetryDelayIndex = null;
+        _syncRetryDeadline = 0;
+        _syncRetryUid = null;
+        _syncRetryGeneration = -1;
       }
       _setSyncStatus(navigator.onLine ? 'Sync paused \u2014 local changes safe' : 'Offline \u2014 local changes safe');
       return;
@@ -2341,11 +2380,22 @@
         if (authGeneration !== _syncGeneration || authUid !== _currentUid) return;
         _syncHydrationPending = false;
         _syncHydrationInFlight = false;
-        _hydrationRetryAttempt = 0;
-        _hydrationRetryExhausted = false;
         var hydrationOffline = !navigator.onLine || !!(snap.metadata && snap.metadata.fromCache);
         _syncHydrationAuthoritative = !hydrationOffline;
         _syncHydrationCacheOnly = hydrationOffline;
+        if (!hydrationOffline) {
+          _hydrationRetryAttempt = 0;
+          _hydrationRetryExhausted = false;
+          _hydrationRetryDeadline = 0;
+          _hydrationRetryUid = null;
+          _hydrationRetryGeneration = -1;
+        } else if (navigator.onLine && !_hydrationRetryTimer) {
+          if (_hydrationRetryAttempt >= HYDRATION_RETRY_DELAYS.length) {
+            _hydrationRetryExhausted = true;
+          } else {
+            _armHydrationRetry(_jitteredSyncDelay(HYDRATION_RETRY_DELAYS[_hydrationRetryAttempt]));
+          }
+        }
         var cloud = snap.exists ? snap.data() : null;
         var cloudHasHistory = !!(cloud && cloud.history && cloud.history.length > 0);
         var cloudHasSeason = !!(cloud && typeof cloud.season === 'string' && /^(auto|spring|summer|fall|winter)$/.test(cloud.season));
@@ -2376,10 +2426,9 @@
           applyThemeMode(State.getThemeMode(), false);
           renderSeason(State.getSeason());
           applyDisplayStep(State.getDisplayStep(), false);
-          _clearSyncTimers();
           _syncPending = false;
           _syncAttempt = 0;
-          _setSyncStatus(hydrationOffline ? 'Offline \u2014 local changes safe' : 'Synced \u2713');
+          _setNonAuthoritativeSyncStatus();
           return;
         }
 
@@ -2390,7 +2439,7 @@
           }
           _scheduleSync();
           if (hydrationOffline) {
-            _setSyncStatus('Offline \u2014 local changes safe');
+            _setNonAuthoritativeSyncStatus();
           }
           return;
         }
@@ -2402,7 +2451,7 @@
           }
           _scheduleSync();
           if (hydrationOffline) {
-            _setSyncStatus('Offline \u2014 local changes safe');
+            _setNonAuthoritativeSyncStatus();
           }
           return;
         }
@@ -2424,19 +2473,17 @@
           }
           if (localHasData) {
             if (hydrationOffline) {
-              _clearSyncTimers();
               _syncPending = false;
-              _setSyncStatus('Offline \u2014 local changes safe');
+              _setNonAuthoritativeSyncStatus();
               return;
             }
             _scheduleSync();
             return;
           }
         }
-        _clearSyncTimers();
         _syncPending = false;
         _syncAttempt = 0;
-        _setSyncStatus(hydrationOffline ? 'Offline \u2014 local changes safe' : 'Synced \u2713');
+        _setNonAuthoritativeSyncStatus();
       }).catch(function (error) {
         if (authGeneration !== _syncGeneration || authUid !== _currentUid) return;
         _syncHydrationPending = false;
@@ -2483,6 +2530,9 @@
         _syncAttempt = 0;
         _syncExhausted = false;
         _syncRetryDelayIndex = null;
+        _syncRetryDeadline = 0;
+        _syncRetryUid = null;
+        _syncRetryGeneration = -1;
         _syncPending = true;
         _setSyncStatus('Back online \u2014 syncing\u2026');
         _queueSync(0, false);
