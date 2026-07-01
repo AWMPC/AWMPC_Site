@@ -635,13 +635,16 @@
     border: 1px solid var(--border); border-radius: var(--radius-sm); background: var(--bg4);
     transition: background 180ms ease, border-color 180ms ease, box-shadow 180ms ease;
   }
-  .season-control .theme-mode-button { min-width: 0; padding-inline: max(4px, calc(var(--display-control-pad-x) / 2)); }
+  .season-control .theme-mode-button { padding-inline: max(4px, calc(var(--display-control-pad-x) / 2)); }
   .theme-mode-button {
     min-height: var(--display-segment-height); border: 0; border-radius: var(--radius-xs); background: transparent;
     color: var(--fg2); font: inherit; font-size: var(--display-control-font-size); cursor: pointer;
-    display: inline-flex; align-items: center; justify-content: center; line-height: 1.15; padding: 0 var(--display-control-pad-x);
+    display: inline-flex; align-items: center; justify-content: center; gap: .35em; min-width: 0;
+    line-height: 1.15; padding: 0 var(--display-control-pad-x); white-space: normal; overflow-wrap: anywhere;
     transition: background 180ms ease, color 180ms ease, box-shadow 180ms ease, transform 120ms ease;
   }
+  .setting-emoji { flex: 0 0 auto; line-height: 1; }
+  .theme-mode-button > span:last-child { min-width: 0; }
   .theme-mode-button:hover,
   .theme-mode-button:focus-visible {
     background: color-mix(in srgb, var(--accent) 12%, transparent);
@@ -995,8 +998,6 @@
     .search-hist-item .sh-query { font-size: min(var(--display-control-font-size), 20px); }
     .season-control .theme-mode-button {
       font-size: min(var(--display-control-font-size), 18px);
-      white-space: normal;
-      overflow-wrap: anywhere;
     }
     .verse-actions {
       width: 100%;
@@ -1126,19 +1127,19 @@
       <div class="fab-card theme-mode-wrap">
         <div class="fab-card-title">Appearance</div>
         <div class="theme-mode-control" role="group" aria-label="Appearance">
-          <button class="theme-mode-button" type="button" data-theme-mode="light" aria-pressed="true">Light</button>
-          <button class="theme-mode-button" type="button" data-theme-mode="dark" aria-pressed="false">Dark</button>
-          <button class="theme-mode-button" type="button" data-theme-mode="auto" aria-pressed="false">System</button>
+          <button class="theme-mode-button" type="button" data-theme-mode="light" aria-pressed="true"><span class="setting-emoji" aria-hidden="true">☀️</span><span>Light</span></button>
+          <button class="theme-mode-button" type="button" data-theme-mode="dark" aria-pressed="false"><span class="setting-emoji" aria-hidden="true">🌙</span><span>Dark</span></button>
+          <button class="theme-mode-button" type="button" data-theme-mode="auto" aria-pressed="false"><span class="setting-emoji" aria-hidden="true">🖥️</span><span>System</span></button>
         </div>
       </div>
       <div class="fab-card theme-mode-wrap">
         <div class="fab-card-title">Season</div>
         <div class="season-control" role="group" aria-label="Seasonal color scheme">
-          <button class="theme-mode-button" type="button" data-season="auto" aria-pressed="true">Auto</button>
-          <button class="theme-mode-button" type="button" data-season="spring" aria-pressed="false">Spring</button>
-          <button class="theme-mode-button" type="button" data-season="summer" aria-pressed="false">Summer</button>
-          <button class="theme-mode-button" type="button" data-season="fall" aria-pressed="false">Fall</button>
-          <button class="theme-mode-button" type="button" data-season="winter" aria-pressed="false">Winter</button>
+          <button class="theme-mode-button" type="button" data-season="auto" aria-pressed="true"><span class="setting-emoji" aria-hidden="true">🗓️</span><span>Auto</span></button>
+          <button class="theme-mode-button" type="button" data-season="spring" aria-pressed="false"><span class="setting-emoji" aria-hidden="true">🌱</span><span>Spring</span></button>
+          <button class="theme-mode-button" type="button" data-season="summer" aria-pressed="false"><span class="setting-emoji" aria-hidden="true">🏖️</span><span>Summer</span></button>
+          <button class="theme-mode-button" type="button" data-season="fall" aria-pressed="false"><span class="setting-emoji" aria-hidden="true">🍁</span><span>Fall</span></button>
+          <button class="theme-mode-button" type="button" data-season="winter" aria-pressed="false"><span class="setting-emoji" aria-hidden="true">❄️</span><span>Winter</span></button>
         </div>
       </div>
       <div class="fab-card display-size-wrap">
