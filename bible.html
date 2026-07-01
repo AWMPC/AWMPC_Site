@@ -899,7 +899,7 @@
     white-space: normal; overflow-wrap: anywhere; word-break: break-word; }
   html.dark .search-ref { color: var(--accent-fg); background: var(--accent); }
   .search-text {
-    min-width: 0; max-width: 100%; font-size: max(15px, calc(var(--display-control-font-size) - 2px)); color: var(--fg2);
+    display: block; min-width: 0; max-width: 100%; font-size: max(15px, calc(var(--display-control-font-size) - 2px)); color: var(--fg2);
     white-space: normal; overflow-wrap: anywhere; word-break: break-word;
   }
   .search-text mark { background: #fff3a8; color: #222; border-radius: 2px; padding: 0 1px; }
@@ -2852,7 +2852,6 @@
       var textarea = document.createElement('textarea');
       textarea.value = value;
       textarea.readOnly = true;
-      textarea.setAttribute('aria-hidden', 'true');
       textarea.style.position = 'fixed';
       textarea.style.left = '-9999px';
       textarea.style.top = '0';
@@ -3401,9 +3400,9 @@
     return true;
   }
 
-  function handleReadingEnterKey() {
+  function handleReadingEnterKey(target) {
     var active = viewInner.querySelector('.verse.active');
-    return active ? toggleAllVerseFootnotes(active) : false;
+    return active && target === active ? toggleAllVerseFootnotes(active) : false;
   }
 
   function toggleAllVerseFootnotes(verseEl) {
@@ -3506,7 +3505,7 @@
       if (handled) e.preventDefault();
       return;
     }
-    if (key === 'Enter') handled = uiView === 'verses' ? handleReadingEnterKey() : handleSelectionEnterKey();
+    if (key === 'Enter') handled = uiView === 'verses' ? handleReadingEnterKey(e.target) : handleSelectionEnterKey();
     if (key === 'Escape' || key === 'Backspace' || key === 'Delete') handled = handleKeyboardBack();
     if (!handled && (key === 'ArrowLeft' || key === 'ArrowRight' || key === 'ArrowUp' || key === 'ArrowDown')) {
       handled = uiView === 'verses' ? handleReadingArrowKey(key) : handleSelectionArrowKey(key);
@@ -4042,7 +4041,7 @@
       ref.textContent = item.book + ' ' + item.ch + ':' + item.v;
       div.appendChild(ref);
 
-      var text = document.createElement('div');
+      var text = document.createElement('span');
       text.className = 'search-text';
       var raw = item.text.replace(footnoteStripRe, '').replace(/  +/g, ' ');
       var range = findNormMatchInRaw(raw, qn);
