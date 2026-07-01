@@ -2367,7 +2367,6 @@
         if (authGeneration !== _syncGeneration || authUid !== _currentUid || _syncHydrationInFlight) return;
         var localHasData = _hasSyncedLocalState();
         var localHasHistory = State.getHistory().length > 0;
-        var localHasSeason = State.hasStoredSeason();
         var isAnonymousMigration = anonymousMigrationFields.length > 0;
         if (isAnonymousMigration) {
           _setDirtySyncFields(authUid, _dirtySyncFields(authUid).concat(anonymousMigrationFields));
@@ -2399,9 +2398,10 @@
         var cloud = snap.exists ? snap.data() : null;
         var cloudHasHistory = !!(cloud && cloud.history && cloud.history.length > 0);
         var cloudHasSeason = !!(cloud && typeof cloud.season === 'string' && /^(auto|spring|summer|fall|winter)$/.test(cloud.season));
+        var dirtyFieldsAtResolution = _dirtySyncFields(authUid);
 
         if (!hydrationOffline) {
-          var dirtyFields = _dirtySyncFields(authUid);
+          var dirtyFields = dirtyFieldsAtResolution;
           _clearSyncedFieldsExcept(dirtyFields);
           if (cloud) State.applyCloudData(cloud, dirtyFields);
           applyThemeMode(State.getThemeMode(), false);
@@ -2422,7 +2422,7 @@
         }
 
         if (isOwnerSwitch) {
-          if (cloud) State.applyCloudData(cloud);
+          if (cloud) State.applyCloudData(cloud, dirtyFieldsAtResolution);
           applyThemeMode(State.getThemeMode(), false);
           renderSeason(State.getSeason());
           applyDisplayStep(State.getDisplayStep(), false);
@@ -2433,8 +2433,8 @@
         }
 
         if (isAnonymousMigration) {
-          if (!localHasSeason && cloudHasSeason) {
-            State.applyCloudData({ season: cloud.season });
+          if (dirtyFieldsAtResolution.indexOf('season') === -1 && !State.hasStoredSeason() && cloudHasSeason) {
+            State.applyCloudData({ season: cloud.season }, dirtyFieldsAtResolution);
             renderSeason(State.getSeason());
           }
           _scheduleSync();
@@ -2445,8 +2445,8 @@
         }
 
         if (_dirtySyncUid() === authUid) {
-          if (!localHasSeason && cloudHasSeason) {
-            State.applyCloudData({ season: cloud.season });
+          if (dirtyFieldsAtResolution.indexOf('season') === -1 && !State.hasStoredSeason() && cloudHasSeason) {
+            State.applyCloudData({ season: cloud.season }, dirtyFieldsAtResolution);
             renderSeason(State.getSeason());
           }
           _scheduleSync();
@@ -2457,18 +2457,18 @@
         }
 
         if (cloudHasHistory && !localHasHistory) {
-          State.applyCloudData(cloud);
+          State.applyCloudData(cloud, dirtyFieldsAtResolution);
           applyThemeMode(State.getThemeMode(), false);
           renderSeason(State.getSeason());
           applyDisplayStep(State.getDisplayStep(), false);
         } else {
           if (!localHasData && cloud) {
-            State.applyCloudData(cloud);
+            State.applyCloudData(cloud, dirtyFieldsAtResolution);
             applyThemeMode(State.getThemeMode(), false);
             renderSeason(State.getSeason());
             applyDisplayStep(State.getDisplayStep(), false);
-          } else if (!localHasSeason && cloudHasSeason) {
-            State.applyCloudData({ season: cloud.season });
+          } else if (dirtyFieldsAtResolution.indexOf('season') === -1 && !State.hasStoredSeason() && cloudHasSeason) {
+            State.applyCloudData({ season: cloud.season }, dirtyFieldsAtResolution);
             renderSeason(State.getSeason());
           }
           if (localHasData) {
