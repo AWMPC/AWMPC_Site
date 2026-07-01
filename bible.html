@@ -955,12 +955,21 @@
     background: var(--surface);
     color: var(--fg);
     box-shadow: var(--menu-shadow);
+    opacity: 0;
+    transform: translateY(10px) scale(.97);
+    transition: opacity 190ms cubic-bezier(.2,.8,.2,1), transform 210ms cubic-bezier(.2,.8,.2,1);
   }
+  .verse-actions.is-open { opacity: 1; transform: translateY(0) scale(1); }
+  .verse-actions.is-closing { opacity: 0; transform: translateY(8px) scale(.98); pointer-events: none; }
   .verse-actions::backdrop {
     background: rgba(5, 10, 20, .48);
     backdrop-filter: blur(3px);
     -webkit-backdrop-filter: blur(3px);
+    opacity: 0;
+    transition: opacity 190ms ease;
   }
+  .verse-actions.is-open::backdrop { opacity: 1; }
+  .verse-actions.is-closing::backdrop { opacity: 0; }
   .verse-actions form {
     display: grid;
     gap: 10px;
@@ -989,6 +998,7 @@
     background: var(--hover-bg);
     outline: none;
   }
+  .verse-actions button > span[aria-hidden="true"] { margin-right: .4em; }
   .verse-actions .verse-actions-cancel { color: var(--fg3); background: transparent; }
 
   @media (max-width: 640px) {
@@ -1173,7 +1183,7 @@
     <button type="button" id="copy-verse" value="copy-text"><span class="setting-emoji" aria-hidden="true">📋</span><span>Copy Verse Text</span></button>
     <button type="button" id="copy-verse-link" value="copy-link"><span class="setting-emoji" aria-hidden="true">🔗</span><span>Copy Verse Link</span></button>
     <button type="button" id="share-verse" value="share"><span class="setting-emoji" aria-hidden="true">📤</span><span>Share Verse</span></button>
-    <button type="submit" value="cancel" class="verse-actions-cancel">Cancel</button>
+    <button type="button" id="cancel-verse-actions" class="verse-actions-cancel">Cancel</button>
   </form>
 </dialog>
 
@@ -1863,6 +1873,7 @@
   var copyVerseButton = document.getElementById('copy-verse');
   var copyVerseLinkButton = document.getElementById('copy-verse-link');
   var shareVerseButton = document.getElementById('share-verse');
+  var cancelVerseActionsButton = document.getElementById('cancel-verse-actions');
   document.getElementById('app-version').textContent = APP_VERSION;
   var bottomChromeResizeObserver = null;
 
@@ -1901,6 +1912,10 @@
   var verseActionTarget = null;
   var verseActionGeneration = 0;
   var verseActionInFlight = false;
+  var verseActionClosing = false;
+  var verseActionOpenFrame = null;
+  var verseActionCloseTimer = null;
+  var VERSE_ACTION_CLOSE_MS = 220;
 
   // ===================== DROPDOWN MANAGER =====================
   var openMenu = null;
@@ -2312,8 +2327,7 @@
       historyMenu.textContent = '';
       historyMenu.classList.remove('open');
       if (openMenu === historyMenu) openMenu = null;
-      if (verseActionsDialog && verseActionsDialog.open) verseActionsDialog.close();
-      clearVerseActionState();
+      closeVerseActions(true);
       _syncedLocalStateQuarantined = !signoutStorageCleared;
       applyThemeMode('light', false);
       renderSeason('auto');
@@ -2940,16 +2954,40 @@
     restoreVerseActionFocus(target);
   }
 
-  function closeVerseActions() {
-    if (!verseActionsDialog) return;
-    if (verseActionsDialog.open) verseActionsDialog.close();
+  function resetVerseActionTransition() {
+    if (verseActionOpenFrame) cancelAnimationFrame(verseActionOpenFrame);
+    if (verseActionCloseTimer) window.clearTimeout(verseActionCloseTimer);
+    verseActionOpenFrame = null;
+    verseActionCloseTimer = null;
+    verseActionClosing = false;
+    if (verseActionsDialog) verseActionsDialog.classList.remove('is-open', 'is-closing');
+  }
+
+  function finalizeVerseActionsClose() {
+    resetVerseActionTransition();
+    if (verseActionsDialog && verseActionsDialog.open) verseActionsDialog.close();
     else if (verseActionTarget) clearVerseActionState();
+  }
+
+  function closeVerseActions(immediate) {
+    if (!verseActionsDialog || !verseActionsDialog.open) {
+      resetVerseActionTransition();
+      if (verseActionTarget) clearVerseActionState();
+      return;
+    }
+    if (immediate || shouldReduceVerseMotion()) return finalizeVerseActionsClose();
+    if (verseActionClosing) return;
+    verseActionClosing = true;
+    verseActionInFlight = true;
+    verseActionsDialog.classList.remove('is-open');
+    verseActionsDialog.classList.add('is-closing');
+    verseActionCloseTimer = window.setTimeout(finalizeVerseActionsClose, VERSE_ACTION_CLOSE_MS);
   }
 
   function openVerseActions(verseEl) {
     var payload = verseActionPayload(verseEl);
     if (!payload || !verseActionsDialog || typeof verseActionsDialog.showModal !== 'function') return false;
-    if (verseActionsDialog.open) closeVerseActions();
+    if (verseActionsDialog.open) finalizeVerseActionsClose();
     verseActionTarget = verseEl;
     verseActionInFlight = false;
     verseActionGeneration++;
@@ -2957,22 +2995,35 @@
     try {
       verseActionsDialog.showModal();
     } catch (e) {
+      resetVerseActionTransition();
       clearVerseActionState();
       announceStatus('Verse actions are unavailable.');
       return false;
+    }
+    var openingToken = verseActionGeneration;
+    resetVerseActionTransition();
+    if (shouldReduceVerseMotion()) {
+      verseActionsDialog.classList.add('is-open');
+    } else {
+      verseActionOpenFrame = requestAnimationFrame(function () {
+        verseActionOpenFrame = null;
+        if (openingToken !== verseActionGeneration || verseActionClosing || !verseActionsDialog.open) return;
+        verseActionsDialog.classList.add('is-open');
+      });
     }
     return true;
   }
 
   function currentVerseAction(token) {
-    if (token !== verseActionGeneration || !verseActionsDialog || !verseActionsDialog.open) return null;
+    if (token !== verseActionGeneration || verseActionClosing ||
+        !verseActionsDialog || !verseActionsDialog.open) return null;
     return verseActionPayload(verseActionTarget);
   }
 
   function finishVerseAction(token, message, shouldClose) {
     if (!currentVerseAction(token)) return;
     verseActionInFlight = false;
-    if (shouldClose) closeVerseActions();
+    if (shouldClose) closeVerseActions(false);
     if (message) announceStatus(message);
   }
 
@@ -3083,7 +3134,7 @@
   }
 
   function prepareToLeaveReadingView() {
-    closeVerseActions();
+    closeVerseActions(true);
     clearReaderPointerState();
     clearVerseHighlightTimers();
     if (uiView === 'verses') rememberCurrentChapterPosition();
@@ -3250,7 +3301,7 @@
   }
 
   function showViewWithTransition(renderView) {
-    closeVerseActions();
+    closeVerseActions(false);
     clearReaderPointerState();
     if (shouldReduceChapterMotion() || !viewInner.children.length) {
       clearChapterCrossfadeTimer();
@@ -3311,7 +3362,7 @@
   }
 
   function showVersesViewWithTransition(bookName, chapterNum, scrollToVerse) {
-    closeVerseActions();
+    closeVerseActions(false);
     clearReaderPointerState();
     if (uiView !== 'verses' || shouldReduceChapterMotion()) {
       clearChapterCrossfadeTimer();
@@ -4145,14 +4196,26 @@
   }
   // ===================== NAV HANDLERS =====================
   if (verseActionsDialog) {
-    verseActionsDialog.addEventListener('close', clearVerseActionState);
+    verseActionsDialog.addEventListener('cancel', function (e) {
+      e.preventDefault();
+      closeVerseActions(false);
+    });
+    verseActionsDialog.addEventListener('close', function () {
+      resetVerseActionTransition();
+      clearVerseActionState();
+    });
     verseActionsDialog.addEventListener('click', function (e) {
-      if (e.target === verseActionsDialog) closeVerseActions();
+      if (e.target === verseActionsDialog) closeVerseActions(false);
+    });
+  }
+  if (cancelVerseActionsButton) {
+    cancelVerseActionsButton.addEventListener('click', function () {
+      closeVerseActions(false);
     });
   }
   if (copyVerseButton) {
     copyVerseButton.addEventListener('click', function () {
-      if (verseActionInFlight) return;
+      if (verseActionInFlight || verseActionClosing) return;
       var token = verseActionGeneration;
       var payload = currentVerseAction(token);
       if (!payload) {
@@ -4169,7 +4232,7 @@
   }
   if (copyVerseLinkButton) {
     copyVerseLinkButton.addEventListener('click', function () {
-      if (verseActionInFlight) return;
+      if (verseActionInFlight || verseActionClosing) return;
       var token = verseActionGeneration;
       var payload = currentVerseAction(token);
       if (!payload) {
@@ -4186,7 +4249,7 @@
   }
   if (shareVerseButton) {
     shareVerseButton.addEventListener('click', function () {
-      if (verseActionInFlight) return;
+      if (verseActionInFlight || verseActionClosing) return;
       var token = verseActionGeneration;
       var payload = currentVerseAction(token);
       if (!payload) {
