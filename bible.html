@@ -2564,7 +2564,7 @@
         } else {
           _retryCurrentHydration();
         }
-      } else if (_dirtySyncFields(_currentUid).length) {
+      } else if (_syncHydrationAuthoritative && _dirtySyncFields(_currentUid).length) {
         _resumePendingSync();
       }
     }
