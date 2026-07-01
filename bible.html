@@ -873,6 +873,7 @@
   .search-hist-item .sh-query {
     flex: 1; min-width: 0; max-width: 100%; font-size: var(--display-control-font-size); color: var(--fg);
     white-space: normal; overflow-wrap: anywhere; word-break: break-word;
+    border: 0; padding: 0; background: transparent; font-family: inherit; text-align: left; cursor: pointer;
   }
   .search-hist-item .sh-remove {
     background: none; border: none; color: var(--fg4); font-size: 16px;
@@ -885,12 +886,14 @@
   }
   .search-hist-clear:hover { color: var(--err-fg); }
   .search-result {
+    display: block; width: 100%; color: inherit; font: inherit; text-align: left;
     padding: 12px; margin-bottom: 8px; background: var(--card-bg);
     border: var(--card-border); border-radius: var(--radius-sm); cursor: pointer;
     transition: background 180ms ease, border-color 180ms ease, box-shadow 180ms ease, transform 120ms ease;
     box-shadow: var(--shadow); min-width: 0; max-width: 100%;
   }
-  .search-result:hover { background: var(--hover-bg); border-color: var(--accent); }
+  .search-result:hover,
+  .search-result:focus-visible { background: var(--hover-bg); border-color: var(--accent); outline: none; }
   .search-ref { font-size: 14px; font-weight: 600; color: var(--accent-fg); background: var(--accent);
     display: inline-block; min-width: 0; max-width: 100%; padding: 2px 8px; border-radius: var(--radius-xs); margin-bottom: 4px;
     white-space: normal; overflow-wrap: anywhere; word-break: break-word; }
@@ -2843,15 +2846,7 @@
     });
   }
 
-  function writeClipboardText(text) {
-    var value = String(text);
-    try {
-      if (navigator.clipboard && typeof navigator.clipboard.writeText === 'function') {
-        return Promise.resolve(navigator.clipboard.writeText(value));
-      }
-    } catch (e) {
-      return Promise.reject(e);
-    }
+  function writeClipboardFallback(value) {
     return new Promise(function (resolve, reject) {
       var previousFocus = document.activeElement;
       var textarea = document.createElement('textarea');
@@ -2879,6 +2874,18 @@
       if (copied) resolve();
       else reject(new Error('Clipboard copy was not available.'));
     });
+  }
+
+  function writeClipboardText(text) {
+    var value = String(text);
+    try {
+      if (navigator.clipboard && typeof navigator.clipboard.writeText === 'function') {
+        return Promise.resolve(navigator.clipboard.writeText(value)).catch(function () {
+          return writeClipboardFallback(value);
+        });
+      }
+    } catch (e) {}
+    return writeClipboardFallback(value);
   }
 
   function restoreVerseActionFocus(target) {
@@ -3139,9 +3146,11 @@
     if (prev) {
       prev.classList.remove('active');
       prev.removeAttribute('aria-keyshortcuts');
+      prev.setAttribute('tabindex', '-1');
     }
     activeVerse = nextVerse;
     target.classList.add('active');
+    target.setAttribute('tabindex', '0');
     target.setAttribute('aria-keyshortcuts', 'Shift+F10');
     if (center) scrollVerseToCenter(target);
     updateNav();
@@ -3895,7 +3904,8 @@
       var row = document.createElement('div');
       row.className = 'search-hist-item';
 
-      var qSpan = document.createElement('span');
+      var qSpan = document.createElement('button');
+      qSpan.type = 'button';
       qSpan.className = 'sh-query';
       qSpan.textContent = hist[i];
       row.appendChild(qSpan);
@@ -3913,7 +3923,7 @@
       })(hist[i]));
       row.appendChild(rm);
 
-      row.addEventListener('click', (function (q) {
+      qSpan.addEventListener('click', (function (q) {
         return function () {
           input.value = q;
           histEl.style.display = 'none';
@@ -4023,7 +4033,8 @@
     var qLow = q.toLowerCase();
     for (var r = 0; r < results.length; r++) {
       var item = results[r];
-      var div = document.createElement('div');
+      var div = document.createElement('button');
+      div.type = 'button';
       div.className = 'search-result';
 
       var ref = document.createElement('span');
