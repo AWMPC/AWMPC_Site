@@ -349,7 +349,7 @@ assert.match(bible, /void viewInner\.offsetWidth;/);
 assert.match(bible, /viewInner\.classList\.add\('chapter-transition-in'\);/);
 assert.match(bible, /viewInner\.classList\.remove\('chapter-transition-ready', 'chapter-transition-in'\);/);
 assert.match(bible, /viewEl\.addEventListener\('scroll', function \(\) \{[\s\S]*scheduleBottomChromeScrollUpdate\(\);[\s\S]*requestAnimationFrame\(updateActiveVerseFromViewport\);[\s\S]*\}, \{ passive: true \}\);/);
-assert.match(bible, /uiView = 'books';[\s\S]*resetBottomChromeScrollState\(\);[\s\S]*updateNav\(\);/);
+assert.match(bible, /setUIView\('books'\);[\s\S]*resetBottomChromeScrollState\(\);[\s\S]*updateNav\(\);/);
 assert.match(bible, /chapterCrossfadeTimer = window\.setTimeout\(function \(\) \{/);
 assert.match(bible, /showViewWithTransition\(function \(\) \{ showBooksView\(\); \}\);/);
 assert.match(bible, /showViewWithTransition\(function \(\) \{ showChaptersView\(bookName\); \}\);/);
