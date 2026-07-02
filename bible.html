@@ -47,6 +47,9 @@
     --display-nav-padding: 6px;
     --motion-ease-fallback: cubic-bezier(.64, 0, .36, 1);
     --motion-ease: var(--motion-ease-fallback);
+    --ui-radius: 20px;
+    --ui-grid-gap: 8px;
+    --ui-view-pad: 12px;
     --oneui-font: 'One UI Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
     --bg: #f4f7fb; --bg2: #ffffff; --bg3: #f8fbff; --bg4: #eef3f9;
     --surface: #ffffff;
@@ -64,7 +67,7 @@
     --float-nav-bg: color-mix(in srgb, var(--surface-hi) 92%, transparent);
     --float-nav-fg: var(--fg);
     --float-nav-shadow: 0 8px 22px color-mix(in srgb, var(--fg) 14%, transparent);
-    --oneui-radius: 20px;
+    --oneui-radius: var(--ui-radius);
     --oneui-inset-radius: calc(var(--oneui-radius) - max(4px, calc(var(--display-panel-padding) / 3)));
     --radius-xs: max(12px, var(--oneui-inset-radius));
     --radius-sm: var(--oneui-radius);
@@ -191,7 +194,7 @@
     --pill-bg: rgba(105,185,232,.12);
   }
   * { margin: 0; padding: 0; box-sizing: border-box; }
-  html, body { height: 100%; overflow: hidden; }
+  html, body { height: 100%; max-width: 100%; overflow-x: hidden; overflow-y: hidden; }
   .sr-only {
     position: absolute;
     width: 1px;
@@ -219,6 +222,13 @@
     transition-property: background, border-color, box-shadow, color, transform;
     transition-duration: 180ms, 180ms, 180ms, 180ms, 120ms;
     transition-timing-function: var(--motion-ease);
+  }
+  button,
+  input,
+  select,
+  [role="button"] {
+    min-width: 24px;
+    min-height: 24px;
   }
   button:hover,
   button:focus-visible,
@@ -437,6 +447,7 @@
     right: 12px;
     bottom: var(--bottom-chrome-clearance);
     width: min(420px, calc(100vw - 24px));
+    max-width: 100%;
     max-height: calc(100dvh - var(--bottom-chrome-clearance) - 12px);
     display: grid;
     grid-auto-rows: minmax(0, auto);
@@ -552,6 +563,7 @@
     bottom: var(--bottom-chrome-clearance);
     z-index: 131;
     width: min(360px, calc(100vw - 24px));
+    max-width: 100%;
     max-height: calc(100dvh - var(--bottom-chrome-clearance) - 12px);
     overflow-y: auto;
     overscroll-behavior: contain;
@@ -731,8 +743,8 @@
   /* Shell view area */
   #view { flex: 1; overflow-y: auto; -webkit-overflow-scrolling: touch; position: relative; }
   .view-inner {
-    max-width: 960px; margin: 0 auto;
-    padding: 16px 12px;
+    width: 100%; max-width: 960px; min-width: 0; margin: 0 auto;
+    padding: 16px var(--ui-view-pad);
     padding-bottom: calc(16px + var(--bottom-chrome-clearance));
     opacity: 1;
     transition-property: opacity;
@@ -782,6 +794,8 @@
     border-radius: var(--radius-md);
     box-shadow: var(--shadow);
     padding: var(--display-panel-padding);
+    min-width: 0;
+    max-width: 100%;
   }
   .book-btn {
     display: block; width: 100%;
@@ -802,7 +816,7 @@
   /* Chapters view */
   .chapters-header { font-size: var(--text-22); margin-bottom: 14px; color: var(--fg); overflow: hidden; white-space: nowrap; }
   .chapter-grid {
-    display: grid; grid-template-columns: repeat(auto-fill, minmax(52px, 1fr)); gap: 8px;
+    display: grid; grid-template-columns: repeat(auto-fill, minmax(52px, 1fr)); gap: var(--ui-grid-gap);
   }
   .chapter-btn {
     display: flex; align-items: center; justify-content: center;
@@ -817,7 +831,7 @@
   .chapter-btn:hover { background: var(--hover-bg); border-color: var(--accent); }
   .chapter-btn.active { background: var(--accent); color: var(--accent-fg); border-color: var(--accent); }
   .verse-grid {
-    display: grid; grid-template-columns: repeat(auto-fill, minmax(58px, 1fr)); gap: 8px;
+    display: grid; grid-template-columns: repeat(auto-fill, minmax(58px, 1fr)); gap: var(--ui-grid-gap);
   }
 
   /* Verses view */
@@ -829,6 +843,8 @@
     transition-timing-function: var(--motion-ease);
     background: var(--verse-bg);
     white-space: normal;
+    min-width: 0;
+    max-width: 100%;
     overflow-wrap: anywhere;
   }
   .verse.footnotes-open {
@@ -870,6 +886,9 @@
     transition-property: opacity, max-height, margin, padding, border-width, transform;
     transition-duration: 180ms, 220ms, 220ms, 220ms, 220ms, 220ms;
     transition-timing-function: var(--motion-ease);
+    min-width: 0;
+    max-width: 100%;
+    overflow-wrap: anywhere;
   }
   .footnote-body.visible {
     margin: var(--footnote-visible-margin-top) 0 var(--footnote-visible-margin-bottom) var(--footnote-indent);
@@ -880,7 +899,7 @@
 
   /* Search view */
   .search-bar {
-    display: flex; gap: 8px; margin-bottom: 16px; width: 100%; min-width: 0; max-width: 100%;
+    display: flex; gap: var(--ui-grid-gap); margin-bottom: 16px; width: 100%; min-width: 0; max-width: 100%;
   }
   .search-input {
     flex: 1; width: 100%; min-width: 0; max-width: 100%; font-size: var(--display-control-font-size); font-family: inherit; padding: var(--display-control-pad-y) var(--display-control-pad-x);
@@ -925,7 +944,7 @@
   .search-hist-clear:hover { color: var(--err-fg); }
   .search-result {
     display: block; width: 100%; color: inherit; font: inherit; text-align: left;
-    padding: 12px; margin-bottom: 8px; background: var(--card-bg);
+    padding: var(--ui-view-pad); margin-bottom: var(--ui-grid-gap); background: var(--card-bg);
     border: var(--card-border); border-radius: var(--radius-sm); cursor: pointer;
     transition-property: background, border-color, box-shadow, transform;
     transition-duration: 180ms, 180ms, 180ms, 120ms;
@@ -1061,6 +1080,23 @@
       border-radius: var(--radius-md) var(--radius-md) 0 0;
     }
     .verse-actions form { padding: 18px 16px max(18px, env(safe-area-inset-bottom)); }
+  }
+
+  @media (max-width: 320px) {
+    .view-inner,
+    .selection-card,
+    .search-bar,
+    .search-result,
+    .bottom-history-menu,
+    .fab-panel,
+    .verse,
+    .footnote-body {
+      min-width: 0;
+      max-width: 100%;
+      overflow-wrap: anywhere;
+    }
+    .search-bar { flex-wrap: wrap; }
+    .search-input { flex-basis: 100%; }
   }
 
   /* Auth UI */
@@ -1274,11 +1310,33 @@
     footnoteRadius: 20
   };
 
+  var BASE_UI_GEOMETRY = {
+    controlHeight: 48,
+    iconSize: 48,
+    padY: 8,
+    padX: 12,
+    panelPadding: 12,
+    panelGap: 8,
+    navPadding: 6,
+    radius: 20,
+    gridGap: 8,
+    viewPad: 12
+  };
+
   function readerDetailForScale(scale) {
     var factor = Math.min(scale, 100) / 100;
     var result = {};
     Object.keys(BASE_READER_DETAIL).forEach(function (key) {
       result[key] = BASE_READER_DETAIL[key] * factor;
+    });
+    return result;
+  }
+
+  function uiGeometryForScale(scale) {
+    var factor = Math.min(scale, 100) / 100;
+    var result = {};
+    Object.keys(BASE_UI_GEOMETRY).forEach(function (key) {
+      result[key] = BASE_UI_GEOMETRY[key] * factor;
     });
     return result;
   }
@@ -2301,6 +2359,17 @@
     document.documentElement.style.setProperty('--footnote-visible-pad-y', readerDetail.footnoteVisiblePadY + 'px');
     document.documentElement.style.setProperty('--footnote-visible-pad-x', readerDetail.footnoteVisiblePadX + 'px');
     document.documentElement.style.setProperty('--footnote-radius', readerDetail.footnoteRadius + 'px');
+    var uiGeometry = uiGeometryForScale(scale);
+    document.documentElement.style.setProperty('--display-control-height', uiGeometry.controlHeight + 'px');
+    document.documentElement.style.setProperty('--display-icon-button-size', uiGeometry.iconSize + 'px');
+    document.documentElement.style.setProperty('--display-control-pad-y', uiGeometry.padY + 'px');
+    document.documentElement.style.setProperty('--display-control-pad-x', uiGeometry.padX + 'px');
+    document.documentElement.style.setProperty('--display-panel-padding', uiGeometry.panelPadding + 'px');
+    document.documentElement.style.setProperty('--display-panel-gap', uiGeometry.panelGap + 'px');
+    document.documentElement.style.setProperty('--display-nav-padding', uiGeometry.navPadding + 'px');
+    document.documentElement.style.setProperty('--ui-radius', uiGeometry.radius + 'px');
+    document.documentElement.style.setProperty('--ui-grid-gap', uiGeometry.gridGap + 'px');
+    document.documentElement.style.setProperty('--ui-view-pad', uiGeometry.viewPad + 'px');
     if (textScaleSelect) textScaleSelect.value = String(scale);
     if (persist !== false) State.setTextScale(scale);
     scheduleBottomChromeClearanceUpdate();
