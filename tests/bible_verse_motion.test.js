@@ -7,7 +7,9 @@ const bible = fs.readFileSync(path.join(root, 'bible.html'), 'utf8');
 const functionNames = [
   'smootherstep',
   'verseChaseDurationForDistance',
+  'keepVerseChaseTargetVisible',
   'stopVerseChase',
+  'releaseVerseChaseForFreeScroll',
   'setVerseChaseTarget',
   'stepVerseChase'
 ];
@@ -43,11 +45,22 @@ const runContract = Function('assert', `${productionFunctions}
     cancelled.push(id);
     frames.delete(id);
   }
-  const viewEl = { scrollTop: 0 };
+  const viewEl = { scrollTop: 0, scrollHeight: 1200, clientHeight: 400 };
   let uiView = 'verses';
   let reduceMotion = false;
   function shouldReduceVerseMotion() { return reduceMotion; }
   function desiredVerseScrollTop(target) { return target.top; }
+  function readingViewportMetrics() {
+    return { top: 100, bottom: 500, height: 400, centerY: 300 };
+  }
+  function target(top, rectTop, rectBottom) {
+    return {
+      top,
+      getBoundingClientRect() {
+        return { top: rectTop, bottom: rectBottom, height: rectBottom - rectTop };
+      }
+    };
+  }
   let verseChaseFrame = null;
   let verseChaseTarget = null;
   let verseChaseStartTop = 0;
@@ -55,13 +68,33 @@ const runContract = Function('assert', `${productionFunctions}
   let verseChaseStartTime = null;
   let verseChaseDuration = 0;
 
-  setVerseChaseTarget({ top: 400 });
+  viewEl.scrollTop = 5;
+  keepVerseChaseTargetVisible(target(0, 80, 120));
+  assert.equal(viewEl.scrollTop, 0, 'visibility correction clamps at the scroll start');
+  viewEl.scrollTop = 790;
+  keepVerseChaseTargetVisible(target(0, 490, 530));
+  assert.equal(viewEl.scrollTop, 800, 'visibility correction clamps at the scroll end');
+
+  viewEl.scrollTop = 0;
+  setVerseChaseTarget(target(400, 180, 220));
   assert.equal(frames.size, 1, 'initial target schedules one frame');
+  const firstFrame = [...frames.keys()][0];
   viewEl.scrollTop = 100;
-  setVerseChaseTarget({ top: 600 });
-  assert.deepEqual(cancelled, [0], 'retarget cancels frame ID zero');
-  assert.equal(frames.size, 1, 'retarget retains one frame');
+  setVerseChaseTarget(target(520, 360, 400));
+  setVerseChaseTarget(target(610, 390, 430));
+  setVerseChaseTarget(target(700, 420, 460));
+  assert.equal(frames.size, 1, 'key repeat retains one scheduled frame');
+  assert.equal([...frames.keys()][0], firstFrame, 'retarget does not replace the live frame');
+  assert.deepEqual(cancelled, [], 'retarget does not cancel/restart');
+  assert.equal(verseChaseDestinationTop, 700, 'latest verse owns destination');
   assert.equal(verseChaseStartTop, 100, 'retarget starts at current scroll position');
+  assert.equal(verseChaseStartTime, null, 'retarget is ready on the next frame');
+
+  setVerseChaseTarget(target(760, 490, 530));
+  assert.equal(viewEl.scrollTop, 154, 'visibility guard corrects before the next frame');
+  assert.equal(verseChaseStartTop, 154, 'guard correction becomes the rendered start');
+  assert.equal(verseChaseDestinationTop, 760, 'guard retains the latest centering destination');
+  assert.equal([...frames.keys()][0], firstFrame, 'visibility correction reuses the live frame');
 
   let frameId = [...frames.keys()][0];
   frames.get(frameId)(0);
@@ -69,23 +102,24 @@ const runContract = Function('assert', `${productionFunctions}
   frameId = [...frames.keys()][0];
   frames.get(frameId)(verseChaseDuration);
   frames.delete(frameId);
-  assert.equal(viewEl.scrollTop, 600, 'completion reaches the exact destination');
+  assert.equal(viewEl.scrollTop, 760, 'completion reaches the exact destination');
   assert.equal(verseChaseFrame, null, 'completion clears the frame');
   assert.equal(verseChaseTarget, null, 'completion clears the target');
   assert.equal(frames.size, 0, 'completion retains no scheduled work');
 
   reduceMotion = true;
   viewEl.scrollTop = 10;
-  setVerseChaseTarget({ top: 250 });
+  setVerseChaseTarget(target(250, 180, 220));
   assert.equal(viewEl.scrollTop, 250, 'reduced motion moves immediately');
   assert.equal(frames.size, 0, 'reduced motion schedules no frame');
 
   reduceMotion = false;
-  setVerseChaseTarget({ top: 500 });
+  setVerseChaseTarget(target(500, 180, 220));
   assert.equal(frames.size, 1, 'a later target schedules one frame');
-  stopVerseChase();
-  assert.equal(frames.size, 0, 'explicit cancellation retains no scheduled work');
-  assert.equal(verseChaseTarget, null, 'explicit cancellation clears the target');
+  releaseVerseChaseForFreeScroll();
+  assert.equal(frames.size, 0, 'free scroll retains no scheduled work');
+  assert.equal(verseChaseTarget, null, 'free scroll clears the target');
+  assert.deepEqual(cancelled, [2], 'free scroll cancels the scheduled frame');
 `);
 
 runContract(assert);

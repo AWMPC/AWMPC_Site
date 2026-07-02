@@ -3398,6 +3398,20 @@
     return Math.min(maxTop, Math.max(0, desiredTop));
   }
 
+  function keepVerseChaseTargetVisible(target) {
+    var metrics = readingViewportMetrics();
+    var rect = target.getBoundingClientRect();
+    var guard = Math.min(24, metrics.height * 0.08);
+    var nextTop = viewEl.scrollTop;
+    if (rect.top < metrics.top + guard) {
+      nextTop -= (metrics.top + guard) - rect.top;
+    } else if (rect.bottom > metrics.bottom - guard) {
+      nextTop += rect.bottom - (metrics.bottom - guard);
+    }
+    var maxTop = Math.max(0, viewEl.scrollHeight - viewEl.clientHeight);
+    viewEl.scrollTop = Math.min(maxTop, Math.max(0, nextTop));
+  }
+
   function shouldReduceVerseMotion() {
     return window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
   }
@@ -3432,7 +3446,7 @@
       stopVerseChase();
       return;
     }
-    stopVerseChase();
+    keepVerseChaseTargetVisible(target);
     verseChaseTarget = target;
     verseChaseStartTop = viewEl.scrollTop;
     verseChaseDestinationTop = desiredVerseScrollTop(target);
@@ -3442,11 +3456,13 @@
       stopVerseChase();
       return;
     }
+    verseChaseStartTime = null;
     verseChaseDuration = verseChaseDurationForDistance(distance);
-    verseChaseFrame = requestAnimationFrame(stepVerseChase);
+    if (verseChaseFrame === null) verseChaseFrame = requestAnimationFrame(stepVerseChase);
   }
 
   function stepVerseChase(ts) {
+    verseChaseFrame = null;
     if (!verseChaseTarget || uiView !== 'verses') {
       stopVerseChase();
       return;
@@ -3460,7 +3476,7 @@
       stopVerseChase();
       return;
     }
-    verseChaseFrame = requestAnimationFrame(stepVerseChase);
+    if (verseChaseFrame === null) verseChaseFrame = requestAnimationFrame(stepVerseChase);
   }
 
   function scrollVerseToCenter(target) {
