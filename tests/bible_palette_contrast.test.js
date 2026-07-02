@@ -129,7 +129,9 @@ test('verses use quiet seasonal highlights and a stronger active accent', () => 
   assert.doesNotMatch(active, /(?:accent|verse)-glow/);
 
   const footnotesOpen = cssBlock('.verse.footnotes-open');
-  assert.doesNotMatch(footnotesOpen, /(?:^|;)\s*(?:background|border|border-width|border-color|box-shadow)\s*:/);
+  const footnoteDeclarations = [...footnotesOpen.matchAll(/(?:^|;)\s*([\w-]+)\s*:/g)]
+    .map((match) => match[1]);
+  assert.deepEqual(footnoteDeclarations, ['padding'], 'open footnotes may only change verse padding');
 
   assert.doesNotMatch(bible, /found-highlight/);
   assert.doesNotMatch(bible, /startVerseFoundTransition|clearVerseHighlightTransition|verseHighlight(?:Target|Frame|CleanupTimer)/);

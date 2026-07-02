@@ -1,3 +1,4 @@
+const test = require('node:test');
 const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const path = require('node:path');
@@ -18,6 +19,29 @@ const productionFunctions = functionNames.map((name) => {
   assert.ok(match, `missing ${name}`);
   return match[0];
 }).join('\n');
+
+function sourceBetween(start, end) {
+  const from = bible.indexOf(start);
+  assert.notEqual(from, -1, `missing source marker: ${start}`);
+  const to = bible.indexOf(end, from + start.length);
+  assert.notEqual(to, -1, `missing source marker: ${end}`);
+  return bible.slice(from, to);
+}
+
+test('pointer and Arrow verse activation share the active verse state', () => {
+  const activeVerse = sourceBetween('  function setActiveVerse(verse, center) {', '  function updateActiveVerseFromViewport() {');
+  assert.match(activeVerse, /viewInner\.querySelector\('\.verse\.active'\)/);
+  assert.match(activeVerse, /prev\.classList\.remove\('active'\)/);
+  assert.match(activeVerse, /target\.classList\.add\('active'\)/);
+
+  const pointerActivation = sourceBetween("  document.addEventListener('pointerup', function (e) {", "  document.addEventListener('pointercancel', function (e) {");
+  assert.match(pointerActivation, /else setActiveVerse\(state\.verse\.getAttribute\('data-v'\), true\)/);
+
+  const arrowNavigation = sourceBetween('  function showAdjacentVerse(direction) {', '  // ===================== BROWSER HISTORY =====================');
+  assert.match(arrowNavigation, /setActiveVerse\(verse, false\)/);
+  assert.match(arrowNavigation, /if \(key === 'ArrowUp'\) return showAdjacentVerse\(-1\);/);
+  assert.match(arrowNavigation, /if \(key === 'ArrowDown'\) return showAdjacentVerse\(1\);/);
+});
 
 const runContract = Function('assert', `${productionFunctions}
   const curve = [];
