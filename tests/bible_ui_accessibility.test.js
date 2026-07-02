@@ -6,8 +6,8 @@ const root = path.resolve(__dirname, '..');
 const bible = fs.readFileSync(path.join(root, 'bible.html'), 'utf8');
 const sw = fs.readFileSync(path.join(root, 'sw.js'), 'utf8');
 
-assert.match(bible, /var APP_VERSION = '3\.0\.0';/);
-assert.match(sw, /var CACHE_NAME = 'bible-v3\.0\.0';/);
+assert.match(bible, /var APP_VERSION = '3\.2\.0';/);
+assert.match(sw, /var CACHE_NAME = 'bible-v3\.2\.0';/);
 assert.match(bible, /id="app-version"/);
 assert.match(bible, /<span class="app-version-label">Version <span id="app-version">3\.0\.0<\/span><\/span><span class="app-version-separator">\|<\/span><span id="footer-status" class="app-version-status">Signed out<\/span><span id="footer-signout-separator" class="app-version-separator" hidden>\|<\/span><button type="button" id="footer-signout" class="dd-signout-button" hidden>Sign Out<\/button>/);
 
