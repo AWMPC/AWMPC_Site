@@ -121,7 +121,7 @@ assert.match(bible, /\.bottom-action-button \{[\s\S]*font-size: var\(--display-c
 assert.match(bible, /\.dd-item \{[\s\S]*font-size: var\(--display-control-font-size\);/);
 assert.match(bible, /\.setting-select \{[\s\S]*width: 100%;[\s\S]*height: var\(--display-segment-height\);[\s\S]*font-size: var\(--display-control-font-size\);/);
 assert.match(bible, /\.setting-control-wrap \{[\s\S]*gap: var\(--display-panel-gap\);[\s\S]*min-width: 0;/);
-assert.match(bible, /\.app-version \{[\s\S]*display: flex;[\s\S]*align-items: center;[\s\S]*justify-content: center;[\s\S]*gap: var\(--display-panel-gap\);[\s\S]*padding: var\(--display-panel-gap\) 16px max\(2px, env\(safe-area-inset-bottom, 0px\)\);[\s\S]*font-size: var\(--text-14\);[\s\S]*white-space: nowrap;/);
+assert.match(bible, /\.app-version \{[\s\S]*display: flex;[\s\S]*align-items: center;[\s\S]*justify-content: center;[\s\S]*gap: var\(--display-panel-gap\);[\s\S]*padding: var\(--display-panel-gap\) min\(16px, calc\(var\(--display-panel-padding\) \* 1\.3333\)\) max\(min\(2px, calc\(var\(--display-panel-gap\) \* \.25\)\), env\(safe-area-inset-bottom, 0px\)\);[\s\S]*font-size: var\(--text-14\);/);
 assert.match(bible, /\.app-version-label \{[\s\S]*flex: 0 0 auto;/);
 assert.match(bible, /\.app-version-status \{[\s\S]*min-width: 0;[\s\S]*color: var\(--fg3\);[\s\S]*overflow: hidden;[\s\S]*white-space: nowrap;/);
 assert.match(bible, /\.app-version-separator \{[\s\S]*color: var\(--fg4\);/);

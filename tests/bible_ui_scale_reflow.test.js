@@ -174,22 +174,60 @@ test('profile and context action geometry computes shrink-only values at every s
       , navGap: Math.min(6, g.navPadding)
       , historyPad: [Math.min(7, g.padY * .875), Math.min(10, g.padX * 5 / 6)]
       , footerSignout: [Math.max(24, Math.min(34, g.controlHeight)), Math.min(6, g.padY), Math.min(10, g.padX)]
+      , sectionLabel: [g.panelGap, Math.min(16, g.panelPadding * 1.3333), Math.min(4, g.panelGap * .5)]
+      , footerPaddingX: Math.min(16, g.panelPadding * 1.3333)
+      , listGap: Math.min(5, g.gridGap * .625)
     };
   };
   assert.deepEqual([50, 75, 100, 125, 150].map(computed), [
-    { profileHeight: 46.0002, avatar: 24, photo: 24, gap: 5, profileGap: 6, signoutHeight: 24, signoutPad: [4, 6], actionHeight: 24, actionPad: [5, 7], mobileForm: [9, 8], bookPadY: 5, radiusXs: 6, navGap: 3, historyPad: [3.5, 5], footerSignout: [24, 4, 6] },
-    { profileHeight: 69.00030000000001, avatar: 28, photo: 36, gap: 7.5, profileGap: 9, signoutHeight: 34, signoutPad: [6, 9], actionHeight: 36, actionPad: [7.5, 10.5], mobileForm: [13.5, 12], bookPadY: 7.5, radiusXs: 11, navGap: 4.5, historyPad: [5.25, 7.5], footerSignout: [34, 6, 9] },
-    ...Array(3).fill({ profileHeight: 92, avatar: 28, photo: 36, gap: 10, profileGap: 12, signoutHeight: 34, signoutPad: [6, 10], actionHeight: 44, actionPad: [10, 14], mobileForm: [18, 16], bookPadY: 10, radiusXs: 16, navGap: 6, historyPad: [7, 10], footerSignout: [34, 6, 10] })
+    { profileHeight: 46.0002, avatar: 24, photo: 24, gap: 5, profileGap: 6, signoutHeight: 24, signoutPad: [4, 6], actionHeight: 24, actionPad: [5, 7], mobileForm: [9, 8], bookPadY: 5, radiusXs: 6, navGap: 3, historyPad: [3.5, 5], footerSignout: [24, 4, 6], sectionLabel: [4, 7.9998, 2], footerPaddingX: 7.9998, listGap: 2.5 },
+    { profileHeight: 69.00030000000001, avatar: 28, photo: 36, gap: 7.5, profileGap: 9, signoutHeight: 34, signoutPad: [6, 9], actionHeight: 36, actionPad: [7.5, 10.5], mobileForm: [13.5, 12], bookPadY: 7.5, radiusXs: 11, navGap: 4.5, historyPad: [5.25, 7.5], footerSignout: [34, 6, 9], sectionLabel: [6, 11.999699999999999, 3], footerPaddingX: 11.999699999999999, listGap: 3.75 },
+    ...Array(3).fill({ profileHeight: 92, avatar: 28, photo: 36, gap: 10, profileGap: 12, signoutHeight: 34, signoutPad: [6, 10], actionHeight: 44, actionPad: [10, 14], mobileForm: [18, 16], bookPadY: 10, radiusXs: 16, navGap: 6, historyPad: [7, 10], footerSignout: [34, 6, 10], sectionLabel: [8, 15.9996, 4], footerPaddingX: 15.9996, listGap: 5 })
   ]);
   assert.match(bible, /\.profile-card \{[^}]*min-height: max\(24px, min\(92px, calc\(var\(--display-control-height\) \+ \(var\(--display-panel-padding\) \* 3\.6667\)\)\)\);/);
   assert.match(bible, /\.verse-actions button \{[^}]*min-height: max\(24px, min\(44px, var\(--display-control-height\)\)\);/);
   assert.match(bible, /\.profile-avatar \{[^}]*width: max\(24px, min\(28px, var\(--display-icon-button-size\)\)\);/);
 });
 
-test('scoped ordinary chrome contains no fixed geometry floors above the 24px target floor', () => {
-  assert.doesNotMatch(bible, /--radius-xs:\s*max\(12px/);
-  assert.doesNotMatch(bible, /\.floating-nav \{[^}]*gap:\s*6px/);
-  assert.doesNotMatch(bible, /\.bottom-history-menu \.dd-item \{[^}]*padding:\s*max\(/);
-  assert.doesNotMatch(bible, /\.app-version \.dd-signout-button \{[^}]*min-height:\s*max\(34px/);
-  assert.match(bible, /\.app-version \.dd-signout-button \{[^}]*min-height:\s*max\(24px, min\(34px, var\(--display-control-height\)\)\)/);
+test('audited ordinary component geometry inventory is tokenized and shrink-only', () => {
+  const inventory = new Map([
+    ['.floating-nav', ['gap', 'padding', 'border-radius', 'min-height']],
+    ['.action-chrome', ['gap', 'padding', 'border-radius', 'min-height']],
+    ['.bottom-history-menu', ['gap', 'padding', 'border-radius']],
+    ['.bottom-history-menu .dd-item', ['padding', 'border-radius', 'min-height']],
+    ['.fab-panel', ['gap', 'padding', 'border-radius']],
+    ['.fab-card', ['padding', 'border-radius']],
+    ['.fab-section-label', ['padding']],
+    ['.dd-item', ['gap', 'padding']],
+    ['.setting-control-wrap', ['gap']],
+    ['.setting-select', ['padding', 'border-radius', 'height']],
+    ['.app-version', ['gap', 'padding']],
+    ['.app-version .dd-signout-button', ['padding', 'min-height']],
+    ['.view-inner', ['padding']],
+    ['.testaments', ['gap']],
+    ['.testament', ['padding', 'border-radius']],
+    ['.testament ul', ['gap']],
+    ['.book-btn', ['padding', 'border-radius']],
+    ['.search-hist-item', ['gap', 'padding', 'border-radius', 'margin-bottom']],
+    ['.search-result', ['padding', 'border-radius']],
+    ['.verse-actions form', ['gap', 'padding']],
+    ['.verse-actions button', ['padding', 'border-radius', 'min-height']],
+    ['.profile-card', ['padding', 'min-height']],
+    ['.dd-user', ['gap']],
+    ['.dd-user-photo', ['width', 'height']],
+    ['.dd-signout-button', ['padding', 'min-height']],
+    ['.profile-card .dd-user', ['gap', 'height']],
+    ['.footnote-body', ['padding', 'border-radius']]
+  ]);
+  for (const [selector, properties] of inventory) {
+    const escaped = selector.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    const match = bible.match(new RegExp(`(?:^|\\n)\\s*${escaped}\\s*\\{([^}]*)\\}`));
+    assert.ok(match, `missing audited selector ${selector}`);
+    for (const property of properties) {
+      const declaration = match[1].match(new RegExp(`(?:^|;)\\s*${property}:\\s*([^;]+)`));
+      assert.ok(declaration, `${selector} missing audited ${property}`);
+      assert.match(declaration[1], /var\(--|calc\(|min\(|max\(|^(?:0|24px|100%|auto)$/, `${selector} ${property} is not tokenized`);
+      assert.doesNotMatch(declaration[1], /^max\((?!24px)[0-9.]+px/, `${selector} ${property} has a fixed floor`);
+    }
+  }
 });

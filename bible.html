@@ -660,7 +660,7 @@
   .fab-history-menu { flex: 1 1 auto; min-height: 0; overflow-y: auto; display: grid; gap: min(6px, var(--display-panel-gap)); }
   .fab-section-label {
     font-size: var(--text-12); font-weight: 600; color: var(--fg3); text-transform: uppercase;
-    letter-spacing: 0.5px; padding: 8px 16px 4px;
+    letter-spacing: 0.5px; padding: var(--display-panel-gap) min(16px, calc(var(--display-panel-padding) * 1.3333)) min(4px, calc(var(--display-panel-gap) * .5));
   }
 
   /* Dropdown menus (shared) */
@@ -742,7 +742,7 @@
     align-items: center;
     justify-content: center;
     gap: var(--display-panel-gap);
-    padding: var(--display-panel-gap) 16px max(2px, env(safe-area-inset-bottom, 0px));
+    padding: var(--display-panel-gap) min(16px, calc(var(--display-panel-padding) * 1.3333)) max(min(2px, calc(var(--display-panel-gap) * .25)), env(safe-area-inset-bottom, 0px));
     color: var(--fg4);
     font-size: var(--text-14);
     text-align: center;
@@ -819,7 +819,7 @@
     box-shadow: var(--shadow);
     padding: var(--display-panel-padding);
   }
-  .testament ul { list-style: none; display: flex; flex-direction: column; gap: 5px; }
+  .testament ul { list-style: none; display: flex; flex-direction: column; gap: min(5px, calc(var(--ui-grid-gap) * .625)); }
   .selection-card {
     background: var(--card-bg);
     border: var(--card-border);
@@ -952,7 +952,7 @@
   .search-hist-item {
     display: flex; align-items: center; gap: var(--display-panel-gap); padding: var(--display-control-pad-y) var(--display-control-pad-x);
     background: var(--card-bg); border: var(--card-border); border-radius: var(--radius-sm);
-    margin-bottom: 5px; cursor: pointer;
+    margin-bottom: min(5px, calc(var(--ui-grid-gap) * .625)); cursor: pointer;
     transition-property: background, border-color, box-shadow, transform;
     transition-duration: 180ms, 180ms, 180ms, 120ms;
     transition-timing-function: var(--motion-ease);
