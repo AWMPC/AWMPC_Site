@@ -21,14 +21,14 @@ const seasonModes = [
   ['winter', false], ['winter', true]
 ];
 const expectedBorders = new Map([
-  ['html[data-season="spring"]', ['rgba(24,48,27,.14)', 'rgba(24,48,27,.20)', 'rgba(24,48,27,.32)']],
-  ['html[data-season="spring"].dark', ['rgba(236,247,232,.10)', 'rgba(236,247,232,.16)', 'rgba(236,247,232,.28)']],
-  ['html[data-season="summer"]', ['rgba(53,44,20,.14)', 'rgba(53,44,20,.20)', 'rgba(53,44,20,.32)']],
-  ['html[data-season="summer"].dark', ['rgba(255,245,206,.10)', 'rgba(255,245,206,.16)', 'rgba(255,245,206,.28)']],
-  ['html[data-season="fall"]', ['rgba(60,33,22,.14)', 'rgba(60,33,22,.20)', 'rgba(60,33,22,.32)']],
-  ['html[data-season="fall"].dark', ['rgba(255,233,216,.10)', 'rgba(255,233,216,.16)', 'rgba(255,233,216,.28)']],
-  ['html[data-season="winter"]', ['rgba(20,43,62,.14)', 'rgba(20,43,62,.20)', 'rgba(20,43,62,.32)']],
-  ['html[data-season="winter"].dark', ['rgba(233,246,255,.10)', 'rgba(233,246,255,.16)', 'rgba(233,246,255,.28)']]
+  ['html[data-season="spring"]', ['rgba(24,48,27,.55)', 'rgba(24,48,27,.65)', 'rgba(24,48,27,.75)']],
+  ['html[data-season="spring"].dark', ['rgba(236,247,232,.50)', 'rgba(236,247,232,.60)', 'rgba(236,247,232,.72)']],
+  ['html[data-season="summer"]', ['rgba(53,44,20,.55)', 'rgba(53,44,20,.65)', 'rgba(53,44,20,.75)']],
+  ['html[data-season="summer"].dark', ['rgba(255,245,206,.50)', 'rgba(255,245,206,.60)', 'rgba(255,245,206,.72)']],
+  ['html[data-season="fall"]', ['rgba(60,33,22,.55)', 'rgba(60,33,22,.65)', 'rgba(60,33,22,.75)']],
+  ['html[data-season="fall"].dark', ['rgba(255,233,216,.50)', 'rgba(255,233,216,.60)', 'rgba(255,233,216,.72)']],
+  ['html[data-season="winter"]', ['rgba(20,43,62,.55)', 'rgba(20,43,62,.65)', 'rgba(20,43,62,.75)']],
+  ['html[data-season="winter"].dark', ['rgba(233,246,255,.50)', 'rgba(233,246,255,.60)', 'rgba(233,246,255,.72)']]
 ]);
 
 function cssBlock(selector) {
@@ -66,6 +66,15 @@ function luminance(hex) {
 function contrast(a, b) {
   const values = [luminance(a), luminance(b)].sort((x, y) => y - x);
   return (values[0] + 0.05) / (values[1] + 0.05);
+}
+
+function compositeRgba(value, background) {
+  const match = value.match(/^rgba\((\d+),(\d+),(\d+),([.\d]+)\)$/);
+  assert.ok(match, `expected rgba boundary, got ${value}`);
+  const alpha = Number(match[4]);
+  const bg = rgb(background);
+  const channels = match.slice(1, 4).map(Number).map((channel, index) => Math.round(channel * alpha + bg[index] * (1 - alpha)));
+  return `#${channels.map((channel) => channel.toString(16).padStart(2, '0')).join('')}`;
 }
 
 test('every seasonal light and dark mode owns every palette primitive', () => {
@@ -164,4 +173,21 @@ test('ordinary component shadows derive from seasonal primitives without blue-gr
   assert.doesNotMatch(bible, /rgba\(26,40,63,/);
   assert.match(cssBlock('.fab-card'), /box-shadow:\s*0 1px 8px color-mix\(in srgb, var\(--fg\) 8%, transparent\)/);
   assert.doesNotMatch(cssBlock('html.dark'), /--shadow\s*:/);
+});
+
+test('composited ordinary control boundaries and focus indicators meet 3 to 1', () => {
+  for (const [season, dark] of seasonModes) {
+    const selector = `html[data-season="${season}"]${dark ? '.dark' : ''}`;
+    const block = cssBlock(selector);
+    const surface = declaration(block, 'surface');
+    for (const token of ['border', 'border2']) {
+      const finalBoundary = compositeRgba(declaration(block, token), surface);
+      assert.ok(contrast(finalBoundary, surface) >= 3, `${selector} --${token} composited on surface is below 3:1`);
+    }
+    assert.ok(contrast(declaration(block, 'accent'), surface) >= 3, `${selector} focus accent is below 3:1`);
+  }
+  assert.match(cssBlock('.setting-select'), /border:\s*1px solid var\(--border2\)/);
+  assert.match(cssBlock('.floating-nav button'), /border:\s*1px solid var\(--border\)/);
+  assert.match(declaration(cssBlock(':root'), 'card-border'), /1px solid var\(--border2\)/);
+  assert.match(cssBlock('.setting-select:focus-visible'), /border-color:\s*var\(--accent\)/);
 });

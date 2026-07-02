@@ -68,7 +68,7 @@ assert.match(bible, /\.fab-panel\.open \{[\s\S]*opacity: 1;[\s\S]*visibility: vi
 assert.doesNotMatch(bible, /\.fab-panel::before/);
 assert.match(bible, /\.fab-card \{[\s\S]*margin: 0;[\s\S]*padding: var\(--display-panel-padding\);[\s\S]*border-radius: var\(--radius-sm\);[\s\S]*background: var\(--card-bg\);[\s\S]*border: var\(--card-border\);/);
 assert.match(bible, /\.fab-card-title \{[\s\S]*font-size: var\(--text-14\);[\s\S]*padding: 0 2px 8px;[\s\S]*white-space: nowrap; overflow: hidden;/);
-assert.match(bible, /\.profile-card \{[\s\S]*--profile-photo-height: calc\(var\(--display-control-height\) \+ \(var\(--display-panel-padding\) \* 4\)\);[\s\S]*position: relative;[\s\S]*overflow: hidden;[\s\S]*min-height: 92px;[\s\S]*flex-shrink: 1;[\s\S]*padding: 0 12px 0 0;/);
+assert.match(bible, /\.profile-card \{[\s\S]*--profile-photo-height: calc\(var\(--display-control-height\) \+ \(var\(--display-panel-padding\) \* 4\)\);[\s\S]*position: relative;[\s\S]*overflow: hidden;[\s\S]*min-height: 92px;[\s\S]*flex-shrink: 1;[\s\S]*padding: 0 var\(--display-panel-padding\) 0 0;/);
 assert.match(bible, /\.profile-card\.signed-out \{[\s\S]*overflow: visible;[\s\S]*min-height: 0;[\s\S]*padding: 0;/);
 assert.doesNotMatch(bible, /\.profile-card \{[^}]*padding-left: 132px;/);
 assert.doesNotMatch(bible, /\.profile-card::after/);
