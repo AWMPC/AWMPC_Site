@@ -5,7 +5,7 @@ const path = require('node:path');
 const root = path.resolve(__dirname, '..');
 const bible = fs.readFileSync(path.join(root, 'bible.html'), 'utf8');
 const functionNames = [
-  'smootherstep',
+  'cubicVerseEase',
   'verseChaseDurationForDistance',
   'keepVerseChaseTargetVisible',
   'stopVerseChase',
@@ -21,8 +21,9 @@ const productionFunctions = functionNames.map((name) => {
 
 const runContract = Function('assert', `${productionFunctions}
   const curve = [];
-  for (let index = 0; index <= 1000; index += 1) curve.push(smootherstep(index / 1000));
+  for (let index = 0; index <= 1000; index += 1) curve.push(cubicVerseEase(index / 1000));
   assert.equal(curve[0], 0);
+  assert.equal(curve[500], .5);
   assert.equal(curve[curve.length - 1], 1);
   curve.forEach((value, index) => {
     assert.ok(value >= 0 && value <= 1, 'curve stays bounded');

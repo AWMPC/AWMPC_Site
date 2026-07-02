@@ -45,8 +45,7 @@
     --display-panel-padding: 12px;
     --display-panel-gap: 8px;
     --display-nav-padding: 6px;
-    --motion-ease-fallback: cubic-bezier(.64, 0, .36, 1);
-    --motion-ease: var(--motion-ease-fallback);
+    --motion-ease: cubic-bezier(.64, 0, .36, 1);
     --ui-radius: 20px;
     --ui-grid-gap: 8px;
     --ui-view-pad: 12px;
@@ -89,11 +88,6 @@
     --chrome-motion: 220ms;
     --top-chrome-clearance: 0px;
     --bottom-chrome-clearance: calc(var(--display-control-height) + (var(--display-nav-padding) * 2) + 20px);
-  }
-  @supports (transition-timing-function: linear(0, 1)) {
-    :root {
-      --motion-ease: linear(0, 0.00856 10%, 0.05792 20%, 0.16308 30%, 0.31744 40%, 0.5 50%, 0.68256 60%, 0.83692 70%, 0.94208 80%, 0.99144 90%, 1);
-    }
   }
   html.dark {
     --bg: #0d1017; --bg2: #171c28; --bg3: #111722; --bg4: #1e2538;
@@ -3416,9 +3410,22 @@
     return window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
   }
 
-  function smootherstep(progress) {
-    var t = Math.min(1, Math.max(0, progress));
-    return t * t * t * (t * (t * 6 - 15) + 10);
+  function cubicVerseEase(progress) {
+    var targetX = Math.min(1, Math.max(0, progress));
+    if (targetX === 0 || targetX === 1) return targetX;
+    var lower = 0;
+    var upper = 1;
+    var t = .5;
+    for (var iteration = 0; iteration < 20; iteration += 1) {
+      t = (lower + upper) / 2;
+      var inverseT = 1 - t;
+      var x = (3 * inverseT * inverseT * t * .64) + (3 * inverseT * t * t * .36) + (t * t * t);
+      if (x === targetX) break;
+      if (x < targetX) lower = t;
+      else upper = t;
+    }
+    var inverseT = 1 - t;
+    return (3 * inverseT * t * t) + (t * t * t);
   }
 
   function verseChaseDurationForDistance(distance) {
@@ -3469,7 +3476,7 @@
     }
     if (verseChaseStartTime === null) verseChaseStartTime = ts;
     var progress = Math.min(1, Math.max(0, (ts - verseChaseStartTime) / verseChaseDuration));
-    var eased = smootherstep(progress);
+    var eased = cubicVerseEase(progress);
     viewEl.scrollTop = verseChaseStartTop + ((verseChaseDestinationTop - verseChaseStartTop) * eased);
     if (progress >= 1) {
       viewEl.scrollTop = verseChaseDestinationTop;
