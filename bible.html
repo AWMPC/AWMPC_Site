@@ -3291,7 +3291,7 @@
   }
 
   function stopVerseChase() {
-    if (verseChaseFrame) cancelAnimationFrame(verseChaseFrame);
+    if (verseChaseFrame !== null) cancelAnimationFrame(verseChaseFrame);
     verseChaseFrame = null;
     verseChaseTarget = null;
     verseChaseStartTop = 0;
