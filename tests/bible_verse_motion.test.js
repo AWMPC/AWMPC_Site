@@ -68,6 +68,14 @@ const runContract = Function('assert', `${productionFunctions}
   let verseChaseStartTime = null;
   let verseChaseDuration = 0;
 
+  setVerseChaseTarget(target(300, 180, 220));
+  assert.equal(verseChaseFrame, 0, 'first chase retains pending frame ID zero');
+  releaseVerseChaseForFreeScroll();
+  assert.equal(frames.size, 0, 'free scroll cancels pending frame ID zero');
+  assert.deepEqual(cancelled, [0], 'frame ID zero reaches cancellation');
+  assert.equal(verseChaseFrame, null, 'frame ID zero cleanup clears frame state');
+  assert.equal(verseChaseTarget, null, 'frame ID zero cleanup clears target state');
+
   viewEl.scrollTop = 5;
   keepVerseChaseTargetVisible(target(0, 80, 120));
   assert.equal(viewEl.scrollTop, 0, 'visibility correction clamps at the scroll start');
@@ -85,7 +93,7 @@ const runContract = Function('assert', `${productionFunctions}
   setVerseChaseTarget(target(700, 420, 460));
   assert.equal(frames.size, 1, 'key repeat retains one scheduled frame');
   assert.equal([...frames.keys()][0], firstFrame, 'retarget does not replace the live frame');
-  assert.deepEqual(cancelled, [], 'retarget does not cancel/restart');
+  assert.deepEqual(cancelled, [0], 'retarget does not add a cancellation/restart');
   assert.equal(verseChaseDestinationTop, 700, 'latest verse owns destination');
   assert.equal(verseChaseStartTop, 100, 'retarget starts at current scroll position');
   assert.equal(verseChaseStartTime, null, 'retarget is ready on the next frame');
@@ -119,7 +127,7 @@ const runContract = Function('assert', `${productionFunctions}
   releaseVerseChaseForFreeScroll();
   assert.equal(frames.size, 0, 'free scroll retains no scheduled work');
   assert.equal(verseChaseTarget, null, 'free scroll clears the target');
-  assert.deepEqual(cancelled, [2], 'free scroll cancels the scheduled frame');
+  assert.deepEqual(cancelled, [0, 3], 'free scroll cancels the scheduled frame');
 `);
 
 runContract(assert);
