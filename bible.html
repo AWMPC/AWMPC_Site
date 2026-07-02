@@ -258,6 +258,7 @@
     pointer-events: none;
     background: color-mix(in srgb, var(--accent) 32%, transparent);
     transform: translate(-50%, -50%) scale(0);
+    animation: press-ripple 320ms var(--motion-ease-fallback) forwards;
     animation: press-ripple 320ms var(--motion-ease) forwards;
   }
   @keyframes press-ripple {
@@ -286,6 +287,7 @@
     --marquee-right-fade: 14px;
     mask-image: linear-gradient(90deg, transparent 0, #000 var(--marquee-left-fade), #000 calc(100% - var(--marquee-right-fade)), transparent 100%);
     -webkit-mask-image: linear-gradient(90deg, transparent 0, #000 var(--marquee-left-fade), #000 calc(100% - var(--marquee-right-fade)), transparent 100%);
+    animation: marquee-mask-breathe 3s var(--motion-ease-fallback) infinite alternate;
     animation: marquee-mask-breathe 3s var(--motion-ease) infinite alternate;
   }
   .marquee-text {
@@ -295,6 +297,7 @@
     will-change: transform;
   }
   .marquee-line.is-marquee .marquee-text {
+    animation: marquee-sway 3s var(--motion-ease-fallback) infinite alternate;
     animation: marquee-sway 3s var(--motion-ease) infinite alternate;
   }
   @keyframes marquee-mask-breathe {
@@ -1010,6 +1013,7 @@
     border-radius: var(--radius-xs);
     background: linear-gradient(90deg, var(--bg4) 20%, var(--surface-hi) 45%, var(--bg4) 70%);
     background-size: 240% 100%;
+    animation: loading-skeleton-shimmer 1.1s var(--motion-ease-fallback) infinite;
     animation: loading-skeleton-shimmer 1.1s var(--motion-ease) infinite;
   }
   .loading-skeleton span:nth-child(1) { width: 92%; }

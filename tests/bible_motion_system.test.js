@@ -37,7 +37,11 @@ test('key animation families share easing and reduced motion disables them', () 
     ['marquee-sway', '3s'],
     ['loading-skeleton-shimmer', '1.1s']
   ]) {
-    assert.match(css, new RegExp(`animation: ${name} ${duration} var\\(--motion-ease\\)`));
+    assert.match(
+      css,
+      new RegExp(`animation: ${name} ${duration} var\\(--motion-ease-fallback\\)([^;]*);\\s*animation: ${name} ${duration} var\\(--motion-ease\\)\\1;`),
+      `${name} declares its fallback immediately before the sampled easing`
+    );
   }
 
   const reducedMotion = css.slice(css.indexOf('@media (prefers-reduced-motion: reduce)'));
