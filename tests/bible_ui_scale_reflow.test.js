@@ -138,3 +138,16 @@ test('ordinary radius, grid gaps, and view/card padding use scalable UI tokens',
   assert.match(bible, /\.search-result \{[^}]*padding: var\(--ui-view-pad\);/);
   assert.match(bible, /border:\s*1px solid/);
 });
+
+test('remaining component spacing is routed through shrink-only UI geometry tokens', () => {
+  const contracts = [
+    [/\.profile-card \{[^}]*padding: 0 var\(--display-panel-padding\) 0 0;/, 'profile padding'],
+    [/\.fab-history-menu \{[^}]*gap: min\(6px, var\(--display-panel-gap\)\);/, 'history gap'],
+    [/\.dd-item \{[^}]*gap: min\(10px, calc\(var\(--display-panel-gap\) \* 1\.25\)\);/, 'menu gap'],
+    [/\.testaments \{[^}]*gap: min\(12px, calc\(var\(--ui-grid-gap\) \* 1\.5\)\);/, 'testament gap'],
+    [/\.book-btn \{[^}]*padding: min\(10px, calc\(var\(--display-control-pad-y\) \+ 2px\)\) var\(--display-control-pad-x\);/, 'book padding'],
+    [/\.verse-actions form \{[^}]*gap: min\(10px, calc\(var\(--display-panel-gap\) \* 1\.25\)\);[^}]*padding: min\(20px, calc\(var\(--display-panel-padding\) \* 1\.6667\)\);/, 'context dialog'],
+    [/@media \(max-width: 640px\) \{[\s\S]*\.search-input \{[^}]*padding-inline: var\(--display-control-pad-x\);/, 'mobile search padding']
+  ];
+  for (const [pattern, label] of contracts) assert.match(bible, pattern, label);
+});

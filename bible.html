@@ -640,7 +640,7 @@
     overflow: hidden;
     min-height: 92px;
     flex-shrink: 1;
-    padding: 0 12px 0 0;
+    padding: 0 var(--display-panel-padding) 0 0;
   }
   .profile-card.signed-out {
     overflow: visible;
@@ -658,7 +658,7 @@
     background: var(--surface);
     box-shadow: var(--shadow);
   }
-  .fab-history-menu { flex: 1 1 auto; min-height: 0; overflow-y: auto; display: grid; gap: 6px; }
+  .fab-history-menu { flex: 1 1 auto; min-height: 0; overflow-y: auto; display: grid; gap: min(6px, var(--display-panel-gap)); }
   .fab-section-label {
     font-size: var(--text-12); font-weight: 600; color: var(--fg3); text-transform: uppercase;
     letter-spacing: 0.5px; padding: 8px 16px 4px;
@@ -678,7 +678,7 @@
   .dd-menu.right { right: 0; }
   .dd-menu.left { left: 0; }
   .dd-item {
-    display: flex; align-items: center; gap: 10px; width: 100%;
+    display: flex; align-items: center; gap: min(10px, calc(var(--display-panel-gap) * 1.25)); width: 100%;
     background: none; border: none; border-bottom: 1px solid var(--border);
     padding: var(--display-control-pad-y) var(--display-control-pad-x); text-align: left; font-size: var(--display-control-font-size); font-family: inherit;
     color: var(--fg); cursor: pointer;
@@ -805,7 +805,7 @@
   .view-inner.chapter-transition-retiring.chapter-transition-out { opacity: 0; }
 
   /* Books view */
-  .testaments { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  .testaments { display: grid; grid-template-columns: 1fr 1fr; gap: min(12px, calc(var(--ui-grid-gap) * 1.5)); }
   .testament h2 {
     font-size: var(--display-control-font-size); font-weight: 600; color: var(--fg2);
     text-transform: uppercase; letter-spacing: 0.5px;
@@ -833,7 +833,7 @@
   .book-btn {
     display: block; width: 100%;
     background: var(--card-bg); border: var(--card-border); border-radius: var(--radius-sm);
-    padding: 10px 12px; font-family: inherit;
+    padding: min(10px, calc(var(--display-control-pad-y) + 2px)) var(--display-control-pad-x); font-family: inherit;
     color: var(--fg); cursor: pointer; text-align: left;
     transition-property: background, border-color, box-shadow, color, transform;
     transition-duration: 180ms, 180ms, 180ms, 180ms, 120ms;
@@ -1070,8 +1070,8 @@
   .verse-actions.is-closing::backdrop { opacity: 0; }
   .verse-actions form {
     display: grid;
-    gap: 10px;
-    padding: 20px;
+    gap: min(10px, calc(var(--display-panel-gap) * 1.25));
+    padding: min(20px, calc(var(--display-panel-padding) * 1.6667));
     white-space: normal;
   }
   .verse-actions h2 {
@@ -1102,7 +1102,7 @@
 
   @media (max-width: 640px) {
     .search-bar { display: grid; grid-template-columns: minmax(0, 1fr); }
-    .search-input { font-size: var(--display-control-font-size); padding-inline: 12px; }
+    .search-input { font-size: var(--display-control-font-size); padding-inline: var(--display-control-pad-x); }
     .search-text { font-size: var(--text-18); }
     .search-hist-item .sh-query { font-size: var(--display-control-font-size); }
     .verse-actions {
