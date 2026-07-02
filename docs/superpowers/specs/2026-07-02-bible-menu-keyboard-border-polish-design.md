@@ -29,10 +29,10 @@ Every verse uses a one-pixel seasonal boundary:
 - Inactive verses use a very low-contrast “whisper” border.
 - The active verse uses the approved option B “quiet” border.
 - The active border is stronger than the inactive border but intentionally lower-contrast than normal scripture text against the verse surface.
-- Seasonal active background highlighting remains the primary state cue.
+- The shared seasonal verse surface remains unchanged; the stronger quiet border is the sole active-state visual cue.
 - No glow, shadow, double border, or separate keyboard-only focus treatment is introduced.
 
-The border hierarchy is measured as a relationship rather than as a WCAG meaningful-control boundary: inactive border contrast < active border contrast < scripture text contrast. Verse text retains its existing WCAG contrast. This exception is appropriate because the border is supplemental decoration, not the only indicator or an interactive-control boundary.
+The border hierarchy is measured as a relationship rather than as a WCAG meaningful-control boundary: inactive border contrast < active border contrast < scripture text contrast. Verse text retains its existing WCAG contrast. This exception is appropriate because the verse boundary is decorative styling rather than an interactive-control boundary.
 
 ## State and lifecycle
 

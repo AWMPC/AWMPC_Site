@@ -146,6 +146,7 @@ test('verses use one quiet seasonal border and active verses only strengthen its
   const active = cssBlock('.verse.active');
   assert.match(active, /border-color:\s*var\(--verse-active-border\)/);
   assert.match(active, /box-shadow:\s*none/);
+  assert.doesNotMatch(active, /background(?:-color)?\s*:/);
   assert.doesNotMatch(active, /accent-glow|verse-glow/);
 
   const focus = cssBlock('.verse:focus-visible');

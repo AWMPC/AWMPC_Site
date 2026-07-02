@@ -136,7 +136,7 @@ assert.ok(inactiveRatio < activeRatio, `${name} active border is stronger`);
 assert.ok(activeRatio < textRatio, `${name} active border stays quieter than scripture`);
 ```
 
-Also assert `.verse` uses `1px solid var(--verse-border)` and `.verse.active` uses only `var(--verse-active-border)`, with no glow or box shadow.
+Also assert `.verse` uses `1px solid var(--verse-border)` and `.verse.active` uses only `var(--verse-active-border)`, with no background override, glow, or box shadow. The shared seasonal verse surface stays unchanged, so the stronger quiet border is the sole active-state visual cue.
 
 - [ ] **Step 2: Run the palette test and confirm red**
 
@@ -328,7 +328,7 @@ Expected: the active border remains visible, the reader moves continuously witho
 
 Check Spring Light, Summer Dark, Fall Light, and Winter Dark.
 
-Expected: all verses have a faint one-pixel border; the active border matches option B, remains quieter than text, and has no glow/double/keyboard-only border.
+Expected: all verses retain the same seasonal surface and have a faint one-pixel border; the active border is the sole active-state visual cue, matches option B, remains quieter than text, and has no background override, glow, double border, or keyboard-only border.
 
 - [ ] **Step 5: Run final automated verification**
 
