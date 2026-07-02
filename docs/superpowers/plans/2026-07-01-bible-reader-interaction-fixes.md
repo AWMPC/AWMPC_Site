@@ -241,6 +241,14 @@ Run the exact command from Step 1.
 
 Expected: `reader gesture ownership contract passes`.
 
+Run the extracted-runtime ownership contract and its negative control:
+
+```bash
+osascript -l JavaScript -e 'ObjC.import("Foundation"); var p=$.NSFileManager.defaultManager.currentDirectoryPath.js+"/bible.html"; var e=Ref(); var s=$.NSString.stringWithContentsOfFileEncodingError(p,$.NSUTF8StringEncoding,e).js; function ok(v,m){if(!v)throw new Error(m);} var helper=s.match(/function setUIView\(nextView\) \{[\s\S]*?\n  \}/); ok(helper,"view helper missing"); function verify(source){var calls=[],viewInner={classList:{toggle:function(name,enabled){calls.push([name,enabled]);}}}; var api=Function("viewInner","var uiView=\"initial\";"+source+";return {set:setUIView,get:function(){return uiView;}};")(viewInner); ["books","chapters","verse-picker","search","verses"].forEach(function(view){calls=[]; api.set(view); ok(api.get()===view,"uiView mismatch: "+view); ok(calls.length===1,"toggle count mismatch: "+view); ok(calls[0][0]==="reader-gestures","toggle class mismatch: "+view); ok(calls[0][1]===(view==="verses"),"toggle state mismatch: "+view);});} verify(helper[0]); var failed=false; try{verify(helper[0].replace(/\s*viewInner\.classList\.toggle\([^;]+;/,""));}catch(err){failed=true;} ok(failed,"ownership negative control did not fail"); "reader gesture ownership runtime contract passes; removed-toggle mutation rejected"'
+```
+
+Expected: the actual helper updates `uiView`, enables reader gesture ownership only for verses, and the removed-toggle mutation fails verification.
+
 - [ ] **Step 5: Run the failing swipe-qualification contract**
 
 ```bash
@@ -282,11 +290,12 @@ Leave interactive-descendant exclusions, text-selection detection, pointer cance
 Run the exact commands from Task 3 Steps 1 and 5, then:
 
 ```bash
+osascript -l JavaScript -e 'ObjC.import("Foundation"); var p=$.NSFileManager.defaultManager.currentDirectoryPath.js+"/bible.html"; var e=Ref(); var s=$.NSString.stringWithContentsOfFileEncodingError(p,$.NSUTF8StringEncoding,e).js; function ok(v,m){if(!v)throw new Error(m);} var helper=s.match(/function readerSwipeDirection\(dx, dy, hasSelection\) \{[\s\S]*?\n  \}/); var handler=s.match(/document\.addEventListener\(\x27pointerup\x27,[\s\S]*?\n  \}\);(?=\n  document\.addEventListener\(\x27pointercancel\x27)/); ok(helper&&handler,"swipe runtime source missing"); function verify(source){var captured=null,calls=[],window={getSelection:function(){return {isCollapsed:true};}},document={addEventListener:function(name,callback){ok(name==="pointerup","wrong event");captured=callback;}}; function clearReaderPointerState(){} function suppressFollowingReaderClick(){} function showAdjacentChapter(direction){calls.push(direction);} function toggleAllVerseFootnotes(){} function setActiveVerse(){} var api=Function("document","window","clearReaderPointerState","suppressFollowingReaderClick","showAdjacentChapter","toggleAllVerseFootnotes","setActiveVerse","var readerPointerState=null;"+helper[0]+";"+source+";return {setState:function(value){readerPointerState=value;}};")(document,window,clearReaderPointerState,suppressFollowingReaderClick,showAdjacentChapter,toggleAllVerseFootnotes,setActiveVerse); ok(captured,"pointerup callback missing"); function run(x,y,selected){calls=[]; api.setState({id:7,x:100,y:100,moved:false,verse:null,target:{}}); window.getSelection=function(){return {isCollapsed:!selected};}; captured({pointerId:7,clientX:x,clientY:y,preventDefault:function(){}}); return calls.slice();} [[28,100,false,[1]],[172,100,false,[-1]],[29,100,false,[]],[28,158,false,[]],[28,100,true,[]]].forEach(function(c){var got=run(c[0],c[1],c[2]);ok(JSON.stringify(got)===JSON.stringify(c[3]),"pointerup calls mismatch: "+c+" got "+got);});} verify(handler[0]); function rejects(source,label){var failed=false;try{verify(source);}catch(err){failed=true;}ok(failed,label+" mutation was not rejected");} rejects(handler[0].replace("      showAdjacentChapter(direction);",""),"removed call"); rejects(handler[0].replace("      showAdjacentChapter(direction);","      showAdjacentChapter(direction);\n      showAdjacentChapter(direction);"),"duplicated call"); "reader pointerup runtime contract passes; removed and duplicated calls rejected"'
 osascript -l JavaScript -e 'ObjC.import("Foundation"); var p=$.NSFileManager.defaultManager.currentDirectoryPath.js+"/bible.html"; var e=Ref(); var s=$.NSString.stringWithContentsOfFileEncodingError(p,$.NSUTF8StringEncoding,e).js; var m=s.match(/<script>([\s\S]*?)<\/script>/); if(!m)throw new Error("inline script missing"); Function(m[1]); "bible inline JavaScript parses"'
 git diff --check -- bible.html
 ```
 
-Expected: both gesture contracts pass, JavaScript parses, and the diff check exits 0.
+Expected: both gesture contracts pass; the actual pointerup callback invokes one adjacent chapter for qualifying left/right swipes and none for rejected gestures; removed and duplicated calls fail verification; JavaScript parses; and the diff check exits 0.
 
 - [ ] **Step 9: Commit the swipe fix**
 
