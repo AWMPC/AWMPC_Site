@@ -7,10 +7,11 @@ const bible = fs.readFileSync(path.join(__dirname, '..', 'bible.html'), 'utf8');
 const seasonalCore = [
   'bg', 'bg2', 'bg3', 'bg4', 'surface', 'surface-hi',
   'fg', 'fg2', 'fg3', 'fg4', 'border', 'border2', 'border3',
-  'accent', 'accent-fg', 'verse-num', 'note-bg', 'note-border', 'pill-bg'
+  'accent', 'accent-fg', 'verse-num', 'verse-border', 'verse-active-border',
+  'note-bg', 'note-border', 'pill-bg'
 ];
 const derived = [
-  'verse-bg', 'verse-active-border', 'fab-bg', 'fab-fg',
+  'verse-bg', 'fab-bg', 'fab-fg',
   'float-nav-bg', 'float-nav-fg', 'float-nav-shadow',
   'card-bg', 'card-border', 'menu-bg', 'menu-shadow', 'hover-bg', 'shadow'
 ];
@@ -113,32 +114,34 @@ test('ordinary UI aliases derive from season primitives without base blue litera
   }
 });
 
-test('actual seasonal text and active-border declarations meet WCAG contrast', () => {
+test('composited verse borders stay quieter than scripture text in every seasonal mode', () => {
   const root = cssBlock(':root');
   const verseBackgroundToken = referencedToken(declaration(root, 'verse-bg'), 'verse-bg');
-  const verseBorderToken = referencedToken(declaration(root, 'verse-active-border'), 'verse-active-border');
 
   for (const [season, dark] of seasonModes) {
     const selector = `html[data-season="${season}"]${dark ? '.dark' : ''}`;
     const block = cssBlock(selector);
     const fg = declaration(block, 'fg');
     const verseBackground = declaration(block, verseBackgroundToken);
-    const verseBorder = declaration(block, verseBorderToken);
+    const inactiveBorder = compositeRgba(declaration(block, 'verse-border'), verseBackground);
+    const activeBorder = compositeRgba(declaration(block, 'verse-active-border'), verseBackground);
+    const inactiveContrast = contrast(inactiveBorder, verseBackground);
+    const activeContrast = contrast(activeBorder, verseBackground);
+    const scriptureContrast = contrast(fg, verseBackground);
     assert.ok(
-      contrast(fg, verseBackground) >= 4.5,
+      scriptureContrast >= 4.5,
       `${selector} --fg ${fg} on --verse-bg ${verseBackground} is below 4.5:1`
     );
-    assert.ok(
-      contrast(verseBorder, verseBackground) >= 3,
-      `${selector} --verse-active-border ${verseBorder} against --verse-bg ${verseBackground} is below 3:1`
-    );
+    assert.ok(inactiveContrast > 1, `${selector} inactive verse border is invisible`);
+    assert.ok(activeContrast > inactiveContrast, `${selector} active verse border is not stronger than inactive`);
+    assert.ok(activeContrast < scriptureContrast, `${selector} active verse border competes with scripture text`);
   }
 });
 
-test('verses always use a seasonal surface and only active verses gain a visible border', () => {
+test('verses use one quiet seasonal border and active verses only strengthen its color', () => {
   const verse = cssBlock('.verse');
   assert.match(verse, /background:\s*var\(--verse-bg\)/);
-  assert.match(verse, /border:\s*2px solid transparent/);
+  assert.match(verse, /border:\s*1px solid var\(--verse-border\)/);
 
   const active = cssBlock('.verse.active');
   assert.match(active, /border-color:\s*var\(--verse-active-border\)/);
@@ -151,7 +154,7 @@ test('verses always use a seasonal surface and only active verses gain a visible
   assert.match(activeFocus, /outline:\s*none/);
 
   const footnotesOpen = cssBlock('.verse.footnotes-open');
-  assert.doesNotMatch(footnotesOpen, /(?:^|;)\s*(?:background|border-color|box-shadow)\s*:/);
+  assert.doesNotMatch(footnotesOpen, /(?:^|;)\s*(?:background|border|border-width|border-color|box-shadow)\s*:/);
 
   assert.doesNotMatch(bible, /found-highlight/);
   assert.doesNotMatch(bible, /startVerseFoundTransition|clearVerseHighlightTransition|verseHighlight(?:Target|Frame|CleanupTimer)/);
