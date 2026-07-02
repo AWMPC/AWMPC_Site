@@ -8,7 +8,7 @@ const bible = fs.readFileSync(path.join(root, 'bible.html'), 'utf8');
 const css = bible.match(/<style>([\s\S]*?)<\/style>/)[1];
 
 test('one quintic easing token owns application transitions', () => {
-  assert.match(css, /:root \{[\s\S]*--display-nav-padding: 6px;\s*--motion-ease-fallback: cubic-bezier\(\.64, 0, \.36, 1\);\s*--motion-ease: var\(--motion-ease-fallback\);/);
+  assert.match(css, /:root \{[\s\S]*--motion-ease-fallback: cubic-bezier\(\.64, 0, \.36, 1\);\s*--motion-ease: var\(--motion-ease-fallback\);/);
   assert.match(css, /@supports \(transition-timing-function: linear\(0, 1\)\) \{\s*:root \{\s*--motion-ease: linear\(0, 0\.00856 10%, 0\.05792 20%, 0\.16308 30%, 0\.31744 40%, 0\.5 50%, 0\.68256 60%, 0\.83692 70%, 0\.94208 80%, 0\.99144 90%, 1\);\s*\}\s*\}/);
 
   const transitionBlocks = [...css.matchAll(/(^|})\s*([^@][^{]*)\{([^{}]*\btransition-property:[^{}]*)\}/gm)];

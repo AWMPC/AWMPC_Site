@@ -63,7 +63,7 @@ assert.doesNotMatch(bible, /class="font-slider-ticks"/);
 assert.doesNotMatch(bible, /\.font-slider \{/);
 assert.doesNotMatch(bible, /Font Size/);
 
-assert.match(bible, /\.fab-panel \{[\s\S]*display: flex;[\s\S]*position: fixed;[\s\S]*right: 12px;[\s\S]*bottom: var\(--bottom-chrome-clearance\);[\s\S]*max-height: calc\(100dvh - var\(--bottom-chrome-clearance\) - 12px\);[\s\S]*overflow-y: auto;[\s\S]*overscroll-behavior: contain;[\s\S]*gap: var\(--display-panel-gap\);[\s\S]*padding: var\(--display-panel-padding\);[\s\S]*background: var\(--float-nav-bg\);[\s\S]*border: var\(--card-border\);[\s\S]*border-radius: var\(--radius-md\);[\s\S]*box-shadow: var\(--float-nav-shadow\);[\s\S]*backdrop-filter: var\(--hdr-blur\);[\s\S]*-webkit-backdrop-filter: var\(--hdr-blur\);[\s\S]*isolation: isolate;[\s\S]*transition-property: opacity, transform, visibility;[\s\S]*transition-duration: 180ms, 180ms, 0s;[\s\S]*transition-delay: 0s, 0s, 180ms;/);
+assert.match(bible, /\.fab-panel \{[\s\S]*display: flex;[\s\S]*position: fixed;[\s\S]*right: var\(--display-viewport-inset\);[\s\S]*bottom: var\(--bottom-chrome-clearance\);[\s\S]*width: min\(var\(--display-panel-width\), calc\(100vw - \(var\(--display-viewport-inset\) \* 2\)\)\);[\s\S]*max-height: calc\(100dvh - var\(--bottom-chrome-clearance\) - var\(--display-viewport-inset\)\);[\s\S]*overflow-y: auto;[\s\S]*overscroll-behavior: contain;[\s\S]*gap: var\(--display-panel-gap\);[\s\S]*padding: var\(--display-panel-padding\);[\s\S]*transform: translateY\(var\(--display-panel-motion-offset\)\);[\s\S]*background: var\(--float-nav-bg\);[\s\S]*border: var\(--card-border\);[\s\S]*border-radius: var\(--radius-md\);[\s\S]*box-shadow: var\(--float-nav-shadow\);[\s\S]*backdrop-filter: var\(--hdr-blur\);[\s\S]*-webkit-backdrop-filter: var\(--hdr-blur\);[\s\S]*isolation: isolate;[\s\S]*transition-property: opacity, transform, visibility;[\s\S]*transition-duration: 180ms, 180ms, 0s;[\s\S]*transition-delay: 0s, 0s, 180ms;/);
 assert.match(bible, /\.fab-panel\.open \{[\s\S]*opacity: 1;[\s\S]*visibility: visible;[\s\S]*pointer-events: auto;[\s\S]*transition-property: opacity, transform, visibility;[\s\S]*transition-duration: 180ms, 180ms, 0s;/);
 assert.doesNotMatch(bible, /\.fab-panel::before/);
 assert.match(bible, /\.fab-card \{[\s\S]*margin: 0;[\s\S]*padding: var\(--display-panel-padding\);[\s\S]*border-radius: var\(--radius-sm\);[\s\S]*background: var\(--card-bg\);[\s\S]*border: var\(--card-border\);/);
@@ -74,7 +74,7 @@ assert.doesNotMatch(bible, /\.profile-card \{[^}]*padding-left: 132px;/);
 assert.doesNotMatch(bible, /\.profile-card::after/);
 assert.doesNotMatch(bible, /html\.dark \.profile-card::after/);
 assert.match(bible, /position: absolute;/);
-assert.match(bible, /width: min\(360px, calc\(100vw - 24px\)\);/);
+assert.match(bible, /width: min\(var\(--display-panel-width\), calc\(100vw - \(var\(--display-viewport-inset\) \* 2\)\)\);/);
 assert.doesNotMatch(bible, /max-height: calc\(100dvh - 96px - env\(safe-area-inset-bottom, 0px\)\);/);
 assert.match(bible, /\.bottom-chrome \{[\s\S]*position: fixed;[\s\S]*inset: 0;[\s\S]*display: flex;[\s\S]*justify-content: space-between;[\s\S]*pointer-events: none;/);
 assert.match(bible, /\.floating-nav \{[\s\S]*position: static;[\s\S]*flex: 1 1 auto;[\s\S]*background: var\(--float-nav-bg\);[\s\S]*box-shadow: var\(--float-nav-shadow\);/);

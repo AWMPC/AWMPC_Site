@@ -50,6 +50,9 @@
     --ui-radius: 20px;
     --ui-grid-gap: 8px;
     --ui-view-pad: 12px;
+    --display-panel-width: 360px;
+    --display-viewport-inset: 12px;
+    --display-panel-motion-offset: 6px;
     --oneui-font: 'One UI Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
     --bg: #f4f7fb; --bg2: #ffffff; --bg3: #f8fbff; --bg4: #eef3f9;
     --surface: #ffffff;
@@ -590,12 +593,12 @@
   .fab-panel {
     display: flex;
     position: fixed;
-    right: 12px;
+    right: var(--display-viewport-inset);
     bottom: var(--bottom-chrome-clearance);
     z-index: 131;
-    width: min(360px, calc(100vw - 24px));
+    width: min(var(--display-panel-width), calc(100vw - (var(--display-viewport-inset) * 2)));
     max-width: 100%;
-    max-height: calc(100dvh - var(--bottom-chrome-clearance) - 12px);
+    max-height: calc(100dvh - var(--bottom-chrome-clearance) - var(--display-viewport-inset));
     overflow-y: auto;
     overscroll-behavior: contain;
     flex-direction: column;
@@ -604,7 +607,7 @@
     opacity: 0;
     visibility: hidden;
     pointer-events: none;
-    transform: translateY(6px);
+    transform: translateY(var(--display-panel-motion-offset));
     background: var(--float-nav-bg); border: var(--card-border); border-radius: var(--radius-md);
     box-shadow: var(--float-nav-shadow);
     backdrop-filter: var(--hdr-blur);
@@ -1352,6 +1355,9 @@
     panelPadding: 12,
     panelGap: 8,
     navPadding: 6,
+    panelWidth: 360,
+    viewportInset: 12,
+    motionOffset: 6,
     radius: 20,
     gridGap: 8,
     viewPad: 12
@@ -2410,6 +2416,9 @@
     document.documentElement.style.setProperty('--display-panel-padding', uiGeometry.panelPadding + 'px');
     document.documentElement.style.setProperty('--display-panel-gap', uiGeometry.panelGap + 'px');
     document.documentElement.style.setProperty('--display-nav-padding', uiGeometry.navPadding + 'px');
+    document.documentElement.style.setProperty('--display-panel-width', uiGeometry.panelWidth + 'px');
+    document.documentElement.style.setProperty('--display-viewport-inset', uiGeometry.viewportInset + 'px');
+    document.documentElement.style.setProperty('--display-panel-motion-offset', uiGeometry.motionOffset + 'px');
     document.documentElement.style.setProperty('--ui-radius', uiGeometry.radius + 'px');
     document.documentElement.style.setProperty('--ui-grid-gap', uiGeometry.gridGap + 'px');
     document.documentElement.style.setProperty('--ui-view-pad', uiGeometry.viewPad + 'px');

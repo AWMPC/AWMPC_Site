@@ -12,6 +12,9 @@ const uiVariableNames = [
   '--display-panel-padding',
   '--display-panel-gap',
   '--display-nav-padding',
+  '--display-panel-width',
+  '--display-viewport-inset',
+  '--display-panel-motion-offset',
   '--ui-radius',
   '--ui-grid-gap',
   '--ui-view-pad'
@@ -58,13 +61,13 @@ test('ordinary UI geometry uses exact shrink-only values at every Text Scale', (
   const constants = extract(/var BASE_UI_GEOMETRY = \{[\s\S]*?\};/, 'UI geometry baseline missing');
   const helper = extract(/function uiGeometryForScale\(scale\) \{[\s\S]*?\n  \}/, 'UI geometry helper missing');
   const geometryFor = Function(`${constants}\n${helper}; return uiGeometryForScale;`)();
-  const keys = ['controlHeight', 'iconSize', 'padY', 'padX', 'panelPadding', 'panelGap', 'navPadding', 'radius', 'gridGap', 'viewPad'];
+  const keys = ['controlHeight', 'iconSize', 'padY', 'padX', 'panelPadding', 'panelGap', 'navPadding', 'panelWidth', 'viewportInset', 'motionOffset', 'radius', 'gridGap', 'viewPad'];
   const expected = {
-    50: [24, 24, 4, 6, 6, 4, 3, 10, 4, 6],
-    75: [36, 36, 6, 9, 9, 6, 4.5, 15, 6, 9],
-    100: [48, 48, 8, 12, 12, 8, 6, 20, 8, 12],
-    125: [48, 48, 8, 12, 12, 8, 6, 20, 8, 12],
-    150: [48, 48, 8, 12, 12, 8, 6, 20, 8, 12]
+    50: [24, 24, 4, 6, 6, 4, 3, 180, 6, 3, 10, 4, 6],
+    75: [36, 36, 6, 9, 9, 6, 4.5, 270, 9, 4.5, 15, 6, 9],
+    100: [48, 48, 8, 12, 12, 8, 6, 360, 12, 6, 20, 8, 12],
+    125: [48, 48, 8, 12, 12, 8, 6, 360, 12, 6, 20, 8, 12],
+    150: [48, 48, 8, 12, 12, 8, 6, 360, 12, 6, 20, 8, 12]
   };
 
   for (const [scale, values] of Object.entries(expected)) {
@@ -72,14 +75,14 @@ test('ordinary UI geometry uses exact shrink-only values at every Text Scale', (
   }
 });
 
-test('Text Scale application writes all ten exact UI values and each write is mutation-sensitive', () => {
+test('Text Scale application writes all exact UI values and each write is mutation-sensitive', () => {
   const program = uiApplicationProgram();
   const expected = {
-    50: ['24px', '24px', '4px', '6px', '6px', '4px', '3px', '10px', '4px', '6px'],
-    75: ['36px', '36px', '6px', '9px', '9px', '6px', '4.5px', '15px', '6px', '9px'],
-    100: ['48px', '48px', '8px', '12px', '12px', '8px', '6px', '20px', '8px', '12px'],
-    125: ['48px', '48px', '8px', '12px', '12px', '8px', '6px', '20px', '8px', '12px'],
-    150: ['48px', '48px', '8px', '12px', '12px', '8px', '6px', '20px', '8px', '12px']
+    50: ['24px', '24px', '4px', '6px', '6px', '4px', '3px', '180px', '6px', '3px', '10px', '4px', '6px'],
+    75: ['36px', '36px', '6px', '9px', '9px', '6px', '4.5px', '270px', '9px', '4.5px', '15px', '6px', '9px'],
+    100: ['48px', '48px', '8px', '12px', '12px', '8px', '6px', '360px', '12px', '6px', '20px', '8px', '12px'],
+    125: ['48px', '48px', '8px', '12px', '12px', '8px', '6px', '360px', '12px', '6px', '20px', '8px', '12px'],
+    150: ['48px', '48px', '8px', '12px', '12px', '8px', '6px', '360px', '12px', '6px', '20px', '8px', '12px']
   };
 
   for (const [scale, values] of Object.entries(expected)) {
@@ -94,6 +97,20 @@ test('Text Scale application writes all ten exact UI values and each write is mu
     const write = new RegExp(`document\\.documentElement\\.style\\.setProperty\\('${escapedName}',[^;]+;`);
     const mutated = program.replace(write, `void ('${name}');`);
     assert.equal(executeApplication(mutated, 50)[name], undefined, `mutation must remove ${name}`);
+  }
+});
+
+test('settings panel consumes scalable geometry while remaining viewport bounded', () => {
+  const panel = extract(/\.fab-panel \{[\s\S]*?\n  \}/, 'settings panel rule missing');
+  assert.match(panel, /right: var\(--display-viewport-inset\);/);
+  assert.match(panel, /width: min\(var\(--display-panel-width\), calc\(100vw - \(var\(--display-viewport-inset\) \* 2\)\)\);/);
+  assert.match(panel, /max-height: calc\(100dvh - var\(--bottom-chrome-clearance\) - var\(--display-viewport-inset\)\);/);
+  assert.match(panel, /transform: translateY\(var\(--display-panel-motion-offset\)\);/);
+  assert.match(panel, /max-width: 100%;/, 'the panel must retain its 320px bounding protection');
+
+  for (const token of ['--display-panel-width', '--display-viewport-inset', '--display-panel-motion-offset']) {
+    const mutated = panel.replace(new RegExp(`var\\(${token}\\)`, 'g'), '0px');
+    assert.notEqual(mutated, panel, `${token} must be consumed by the panel rule`);
   }
 });
 
