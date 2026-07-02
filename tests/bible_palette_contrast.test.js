@@ -20,6 +20,16 @@ const seasonModes = [
   ['fall', false], ['fall', true],
   ['winter', false], ['winter', true]
 ];
+const expectedBorders = new Map([
+  ['html[data-season="spring"]', ['rgba(24,48,27,.14)', 'rgba(24,48,27,.20)', 'rgba(24,48,27,.32)']],
+  ['html[data-season="spring"].dark', ['rgba(236,247,232,.10)', 'rgba(236,247,232,.16)', 'rgba(236,247,232,.28)']],
+  ['html[data-season="summer"]', ['rgba(53,44,20,.14)', 'rgba(53,44,20,.20)', 'rgba(53,44,20,.32)']],
+  ['html[data-season="summer"].dark', ['rgba(255,245,206,.10)', 'rgba(255,245,206,.16)', 'rgba(255,245,206,.28)']],
+  ['html[data-season="fall"]', ['rgba(60,33,22,.14)', 'rgba(60,33,22,.20)', 'rgba(60,33,22,.32)']],
+  ['html[data-season="fall"].dark', ['rgba(255,233,216,.10)', 'rgba(255,233,216,.16)', 'rgba(255,233,216,.28)']],
+  ['html[data-season="winter"]', ['rgba(20,43,62,.14)', 'rgba(20,43,62,.20)', 'rgba(20,43,62,.32)']],
+  ['html[data-season="winter"].dark', ['rgba(233,246,255,.10)', 'rgba(233,246,255,.16)', 'rgba(233,246,255,.28)']]
+]);
 
 function cssBlock(selector) {
   const escaped = selector.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
@@ -59,6 +69,11 @@ test('every seasonal light and dark mode owns every palette primitive', () => {
     for (const token of seasonalCore) {
       assert.match(block, new RegExp(`--${token}\\s*:`), `${selector} missing --${token}`);
     }
+    assert.deepEqual(
+      ['border', 'border2', 'border3'].map((token) => declaration(block, token)),
+      expectedBorders.get(selector),
+      `${selector} border primitives changed`
+    );
   }
 });
 
@@ -83,14 +98,13 @@ test('ordinary UI aliases derive from season primitives without base blue litera
   }
 });
 
-test('approved text and active-border pairs meet WCAG contrast', () => {
-  const pairs = [
-    ['#18301b', '#f3faef', '#2f7d32'], ['#ecf7e8', '#101b12', '#78c96e'],
-    ['#352c14', '#fff9df', '#9a6c10'], ['#fff5ce', '#211c0f', '#e2bd55'],
-    ['#3c2116', '#fff3e8', '#b94d19'], ['#ffe9d8', '#24140e', '#ee7b3c'],
-    ['#142b3e', '#eef7ff', '#146fa3'], ['#e9f6ff', '#0c1722', '#69b9e8']
-  ];
-  for (const [fg, bg, border] of pairs) {
+test('actual seasonal text and active-border declarations meet WCAG contrast', () => {
+  for (const [season, dark] of seasonModes) {
+    const selector = `html[data-season="${season}"]${dark ? '.dark' : ''}`;
+    const block = cssBlock(selector);
+    const fg = declaration(block, 'fg');
+    const bg = declaration(block, 'bg');
+    const border = declaration(block, 'accent');
     assert.ok(contrast(fg, bg) >= 4.5, `${fg} on ${bg} is below 4.5:1`);
     assert.ok(contrast(border, bg) >= 3, `${border} against ${bg} is below 3:1`);
   }
@@ -108,6 +122,21 @@ test('verses always use a seasonal surface and only active verses gain a visible
 
   const focus = cssBlock('.verse:focus-visible');
   assert.match(focus, /outline:\s*3px solid var\(--accent\)/);
+  const activeFocus = cssBlock('.verse.active:focus-visible');
+  assert.match(activeFocus, /outline:\s*none/);
+
+  const footnotesOpen = cssBlock('.verse.footnotes-open');
+  assert.doesNotMatch(footnotesOpen, /(?:^|;)\s*(?:background|border-color|box-shadow)\s*:/);
+
+  assert.doesNotMatch(bible, /found-highlight/);
+  assert.doesNotMatch(bible, /startVerseFoundTransition|clearVerseHighlightTransition|verseHighlight(?:Target|Frame|CleanupTimer)/);
+
+  const verseRules = [...bible.matchAll(/([^{}]*\.verse(?![-\w])[^{}]*)\{([^}]*)\}/g)];
+  for (const [, selector, body] of verseRules) {
+    if (/\.verse\.active(?:\s|,|$)/.test(selector)) continue;
+    assert.doesNotMatch(body, /box-shadow\s*:/, `${selector.trim()} adds a verse shadow`);
+    assert.doesNotMatch(body, /border-color\s*:/, `${selector.trim()} overrides the reserved/active border`);
+  }
 });
 
 test('retired verse glow is absent from CSS and text scaling', () => {

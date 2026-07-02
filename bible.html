@@ -834,7 +834,6 @@
   .verse.footnotes-open {
     border-width: 3px;
     padding: var(--verse-open-pad-y) var(--verse-open-pad-x);
-    background: color-mix(in srgb, var(--pill-bg) 72%, transparent);
   }
   .verse.active {
     border-color: var(--verse-active-border);
@@ -846,22 +845,6 @@
   }
   .verse.active:focus-visible {
     outline: none;
-  }
-  .verse.found-highlight {
-    transition: none;
-    background: rgba(197, 160, 50, 0.18);
-    border-color: rgba(197, 160, 50, 0.6);
-    box-shadow: 0 0 18px rgba(197, 160, 50, 0.35), inset 0 0 8px rgba(197, 160, 50, 0.1);
-  }
-  .verse.found-highlight-settling {
-    transition-property: background, border-color, box-shadow;
-    transition-duration: 450ms;
-    transition-timing-function: var(--motion-ease);
-  }
-  html.dark .verse.found-highlight {
-    background: rgba(224, 192, 48, 0.15);
-    border-color: rgba(224, 192, 48, 0.5);
-    box-shadow: 0 0 22px rgba(224, 192, 48, 0.3), inset 0 0 8px rgba(224, 192, 48, 0.08);
   }
   .verse-num { font-size: .7em; font-weight: 700; color: var(--verse-num); vertical-align: super; margin-right: .2em; }
   .verse-edge-spacer,
@@ -2008,9 +1991,6 @@
   var POSITION_FLUSH_MS = 500;
   var historySettleTimer = null;
   var chapterPositionFlushTimer = null;
-  var verseHighlightTarget = null;
-  var verseHighlightFrame = null;
-  var verseHighlightCleanupTimer = null;
   var chapterPositions = State.getChapterPositions();
   var chapterPositionsDirty = false;
   var verseChaseFrame = null;
@@ -3225,38 +3205,6 @@
     }, HISTORY_SETTLE_MS);
   }
 
-  function clearVerseHighlightTransition() {
-    if (verseHighlightFrame !== null) window.cancelAnimationFrame(verseHighlightFrame);
-    if (verseHighlightCleanupTimer !== null) window.clearTimeout(verseHighlightCleanupTimer);
-    if (verseHighlightTarget) {
-      verseHighlightTarget.classList.remove('found-highlight', 'found-highlight-settling');
-    }
-    verseHighlightTarget = null;
-    verseHighlightFrame = null;
-    verseHighlightCleanupTimer = null;
-  }
-
-  function startVerseFoundTransition(target, book, chapter) {
-    clearVerseHighlightTransition();
-    if (!target || shouldReduceVerseMotion()) return;
-    verseHighlightTarget = target;
-    target.classList.add('found-highlight');
-    verseHighlightFrame = window.requestAnimationFrame(function () {
-      verseHighlightFrame = window.requestAnimationFrame(function () {
-        verseHighlightFrame = null;
-        if (!isCurrentVersesView(book, chapter) ||
-            verseHighlightTarget !== target ||
-            !viewInner.contains(target)) {
-          clearVerseHighlightTransition();
-          return;
-        }
-        target.classList.add('found-highlight-settling');
-        target.classList.remove('found-highlight');
-        verseHighlightCleanupTimer = window.setTimeout(clearVerseHighlightTransition, 500);
-      });
-    });
-  }
-
   function readerSwipeDirection(dx, dy, hasSelection) {
     if (hasSelection) return 0;
     if (Math.abs(dx) < 72 || Math.abs(dx) < Math.abs(dy) * 1.25) return 0;
@@ -3290,7 +3238,6 @@
   function prepareToLeaveReadingView() {
     closeVerseActions(true);
     clearReaderPointerState();
-    clearVerseHighlightTransition();
     if (uiView === 'verses') rememberCurrentChapterPosition();
     flushChapterPositions();
     cancelHistorySettle();
@@ -3392,7 +3339,6 @@
     if (!nextVerse) return;
     var target = getVerseElement(currentBook, currentChapter, nextVerse);
     if (!target) return;
-    if (verseHighlightTarget && verseHighlightTarget !== target) clearVerseHighlightTransition();
     var prev = viewInner.querySelector('.verse.active');
     if (prev) {
       prev.classList.remove('active');
@@ -4055,7 +4001,6 @@
         if (target) {
           setActiveVerse(selectedVerse, false);
           scrollVerseToCenter(target);
-          startVerseFoundTransition(target, bookName, chapterNum);
         }
       });
     } else if (keys.length) {
