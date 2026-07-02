@@ -170,14 +170,26 @@ test('profile and context action geometry computes shrink-only values at every s
       actionPad: [Math.min(10, g.padY * 1.25), Math.min(14, g.padX * 7 / 6)],
       mobileForm: [Math.min(18, g.panelPadding * 1.5), Math.min(16, g.panelPadding * 4 / 3)],
       bookPadY: Math.min(10, g.padY * 1.25)
+      , radiusXs: Math.min(g.radius - Math.max(4, g.panelPadding / 3), g.radius * .8)
+      , navGap: Math.min(6, g.navPadding)
+      , historyPad: [Math.min(7, g.padY * .875), Math.min(10, g.padX * 5 / 6)]
+      , footerSignout: [Math.max(24, Math.min(34, g.controlHeight)), Math.min(6, g.padY), Math.min(10, g.padX)]
     };
   };
   assert.deepEqual([50, 75, 100, 125, 150].map(computed), [
-    { profileHeight: 46.0002, avatar: 24, photo: 24, gap: 5, profileGap: 6, signoutHeight: 24, signoutPad: [4, 6], actionHeight: 24, actionPad: [5, 7], mobileForm: [9, 8], bookPadY: 5 },
-    { profileHeight: 69.00030000000001, avatar: 28, photo: 36, gap: 7.5, profileGap: 9, signoutHeight: 34, signoutPad: [6, 9], actionHeight: 36, actionPad: [7.5, 10.5], mobileForm: [13.5, 12], bookPadY: 7.5 },
-    ...Array(3).fill({ profileHeight: 92, avatar: 28, photo: 36, gap: 10, profileGap: 12, signoutHeight: 34, signoutPad: [6, 10], actionHeight: 44, actionPad: [10, 14], mobileForm: [18, 16], bookPadY: 10 })
+    { profileHeight: 46.0002, avatar: 24, photo: 24, gap: 5, profileGap: 6, signoutHeight: 24, signoutPad: [4, 6], actionHeight: 24, actionPad: [5, 7], mobileForm: [9, 8], bookPadY: 5, radiusXs: 6, navGap: 3, historyPad: [3.5, 5], footerSignout: [24, 4, 6] },
+    { profileHeight: 69.00030000000001, avatar: 28, photo: 36, gap: 7.5, profileGap: 9, signoutHeight: 34, signoutPad: [6, 9], actionHeight: 36, actionPad: [7.5, 10.5], mobileForm: [13.5, 12], bookPadY: 7.5, radiusXs: 11, navGap: 4.5, historyPad: [5.25, 7.5], footerSignout: [34, 6, 9] },
+    ...Array(3).fill({ profileHeight: 92, avatar: 28, photo: 36, gap: 10, profileGap: 12, signoutHeight: 34, signoutPad: [6, 10], actionHeight: 44, actionPad: [10, 14], mobileForm: [18, 16], bookPadY: 10, radiusXs: 16, navGap: 6, historyPad: [7, 10], footerSignout: [34, 6, 10] })
   ]);
   assert.match(bible, /\.profile-card \{[^}]*min-height: max\(24px, min\(92px, calc\(var\(--display-control-height\) \+ \(var\(--display-panel-padding\) \* 3\.6667\)\)\)\);/);
   assert.match(bible, /\.verse-actions button \{[^}]*min-height: max\(24px, min\(44px, var\(--display-control-height\)\)\);/);
   assert.match(bible, /\.profile-avatar \{[^}]*width: max\(24px, min\(28px, var\(--display-icon-button-size\)\)\);/);
+});
+
+test('scoped ordinary chrome contains no fixed geometry floors above the 24px target floor', () => {
+  assert.doesNotMatch(bible, /--radius-xs:\s*max\(12px/);
+  assert.doesNotMatch(bible, /\.floating-nav \{[^}]*gap:\s*6px/);
+  assert.doesNotMatch(bible, /\.bottom-history-menu \.dd-item \{[^}]*padding:\s*max\(/);
+  assert.doesNotMatch(bible, /\.app-version \.dd-signout-button \{[^}]*min-height:\s*max\(34px/);
+  assert.match(bible, /\.app-version \.dd-signout-button \{[^}]*min-height:\s*max\(24px, min\(34px, var\(--display-control-height\)\)\)/);
 });
