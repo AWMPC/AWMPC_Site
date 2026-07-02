@@ -29,6 +29,16 @@
     --verse-pad-x: 10px;
     --verse-open-pad-y: 10px;
     --verse-open-pad-x: 12px;
+    --footnote-indent: 20px;
+    --footnote-pad-x: 12px;
+    --footnote-visible-margin-top: 6px;
+    --footnote-visible-margin-bottom: 4px;
+    --footnote-visible-pad-y: 10px;
+    --footnote-visible-pad-x: 12px;
+    --footnote-radius: 20px;
+    --verse-glow-offset-y: 8px;
+    --verse-glow-blur: 28px;
+    --verse-glow-strength: 100%;
     --display-control-font-size: var(--text-20);
     --display-control-height: 48px;
     --display-icon-button-size: 48px;
@@ -801,7 +811,8 @@
   .verse.active {
     background: var(--pill-bg);
     border-color: color-mix(in srgb, var(--accent) 55%, transparent);
-    box-shadow: 0 8px 28px var(--accent-glow);
+    box-shadow: 0 var(--verse-glow-offset-y) var(--verse-glow-blur)
+      color-mix(in srgb, var(--accent-glow) var(--verse-glow-strength), transparent);
   }
   .verse:focus-visible {
     outline: 3px solid var(--accent);
@@ -837,16 +848,18 @@
   .footnote-toggle:hover { background: var(--bg4); color: var(--fg2); }
   .footnote-toggle.open { background: var(--accent); color: var(--accent-fg); border-color: var(--accent); box-shadow: 0 3px 10px var(--accent-glow); }
   .footnote-body {
-    margin: 0 0 0 20px; max-height: 0; opacity: 0; overflow: hidden;
-    padding: 0 12px; background: var(--note-bg);
+    margin: 0 0 0 var(--footnote-indent); max-height: 0; opacity: 0; overflow: hidden;
+    padding: 0 var(--footnote-pad-x); background: var(--note-bg);
     border: 0 solid color-mix(in srgb, var(--note-border) 45%, transparent);
-    border-left-width: 0; border-radius: var(--radius-sm);
+    border-left-width: 0; border-radius: var(--footnote-radius);
     font-size: var(--text-17); color: var(--fg2); line-height: 1.6;
     transform: translateY(-4px);
     transition: opacity 180ms ease, max-height 220ms ease, margin 220ms ease, padding 220ms ease, border-width 220ms ease, transform 220ms ease;
   }
   .footnote-body.visible {
-    margin: 6px 0 4px 20px; max-height: 40vh; opacity: 1; padding: 10px 12px;
+    margin: var(--footnote-visible-margin-top) 0 var(--footnote-visible-margin-bottom) var(--footnote-indent);
+    max-height: 40vh; opacity: 1;
+    padding: var(--footnote-visible-pad-y) var(--footnote-visible-pad-x);
     border-width: 1px; border-left-width: 4px; transform: translateY(0);
   }
 
@@ -1218,6 +1231,28 @@
     var result = {};
     Object.keys(BASE_VERSE_SPACING).forEach(function (key) {
       result[key] = BASE_VERSE_SPACING[key] * factor;
+    });
+    return result;
+  }
+
+  var BASE_READER_DETAIL = {
+    footnoteIndent: 20,
+    footnotePadX: 12,
+    footnoteVisibleMarginTop: 6,
+    footnoteVisibleMarginBottom: 4,
+    footnoteVisiblePadY: 10,
+    footnoteVisiblePadX: 12,
+    footnoteRadius: 20,
+    glowOffsetY: 8,
+    glowBlur: 28,
+    glowStrength: 100
+  };
+
+  function readerDetailForScale(scale) {
+    var factor = Math.min(scale, 100) / 100;
+    var result = {};
+    Object.keys(BASE_READER_DETAIL).forEach(function (key) {
+      result[key] = BASE_READER_DETAIL[key] * factor;
     });
     return result;
   }
@@ -2233,6 +2268,17 @@
     document.documentElement.style.setProperty('--verse-pad-x', verseSpacing.padX + 'px');
     document.documentElement.style.setProperty('--verse-open-pad-y', verseSpacing.openPadY + 'px');
     document.documentElement.style.setProperty('--verse-open-pad-x', verseSpacing.openPadX + 'px');
+    var readerDetail = readerDetailForScale(scale);
+    document.documentElement.style.setProperty('--footnote-indent', readerDetail.footnoteIndent + 'px');
+    document.documentElement.style.setProperty('--footnote-pad-x', readerDetail.footnotePadX + 'px');
+    document.documentElement.style.setProperty('--footnote-visible-margin-top', readerDetail.footnoteVisibleMarginTop + 'px');
+    document.documentElement.style.setProperty('--footnote-visible-margin-bottom', readerDetail.footnoteVisibleMarginBottom + 'px');
+    document.documentElement.style.setProperty('--footnote-visible-pad-y', readerDetail.footnoteVisiblePadY + 'px');
+    document.documentElement.style.setProperty('--footnote-visible-pad-x', readerDetail.footnoteVisiblePadX + 'px');
+    document.documentElement.style.setProperty('--footnote-radius', readerDetail.footnoteRadius + 'px');
+    document.documentElement.style.setProperty('--verse-glow-offset-y', readerDetail.glowOffsetY + 'px');
+    document.documentElement.style.setProperty('--verse-glow-blur', readerDetail.glowBlur + 'px');
+    document.documentElement.style.setProperty('--verse-glow-strength', readerDetail.glowStrength + '%');
     if (textScaleSelect) textScaleSelect.value = String(scale);
     if (persist !== false) State.setTextScale(scale);
     scheduleBottomChromeClearanceUpdate();
