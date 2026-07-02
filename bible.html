@@ -371,9 +371,10 @@
   .floating-nav button {
     background: var(--surface); border: 1px solid var(--border);
     color: inherit; font-size: var(--display-control-font-size); font-family: inherit; border-radius: var(--radius-xs);
-    padding: var(--display-control-pad-y) var(--display-control-pad-x); cursor: pointer; min-height: var(--display-control-height);
+    padding: var(--display-control-pad-y) var(--display-control-pad-x); cursor: pointer;
+    height: var(--display-control-height); min-height: var(--display-control-height); box-sizing: border-box;
     box-shadow: var(--shadow);
-    display: inline-flex; align-items: center; justify-content: center; line-height: 1.15;
+    display: inline-flex; align-items: center; justify-content: center; line-height: 1.15; white-space: nowrap; overflow: hidden;
   }
   .floating-nav button:hover,
   .floating-nav button:focus-visible {
@@ -406,10 +407,11 @@
     -webkit-backdrop-filter: none;
   }
   .bottom-action-button {
-    min-height: var(--display-control-height); border-radius: var(--radius-xs); border: 1px solid var(--border);
+    height: var(--display-control-height); min-height: var(--display-control-height); box-sizing: border-box;
+    border-radius: var(--radius-xs); border: 1px solid var(--border);
     background: var(--surface); color: inherit; font: inherit; font-size: var(--display-control-font-size);
     padding: var(--display-control-pad-y) var(--display-control-pad-x); cursor: pointer; box-shadow: var(--shadow);
-    display: inline-flex; align-items: center; justify-content: center; line-height: 1.15;
+    display: inline-flex; align-items: center; justify-content: center; line-height: 1.15; white-space: nowrap; overflow: hidden;
   }
   .bottom-action-button:hover,
   .bottom-action-button:focus-visible {
