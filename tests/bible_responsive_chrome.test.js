@@ -103,6 +103,7 @@ test('mobile puts navigation at top and full-width actions at bottom with opposi
   assert.ok(mobile, 'missing 640px responsive chrome rules');
   assert.match(mobile[1], /\.floating-nav\s*\{[\s\S]*?top:\s*calc\(8px \+ env\(safe-area-inset-top, 0px\)\);[\s\S]*?bottom:\s*auto;/);
   assert.match(mobile[1], /\.floating-nav\s*\{[\s\S]*?position:\s*absolute;/);
+  assert.match(mobile[1], /\.floating-nav\s*\{[^}]*left:\s*12px;[^}]*right:\s*12px;[^}]*width:\s*auto;[^}]*max-width:\s*none;[^}]*flex:\s*none;/);
   assert.match(mobile[1], /\.action-chrome\s*\{[\s\S]*?left:\s*12px;[\s\S]*?right:\s*12px;[\s\S]*?bottom:\s*calc\(8px \+ env\(safe-area-inset-bottom, 0px\)\);/);
   assert.match(mobile[1], /\.action-chrome\s*\{[\s\S]*?position:\s*absolute;/);
   assert.match(mobile[1], /\.fab-root\s*\{[^}]*margin-left:\s*auto;/);
