@@ -99,6 +99,8 @@ test('Text Scale application writes all ten exact UI values and each write is mu
 
 test('50 percent scale preserves a 24px minimum interactive target', () => {
   assert.match(bible, /button,\s*input,\s*select,\s*\[role="button"\] \{[\s\S]*?min-width: 24px;[\s\S]*?min-height: 24px;/);
+  assert.match(bible, /\.bottom-history-menu \.dd-item \{[^}]*min-width: 0;[^}]*min-height: 24px;/,
+    'the higher-specificity history rule must preserve the 24px target minimum');
   assert.match(bible, /--display-control-height:\s*48px;/);
   assert.match(bible, /--display-icon-button-size:\s*48px;/);
 });
