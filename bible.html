@@ -1120,9 +1120,9 @@
       <div class="fab-card setting-control-wrap">
         <label class="fab-card-title" for="theme-mode-select">Appearance</label>
         <select id="theme-mode-select" class="setting-select">
+          <option value="auto">🖥️ System</option>
           <option value="light">☀️ Light</option>
           <option value="dark">🌙 Dark</option>
-          <option value="auto">🖥️ System</option>
         </select>
       </div>
       <div class="fab-card setting-control-wrap">
@@ -1657,7 +1657,7 @@
       var legacyDark = this._get('bible_dark', null);
       if (legacyDark === true) return 'dark';
       if (legacyDark === false) return 'light';
-      return this._get('bible_theme_mode', 'light');
+      return 'auto';
     },
     setThemeMode: function (mode) {
       this._set('bible_theme_mode', mode === 'dark' || mode === 'auto' ? mode : 'light');
