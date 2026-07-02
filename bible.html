@@ -209,9 +209,7 @@
   html.theme-transitioning .fab-card,
   html.theme-transitioning .bottom-history-menu,
   html.theme-transitioning .dd-item,
-  html.theme-transitioning .theme-mode-control,
-  html.theme-transitioning .season-control,
-  html.theme-transitioning .theme-mode-button,
+  html.theme-transitioning .setting-select,
   html.theme-transitioning .book-btn,
   html.theme-transitioning .chapter-btn,
   html.theme-transitioning .verse,
@@ -621,52 +619,39 @@
   }
   .dd-item .dd-value { color: var(--fg3); font-size: 14px; flex-shrink: 0; }
   .dd-empty { padding: var(--display-panel-padding); color: var(--fg3); font-size: var(--display-control-font-size); text-align: center; }
-  .theme-mode-wrap { display: grid; gap: var(--display-panel-gap); }
-  .theme-mode-label { font-size: 17px; color: var(--fg); }
-  .theme-mode-control {
-    display: grid; grid-template-columns: repeat(3, 1fr); gap: max(4px, calc(var(--display-panel-gap) / 2));
-    padding: max(4px, calc(var(--display-panel-padding) / 3)); border: 1px solid var(--border2); border-radius: var(--radius-sm); background: var(--pill-bg);
+  .setting-control-wrap {
+    display: grid;
+    gap: var(--display-panel-gap);
+    min-width: 0;
+  }
+  .setting-select {
+    box-sizing: border-box;
+    width: 100%;
+    min-width: 0;
+    height: var(--display-segment-height);
+    border: 1px solid var(--border2);
+    border-radius: var(--radius-sm);
+    background: var(--pill-bg);
+    color: var(--fg);
+    font: inherit;
+    font-size: var(--display-control-font-size);
+    line-height: 1.2;
+    padding: 0 var(--display-control-pad-x);
+    cursor: pointer;
     transition: background 180ms ease, border-color 180ms ease, box-shadow 180ms ease;
   }
-  .season-control {
-    display: grid; grid-template-columns: repeat(3, minmax(0, 1fr));
-    gap: max(4px, calc(var(--display-panel-gap) / 2));
-    padding: max(4px, calc(var(--display-panel-padding) / 3));
-    border: 1px solid var(--border); border-radius: var(--radius-sm); background: var(--bg4);
-    transition: background 180ms ease, border-color 180ms ease, box-shadow 180ms ease;
+  .setting-select:hover {
+    border-color: color-mix(in srgb, var(--accent) 55%, var(--border2));
   }
-  .season-control .theme-mode-button { padding-inline: max(4px, calc(var(--display-control-pad-x) / 2)); }
-  .theme-mode-button {
-    min-height: var(--display-segment-height); border: 0; border-radius: var(--radius-xs); background: transparent;
-    color: var(--fg2); font: inherit; font-size: var(--display-control-font-size); cursor: pointer;
-    display: inline-flex; align-items: center; justify-content: center; gap: .35em; min-width: 0;
-    line-height: 1.15; padding: 0 var(--display-control-pad-x); white-space: normal; overflow-wrap: anywhere;
-    transition: background 180ms ease, color 180ms ease, box-shadow 180ms ease, transform 120ms ease;
-  }
-  .setting-emoji { flex: 0 0 auto; line-height: 1; }
-  .theme-mode-button > span:last-child { min-width: 0; }
-  .theme-mode-button:hover,
-  .theme-mode-button:focus-visible {
-    background: color-mix(in srgb, var(--accent) 12%, transparent);
-    color: var(--accent);
+  .setting-select:focus-visible {
+    border-color: var(--accent);
+    box-shadow: 0 0 0 3px var(--accent-glow);
     outline: none;
   }
-  .theme-mode-button.active {
-    background: var(--accent); color: var(--btn-active-text); box-shadow: 0 1px 6px var(--accent-glow);
-    transform: none;
+  .setting-select option {
+    background: var(--surface);
+    color: var(--fg);
   }
-  .theme-mode-button.active:hover,
-  .theme-mode-button.active:focus-visible {
-    background: var(--accent);
-    color: var(--btn-active-text);
-  }
-  .theme-mode-button:active {
-    transform: scale(.97);
-  }
-  .theme-mode-button.active:active {
-    transform: scale(.985);
-  }
-  .display-size-wrap { display: grid; gap: var(--display-panel-gap); }
   .app-version {
     flex: 0 0 auto;
     display: flex;
@@ -1006,9 +991,6 @@
     .search-input { font-size: min(var(--display-control-font-size), 20px); padding-inline: 12px; }
     .search-text { font-size: min(max(15px, calc(var(--display-control-font-size) - 2px)), 20px); }
     .search-hist-item .sh-query { font-size: min(var(--display-control-font-size), 20px); }
-    .season-control .theme-mode-button {
-      font-size: min(var(--display-control-font-size), 18px);
-    }
     .verse-actions {
       width: 100%;
       max-width: none;
@@ -1134,31 +1116,31 @@
 <div id="history-menu" class="bottom-history-menu" aria-label="Reading history"></div>
 <div id="fab-panel" class="fab-panel">
       <div id="auth-area" class="fab-card profile-card"></div>
-      <div class="fab-card theme-mode-wrap">
-        <div class="fab-card-title">Appearance</div>
-        <div class="theme-mode-control" role="group" aria-label="Appearance">
-          <button class="theme-mode-button" type="button" data-theme-mode="light" aria-pressed="true"><span class="setting-emoji" aria-hidden="true">☀️</span><span>Light</span></button>
-          <button class="theme-mode-button" type="button" data-theme-mode="dark" aria-pressed="false"><span class="setting-emoji" aria-hidden="true">🌙</span><span>Dark</span></button>
-          <button class="theme-mode-button" type="button" data-theme-mode="auto" aria-pressed="false"><span class="setting-emoji" aria-hidden="true">🖥️</span><span>System</span></button>
-        </div>
+      <div class="fab-card setting-control-wrap">
+        <label class="fab-card-title" for="theme-mode-select">Appearance</label>
+        <select id="theme-mode-select" class="setting-select">
+          <option value="light">☀️ Light</option>
+          <option value="dark">🌙 Dark</option>
+          <option value="auto">🖥️ System</option>
+        </select>
       </div>
-      <div class="fab-card theme-mode-wrap">
-        <div class="fab-card-title">Season</div>
-        <div class="season-control" role="group" aria-label="Seasonal color scheme">
-          <button class="theme-mode-button" type="button" data-season="auto" aria-pressed="true"><span class="setting-emoji" aria-hidden="true">🗓️</span><span>Auto</span></button>
-          <button class="theme-mode-button" type="button" data-season="spring" aria-pressed="false"><span class="setting-emoji" aria-hidden="true">🌱</span><span>Spring</span></button>
-          <button class="theme-mode-button" type="button" data-season="summer" aria-pressed="false"><span class="setting-emoji" aria-hidden="true">🏖️</span><span>Summer</span></button>
-          <button class="theme-mode-button" type="button" data-season="fall" aria-pressed="false"><span class="setting-emoji" aria-hidden="true">🍁</span><span>Fall</span></button>
-          <button class="theme-mode-button" type="button" data-season="winter" aria-pressed="false"><span class="setting-emoji" aria-hidden="true">❄️</span><span>Winter</span></button>
-        </div>
+      <div class="fab-card setting-control-wrap">
+        <label class="fab-card-title" for="season-select">Season</label>
+        <select id="season-select" class="setting-select">
+          <option value="auto">🗓️ Auto</option>
+          <option value="spring">🌱 Spring</option>
+          <option value="summer">🏖️ Summer</option>
+          <option value="fall">🍁 Fall</option>
+          <option value="winter">❄️ Winter</option>
+        </select>
       </div>
-      <div class="fab-card display-size-wrap">
-        <div class="fab-card-title">Display Size</div>
-        <div class="theme-mode-control display-size-control" role="group" aria-label="Display size">
-          <button class="theme-mode-button display-size-button" type="button" data-display-step="0" aria-label="Small display size" aria-pressed="false">S</button>
-          <button class="theme-mode-button display-size-button" type="button" data-display-step="1" aria-label="Medium display size" aria-pressed="true">M</button>
-          <button class="theme-mode-button display-size-button" type="button" data-display-step="2" aria-label="Large display size" aria-pressed="false">L</button>
-        </div>
+      <div class="fab-card setting-control-wrap">
+        <label class="fab-card-title" for="display-size-select">Display Size</label>
+        <select id="display-size-select" class="setting-select">
+          <option value="0">S Small</option>
+          <option value="1">M Medium</option>
+          <option value="2">L Large</option>
+        </select>
       </div>
       <div class="app-version"><span class="app-version-label">Version <span id="app-version">3.0.0</span></span><span class="app-version-separator">|</span><span id="footer-status" class="app-version-status" role="status" aria-live="polite">Signed out</span><span id="footer-signout-separator" class="app-version-separator" hidden>|</span><button type="button" id="footer-signout" class="dd-signout-button" hidden>Sign Out</button></div>
 </div>
@@ -2071,7 +2053,7 @@
   document.addEventListener('click', closeMenus);
 
   // ===================== DARK MODE =====================
-  var themeModeButtons = Array.prototype.slice.call(document.querySelectorAll('[data-theme-mode]'));
+  var themeModeSelect = document.getElementById('theme-mode-select');
   var themeQuery = preferredDarkQuery();
   function preferredDarkQuery() {
     return window.matchMedia ? window.matchMedia('(prefers-color-scheme: dark)') : null;
@@ -2097,11 +2079,7 @@
     var currentDark = document.documentElement.classList.contains('dark');
     if (themeModeApplied && currentDark !== nextDark) beginThemeTransition();
     document.documentElement.classList.toggle('dark', nextDark);
-    themeModeButtons.forEach(function (button) {
-      var selected = button.getAttribute('data-theme-mode') === mode;
-      button.classList.toggle('active', selected);
-      button.setAttribute('aria-pressed', selected ? 'true' : 'false');
-    });
+    if (themeModeSelect) themeModeSelect.value = mode;
     updateThemeColor();
     if (persist !== false) State.setThemeMode(mode);
     themeModeApplied = true;
@@ -2119,15 +2097,15 @@
       });
     }
   }
-  themeModeButtons.forEach(function (button) {
-    button.addEventListener('click', function (e) {
-      e.stopPropagation();
-      applyThemeMode(button.getAttribute('data-theme-mode'));
+  if (themeModeSelect) {
+    themeModeSelect.addEventListener('change', function (event) {
+      event.stopPropagation();
+      applyThemeMode(themeModeSelect.value);
     });
-  });
+  }
 
   // ===================== SEASONAL THEME =====================
-  var seasonButtons = Array.prototype.slice.call(document.querySelectorAll('.season-control button[data-season]'));
+  var seasonSelect = document.getElementById('season-select');
   var seasonApplied = false;
   function automaticSeason(date) {
     var monthDay = ((date.getMonth() + 1) * 100) + date.getDate();
@@ -2157,30 +2135,26 @@
     var current = document.documentElement.getAttribute('data-season');
     if (seasonApplied && current !== resolved) beginThemeTransition();
     document.documentElement.setAttribute('data-season', resolved);
-    seasonButtons.forEach(function (button) {
-      var selected = button.getAttribute('data-season') === choice;
-      button.classList.toggle('active', selected);
-      button.setAttribute('aria-pressed', selected ? 'true' : 'false');
-    });
+    if (seasonSelect) seasonSelect.value = choice;
     updateThemeColor();
     seasonApplied = true;
   }
   renderSeason(State.getSeason());
-  seasonButtons.forEach(function (button) {
-    button.addEventListener('click', function (event) {
+  if (seasonSelect) {
+    seasonSelect.addEventListener('change', function (event) {
       event.stopPropagation();
-      var choice = button.getAttribute('data-season');
+      var choice = seasonSelect.value;
       State.setSeason(choice);
       renderSeason(choice);
     });
-  });
+  }
   document.addEventListener('visibilitychange', function () {
     if (document.hidden || State.getSeason() !== 'auto') return;
     if (document.documentElement.getAttribute('data-season') !== resolvedSeason('auto')) renderSeason('auto');
   });
 
   // ===================== DISPLAY SIZE =====================
-  var displaySizeButtons = Array.prototype.slice.call(document.querySelectorAll('.display-size-button'));
+  var displaySizeSelect = document.getElementById('display-size-select');
   function applyDisplayStep(step, persist) {
     step = Math.max(0, Math.min(DISPLAY_SIZE_STEPS.length - 1, parseInt(step, 10) || 0));
     var size = DISPLAY_SIZE_STEPS[step];
@@ -2195,22 +2169,18 @@
     document.documentElement.style.setProperty('--display-panel-gap', size.panelGap + 'px');
     document.documentElement.style.setProperty('--display-nav-padding', size.navPadding + 'px');
     document.documentElement.style.setProperty('--reader-line-height', size.lineHeight);
-    displaySizeButtons.forEach(function (button) {
-      var active = parseInt(button.getAttribute('data-display-step'), 10) === step;
-      button.classList.toggle('active', active);
-      button.setAttribute('aria-pressed', active ? 'true' : 'false');
-    });
+    if (displaySizeSelect) displaySizeSelect.value = String(step);
     if (persist !== false) State.setDisplayStep(step);
     scheduleBottomChromeClearanceUpdate();
     scheduleMarqueeMeasure();
   }
   applyDisplayStep(State.getDisplayStep(), false);
-  displaySizeButtons.forEach(function (button) {
-    button.addEventListener('click', function (e) {
-      e.stopPropagation();
-      applyDisplayStep(button.getAttribute('data-display-step'));
+  if (displaySizeSelect) {
+    displaySizeSelect.addEventListener('change', function (event) {
+      event.stopPropagation();
+      applyDisplayStep(displaySizeSelect.value);
     });
-  });
+  }
 
   // ===================== FAB =====================
   fabMain.addEventListener('click', function (e) {
