@@ -23,6 +23,12 @@
     --text-22: 22px;
     --reader-font-size: var(--text-20);
     --reader-line-height: 1.8;
+    --verse-margin-bottom: 12px;
+    --verse-radius: 20px;
+    --verse-pad-y: 8px;
+    --verse-pad-x: 10px;
+    --verse-open-pad-y: 10px;
+    --verse-open-pad-x: 12px;
     --display-control-font-size: var(--text-20);
     --display-control-height: 48px;
     --display-icon-button-size: 48px;
@@ -780,15 +786,15 @@
 
   /* Verses view */
   .verse {
-    margin-bottom: 12px; font-size: var(--reader-font-size); line-height: var(--reader-line-height); position: relative;
-    border-radius: var(--radius-sm); padding: 8px 10px; border: 2px solid transparent;
+    margin-bottom: var(--verse-margin-bottom); font-size: var(--reader-font-size); line-height: var(--reader-line-height); position: relative;
+    border-radius: var(--verse-radius); padding: var(--verse-pad-y) var(--verse-pad-x); border: 2px solid transparent;
     transition: background 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease, padding 0.2s ease, border-width 0.2s ease;
     white-space: normal;
     overflow-wrap: anywhere;
   }
   .verse.footnotes-open {
     border-width: 3px;
-    padding: 10px 12px;
+    padding: var(--verse-open-pad-y) var(--verse-open-pad-x);
     background: color-mix(in srgb, var(--pill-bg) 72%, transparent);
   }
   .verse.active {
@@ -1197,6 +1203,23 @@
   var DEFAULT_TEXT_SCALE = 100;
   var LEGACY_DISPLAY_STEP_TO_SCALE = { 0: 75, 1: 100, 2: 125 };
   var BASE_TEXT_PIXELS = [12, 13, 14, 15, 16, 17, 18, 20, 22];
+  var BASE_VERSE_SPACING = {
+    marginBottom: 12,
+    radius: 20,
+    padY: 8,
+    padX: 10,
+    openPadY: 10,
+    openPadX: 12
+  };
+
+  function verseSpacingForScale(scale) {
+    var factor = Math.min(scale, 100) / 100;
+    var result = {};
+    Object.keys(BASE_VERSE_SPACING).forEach(function (key) {
+      result[key] = BASE_VERSE_SPACING[key] * factor;
+    });
+    return result;
+  }
 
   function normalizeTextScale(value) {
     if (value === null || value === undefined || value === '' || typeof value === 'boolean') return null;
@@ -2198,6 +2221,13 @@
       var scaled = Math.round(pixels * scale) / 100;
       document.documentElement.style.setProperty('--text-' + pixels, scaled + 'px');
     });
+    var verseSpacing = verseSpacingForScale(scale);
+    document.documentElement.style.setProperty('--verse-margin-bottom', verseSpacing.marginBottom + 'px');
+    document.documentElement.style.setProperty('--verse-radius', verseSpacing.radius + 'px');
+    document.documentElement.style.setProperty('--verse-pad-y', verseSpacing.padY + 'px');
+    document.documentElement.style.setProperty('--verse-pad-x', verseSpacing.padX + 'px');
+    document.documentElement.style.setProperty('--verse-open-pad-y', verseSpacing.openPadY + 'px');
+    document.documentElement.style.setProperty('--verse-open-pad-x', verseSpacing.openPadX + 'px');
     if (textScaleSelect) textScaleSelect.value = String(scale);
     if (persist !== false) State.setTextScale(scale);
     scheduleBottomChromeClearanceUpdate();
