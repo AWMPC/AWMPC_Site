@@ -11,8 +11,8 @@ const seasonalCore = [
 ];
 const derived = [
   'verse-bg', 'verse-active-border', 'fab-bg', 'fab-fg',
-  'float-nav-bg', 'float-nav-fg', 'card-bg', 'card-border',
-  'menu-bg', 'hover-bg'
+  'float-nav-bg', 'float-nav-fg', 'float-nav-shadow',
+  'card-bg', 'card-border', 'menu-bg', 'menu-shadow', 'hover-bg'
 ];
 const seasonModes = [
   ['spring', false], ['spring', true],
@@ -42,6 +42,12 @@ function declaration(block, token) {
   const match = block.match(new RegExp(`--${token}\\s*:\\s*([^;]+);`));
   assert.ok(match, `missing --${token}`);
   return match[1].trim();
+}
+
+function referencedToken(value, alias) {
+  const match = value.match(/^var\(--([\w-]+)\)$/);
+  assert.ok(match, `--${alias} must be a direct seasonal token reference`);
+  return match[1];
 }
 
 function rgb(hex) {
@@ -99,14 +105,24 @@ test('ordinary UI aliases derive from season primitives without base blue litera
 });
 
 test('actual seasonal text and active-border declarations meet WCAG contrast', () => {
+  const root = cssBlock(':root');
+  const verseBackgroundToken = referencedToken(declaration(root, 'verse-bg'), 'verse-bg');
+  const verseBorderToken = referencedToken(declaration(root, 'verse-active-border'), 'verse-active-border');
+
   for (const [season, dark] of seasonModes) {
     const selector = `html[data-season="${season}"]${dark ? '.dark' : ''}`;
     const block = cssBlock(selector);
     const fg = declaration(block, 'fg');
-    const bg = declaration(block, 'bg');
-    const border = declaration(block, 'accent');
-    assert.ok(contrast(fg, bg) >= 4.5, `${fg} on ${bg} is below 4.5:1`);
-    assert.ok(contrast(border, bg) >= 3, `${border} against ${bg} is below 3:1`);
+    const verseBackground = declaration(block, verseBackgroundToken);
+    const verseBorder = declaration(block, verseBorderToken);
+    assert.ok(
+      contrast(fg, verseBackground) >= 4.5,
+      `${selector} --fg ${fg} on --verse-bg ${verseBackground} is below 4.5:1`
+    );
+    assert.ok(
+      contrast(verseBorder, verseBackground) >= 3,
+      `${selector} --verse-active-border ${verseBorder} against --verse-bg ${verseBackground} is below 3:1`
+    );
   }
 });
 
