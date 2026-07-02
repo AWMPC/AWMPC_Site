@@ -12,9 +12,18 @@
 <title>AWMPC Bible</title>
 <style>
   :root {
-    --reader-font-size: 20px;
+    --text-12: 12px;
+    --text-13: 13px;
+    --text-14: 14px;
+    --text-15: 15px;
+    --text-16: 16px;
+    --text-17: 17px;
+    --text-18: 18px;
+    --text-20: 20px;
+    --text-22: 22px;
+    --reader-font-size: var(--text-20);
     --reader-line-height: 1.8;
-    --display-control-font-size: 20px;
+    --display-control-font-size: var(--text-20);
     --display-control-height: 48px;
     --display-icon-button-size: 48px;
     --display-control-pad-y: 8px;
@@ -175,6 +184,7 @@
   }
   body {
     font-family: var(--oneui-font);
+    font-size: var(--text-16);
     background: var(--bg); color: var(--fg); line-height: 1.6;
     display: flex; flex-direction: column;
     -webkit-font-smoothing: antialiased;
@@ -454,11 +464,11 @@
     flex: 0 0 auto;
   }
   .bottom-history-menu .dd-title {
-    font-size: min(var(--display-control-font-size), 22px);
+    font-size: var(--display-control-font-size);
     line-height: 1.15;
   }
   .bottom-history-menu .dd-meta {
-    font-size: min(max(12px, calc(var(--display-control-font-size) - 5px)), 18px);
+    font-size: var(--text-15);
     line-height: 1.15;
   }
 
@@ -498,7 +508,7 @@
     width: var(--display-icon-button-size); height: var(--display-control-height); border-radius: var(--radius-xs);
     background: var(--fab-bg); color: var(--fab-fg);
     border: 1px solid var(--border);
-    font-size: 22px; cursor: pointer;
+    font-size: var(--text-22); cursor: pointer;
     position: relative;
     display: flex; align-items: center; justify-content: center;
     box-shadow: var(--shadow);
@@ -565,7 +575,7 @@
     padding: 0;
   }
   .fab-card-title {
-    font-size: max(12px, calc(var(--display-control-font-size) - 6px)); font-weight: 700; color: var(--fg3); text-transform: uppercase;
+    font-size: var(--text-14); font-weight: 700; color: var(--fg3); text-transform: uppercase;
     letter-spacing: 0.5px; padding: 0 2px 8px;
     white-space: nowrap; overflow: hidden;
   }
@@ -577,7 +587,7 @@
   }
   .fab-history-menu { flex: 1 1 auto; min-height: 0; overflow-y: auto; display: grid; gap: 6px; }
   .fab-section-label {
-    font-size: 12px; font-weight: 600; color: var(--fg3); text-transform: uppercase;
+    font-size: var(--text-12); font-weight: 600; color: var(--fg3); text-transform: uppercase;
     letter-spacing: 0.5px; padding: 8px 16px 4px;
   }
 
@@ -614,10 +624,10 @@
     overflow: hidden;
     white-space: nowrap;
     color: var(--fg3);
-    font-size: max(12px, calc(var(--display-control-font-size) - 5px));
+    font-size: var(--text-15);
     line-height: 1.25;
   }
-  .dd-item .dd-value { color: var(--fg3); font-size: 14px; flex-shrink: 0; }
+  .dd-item .dd-value { color: var(--fg3); font-size: var(--text-14); flex-shrink: 0; }
   .dd-empty { padding: var(--display-panel-padding); color: var(--fg3); font-size: var(--display-control-font-size); text-align: center; }
   .setting-control-wrap {
     display: grid;
@@ -660,7 +670,7 @@
     gap: var(--display-panel-gap);
     padding: var(--display-panel-gap) 16px max(2px, env(safe-area-inset-bottom, 0px));
     color: var(--fg4);
-    font-size: max(12px, calc(var(--display-control-font-size) - 6px));
+    font-size: var(--text-14);
     text-align: center;
     white-space: nowrap;
   }
@@ -679,7 +689,7 @@
   .app-version-separator[hidden] { display: none; }
   .app-version .dd-signout-button {
     flex: 0 0 auto;
-    font-size: max(13px, calc(var(--display-control-font-size) - 5px));
+    font-size: var(--text-15);
     min-height: max(34px, calc(var(--display-control-height) - 14px));
     padding: max(6px, calc(var(--display-control-pad-y) - 2px)) max(10px, calc(var(--display-control-pad-x) - 2px));
   }
@@ -745,11 +755,11 @@
   .book-btn:hover { border-color: var(--accent); box-shadow: 0 1px 6px var(--accent-glow); background: var(--hover-bg); }
   .book-btn.active { background: var(--accent); color: var(--accent-fg); border-color: var(--accent); }
   .book-name-en { font-size: var(--display-control-font-size); line-height: 1.3; overflow: hidden; white-space: nowrap; }
-  .book-name-ko { font-size: max(13px, calc(var(--display-control-font-size) - 3px)); color: var(--fg3); line-height: 1.3; overflow: hidden; white-space: nowrap; }
+  .book-name-ko { font-size: var(--text-17); color: var(--fg3); line-height: 1.3; overflow: hidden; white-space: nowrap; }
   .book-btn.active .book-name-ko { color: #bbb; }
 
   /* Chapters view */
-  .chapters-header { font-size: calc(var(--display-control-font-size) + 2px); margin-bottom: 14px; color: var(--fg); overflow: hidden; white-space: nowrap; }
+  .chapters-header { font-size: var(--text-22); margin-bottom: 14px; color: var(--fg); overflow: hidden; white-space: nowrap; }
   .chapter-grid {
     display: grid; grid-template-columns: repeat(auto-fill, minmax(52px, 1fr)); gap: 8px;
   }
@@ -808,7 +818,7 @@
   .verse-tail-spacer { height: 50vh; pointer-events: none; }
   .footnote-toggle {
     display: inline-block; background: none; border: 1px solid var(--border3);
-    border-radius: var(--radius-pill); color: var(--fg3); font-size: 13px; font-family: inherit;
+    border-radius: var(--radius-pill); color: var(--fg3); font-size: var(--text-13); font-family: inherit;
     padding: 1px 7px; margin-left: 4px; cursor: pointer; vertical-align: middle;
     transition: background 0.16s ease, color 0.16s ease, border-color 0.16s ease, box-shadow 0.16s ease;
   }
@@ -819,7 +829,7 @@
     padding: 0 12px; background: var(--note-bg);
     border: 0 solid color-mix(in srgb, var(--note-border) 45%, transparent);
     border-left-width: 0; border-radius: var(--radius-sm);
-    font-size: 17px; color: var(--fg2); line-height: 1.6;
+    font-size: var(--text-17); color: var(--fg2); line-height: 1.6;
     transform: translateY(-4px);
     transition: opacity 180ms ease, max-height 220ms ease, margin 220ms ease, padding 220ms ease, border-width 220ms ease, transform 220ms ease;
   }
@@ -841,9 +851,9 @@
   }
   .search-input:focus { border-color: var(--accent); }
   .search-input::placeholder { color: var(--fg4); }
-  .search-count { font-size: 15px; color: var(--fg3); margin-bottom: 12px; }
+  .search-count { font-size: var(--text-15); color: var(--fg3); margin-bottom: 12px; }
   .search-hist-label {
-    font-size: 14px; font-weight: 600; color: var(--fg3); text-transform: uppercase;
+    font-size: var(--text-14); font-weight: 600; color: var(--fg3); text-transform: uppercase;
     letter-spacing: 0.5px; margin-bottom: 8px;
   }
   .search-hist-item {
@@ -859,12 +869,12 @@
     border: 0; padding: 0; background: transparent; font-family: inherit; text-align: left; cursor: pointer;
   }
   .search-hist-item .sh-remove {
-    background: none; border: none; color: var(--fg4); font-size: 16px;
+    background: none; border: none; color: var(--fg4); font-size: var(--text-16);
     cursor: pointer; padding: 2px 6px; border-radius: var(--radius-xs);
   }
   .search-hist-item .sh-remove:hover { color: var(--err-fg); }
   .search-hist-clear {
-    display: inline-block; font-size: 14px; color: var(--fg3); cursor: pointer;
+    display: inline-block; font-size: var(--text-14); color: var(--fg3); cursor: pointer;
     margin-top: 8px; padding: 4px 0; border: none; background: none; font-family: inherit;
   }
   .search-hist-clear:hover { color: var(--err-fg); }
@@ -877,12 +887,12 @@
   }
   .search-result:hover,
   .search-result:focus-visible { background: var(--hover-bg); border-color: var(--accent); outline: none; }
-  .search-ref { font-size: 14px; font-weight: 600; color: var(--accent-fg); background: var(--accent);
+  .search-ref { font-size: var(--text-14); font-weight: 600; color: var(--accent-fg); background: var(--accent);
     display: inline-block; min-width: 0; max-width: 100%; padding: 2px 8px; border-radius: var(--radius-xs); margin-bottom: 4px;
     white-space: normal; overflow-wrap: anywhere; word-break: break-word; }
   html.dark .search-ref { color: var(--accent-fg); background: var(--accent); }
   .search-text {
-    display: block; min-width: 0; max-width: 100%; font-size: max(15px, calc(var(--display-control-font-size) - 2px)); color: var(--fg2);
+    display: block; min-width: 0; max-width: 100%; font-size: var(--text-18); color: var(--fg2);
     white-space: normal; overflow-wrap: anywhere; word-break: break-word;
   }
   .search-text mark { background: #fff3a8; color: #222; border-radius: 2px; padding: 0 1px; }
@@ -963,7 +973,7 @@
   }
   .verse-actions h2 {
     margin: 0 0 2px;
-    font-size: 20px;
+    font-size: var(--text-20);
     line-height: 1.3;
   }
   .verse-actions button {
@@ -989,9 +999,9 @@
 
   @media (max-width: 640px) {
     .search-bar { display: grid; grid-template-columns: minmax(0, 1fr); }
-    .search-input { font-size: min(var(--display-control-font-size), 20px); padding-inline: 12px; }
-    .search-text { font-size: min(max(15px, calc(var(--display-control-font-size) - 2px)), 20px); }
-    .search-hist-item .sh-query { font-size: min(var(--display-control-font-size), 20px); }
+    .search-input { font-size: var(--display-control-font-size); padding-inline: 12px; }
+    .search-text { font-size: var(--text-18); }
+    .search-hist-item .sh-query { font-size: var(--display-control-font-size); }
     .verse-actions {
       width: 100%;
       max-width: none;
@@ -1017,10 +1027,10 @@
   .dd-user-photo { width: 36px; height: 36px; border-radius: 50%; flex-shrink: 0; }
   .dd-user-info { flex: 1; min-width: 0; }
   .dd-user-name { font-size: var(--display-control-font-size); line-height: 1.2; font-weight: 600; color: var(--fg); overflow: hidden; white-space: nowrap; }
-  .dd-user-email { font-size: max(12px, calc(var(--display-control-font-size) - 5px)); line-height: 1.2; color: var(--fg3); overflow: hidden; white-space: nowrap; }
+  .dd-user-email { font-size: var(--text-15); line-height: 1.2; color: var(--fg3); overflow: hidden; white-space: nowrap; }
   .dd-signout-button {
     flex-shrink: 0; border-radius: var(--radius-xs); border: 1px solid var(--border2);
-    background: var(--surface); color: var(--fg2); font: inherit; font-size: 13px;
+    background: var(--surface); color: var(--fg2); font: inherit; font-size: var(--text-13);
     min-height: 34px; padding: 6px 10px; cursor: pointer;
   }
   .dd-signout-button:hover,
@@ -1084,7 +1094,7 @@
   .profile-card.signed-out .dd-signin-button:active {
     transform: scale(.985);
   }
-  .dd-sync-status { font-size: max(12px, calc(var(--display-control-font-size) - 6px)); line-height: 1.2; color: var(--fg4); overflow: hidden; white-space: nowrap; }
+  .dd-sync-status { font-size: var(--text-14); line-height: 1.2; color: var(--fg4); overflow: hidden; white-space: nowrap; }
 
   @media (prefers-reduced-motion: reduce) {
     *, *::before, *::after { transition-duration: 0.01ms !important; animation-duration: 0.01ms !important; }
@@ -1136,11 +1146,13 @@
         </select>
       </div>
       <div class="fab-card setting-control-wrap">
-        <label class="fab-card-title" for="display-size-select">Display Size</label>
-        <select id="display-size-select" class="setting-select">
-          <option value="0">S Small</option>
-          <option value="1">M Medium</option>
-          <option value="2">L Large</option>
+        <label class="fab-card-title" for="text-scale-select">Text Scale</label>
+        <select id="text-scale-select" class="setting-select">
+          <option value="50">50%</option>
+          <option value="75">75%</option>
+          <option value="100">100%</option>
+          <option value="125">125%</option>
+          <option value="150">150%</option>
         </select>
       </div>
       <div class="app-version"><span class="app-version-label">Version <span id="app-version">3.0.0</span></span><span class="app-version-separator">|</span><span id="footer-status" class="app-version-status" role="status" aria-live="polite">Signed out</span><span id="footer-signout-separator" class="app-version-separator" hidden>|</span><button type="button" id="footer-signout" class="dd-signout-button" hidden>Sign Out</button></div>
@@ -1176,12 +1188,21 @@
 <script>
 (function () {
   var APP_VERSION = '3.0.0';
-  var DISPLAY_SIZE_STEPS = [
-    { reader: 16, control: 16, lineHeight: '1.8', controlHeight: 40, iconSize: 40, padY: 7, padX: 10, segmentHeight: 40, panelPadding: 10, panelGap: 6, navPadding: 6 },
-    { reader: 20, control: 20, lineHeight: '1.8', controlHeight: 48, iconSize: 48, padY: 8, padX: 12, segmentHeight: 48, panelPadding: 12, panelGap: 8, navPadding: 6 },
-    { reader: 24, control: 24, lineHeight: '1.9', controlHeight: 58, iconSize: 58, padY: 10, padX: 14, segmentHeight: 56, panelPadding: 14, panelGap: 10, navPadding: 7 }
-  ];
-  var DEFAULT_DISPLAY_STEP = 1;
+  var TEXT_SCALE_VALUES = [50, 75, 100, 125, 150];
+  var DEFAULT_TEXT_SCALE = 100;
+  var LEGACY_DISPLAY_STEP_TO_SCALE = { 0: 75, 1: 100, 2: 125 };
+  var BASE_TEXT_PIXELS = [12, 13, 14, 15, 16, 17, 18, 20, 22];
+
+  function normalizeTextScale(value) {
+    if (value === null || value === undefined || value === '' || typeof value === 'boolean') return null;
+    var number = Number(value);
+    if (!isFinite(number) || Math.floor(number) !== number) return null;
+    if (TEXT_SCALE_VALUES.indexOf(number) !== -1) return number;
+    if (Object.prototype.hasOwnProperty.call(LEGACY_DISPLAY_STEP_TO_SCALE, number)) {
+      return LEGACY_DISPLAY_STEP_TO_SCALE[number];
+    }
+    return null;
+  }
 
   // ===================== FIREBASE =====================
   var fbApp = firebase.initializeApp({
@@ -1444,7 +1465,7 @@
     return {
       themeMode: State.getThemeMode(),
       season: State.getSeason(),
-      font: State.getDisplayStep(),
+      font: State.getTextScale(),
       history: State.getHistory(),
       searchHistory: State.getSearchHistory(),
       updatedAt: firebase.firestore.FieldValue.serverTimestamp()
@@ -1681,14 +1702,17 @@
       this._set('bible_season', /^(spring|summer|fall|winter)$/.test(season) ? season : 'auto');
     },
 
-    getDisplayStep: function () {
-      var step = this._get('bible_font_step', null);
-      if (typeof step === 'number' && step >= 0 && step < DISPLAY_SIZE_STEPS.length) return step;
-      return this._get('bible_large_font', false) ? DISPLAY_SIZE_STEPS.length - 1 : DEFAULT_DISPLAY_STEP;
+    getTextScale: function () {
+      var stored = normalizeTextScale(this._get('bible_font_step', null));
+      if (stored !== null) return stored;
+      var legacyLarge = this._get('bible_large_font', null);
+      if (legacyLarge === true) return 125;
+      if (legacyLarge === false) return 100;
+      return DEFAULT_TEXT_SCALE;
     },
-    setDisplayStep: function (v) {
-      var step = Math.max(0, Math.min(DISPLAY_SIZE_STEPS.length - 1, parseInt(v, 10) || 0));
-      this._set('bible_font_step', step);
+    setTextScale: function (value) {
+      var scale = normalizeTextScale(value);
+      this._set('bible_font_step', scale === null ? DEFAULT_TEXT_SCALE : scale);
       try { localStorage.removeItem('bible_large_font'); } catch(e) {}
     },
 
@@ -1797,8 +1821,14 @@
       if (skippedFields.indexOf('season') === -1 && !this.hasStoredSeason() && typeof data.season === 'string' && /^(auto|spring|summer|fall|winter)$/.test(data.season)) {
         try { localStorage.setItem('bible_season', JSON.stringify(data.season)); } catch(e) {}
       }
-      if (skippedFields.indexOf('font') === -1 && typeof data.font === 'number') { try { localStorage.setItem('bible_font_step', JSON.stringify(data.font)); } catch(e) {} }
-      else if (skippedFields.indexOf('font') === -1 && typeof data.font === 'boolean') { try { localStorage.setItem('bible_font_step', JSON.stringify(data.font ? DISPLAY_SIZE_STEPS.length - 1 : DEFAULT_DISPLAY_STEP)); } catch(e) {} }
+      if (skippedFields.indexOf('font') === -1 && typeof data.font === 'number') {
+        var cloudTextScale = normalizeTextScale(data.font);
+        if (cloudTextScale !== null) {
+          try { localStorage.setItem('bible_font_step', JSON.stringify(cloudTextScale)); } catch(e) {}
+        }
+      } else if (skippedFields.indexOf('font') === -1 && typeof data.font === 'boolean') {
+        try { localStorage.setItem('bible_font_step', JSON.stringify(data.font ? 125 : 100)); } catch(e) {}
+      }
       if (skippedFields.indexOf('history') === -1 && Array.isArray(data.history)) { try { localStorage.setItem('bible_history', JSON.stringify(data.history)); } catch(e) {} }
       if (skippedFields.indexOf('searchHistory') === -1 && Array.isArray(data.searchHistory)) { try { localStorage.setItem('bible_search_hist', JSON.stringify(data.searchHistory)); } catch(e) {} }
     }
@@ -2154,32 +2184,25 @@
     if (document.documentElement.getAttribute('data-season') !== resolvedSeason('auto')) renderSeason('auto');
   });
 
-  // ===================== DISPLAY SIZE =====================
-  var displaySizeSelect = document.getElementById('display-size-select');
-  function applyDisplayStep(step, persist) {
-    step = Math.max(0, Math.min(DISPLAY_SIZE_STEPS.length - 1, parseInt(step, 10) || 0));
-    var size = DISPLAY_SIZE_STEPS[step];
-    document.documentElement.style.setProperty('--reader-font-size', size.reader + 'px');
-    document.documentElement.style.setProperty('--display-control-font-size', size.control + 'px');
-    document.documentElement.style.setProperty('--display-control-height', size.controlHeight + 'px');
-    document.documentElement.style.setProperty('--display-icon-button-size', size.iconSize + 'px');
-    document.documentElement.style.setProperty('--display-control-pad-y', size.padY + 'px');
-    document.documentElement.style.setProperty('--display-control-pad-x', size.padX + 'px');
-    document.documentElement.style.setProperty('--display-segment-height', size.segmentHeight + 'px');
-    document.documentElement.style.setProperty('--display-panel-padding', size.panelPadding + 'px');
-    document.documentElement.style.setProperty('--display-panel-gap', size.panelGap + 'px');
-    document.documentElement.style.setProperty('--display-nav-padding', size.navPadding + 'px');
-    document.documentElement.style.setProperty('--reader-line-height', size.lineHeight);
-    if (displaySizeSelect) displaySizeSelect.value = String(step);
-    if (persist !== false) State.setDisplayStep(step);
+  // ===================== TEXT SCALE =====================
+  var textScaleSelect = document.getElementById('text-scale-select');
+  function applyTextScale(value, persist) {
+    var scale = normalizeTextScale(value);
+    if (scale === null) scale = DEFAULT_TEXT_SCALE;
+    BASE_TEXT_PIXELS.forEach(function (pixels) {
+      var scaled = Math.round(pixels * scale) / 100;
+      document.documentElement.style.setProperty('--text-' + pixels, scaled + 'px');
+    });
+    if (textScaleSelect) textScaleSelect.value = String(scale);
+    if (persist !== false) State.setTextScale(scale);
     scheduleBottomChromeClearanceUpdate();
     scheduleMarqueeMeasure();
   }
-  applyDisplayStep(State.getDisplayStep(), false);
-  if (displaySizeSelect) {
-    displaySizeSelect.addEventListener('change', function (event) {
+  applyTextScale(State.getTextScale(), false);
+  if (textScaleSelect) {
+    textScaleSelect.addEventListener('change', function (event) {
       event.stopPropagation();
-      applyDisplayStep(displaySizeSelect.value);
+      applyTextScale(textScaleSelect.value);
     });
   }
 
@@ -2283,7 +2306,7 @@
         chapterPositions = State.getChapterPositions();
         applyThemeMode(State.getThemeMode(), false);
         renderSeason(State.getSeason());
-        applyDisplayStep(State.getDisplayStep(), false);
+        applyTextScale(State.getTextScale(), false);
         return;
       }
       var signoutStorageCleared = _clearSyncedLocalState();
@@ -2303,7 +2326,7 @@
       _syncedLocalStateQuarantined = !signoutStorageCleared;
       applyThemeMode('light', false);
       renderSeason('auto');
-      applyDisplayStep(DEFAULT_DISPLAY_STEP, false);
+      applyTextScale(DEFAULT_TEXT_SCALE, false);
       if (bibleData) showBooksView();
       return;
     }
@@ -2322,7 +2345,7 @@
           chapterPositionsDirty = false;
           applyThemeMode('light', false);
           renderSeason('auto');
-          applyDisplayStep(DEFAULT_DISPLAY_STEP, false);
+          applyTextScale(DEFAULT_TEXT_SCALE, false);
           historyMenu.textContent = '';
           if (uiView === 'search' && bibleData) showBooksView();
           _setSyncStatus('Sync unavailable');
@@ -2336,7 +2359,7 @@
         _setLocalOwnerUid(authUid);
         applyThemeMode(State.getThemeMode(), false);
         renderSeason(State.getSeason());
-        applyDisplayStep(State.getDisplayStep(), false);
+        applyTextScale(State.getTextScale(), false);
         historyMenu.textContent = '';
         if (uiView === 'search') showSearchView();
       } else if (isFirstOwner) {
@@ -2393,7 +2416,7 @@
           if (cloud) State.applyCloudData(cloud, dirtyFields);
           applyThemeMode(State.getThemeMode(), false);
           renderSeason(State.getSeason());
-          applyDisplayStep(State.getDisplayStep(), false);
+          applyTextScale(State.getTextScale(), false);
           _clearSyncTimers();
           _syncAttempt = 0;
           if (dirtyFields.length) {
@@ -2412,7 +2435,7 @@
           if (cloud) State.applyCloudData(cloud, dirtyFieldsAtResolution);
           applyThemeMode(State.getThemeMode(), false);
           renderSeason(State.getSeason());
-          applyDisplayStep(State.getDisplayStep(), false);
+          applyTextScale(State.getTextScale(), false);
           _syncPending = false;
           _syncAttempt = 0;
           _setNonAuthoritativeSyncStatus();
@@ -2447,13 +2470,13 @@
           State.applyCloudData(cloud, dirtyFieldsAtResolution);
           applyThemeMode(State.getThemeMode(), false);
           renderSeason(State.getSeason());
-          applyDisplayStep(State.getDisplayStep(), false);
+          applyTextScale(State.getTextScale(), false);
         } else {
           if (!localHasData && cloud) {
             State.applyCloudData(cloud, dirtyFieldsAtResolution);
             applyThemeMode(State.getThemeMode(), false);
             renderSeason(State.getSeason());
-            applyDisplayStep(State.getDisplayStep(), false);
+            applyTextScale(State.getTextScale(), false);
           } else if (dirtyFieldsAtResolution.indexOf('season') === -1 && !State.hasStoredSeason() && cloudHasSeason) {
             State.applyCloudData({ season: cloud.season }, dirtyFieldsAtResolution);
             renderSeason(State.getSeason());
