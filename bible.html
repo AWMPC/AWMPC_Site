@@ -73,7 +73,7 @@
     --radius-sm: var(--oneui-radius);
     --radius-md: var(--oneui-radius);
     --radius-pill: 100px;
-    --shadow: 0 2px 12px rgba(26,40,63,.12);
+    --shadow: 0 2px 12px color-mix(in srgb, var(--fg) 12%, transparent);
     --card-bg: color-mix(in srgb, var(--surface) 90%, var(--bg3));
     --card-border: 1px solid var(--border2);
     --hdr-blur: blur(14px);
@@ -102,7 +102,6 @@
     --accent-glow: rgba(91,155,244,.35);
     --note-bg: rgba(91,155,244,.12); --note-border: #5b9bf4;
     --err-bg: rgba(244,96,90,.16); --err-fg: #ff9c98;
-    --shadow: 0 2px 12px rgba(0,0,0,.35);
     --hdr-blur: blur(12px);
     --pill-bg: rgba(255,255,255,.05);
     --btn-active-text: #0d1017;
@@ -632,7 +631,7 @@
     border-radius: var(--radius-sm);
     background: var(--card-bg);
     border: var(--card-border);
-    box-shadow: 0 1px 8px rgba(26,40,63,.08);
+    box-shadow: 0 1px 8px color-mix(in srgb, var(--fg) 8%, transparent);
   }
   .profile-card {
     --profile-photo-height: calc(var(--display-control-height) + (var(--display-panel-padding) * 4));

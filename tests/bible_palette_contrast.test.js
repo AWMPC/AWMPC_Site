@@ -12,7 +12,7 @@ const seasonalCore = [
 const derived = [
   'verse-bg', 'verse-active-border', 'fab-bg', 'fab-fg',
   'float-nav-bg', 'float-nav-fg', 'float-nav-shadow',
-  'card-bg', 'card-border', 'menu-bg', 'menu-shadow', 'hover-bg'
+  'card-bg', 'card-border', 'menu-bg', 'menu-shadow', 'hover-bg', 'shadow'
 ];
 const seasonModes = [
   ['spring', false], ['spring', true],
@@ -158,4 +158,10 @@ test('verses always use a seasonal surface and only active verses gain a visible
 test('retired verse glow is absent from CSS and text scaling', () => {
   assert.doesNotMatch(bible, /--verse-glow-/);
   assert.doesNotMatch(bible, /\bglow(?:OffsetY|Blur|Strength)\s*:/);
+});
+
+test('ordinary component shadows derive from seasonal primitives without blue-gray leakage', () => {
+  assert.doesNotMatch(bible, /rgba\(26,40,63,/);
+  assert.match(cssBlock('.fab-card'), /box-shadow:\s*0 1px 8px color-mix\(in srgb, var\(--fg\) 8%, transparent\)/);
+  assert.doesNotMatch(cssBlock('html.dark'), /--shadow\s*:/);
 });
