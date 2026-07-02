@@ -145,9 +145,39 @@ test('remaining component spacing is routed through shrink-only UI geometry toke
     [/\.fab-history-menu \{[^}]*gap: min\(6px, var\(--display-panel-gap\)\);/, 'history gap'],
     [/\.dd-item \{[^}]*gap: min\(10px, calc\(var\(--display-panel-gap\) \* 1\.25\)\);/, 'menu gap'],
     [/\.testaments \{[^}]*gap: min\(12px, calc\(var\(--ui-grid-gap\) \* 1\.5\)\);/, 'testament gap'],
-    [/\.book-btn \{[^}]*padding: min\(10px, calc\(var\(--display-control-pad-y\) \+ 2px\)\) var\(--display-control-pad-x\);/, 'book padding'],
+    [/\.book-btn \{[^}]*padding: min\(10px, calc\(var\(--display-control-pad-y\) \* 1\.25\)\) var\(--display-control-pad-x\);/, 'book padding'],
     [/\.verse-actions form \{[^}]*gap: min\(10px, calc\(var\(--display-panel-gap\) \* 1\.25\)\);[^}]*padding: min\(20px, calc\(var\(--display-panel-padding\) \* 1\.6667\)\);/, 'context dialog'],
     [/@media \(max-width: 640px\) \{[\s\S]*\.search-input \{[^}]*padding-inline: var\(--display-control-pad-x\);/, 'mobile search padding']
   ];
   for (const [pattern, label] of contracts) assert.match(bible, pattern, label);
+});
+
+test('profile and context action geometry computes shrink-only values at every scale', () => {
+  const constants = extract(/var BASE_UI_GEOMETRY = \{[\s\S]*?\};/, 'UI geometry baseline missing');
+  const helper = extract(/function uiGeometryForScale\(scale\) \{[\s\S]*?\n  \}/, 'UI geometry helper missing');
+  const geometryFor = Function(`${constants}\n${helper}; return uiGeometryForScale;`)();
+  const computed = (scale) => {
+    const g = geometryFor(scale);
+    return {
+      profileHeight: Math.max(24, Math.min(92, g.controlHeight + g.panelPadding * 3.6667)),
+      avatar: Math.max(24, Math.min(28, g.iconSize)),
+      photo: Math.max(24, Math.min(36, g.iconSize)),
+      gap: Math.min(10, g.panelGap * 1.25),
+      profileGap: g.panelPadding,
+      signoutHeight: Math.max(24, Math.min(34, g.controlHeight)),
+      signoutPad: [Math.min(6, g.padY), Math.min(10, g.padX)],
+      actionHeight: Math.max(24, Math.min(44, g.controlHeight)),
+      actionPad: [Math.min(10, g.padY * 1.25), Math.min(14, g.padX * 7 / 6)],
+      mobileForm: [Math.min(18, g.panelPadding * 1.5), Math.min(16, g.panelPadding * 4 / 3)],
+      bookPadY: Math.min(10, g.padY * 1.25)
+    };
+  };
+  assert.deepEqual([50, 75, 100, 125, 150].map(computed), [
+    { profileHeight: 46.0002, avatar: 24, photo: 24, gap: 5, profileGap: 6, signoutHeight: 24, signoutPad: [4, 6], actionHeight: 24, actionPad: [5, 7], mobileForm: [9, 8], bookPadY: 5 },
+    { profileHeight: 69.00030000000001, avatar: 28, photo: 36, gap: 7.5, profileGap: 9, signoutHeight: 34, signoutPad: [6, 9], actionHeight: 36, actionPad: [7.5, 10.5], mobileForm: [13.5, 12], bookPadY: 7.5 },
+    ...Array(3).fill({ profileHeight: 92, avatar: 28, photo: 36, gap: 10, profileGap: 12, signoutHeight: 34, signoutPad: [6, 10], actionHeight: 44, actionPad: [10, 14], mobileForm: [18, 16], bookPadY: 10 })
+  ]);
+  assert.match(bible, /\.profile-card \{[^}]*min-height: max\(24px, min\(92px, calc\(var\(--display-control-height\) \+ \(var\(--display-panel-padding\) \* 3\.6667\)\)\)\);/);
+  assert.match(bible, /\.verse-actions button \{[^}]*min-height: max\(24px, min\(44px, var\(--display-control-height\)\)\);/);
+  assert.match(bible, /\.profile-avatar \{[^}]*width: max\(24px, min\(28px, var\(--display-icon-button-size\)\)\);/);
 });

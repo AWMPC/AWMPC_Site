@@ -637,7 +637,7 @@
     --profile-photo-height: calc(var(--display-control-height) + (var(--display-panel-padding) * 4));
     position: relative;
     overflow: hidden;
-    min-height: 92px;
+    min-height: max(24px, min(92px, calc(var(--display-control-height) + (var(--display-panel-padding) * 3.6667))));
     flex-shrink: 1;
     padding: 0 var(--display-panel-padding) 0 0;
   }
@@ -832,7 +832,7 @@
   .book-btn {
     display: block; width: 100%;
     background: var(--card-bg); border: var(--card-border); border-radius: var(--radius-sm);
-    padding: min(10px, calc(var(--display-control-pad-y) + 2px)) var(--display-control-pad-x); font-family: inherit;
+    padding: min(10px, calc(var(--display-control-pad-y) * 1.25)) var(--display-control-pad-x); font-family: inherit;
     color: var(--fg); cursor: pointer; text-align: left;
     transition-property: background, border-color, box-shadow, color, transform;
     transition-duration: 180ms, 180ms, 180ms, 180ms, 120ms;
@@ -1080,8 +1080,8 @@
   }
   .verse-actions button {
     width: 100%;
-    min-height: 44px;
-    padding: 10px 14px;
+    min-height: max(24px, min(44px, var(--display-control-height)));
+    padding: min(10px, calc(var(--display-control-pad-y) * 1.25)) min(14px, calc(var(--display-control-pad-x) * 1.1667));
     border: 1px solid var(--border2);
     border-radius: var(--radius-sm);
     background: var(--surface-hi);
@@ -1111,7 +1111,7 @@
       border-width: 1px 0 0;
       border-radius: var(--radius-md) var(--radius-md) 0 0;
     }
-    .verse-actions form { padding: 18px 16px max(18px, env(safe-area-inset-bottom)); }
+    .verse-actions form { padding: min(18px, calc(var(--display-panel-padding) * 1.5)) min(16px, calc(var(--display-panel-padding) * 1.3333)) max(min(18px, calc(var(--display-panel-padding) * 1.5)), env(safe-area-inset-bottom)); }
   }
 
   @media (max-width: 320px) {
@@ -1133,7 +1133,7 @@
 
   /* Auth UI */
   .profile-avatar {
-    width: 28px; height: 28px; border-radius: 50%; vertical-align: middle;
+    width: max(24px, min(28px, var(--display-icon-button-size))); height: max(24px, min(28px, var(--display-icon-button-size))); border-radius: 50%; vertical-align: middle;
     border: 1.5px solid var(--border3);
   }
   .fab-main .profile-avatar {
@@ -1142,15 +1142,15 @@
     width: 100%; height: 100%; min-width: 100%; min-height: 100%; max-width: none; border-radius: 0;
     object-fit: cover; border: 0;
   }
-  .dd-user { display: flex; align-items: center; gap: 10px; }
-  .dd-user-photo { width: 36px; height: 36px; border-radius: 50%; flex-shrink: 0; }
+  .dd-user { display: flex; align-items: center; gap: min(10px, calc(var(--display-panel-gap) * 1.25)); }
+  .dd-user-photo { width: max(24px, min(36px, var(--display-icon-button-size))); height: max(24px, min(36px, var(--display-icon-button-size))); border-radius: 50%; flex-shrink: 0; }
   .dd-user-info { flex: 1; min-width: 0; }
   .dd-user-name { font-size: var(--display-control-font-size); line-height: 1.2; font-weight: 600; color: var(--fg); overflow: hidden; white-space: nowrap; }
   .dd-user-email { font-size: var(--text-15); line-height: 1.2; color: var(--fg3); overflow: hidden; white-space: nowrap; }
   .dd-signout-button {
     flex-shrink: 0; border-radius: var(--radius-xs); border: 1px solid var(--border2);
     background: var(--surface); color: var(--fg2); font: inherit; font-size: var(--text-13);
-    min-height: 34px; padding: 6px 10px; cursor: pointer;
+    min-height: max(24px, min(34px, var(--display-control-height))); padding: min(6px, var(--display-control-pad-y)) min(10px, var(--display-control-pad-x)); cursor: pointer;
   }
   .dd-signout-button:hover,
   .dd-signout-button:focus-visible {
@@ -1173,10 +1173,10 @@
     border: 0;
   }
   .profile-card .dd-user {
-    height: max(92px, var(--profile-photo-height));
+    height: max(24px, min(92px, var(--profile-photo-height)));
     min-height: 0;
     align-items: stretch;
-    gap: 12px;
+    gap: var(--display-panel-padding);
     margin-left: 0;
   }
   .profile-card .dd-user-info {
