@@ -63,23 +63,28 @@ test('action chrome owns History, Search, then the menu action in semantic DOM o
   assert.match(bible, /<div class="action-chrome" id="action-chrome">\s*<div class="bottom-actions" aria-label="Quick actions">\s*<button[^>]*id="btn-history"[^>]*>History<\/button>\s*<button[^>]*id="btn-search"[^>]*>Search<\/button>\s*<\/div>\s*<div class="fab-root">[\s\S]*?id="fab-main"[\s\S]*?<\/div>\s*<\/div>/);
 });
 
-test('desktop chrome is a pointer-transparent viewport layer with distinct lower-corner surfaces', () => {
+test('desktop chrome is a collision-safe viewport flex row with distinct surfaces', () => {
   assert.match(rule('.bottom-chrome'), /position:\s*fixed;/);
   assert.match(rule('.bottom-chrome'), /inset:\s*0;/);
   assert.match(rule('.bottom-chrome'), /pointer-events:\s*none;/);
+  assert.match(rule('.bottom-chrome'), /display:\s*flex;/);
+  assert.match(rule('.bottom-chrome'), /align-items:\s*flex-end;/);
+  assert.match(rule('.bottom-chrome'), /justify-content:\s*space-between;/);
+  assert.match(rule('.bottom-chrome'), /gap:\s*var\(--display-panel-gap\);/);
+  assert.match(rule('.bottom-chrome'), /padding:[^;]*12px[^;]*env\(safe-area-inset-bottom, 0px\)/);
   assert.doesNotMatch(rule('.bottom-chrome'), /background:|border:|box-shadow:|backdrop-filter:/);
 
   const nav = rule('.floating-nav');
-  assert.match(nav, /position:\s*absolute;/);
-  assert.match(nav, /left:\s*12px;/);
-  assert.match(nav, /bottom:\s*calc\(8px \+ env\(safe-area-inset-bottom, 0px\)\);/);
+  assert.match(nav, /position:\s*static;/);
+  assert.match(nav, /flex:\s*1 1 auto;/);
+  assert.match(nav, /min-width:\s*0;/);
+  assert.match(nav, /max-width:\s*min\(/);
   assert.match(nav, /pointer-events:\s*auto;/);
   assert.match(nav, /background:\s*var\(--float-nav-bg\);/);
 
   const actions = rule('.action-chrome');
-  assert.match(actions, /position:\s*absolute;/);
-  assert.match(actions, /right:\s*12px;/);
-  assert.match(actions, /bottom:\s*calc\(8px \+ env\(safe-area-inset-bottom, 0px\)\);/);
+  assert.match(actions, /position:\s*static;/);
+  assert.match(actions, /flex:\s*0 0 auto;/);
   assert.match(actions, /pointer-events:\s*auto;/);
   assert.match(actions, /background:\s*var\(--float-nav-bg\);/);
 });
@@ -97,7 +102,9 @@ test('mobile puts navigation at top and full-width actions at bottom with opposi
   const mobile = bible.match(/@media \(max-width: 640px\) \{([\s\S]*?)\n  \}/);
   assert.ok(mobile, 'missing 640px responsive chrome rules');
   assert.match(mobile[1], /\.floating-nav\s*\{[\s\S]*?top:\s*calc\(8px \+ env\(safe-area-inset-top, 0px\)\);[\s\S]*?bottom:\s*auto;/);
+  assert.match(mobile[1], /\.floating-nav\s*\{[\s\S]*?position:\s*absolute;/);
   assert.match(mobile[1], /\.action-chrome\s*\{[\s\S]*?left:\s*12px;[\s\S]*?right:\s*12px;[\s\S]*?bottom:\s*calc\(8px \+ env\(safe-area-inset-bottom, 0px\)\);/);
+  assert.match(mobile[1], /\.action-chrome\s*\{[\s\S]*?position:\s*absolute;/);
   assert.match(mobile[1], /\.fab-root\s*\{[^}]*margin-left:\s*auto;/);
   assert.match(mobile[1], /\.bottom-chrome\.scroll-hidden \.floating-nav\s*\{[^}]*translateY\(calc\(-100% - 18px - env\(safe-area-inset-top, 0px\)\)\)/);
   assert.match(mobile[1], /\.bottom-chrome\.scroll-hidden \.action-chrome\s*\{[^}]*translateY\(calc\(100% \+ 18px \+ env\(safe-area-inset-bottom, 0px\)\)\)/);
@@ -221,5 +228,23 @@ test('clearance mutation guards reject missing critical writes and observations'
     '--top-chrome-clearance': '80px',
     '--bottom-chrome-clearance': '80px',
   });
-  assert.equal((productionFunction('observeBottomChromeClearance').match(/\.observe\(/g) || []).length, 2);
+  function observedTargets(source) {
+    const fixture = clearanceFixture();
+    const observed = [];
+    function ResizeObserver() { this.observe = (target) => observed.push(target); }
+    fixture.window.ResizeObserver = ResizeObserver;
+    fixture.window.addEventListener = () => {};
+    const observe = Function(
+      'updateBottomChromeClearance', 'window', 'ResizeObserver', 'floatingNav', 'actionChrome',
+      'scheduleMarqueeMeasure', 'bottomChromeResizeObserver',
+      `${productionFunction('observeBottomChromeClearance', source)}; return observeBottomChromeClearance;`,
+    )(fixture.update, fixture.window, ResizeObserver, fixture.floatingNav, fixture.actionChrome, () => {}, null);
+    observe();
+    return observed.map((target) => target === fixture.floatingNav ? 'nav' : target === fixture.actionChrome ? 'action' : 'unknown');
+  }
+  assert.deepEqual(observedTargets(bible), ['nav', 'action']);
+  const noNavObserve = bible.replace('bottomChromeResizeObserver.observe(floatingNav);', '');
+  const noActionObserve = bible.replace('bottomChromeResizeObserver.observe(actionChrome);', '');
+  assert.equal(observedTargets(noNavObserve).length, 1);
+  assert.equal(observedTargets(noActionObserve).length, 1);
 });

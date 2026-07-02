@@ -346,6 +346,11 @@
     position: fixed;
     inset: 0;
     z-index: 125;
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+    gap: var(--display-panel-gap);
+    padding: 0 12px calc(8px + env(safe-area-inset-bottom, 0px));
     overflow: visible;
     pointer-events: none;
     color: var(--float-nav-fg);
@@ -362,13 +367,12 @@
   /* Floating chapter nav */
   .floating-nav {
     display: flex; align-items: center; justify-content: flex-start; gap: 6px;
-    position: absolute;
-    left: 12px;
-    bottom: calc(8px + env(safe-area-inset-bottom, 0px));
+    position: static;
     transform: translateY(0);
     width: auto;
-    max-width: calc(100vw - 24px);
+    max-width: min(720px, calc(100% - 180px));
     min-width: 0;
+    flex: 1 1 auto;
     min-height: var(--display-control-height);
     z-index: 120;
     pointer-events: auto;
@@ -402,7 +406,7 @@
     opacity: 0.35; cursor: not-allowed;
   }
   .floating-nav .fn-book {
-    font-weight: 600; max-width: 42vw; min-width: 0; overflow: hidden; white-space: nowrap;
+    flex: 1 1 auto; font-weight: 600; max-width: 42vw; min-width: 0; overflow: hidden; white-space: nowrap;
   }
   .floating-nav .fn-book .marquee-line { width: 100%; }
   .floating-nav .fn-chapter,
@@ -422,9 +426,8 @@
     -webkit-backdrop-filter: none;
   }
   .action-chrome {
-    position: absolute;
-    right: 12px;
-    bottom: calc(8px + env(safe-area-inset-bottom, 0px));
+    position: static;
+    flex: 0 0 auto;
     display: flex;
     align-items: center;
     gap: var(--display-panel-gap);
@@ -518,7 +521,13 @@
   }
 
   @media (max-width: 640px) {
+    .bottom-chrome {
+      display: block;
+      padding: 0;
+    }
     .floating-nav {
+      position: absolute;
+      left: 12px;
       top: calc(8px + env(safe-area-inset-top, 0px));
       bottom: auto;
       right: 12px;
@@ -526,6 +535,7 @@
     }
     .floating-nav .fn-book { flex: 1 1 auto; max-width: none; }
     .action-chrome {
+      position: absolute;
       left: 12px;
       right: 12px;
       bottom: calc(8px + env(safe-area-inset-bottom, 0px));
