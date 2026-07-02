@@ -49,7 +49,7 @@
     --display-panel-gap: 8px;
     --display-nav-padding: 6px;
     --motion-ease-fallback: cubic-bezier(.64, 0, .36, 1);
-    --motion-ease: linear(0, 0.00856 10%, 0.05792 20%, 0.16308 30%, 0.31744 40%, 0.5 50%, 0.68256 60%, 0.83692 70%, 0.94208 80%, 0.99144 90%, 1);
+    --motion-ease: var(--motion-ease-fallback);
     --oneui-font: 'One UI Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
     --bg: #f4f7fb; --bg2: #ffffff; --bg3: #f8fbff; --bg4: #eef3f9;
     --surface: #ffffff;
@@ -81,6 +81,11 @@
     --pill-bg: rgba(11,99,206,.08);
     --btn-active-text: #ffffff;
     --bottom-chrome-clearance: calc(var(--display-control-height) + (var(--display-nav-padding) * 2) + 20px);
+  }
+  @supports (transition-timing-function: linear(0, 1)) {
+    :root {
+      --motion-ease: linear(0, 0.00856 10%, 0.05792 20%, 0.16308 30%, 0.31744 40%, 0.5 50%, 0.68256 60%, 0.83692 70%, 0.94208 80%, 0.99144 90%, 1);
+    }
   }
   html.dark {
     --bg: #0d1017; --bg2: #171c28; --bg3: #111722; --bg4: #1e2538;
@@ -215,7 +220,6 @@
     -webkit-tap-highlight-color: transparent;
     transition-property: background, border-color, box-shadow, color, transform;
     transition-duration: 180ms, 180ms, 180ms, 180ms, 120ms;
-    transition-timing-function: var(--motion-ease-fallback);
     transition-timing-function: var(--motion-ease);
   }
   button:hover,
@@ -242,7 +246,6 @@
   html.theme-transitioning .search-result {
     transition-property: background, background-color, border-color, box-shadow, color, opacity, transform;
     transition-duration: 200ms;
-    transition-timing-function: var(--motion-ease-fallback);
     transition-timing-function: var(--motion-ease);
   }
   .press-ripple-host {
@@ -258,7 +261,6 @@
     pointer-events: none;
     background: color-mix(in srgb, var(--accent) 32%, transparent);
     transform: translate(-50%, -50%) scale(0);
-    animation: press-ripple 320ms var(--motion-ease-fallback) forwards;
     animation: press-ripple 320ms var(--motion-ease) forwards;
   }
   @keyframes press-ripple {
@@ -287,7 +289,6 @@
     --marquee-right-fade: 14px;
     mask-image: linear-gradient(90deg, transparent 0, #000 var(--marquee-left-fade), #000 calc(100% - var(--marquee-right-fade)), transparent 100%);
     -webkit-mask-image: linear-gradient(90deg, transparent 0, #000 var(--marquee-left-fade), #000 calc(100% - var(--marquee-right-fade)), transparent 100%);
-    animation: marquee-mask-breathe 3s var(--motion-ease-fallback) infinite alternate;
     animation: marquee-mask-breathe 3s var(--motion-ease) infinite alternate;
   }
   .marquee-text {
@@ -297,7 +298,6 @@
     will-change: transform;
   }
   .marquee-line.is-marquee .marquee-text {
-    animation: marquee-sway 3s var(--motion-ease-fallback) infinite alternate;
     animation: marquee-sway 3s var(--motion-ease) infinite alternate;
   }
   @keyframes marquee-mask-breathe {
@@ -356,7 +356,6 @@
     opacity: 1;
     transition-property: transform, opacity;
     transition-duration: 220ms;
-    transition-timing-function: var(--motion-ease-fallback);
     transition-timing-function: var(--motion-ease);
   }
   .bottom-chrome.scroll-hidden {
@@ -462,7 +461,6 @@
     transition-property: opacity, transform, visibility;
     transition-duration: 180ms, 180ms, 0s;
     transition-delay: 0s, 0s, 180ms;
-    transition-timing-function: var(--motion-ease-fallback);
     transition-timing-function: var(--motion-ease);
   }
   .bottom-history-menu.open {
@@ -473,7 +471,6 @@
     transition-property: opacity, transform, visibility;
     transition-duration: 180ms, 180ms, 0s;
     transition-delay: 0s;
-    transition-timing-function: var(--motion-ease-fallback);
     transition-timing-function: var(--motion-ease);
   }
   .bottom-history-menu .dd-item {
@@ -575,7 +572,6 @@
     transition-property: opacity, transform, visibility;
     transition-duration: 180ms, 180ms, 0s;
     transition-delay: 0s, 0s, 180ms;
-    transition-timing-function: var(--motion-ease-fallback);
     transition-timing-function: var(--motion-ease);
   }
   .fab-panel.open {
@@ -586,7 +582,6 @@
     transition-property: opacity, transform, visibility;
     transition-duration: 180ms, 180ms, 0s;
     transition-delay: 0s;
-    transition-timing-function: var(--motion-ease-fallback);
     transition-timing-function: var(--motion-ease);
   }
   .fab-card {
@@ -686,7 +681,6 @@
     cursor: pointer;
     transition-property: background, border-color, box-shadow;
     transition-duration: 180ms;
-    transition-timing-function: var(--motion-ease-fallback);
     transition-timing-function: var(--motion-ease);
   }
   .setting-select:hover {
@@ -745,7 +739,6 @@
     opacity: 1;
     transition-property: opacity;
     transition-duration: 200ms;
-    transition-timing-function: var(--motion-ease-fallback);
     transition-timing-function: var(--motion-ease);
   }
   .view-inner.reader-gestures { touch-action: pan-y; }
@@ -754,7 +747,6 @@
     opacity: 1;
     transition-property: opacity;
     transition-duration: 200ms;
-    transition-timing-function: var(--motion-ease-fallback);
     transition-timing-function: var(--motion-ease);
   }
   .view-inner.chapter-transition-retiring {
@@ -800,7 +792,6 @@
     color: var(--fg); cursor: pointer; text-align: left;
     transition-property: background, border-color, box-shadow, color, transform;
     transition-duration: 180ms, 180ms, 180ms, 180ms, 120ms;
-    transition-timing-function: var(--motion-ease-fallback);
     transition-timing-function: var(--motion-ease);
     box-shadow: var(--shadow);
   }
@@ -822,7 +813,6 @@
     cursor: pointer;
     transition-property: background, border-color, box-shadow, color, transform;
     transition-duration: 180ms, 180ms, 180ms, 180ms, 120ms;
-    transition-timing-function: var(--motion-ease-fallback);
     transition-timing-function: var(--motion-ease);
     box-shadow: var(--shadow);
   }
@@ -838,7 +828,6 @@
     border-radius: var(--verse-radius); padding: var(--verse-pad-y) var(--verse-pad-x); border: 2px solid transparent;
     transition-property: background, border-color, box-shadow, padding, border-width;
     transition-duration: 0.2s;
-    transition-timing-function: var(--motion-ease-fallback);
     transition-timing-function: var(--motion-ease);
     white-space: normal;
     overflow-wrap: anywhere;
@@ -870,7 +859,6 @@
   .verse.found-highlight-settling {
     transition-property: background, border-color, box-shadow;
     transition-duration: 450ms;
-    transition-timing-function: var(--motion-ease-fallback);
     transition-timing-function: var(--motion-ease);
   }
   html.dark .verse.found-highlight {
@@ -888,7 +876,6 @@
     padding: 1px 7px; margin-left: 4px; cursor: pointer; vertical-align: middle;
     transition-property: background, color, border-color, box-shadow;
     transition-duration: 0.16s;
-    transition-timing-function: var(--motion-ease-fallback);
     transition-timing-function: var(--motion-ease);
   }
   .footnote-toggle:hover { background: var(--bg4); color: var(--fg2); }
@@ -902,7 +889,6 @@
     transform: translateY(-4px);
     transition-property: opacity, max-height, margin, padding, border-width, transform;
     transition-duration: 180ms, 220ms, 220ms, 220ms, 220ms, 220ms;
-    transition-timing-function: var(--motion-ease-fallback);
     transition-timing-function: var(--motion-ease);
   }
   .footnote-body.visible {
@@ -922,7 +908,6 @@
     background: var(--surface); color: var(--fg); outline: none;
     transition-property: border-color, box-shadow;
     transition-duration: 180ms;
-    transition-timing-function: var(--motion-ease-fallback);
     transition-timing-function: var(--motion-ease);
     box-shadow: var(--shadow);
   }
@@ -939,7 +924,6 @@
     margin-bottom: 5px; cursor: pointer;
     transition-property: background, border-color, box-shadow, transform;
     transition-duration: 180ms, 180ms, 180ms, 120ms;
-    transition-timing-function: var(--motion-ease-fallback);
     transition-timing-function: var(--motion-ease);
     box-shadow: var(--shadow); min-width: 0; max-width: 100%;
   }
@@ -965,7 +949,6 @@
     border: var(--card-border); border-radius: var(--radius-sm); cursor: pointer;
     transition-property: background, border-color, box-shadow, transform;
     transition-duration: 180ms, 180ms, 180ms, 120ms;
-    transition-timing-function: var(--motion-ease-fallback);
     transition-timing-function: var(--motion-ease);
     box-shadow: var(--shadow); min-width: 0; max-width: 100%;
   }
@@ -1013,7 +996,6 @@
     border-radius: var(--radius-xs);
     background: linear-gradient(90deg, var(--bg4) 20%, var(--surface-hi) 45%, var(--bg4) 70%);
     background-size: 240% 100%;
-    animation: loading-skeleton-shimmer 1.1s var(--motion-ease-fallback) infinite;
     animation: loading-skeleton-shimmer 1.1s var(--motion-ease) infinite;
   }
   .loading-skeleton span:nth-child(1) { width: 92%; }
@@ -1039,7 +1021,6 @@
     transform: translateY(10px) scale(.97);
     transition-property: opacity, transform;
     transition-duration: 190ms, 210ms;
-    transition-timing-function: var(--motion-ease-fallback);
     transition-timing-function: var(--motion-ease);
   }
   .verse-actions.is-open { opacity: 1; transform: translateY(0) scale(1); }
@@ -1051,7 +1032,6 @@
     opacity: 0;
     transition-property: opacity;
     transition-duration: 190ms;
-    transition-timing-function: var(--motion-ease-fallback);
     transition-timing-function: var(--motion-ease);
   }
   .verse-actions.is-open::backdrop { opacity: 1; }
@@ -1171,7 +1151,6 @@
     box-shadow: inset 0 0 0 1px transparent, 0 1px 8px transparent;
     transition-property: background, color, box-shadow, transform;
     transition-duration: 180ms, 180ms, 180ms, 120ms;
-    transition-timing-function: var(--motion-ease-fallback);
     transition-timing-function: var(--motion-ease);
   }
   .profile-card .dd-signin-button .dd-label {

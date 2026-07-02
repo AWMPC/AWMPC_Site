@@ -106,8 +106,9 @@ const bible = fs.readFileSync(path.join(__dirname, '..', 'bible.html'), 'utf8');
 
 test('one quintic easing token owns application motion', () => {
   assert.match(bible, /--motion-ease-fallback: cubic-bezier\(\.64, 0, \.36, 1\);/);
-  assert.match(bible, /--motion-ease: linear\(0, 0\.00856 10%, 0\.05792 20%, 0\.16308 30%, 0\.31744 40%, 0\.5 50%, 0\.68256 60%, 0\.83692 70%, 0\.94208 80%, 0\.99144 90%, 1\);/);
-  assert.match(bible, /transition-timing-function: var\(--motion-ease-fallback\);[\s\S]*transition-timing-function: var\(--motion-ease\);/);
+  assert.match(bible, /--motion-ease: var\(--motion-ease-fallback\);/);
+  assert.match(bible, /@supports \(transition-timing-function: linear\(0, 1\)\)[\s\S]*--motion-ease: linear\(0, 0\.00856 10%, 0\.05792 20%, 0\.16308 30%, 0\.31744 40%, 0\.5 50%, 0\.68256 60%, 0\.83692 70%, 0\.94208 80%, 0\.99144 90%, 1\);/);
+  assert.match(bible, /transition-timing-function: var\(--motion-ease\);/);
   assert.doesNotMatch(bible, /cubic-bezier\((?!\.64, 0, \.36, 1)[^)]+\)/);
   assert.doesNotMatch(bible, /\b(?:ease|ease-in|ease-out|ease-in-out)\b/);
 });
@@ -145,19 +146,28 @@ Add to `:root` immediately after the display geometry tokens:
 
 ```css
     --motion-ease-fallback: cubic-bezier(.64, 0, .36, 1);
-    --motion-ease: linear(0, 0.00856 10%, 0.05792 20%, 0.16308 30%, 0.31744 40%, 0.5 50%, 0.68256 60%, 0.83692 70%, 0.94208 80%, 0.99144 90%, 1);
+    --motion-ease: var(--motion-ease-fallback);
 ```
 
-The sampled values are the exact quintic smootherstep values at 10% intervals.
+Override the resolved token only when the browser supports CSS `linear()` easing:
+
+```css
+  @supports (transition-timing-function: linear(0, 1)) {
+    :root {
+      --motion-ease: linear(0, 0.00856 10%, 0.05792 20%, 0.16308 30%, 0.31744 40%, 0.5 50%, 0.68256 60%, 0.83692 70%, 0.94208 80%, 0.99144 90%, 1);
+    }
+  }
+```
+
+The sampled values are the exact quintic smootherstep values at 10% intervals. The feature query keeps the fallback valid at computed-value time in browsers without `linear()` support.
 
 - [ ] **Step 4: Route transitions and keyframes through the tokens**
 
-For each transition-bearing selector, preserve its duration and property list but remove inline easing from each property. Use the two-declaration fallback pattern:
+For each transition-bearing selector, preserve its duration and property list but remove inline easing from each property. Consume only the resolved token:
 
 ```css
     transition-property: background, border-color, box-shadow, color, transform;
     transition-duration: 180ms, 180ms, 180ms, 180ms, 120ms;
-    transition-timing-function: var(--motion-ease-fallback);
     transition-timing-function: var(--motion-ease);
 ```
 
@@ -174,7 +184,7 @@ Rewrite animation shorthands as:
 
 - [ ] **Step 5: Update the broad accessibility contracts**
 
-In `tests/bible_ui_accessibility.test.js`, replace assertions that require literal `ease` or old cubic curves with assertions for `var(--motion-ease)` and the two-declaration fallback pattern. Remove no unrelated accessibility assertion.
+In `tests/bible_ui_accessibility.test.js`, replace assertions that require literal `ease` or old cubic curves with assertions for `var(--motion-ease)` and the feature-query fallback pattern. Remove no unrelated accessibility assertion.
 
 - [ ] **Step 6: Run the motion and existing verse-motion tests**
 
