@@ -1971,9 +1971,11 @@
   var chapterPositions = State.getChapterPositions();
   var chapterPositionsDirty = false;
   var verseChaseFrame = null;
-  var verseChaseVelocity = 0;
   var verseChaseTarget = null;
-  var verseChaseLastTs = null;
+  var verseChaseStartTop = 0;
+  var verseChaseDestinationTop = 0;
+  var verseChaseStartTime = null;
+  var verseChaseDuration = 0;
   var CHAPTER_CROSSFADE_MS = 200;
   var chapterCrossfadeTimer = null;
   var preservingChapterCrossfade = false;
@@ -3279,12 +3281,23 @@
     return window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
   }
 
+  function smootherstep(progress) {
+    var t = Math.min(1, Math.max(0, progress));
+    return t * t * t * (t * (t * 6 - 15) + 10);
+  }
+
+  function verseChaseDurationForDistance(distance) {
+    return Math.min(820, Math.max(350, 300 + Math.abs(distance) * 0.85));
+  }
+
   function stopVerseChase() {
     if (verseChaseFrame) cancelAnimationFrame(verseChaseFrame);
     verseChaseFrame = null;
-    verseChaseVelocity = 0;
     verseChaseTarget = null;
-    verseChaseLastTs = null;
+    verseChaseStartTop = 0;
+    verseChaseDestinationTop = 0;
+    verseChaseStartTime = null;
+    verseChaseDuration = 0;
   }
 
   function releaseVerseChaseForFreeScroll() {
@@ -3298,15 +3311,18 @@
       stopVerseChase();
       return;
     }
-    if (verseChaseTarget && verseChaseTarget !== target) {
-      var oldTargetTop = desiredVerseScrollTop(verseChaseTarget);
-      var newTargetTop = desiredVerseScrollTop(target);
-      if ((newTargetTop - viewEl.scrollTop) * (oldTargetTop - viewEl.scrollTop) < 0) {
-        verseChaseVelocity *= 0.35;
-      }
-    }
+    stopVerseChase();
     verseChaseTarget = target;
-    if (!verseChaseFrame) verseChaseFrame = requestAnimationFrame(stepVerseChase);
+    verseChaseStartTop = viewEl.scrollTop;
+    verseChaseDestinationTop = desiredVerseScrollTop(target);
+    var distance = verseChaseDestinationTop - verseChaseStartTop;
+    if (Math.abs(distance) < 0.5) {
+      viewEl.scrollTop = verseChaseDestinationTop;
+      stopVerseChase();
+      return;
+    }
+    verseChaseDuration = verseChaseDurationForDistance(distance);
+    verseChaseFrame = requestAnimationFrame(stepVerseChase);
   }
 
   function stepVerseChase(ts) {
@@ -3314,22 +3330,15 @@
       stopVerseChase();
       return;
     }
-    if (verseChaseLastTs == null) verseChaseLastTs = ts;
-    var dt = Math.min(2.4, Math.max(0.6, (ts - verseChaseLastTs) / 16.67));
-    verseChaseLastTs = ts;
-    var desiredTop = desiredVerseScrollTop(verseChaseTarget);
-    var distance = desiredTop - viewEl.scrollTop;
-    var pull = Math.min(0.085, Math.max(0.018, Math.abs(distance) / 9000));
-    var damping = Math.abs(distance) < 80 ? 0.72 : 0.88;
-    var maxSpeed = Math.min(90, Math.max(10, Math.abs(distance) * 0.18));
-    verseChaseVelocity = (verseChaseVelocity + (distance * pull * dt)) * damping;
-    verseChaseVelocity = Math.min(maxSpeed, Math.max(-maxSpeed, verseChaseVelocity));
-    if (Math.abs(distance) < 0.7 && Math.abs(verseChaseVelocity) < 0.7) {
-      viewEl.scrollTop = desiredTop;
+    if (verseChaseStartTime === null) verseChaseStartTime = ts;
+    var progress = Math.min(1, Math.max(0, (ts - verseChaseStartTime) / verseChaseDuration));
+    var eased = smootherstep(progress);
+    viewEl.scrollTop = verseChaseStartTop + ((verseChaseDestinationTop - verseChaseStartTop) * eased);
+    if (progress >= 1) {
+      viewEl.scrollTop = verseChaseDestinationTop;
       stopVerseChase();
       return;
     }
-    viewEl.scrollTop += verseChaseVelocity * dt;
     verseChaseFrame = requestAnimationFrame(stepVerseChase);
   }
 
