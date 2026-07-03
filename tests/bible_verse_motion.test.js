@@ -39,6 +39,7 @@ test('pointer and Arrow verse activation share the active verse state', () => {
 
   const arrowNavigation = sourceBetween('  function showAdjacentVerse(direction) {', '  // ===================== BROWSER HISTORY =====================');
   assert.match(arrowNavigation, /setActiveVerse\(verse, false\)/);
+  assert.match(arrowNavigation, /setActiveVerse\(verse, false\);[\s\S]*try \{ target\.focus\(\{ preventScroll: true \}\); \} catch \(e\) \{ target\.focus\(\); \}/);
   assert.match(arrowNavigation, /if \(key === 'ArrowUp'\) return showAdjacentVerse\(-1\);/);
   assert.match(arrowNavigation, /if \(key === 'ArrowDown'\) return showAdjacentVerse\(1\);/);
 });
