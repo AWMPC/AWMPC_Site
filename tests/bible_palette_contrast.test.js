@@ -22,17 +22,31 @@ const seasonModes = [
   ['winter', false], ['winter', true]
 ];
 const selectionFillModes = [
-  [':root', '#e2ebf5', '#f4f7fb'],
-  ['html.dark', '#0a0e14', '#171c28'],
-  ['html[data-season="spring"]', '#deedd7', '#f3faef'],
-  ['html[data-season="spring"].dark', '#0b140d', '#1b2d1e'],
-  ['html[data-season="summer"]', '#f0e7bd', '#fff9df'],
-  ['html[data-season="summer"].dark', '#171207', '#302717'],
-  ['html[data-season="fall"]', '#f2d8c5', '#fff3e8'],
-  ['html[data-season="fall"].dark', '#190d08', '#352016'],
-  ['html[data-season="winter"]', '#dcecf8', '#eef7ff'],
-  ['html[data-season="winter"].dark', '#08131d', '#172b3a']
+  [':root', '#e8eff7', '#f4f7fb'],
+  ['html.dark', '#0a0e14', '#1d2533'],
+  ['html[data-season="spring"]', '#e8f3e2', '#f3faef'],
+  ['html[data-season="spring"].dark', '#0b140d', '#233827'],
+  ['html[data-season="summer"]', '#f5edca', '#fff9df'],
+  ['html[data-season="summer"].dark', '#171207', '#3a301d'],
+  ['html[data-season="fall"]', '#f6e2d4', '#fff3e8'],
+  ['html[data-season="fall"].dark', '#190d08', '#42291d'],
+  ['html[data-season="winter"]', '#e6f1fa', '#eef7ff'],
+  ['html[data-season="winter"].dark', '#08131d', '#203848']
 ];
+const formerLightSurfaces = new Map([
+  [':root', '#e2ebf5'],
+  ['html[data-season="spring"]', '#deedd7'],
+  ['html[data-season="summer"]', '#f0e7bd'],
+  ['html[data-season="fall"]', '#f2d8c5'],
+  ['html[data-season="winter"]', '#dcecf8']
+]);
+const formerDarkFills = new Map([
+  ['html.dark', '#171c28'],
+  ['html[data-season="spring"].dark', '#1b2d1e'],
+  ['html[data-season="summer"].dark', '#302717'],
+  ['html[data-season="fall"].dark', '#352016'],
+  ['html[data-season="winter"].dark', '#172b3a']
+]);
 const expectedBorders = new Map([
   ['html[data-season="spring"]', ['rgba(24,48,27,.55)', 'rgba(24,48,27,.65)', 'rgba(24,48,27,.75)']],
   ['html[data-season="spring"].dark', ['rgba(236,247,232,.50)', 'rgba(236,247,232,.60)', 'rgba(236,247,232,.72)']],
@@ -108,10 +122,19 @@ test('every seasonal light and dark mode owns every palette primitive', () => {
 test('every palette owns its approved background and readable direct selection fill', () => {
   for (const [selector, expectedBackground, expectedFill] of selectionFillModes) {
     const block = cssBlock(selector);
+    const background = declaration(block, 'bg');
     const fill = declaration(block, 'selection-fill');
-    assert.equal(declaration(block, 'bg'), expectedBackground, `${selector} background changed`);
+    assert.equal(background, expectedBackground, `${selector} background changed`);
     assert.equal(fill, expectedFill, `${selector} selection fill changed`);
     assert.ok(contrast(declaration(block, 'fg'), fill) >= 4.5, `${selector} foreground on selection fill is below 4.5:1`);
+
+    if (formerLightSurfaces.has(selector)) {
+      assert.ok(luminance(background) > luminance(formerLightSurfaces.get(selector)), `${selector} light surface did not become lighter`);
+      assert.ok(luminance(background) < luminance(fill), `${selector} light surface must remain darker than its selection fill`);
+    }
+    if (formerDarkFills.has(selector)) {
+      assert.ok(luminance(fill) > luminance(formerDarkFills.get(selector)), `${selector} dark selection fill did not become lighter`);
+    }
   }
 });
 
@@ -142,13 +165,13 @@ test('verses reserve the seasonal accent border for the active selection', () =>
 
   const verse = cssBlock('.verse');
   assert.match(verse, /background:\s*transparent/);
-  assert.match(verse, /border:\s*2px solid transparent/);
+  assert.match(verse, /border:\s*1px solid transparent/);
 
   const active = cssBlock('.verse.active');
   assert.match(active, /background:\s*var\(--selection-fill\)/);
   assert.match(active, /border-color:\s*var\(--accent\)/);
-  assert.match(active, /border-width:\s*2px/);
-  assert.doesNotMatch(active, /(?:accent|verse)-glow/);
+  assert.match(active, /border-width:\s*1px/);
+  assert.match(active, /box-shadow:\s*0 8px 28px var\(--accent-glow\)/);
 
   const focusVisible = cssBlock('.verse:focus-visible');
   assert.match(focusVisible, /outline:\s*none/);
@@ -163,7 +186,9 @@ test('verses reserve the seasonal accent border for the active selection', () =>
 
   const verseRules = [...bible.matchAll(/([^{}]*\.verse(?![-\w])[^{}]*)\{([^}]*)\}/g)];
   for (const [, selector, body] of verseRules) {
-    assert.doesNotMatch(body, /box-shadow\s*:/, `${selector.trim()} adds a verse shadow`);
+    if (!/\.verse\.active(?:\s|,|$)/.test(selector)) {
+      assert.doesNotMatch(body, /box-shadow\s*:/, `${selector.trim()} adds a verse shadow`);
+    }
     if (!/\.verse:focus-visible(?:\s|,|$)/.test(selector)) {
       assert.doesNotMatch(body, /outline\s*:/, `${selector.trim()} adds a verse outline`);
     }
