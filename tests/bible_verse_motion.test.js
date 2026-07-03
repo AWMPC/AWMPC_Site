@@ -55,7 +55,9 @@ test('pointer and Arrow verse activation share the active verse state', () => {
 test('active verses use deferred double activation instead of long press', () => {
   assert.match(bible, /var pendingReaderVerseAction = null;/);
   assert.match(bible, /var READER_DOUBLE_ACTIVATE_MS = 280;/);
-  assert.match(bible, /function scheduleReaderVerseFootnoteToggle\(verse, event\) \{/);
+  assert.match(bible, /var READER_MOUSE_DOUBLE_ACTIVATE_MS = 500;/);
+  assert.match(bible, /function scheduleReaderVerseFootnoteToggle\(verse, event, delay\) \{/);
+  assert.match(bible, /function scheduleReaderVerseMouseFootnoteToggle\(verse, event\) \{/);
   assert.match(bible, /function clearPendingReaderVerseAction\(\) \{/);
   assert.match(bible, /function isMatchingReaderDoubleActivation\(event, verse\) \{/);
   assert.match(bible, /function isMatchingReaderMouseDoubleActivation\(event, verse\) \{/);
@@ -76,12 +78,19 @@ test('deferred verse actions only toggle a live matching active verse once', () 
   assert.match(clearPending, /window\.clearTimeout\(pendingReaderVerseAction\.timer\)/);
   assert.match(clearPending, /pendingReaderVerseAction = null;/);
 
-  const scheduleToggle = sourceFunction('  function scheduleReaderVerseFootnoteToggle(verse, event) {');
+  const scheduleToggle = sourceFunction('  function scheduleReaderVerseFootnoteToggle(verse, event, delay) {');
   assert.match(scheduleToggle, /clearPendingReaderVerseAction\(\);[\s\S]*window\.setTimeout/);
   assert.match(scheduleToggle, /verse\.isConnected/);
   assert.match(scheduleToggle, /uiView === 'verses'/);
   assert.match(scheduleToggle, /verse\.classList\.contains\('active'\)/);
+  assert.match(scheduleToggle, /delay \|\| READER_DOUBLE_ACTIVATE_MS/);
   assert.equal((scheduleToggle.match(/toggleAllVerseFootnotes\(verse\)/g) || []).length, 1);
+
+  const mouseScheduleToggle = sourceFunction('  function scheduleReaderVerseMouseFootnoteToggle(verse, event) {');
+  assert.match(mouseScheduleToggle, /scheduleReaderVerseFootnoteToggle\(verse, event, READER_MOUSE_DOUBLE_ACTIVATE_MS\);/);
+
+  const openActions = sourceFunction('  function openVerseActions(verseEl) {');
+  assert.match(openActions, /clearPendingReaderVerseAction\(\);[\s\S]*verseActionPayload\(verseEl\)/);
 
   const matchingActivation = sourceFunction('  function isMatchingReaderDoubleActivation(event, verse) {');
   assert.match(matchingActivation, /pendingReaderVerseAction\.verse\s*===\s*verse/);
@@ -108,7 +117,7 @@ test('touch, pen, mouse, and keyboard verse activations avoid duplicate footnote
   const mouseClick = sourceBetween("  document.addEventListener('click', function (e) {\n    if (uiView !== 'verses'", "  document.addEventListener('dblclick', function (e) {");
   assert.match(mouseClick, /e\.detail === 0[^;]*return/);
   assert.match(mouseClick, /e\.pointerType === 'touch' \|\| e\.pointerType === 'pen'/);
-  assert.match(mouseClick, /else scheduleReaderVerseFootnoteToggle\(verseEl, e\);/);
+  assert.match(mouseClick, /else scheduleReaderVerseMouseFootnoteToggle\(verseEl, e\);/);
   assert.doesNotMatch(mouseClick, /toggleAllVerseFootnotes\(verseEl\)/);
   assert.doesNotMatch(mouseClick, /openVerseActions\(verseEl\)/);
   assert.match(mouseClick, /else setActiveVerse\(verseEl\.getAttribute\('data-v'\), true\)/);
