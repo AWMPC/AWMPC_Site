@@ -28,6 +28,14 @@ function sourceBetween(start, end) {
   return bible.slice(from, to);
 }
 
+function sourceFunction(signature) {
+  const from = bible.indexOf(signature);
+  assert.notEqual(from, -1, `missing function: ${signature}`);
+  const to = bible.indexOf('\n  function ', from + signature.length);
+  assert.notEqual(to, -1, `missing next function after: ${signature}`);
+  return bible.slice(from, to);
+}
+
 test('pointer and Arrow verse activation share the active verse state', () => {
   const activeVerse = sourceBetween('  function setActiveVerse(verse, center) {', '  function updateActiveVerseFromViewport() {');
   assert.match(activeVerse, /viewInner\.querySelector\('\.verse\.active'\)/);
@@ -60,19 +68,34 @@ test('active verses use deferred double activation instead of long press', () =>
 
   const pointerCancel = sourceBetween("  document.addEventListener('pointercancel', function (e) {", "  document.addEventListener('click', function (e) {");
   assert.match(pointerCancel, /clearReaderPointerState\(\);[\s\S]*clearPendingReaderVerseAction\(\);/);
+});
 
+test('deferred verse actions only toggle a live matching active verse once', () => {
+  const scheduleToggle = sourceFunction('  function scheduleReaderVerseFootnoteToggle(verse, event) {');
+  assert.match(scheduleToggle, /clearPendingReaderVerseAction\(\);[\s\S]*window\.setTimeout/);
+  assert.match(scheduleToggle, /verse\.isConnected/);
+  assert.match(scheduleToggle, /uiView === 'verses'/);
+  assert.match(scheduleToggle, /verse\.classList\.contains\('active'\)/);
+  assert.equal((scheduleToggle.match(/toggleAllVerseFootnotes\(verse\)/g) || []).length, 1);
+
+  const matchingActivation = sourceFunction('  function isMatchingReaderDoubleActivation(event, verse) {');
+  assert.match(matchingActivation, /pendingReaderVerseAction\.verse\s*===\s*verse/);
+  assert.match(matchingActivation, /pendingReaderVerseAction\.pointerType\s*===\s*event\.pointerType/);
+  assert.match(matchingActivation, /Math\.abs\(event\.clientX\s*-\s*pendingReaderVerseAction\.x\)\s*<=\s*28/);
+  assert.match(matchingActivation, /Math\.abs\(event\.clientY\s*-\s*pendingReaderVerseAction\.y\)\s*<=\s*28/);
 });
 
 test('touch, pen, mouse, and keyboard verse activations avoid duplicate footnote toggles', () => {
   const pointerUp = sourceBetween("  document.addEventListener('pointerup', function (e) {", "  document.addEventListener('pointercancel', function (e) {");
   assert.match(pointerUp, /state\.pointerType === 'touch' \|\| state\.pointerType === 'pen'/);
-  assert.match(pointerUp, /isMatchingReaderDoubleActivation\(e, state\.verse\)[\s\S]*clearPendingReaderVerseAction\(\);[\s\S]*openVerseActions\(state\.verse\);/);
+  assert.match(pointerUp, /suppressFollowingReaderClick\(e, state\.verse\);/);
+  assert.match(pointerUp, /isMatchingReaderDoubleActivation\(e, state\.verse\)[\s\S]*suppressFollowingReaderClick\(e, state\.verse\);[\s\S]*clearPendingReaderVerseAction\(\);[\s\S]*openVerseActions\(state\.verse\);/);
   assert.match(pointerUp, /else scheduleReaderVerseFootnoteToggle\(state\.verse, e\);/);
   assert.doesNotMatch(pointerUp, /toggleAllVerseFootnotes\(state\.verse\)/);
   assert.match(pointerUp, /else setActiveVerse\(state\.verse\.getAttribute\('data-v'\), true\)/);
 
   const mouseClick = sourceBetween("  document.addEventListener('click', function (e) {\n    if (uiView !== 'verses'", "  document.addEventListener('dblclick', function (e) {");
-  assert.match(mouseClick, /e\.detail === 0/);
+  assert.match(mouseClick, /e\.detail === 0[^;]*return/);
   assert.match(mouseClick, /e\.pointerType === 'touch' \|\| e\.pointerType === 'pen'/);
   assert.match(mouseClick, /isMatchingReaderDoubleActivation\(e, verseEl\)[\s\S]*clearPendingReaderVerseAction\(\);[\s\S]*openVerseActions\(verseEl\);/);
   assert.match(mouseClick, /else scheduleReaderVerseFootnoteToggle\(verseEl, e\);/);
@@ -83,6 +106,10 @@ test('touch, pen, mouse, and keyboard verse activations avoid duplicate footnote
   assert.match(mouseDoubleClick, /e\.button !== 0/);
   assert.match(mouseDoubleClick, /verseEl\.classList\.contains\('active'\)/);
   assert.match(mouseDoubleClick, /clearPendingReaderVerseAction\(\);[\s\S]*openVerseActions\(verseEl\);/);
+
+  const contextMenu = sourceBetween("  document.addEventListener('contextmenu', function (e) {", "  viewEl.addEventListener('scroll', function () {");
+  assert.match(contextMenu, /verseEl\.classList\.contains\('active'\)/);
+  assert.match(contextMenu, /e\.preventDefault\(\);[\s\S]*openVerseActions\(verseEl\);/);
 });
 
 const runContract = Function('assert', `${productionFunctions}
