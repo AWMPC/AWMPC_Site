@@ -43,7 +43,7 @@ test('pointer and Arrow verse activation share the active verse state', () => {
   assert.match(activeVerse, /target\.classList\.add\('active'\)/);
 
   const pointerActivation = sourceBetween("  document.addEventListener('pointerup', function (e) {", "  document.addEventListener('pointercancel', function (e) {");
-  assert.match(pointerActivation, /else setActiveVerse\(state\.verse\.getAttribute\('data-v'\), true\)/);
+  assert.match(pointerActivation, /clearPendingReaderVerseAction\(\);[\s\S]*setActiveVerse\(state\.verse\.getAttribute\('data-v'\), true\)/);
 
   const arrowNavigation = sourceBetween('  function showAdjacentVerse(direction) {', '  // ===================== BROWSER HISTORY =====================');
   assert.match(arrowNavigation, /setActiveVerse\(verse, false\)/);
@@ -112,7 +112,7 @@ test('touch, pen, mouse, and keyboard verse activations avoid duplicate footnote
   assert.match(pointerUp, /isMatchingReaderDoubleActivation\(e, state\.verse\)[\s\S]*suppressFollowingReaderClick\(e, state\.verse\);[\s\S]*clearPendingReaderVerseAction\(\);[\s\S]*openVerseActions\(state\.verse\);/);
   assert.match(pointerUp, /else scheduleReaderVerseFootnoteToggle\(state\.verse, e\);/);
   assert.doesNotMatch(pointerUp, /toggleAllVerseFootnotes\(state\.verse\)/);
-  assert.match(pointerUp, /else setActiveVerse\(state\.verse\.getAttribute\('data-v'\), true\)/);
+  assert.match(pointerUp, /else\s*\{\s*clearPendingReaderVerseAction\(\);\s*setActiveVerse\(state\.verse\.getAttribute\('data-v'\), true\)/);
 
   const mouseClick = sourceBetween("  document.addEventListener('click', function (e) {\n    if (uiView !== 'verses'", "  document.addEventListener('dblclick', function (e) {");
   assert.match(mouseClick, /e\.detail === 0[^;]*return/);
@@ -120,7 +120,7 @@ test('touch, pen, mouse, and keyboard verse activations avoid duplicate footnote
   assert.match(mouseClick, /else scheduleReaderVerseMouseFootnoteToggle\(verseEl, e\);/);
   assert.doesNotMatch(mouseClick, /toggleAllVerseFootnotes\(verseEl\)/);
   assert.doesNotMatch(mouseClick, /openVerseActions\(verseEl\)/);
-  assert.match(mouseClick, /else setActiveVerse\(verseEl\.getAttribute\('data-v'\), true\)/);
+  assert.match(mouseClick, /else\s*\{\s*clearPendingReaderVerseAction\(\);\s*setActiveVerse\(verseEl\.getAttribute\('data-v'\), true\)/);
 
   const mouseDoubleClick = sourceBetween("  document.addEventListener('dblclick', function (e) {", "  document.addEventListener('contextmenu', function (e) {");
   assert.match(mouseDoubleClick, /e\.button !== 0/);

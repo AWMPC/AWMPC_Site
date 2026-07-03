@@ -4684,9 +4684,15 @@
           clearPendingReaderVerseAction();
           openVerseActions(state.verse);
         } else scheduleReaderVerseFootnoteToggle(state.verse, e);
-      } else setActiveVerse(state.verse.getAttribute('data-v'), true);
+      } else {
+        clearPendingReaderVerseAction();
+        setActiveVerse(state.verse.getAttribute('data-v'), true);
+      }
     }
-    else setActiveVerse(state.verse.getAttribute('data-v'), true);
+    else {
+      clearPendingReaderVerseAction();
+      setActiveVerse(state.verse.getAttribute('data-v'), true);
+    }
   });
   document.addEventListener('pointercancel', function (e) {
     if (readerPointerState && readerPointerState.id === e.pointerId) clearReaderPointerState();
@@ -4714,7 +4720,10 @@
     if (verseEl.classList.contains('active')) {
       if (!verseEl.isConnected) return;
       else scheduleReaderVerseMouseFootnoteToggle(verseEl, e);
-    } else setActiveVerse(verseEl.getAttribute('data-v'), true);
+    } else {
+      clearPendingReaderVerseAction();
+      setActiveVerse(verseEl.getAttribute('data-v'), true);
+    }
   });
   document.addEventListener('dblclick', function (e) {
     if (uiView !== 'verses' || e.button !== 0) return;
