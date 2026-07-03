@@ -8,10 +8,12 @@ menu trigger with a consistent double activation on touch, pen, and mouse.
 
 ## Visual treatment
 
-- Each seasonal page surface becomes slightly brighter than its current value.
-  The page surface remains darker than the dedicated selection fill.
-- Selection fill remains the current per-palette explicit color and continues
-  to meet the WCAG 4.5:1 normal-text contrast requirement with scripture text.
+- Each seasonal light-mode page surface becomes slightly brighter than its
+  current value. It remains darker than the dedicated selection fill.
+- Each seasonal dark-mode page surface remains unchanged, while its active
+  selection fill becomes slightly lighter.
+- Every explicit selection fill continues to meet the WCAG 4.5:1 normal-text
+  contrast requirement with scripture text.
 - Inactive verses stay transparent and borderless.
 - The active verse keeps the selection fill and gets the historical broad
   seasonal glow: `0 8px 28px var(--accent-glow)`.
@@ -43,9 +45,10 @@ menu trigger with a consistent double activation on touch, pen, and mouse.
 
 ## Verification
 
-- Extend static contracts for every light/dark seasonal palette: page surface
-  is brighter than before but still darker than its selection fill, and normal
-  scripture contrast against the selection fill remains at least 4.5:1.
+- Extend static contracts for every seasonal palette: light-mode page surfaces
+  are brighter than before but still darker than their selection fills;
+  dark-mode selection fills are lighter than before; and normal scripture
+  contrast against each selection fill remains at least 4.5:1.
 - Add contracts for the exact active glow, 1px active border, transparent
   inactive verse styling, and absence of the retired long-press timer.
 - Add behavior contracts for deferred single activation, double activation
