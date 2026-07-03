@@ -6,10 +6,10 @@ const root = path.resolve(__dirname, '..');
 const bible = fs.readFileSync(path.join(root, 'bible.html'), 'utf8');
 const sw = fs.readFileSync(path.join(root, 'sw.js'), 'utf8');
 
-assert.match(bible, /var APP_VERSION = '3\.3\.0';/);
+assert.match(bible, /var APP_VERSION = '3\.3\.3';/);
 assert.match(sw, /var CACHE_NAME = 'bible-v3\.2\.0';/);
 assert.match(bible, /id="app-version"/);
-assert.match(bible, /<span class="app-version-label">Version <span id="app-version">3\.3\.0<\/span><\/span><span class="app-version-separator">\|<\/span><span id="footer-status" class="app-version-status" role="status" aria-live="polite">Signed out<\/span><span id="footer-signout-separator" class="app-version-separator" hidden>\|<\/span><button type="button" id="footer-signout" class="dd-signout-button" hidden>Sign Out<\/button>/);
+assert.match(bible, /<span class="app-version-label">Version <span id="app-version">3\.3\.3<\/span><\/span><span class="app-version-separator">\|<\/span><span id="footer-status" class="app-version-status" role="status" aria-live="polite">Signed out<\/span><span id="footer-signout-separator" class="app-version-separator" hidden>\|<\/span><button type="button" id="footer-signout" class="dd-signout-button" hidden>Sign Out<\/button>/);
 
 assert.match(bible, /--oneui-font:/);
 assert.match(bible, /--surface: #ffffff;/);
@@ -19,7 +19,7 @@ assert.match(bible, /--accent-glow: rgba\(11,99,206,\.22\);/);
 assert.match(bible, /--verse-bg: var\(--bg2\);/);
 assert.match(bible, /--verse-highlight: var\(--hover-bg\);/);
 assert.match(bible, /:root \{[\s\S]*--selection-fill: #f4f7fb;/);
-assert.match(bible, /html\.dark \{[\s\S]*--selection-fill: #1d2533;/);
+assert.match(bible, /html\.dark \{[\s\S]*--selection-fill: #111722;/);
 assert.match(bible, /--float-nav-bg: color-mix\(in srgb, var\(--surface-hi\) 92%, transparent\);/);
 assert.match(bible, /--float-nav-shadow: 0 8px 22px color-mix\(in srgb, var\(--fg\) 14%, transparent\);/);
 assert.match(bible, /--ui-radius: 20px;/);
