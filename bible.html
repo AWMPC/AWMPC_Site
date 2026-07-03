@@ -3347,7 +3347,7 @@
     clearPendingReaderVerseAction();
     var pending = {
       verse: verse,
-      pointerType: event.pointerType,
+      pointerType: event.pointerType || 'mouse',
       x: event.clientX,
       y: event.clientY,
       timer: null
@@ -3366,6 +3366,14 @@
     return !!pendingReaderVerseAction &&
       pendingReaderVerseAction.verse === verse &&
       pendingReaderVerseAction.pointerType === event.pointerType &&
+      Math.abs(event.clientX - pendingReaderVerseAction.x) <= 28 &&
+      Math.abs(event.clientY - pendingReaderVerseAction.y) <= 28;
+  }
+
+  function isMatchingReaderMouseDoubleActivation(event, verse) {
+    return !!pendingReaderVerseAction &&
+      pendingReaderVerseAction.verse === verse &&
+      pendingReaderVerseAction.pointerType === 'mouse' &&
       Math.abs(event.clientX - pendingReaderVerseAction.x) <= 28 &&
       Math.abs(event.clientY - pendingReaderVerseAction.y) <= 28;
   }
@@ -4707,6 +4715,7 @@
     if (e.target.closest('button,dialog,a,input,select,textarea,[role="button"],.verse-actions')) return;
     var verseEl = e.target.closest('.verse');
     if (!verseEl || !viewInner.contains(verseEl) || !verseEl.classList.contains('active')) return;
+    if (!isMatchingReaderMouseDoubleActivation(e, verseEl)) return;
     clearPendingReaderVerseAction();
     openVerseActions(verseEl);
   });

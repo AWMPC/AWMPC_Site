@@ -58,6 +58,7 @@ test('active verses use deferred double activation instead of long press', () =>
   assert.match(bible, /function scheduleReaderVerseFootnoteToggle\(verse, event\) \{/);
   assert.match(bible, /function clearPendingReaderVerseAction\(\) \{/);
   assert.match(bible, /function isMatchingReaderDoubleActivation\(event, verse\) \{/);
+  assert.match(bible, /function isMatchingReaderMouseDoubleActivation\(event, verse\) \{/);
   assert.doesNotMatch(bible, /READER_LONG_PRESS_MS|readerLongPressTimer/);
 
   const leaveReading = sourceBetween('  function prepareToLeaveReadingView() {', '  function showAdjacentChapter(direction) {');
@@ -87,6 +88,12 @@ test('deferred verse actions only toggle a live matching active verse once', () 
   assert.match(matchingActivation, /pendingReaderVerseAction\.pointerType\s*===\s*event\.pointerType/);
   assert.match(matchingActivation, /Math\.abs\(event\.clientX\s*-\s*pendingReaderVerseAction\.x\)\s*<=\s*28/);
   assert.match(matchingActivation, /Math\.abs\(event\.clientY\s*-\s*pendingReaderVerseAction\.y\)\s*<=\s*28/);
+
+  const mouseMatchingActivation = sourceFunction('  function isMatchingReaderMouseDoubleActivation(event, verse) {');
+  assert.match(mouseMatchingActivation, /pendingReaderVerseAction\.verse\s*===\s*verse/);
+  assert.match(mouseMatchingActivation, /pendingReaderVerseAction\.pointerType\s*===\s*'mouse'/);
+  assert.match(mouseMatchingActivation, /Math\.abs\(event\.clientX\s*-\s*pendingReaderVerseAction\.x\)\s*<=\s*28/);
+  assert.match(mouseMatchingActivation, /Math\.abs\(event\.clientY\s*-\s*pendingReaderVerseAction\.y\)\s*<=\s*28/);
 });
 
 test('touch, pen, mouse, and keyboard verse activations avoid duplicate footnote toggles', () => {
@@ -109,7 +116,7 @@ test('touch, pen, mouse, and keyboard verse activations avoid duplicate footnote
   const mouseDoubleClick = sourceBetween("  document.addEventListener('dblclick', function (e) {", "  document.addEventListener('contextmenu', function (e) {");
   assert.match(mouseDoubleClick, /e\.button !== 0/);
   assert.match(mouseDoubleClick, /verseEl\.classList\.contains\('active'\)/);
-  assert.match(mouseDoubleClick, /clearPendingReaderVerseAction\(\);[\s\S]*openVerseActions\(verseEl\);/);
+  assert.match(mouseDoubleClick, /isMatchingReaderMouseDoubleActivation\(e, verseEl\)[\s\S]*clearPendingReaderVerseAction\(\);[\s\S]*openVerseActions\(verseEl\);/);
 
   const contextMenu = sourceBetween("  document.addEventListener('contextmenu', function (e) {", "  viewEl.addEventListener('scroll', function () {");
   assert.match(contextMenu, /verseEl\.classList\.contains\('active'\)/);
