@@ -870,7 +870,7 @@
     transition-property: background, border-color, box-shadow, padding, border-width;
     transition-duration: 0.2s;
     transition-timing-function: var(--motion-ease);
-    background: var(--verse-highlight);
+    background: transparent;
     white-space: normal;
     min-width: 0;
     max-width: 100%;
@@ -883,6 +883,7 @@
     border-color: var(--accent);
     border-width: 2px;
   }
+  .verse:focus-visible { outline: none; }
   .verse-num { font-size: .7em; font-weight: 700; color: var(--verse-num); vertical-align: super; margin-right: .2em; }
   .verse-edge-spacer,
   .verse-head-spacer,

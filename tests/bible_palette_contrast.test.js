@@ -114,12 +114,12 @@ test('ordinary UI aliases derive from season primitives without base blue litera
   }
 });
 
-test('verses use quiet seasonal highlights and a stronger active accent', () => {
+test('verses reserve the seasonal accent border for the active selection', () => {
   const root = cssBlock(':root');
   assert.equal(declaration(root, 'verse-highlight'), 'var(--hover-bg)');
 
   const verse = cssBlock('.verse');
-  assert.match(verse, /background:\s*var\(--verse-highlight\)/);
+  assert.match(verse, /background:\s*transparent/);
   assert.match(verse, /border:\s*2px solid transparent/);
 
   const active = cssBlock('.verse.active');
@@ -127,6 +127,9 @@ test('verses use quiet seasonal highlights and a stronger active accent', () => 
   assert.match(active, /border-width:\s*2px/);
   assert.doesNotMatch(active, /background(?:-color)?\s*:/);
   assert.doesNotMatch(active, /(?:accent|verse)-glow/);
+
+  const focusVisible = cssBlock('.verse:focus-visible');
+  assert.match(focusVisible, /outline:\s*none/);
 
   const footnotesOpen = cssBlock('.verse.footnotes-open');
   const footnoteDeclarations = [...footnotesOpen.matchAll(/(?:^|;)\s*([\w-]+)\s*:/g)]
@@ -139,7 +142,9 @@ test('verses use quiet seasonal highlights and a stronger active accent', () => 
   const verseRules = [...bible.matchAll(/([^{}]*\.verse(?![-\w])[^{}]*)\{([^}]*)\}/g)];
   for (const [, selector, body] of verseRules) {
     assert.doesNotMatch(body, /box-shadow\s*:/, `${selector.trim()} adds a verse shadow`);
-    assert.doesNotMatch(body, /outline\s*:/, `${selector.trim()} adds a verse outline`);
+    if (!/\.verse:focus-visible(?:\s|,|$)/.test(selector)) {
+      assert.doesNotMatch(body, /outline\s*:/, `${selector.trim()} adds a verse outline`);
+    }
     if (!/\.verse\.active(?:\s|,|$)/.test(selector)) {
       assert.doesNotMatch(body, /border-color\s*:/, `${selector.trim()} overrides the reserved/active border`);
     }
