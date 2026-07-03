@@ -3539,6 +3539,7 @@
     if (!nextVerse) return;
     var target = getVerseElement(currentBook, currentChapter, nextVerse);
     if (!target) return;
+    clearPendingReaderVerseAction();
     var prev = viewInner.querySelector('.verse.active');
     if (prev) {
       prev.classList.remove('active');

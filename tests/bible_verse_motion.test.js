@@ -39,6 +39,7 @@ function sourceFunction(signature) {
 test('pointer and Arrow verse activation share the active verse state', () => {
   const activeVerse = sourceBetween('  function setActiveVerse(verse, center) {', '  function updateActiveVerseFromViewport() {');
   assert.match(activeVerse, /viewInner\.querySelector\('\.verse\.active'\)/);
+  assert.match(activeVerse, /if \(!target\) return;[\s\S]*clearPendingReaderVerseAction\(\);[\s\S]*var prev = viewInner\.querySelector\('\.verse\.active'\)/);
   assert.match(activeVerse, /prev\.classList\.remove\('active'\)/);
   assert.match(activeVerse, /target\.classList\.add\('active'\)/);
 
