@@ -7,7 +7,7 @@ const bible = fs.readFileSync(path.join(__dirname, '..', 'bible.html'), 'utf8');
 const seasonalCore = [
   'bg', 'bg2', 'bg3', 'bg4', 'surface', 'surface-hi',
   'fg', 'fg2', 'fg3', 'fg4', 'border', 'border2', 'border3',
-  'accent', 'accent-fg', 'verse-num',
+  'accent', 'accent-fg', 'verse-num', 'selection-fill',
   'note-bg', 'note-border', 'pill-bg'
 ];
 const derived = [
@@ -20,6 +20,18 @@ const seasonModes = [
   ['summer', false], ['summer', true],
   ['fall', false], ['fall', true],
   ['winter', false], ['winter', true]
+];
+const selectionFillModes = [
+  [':root', '#e2ebf5', '#f4f7fb'],
+  ['html.dark', '#0a0e14', '#171c28'],
+  ['html[data-season="spring"]', '#deedd7', '#f3faef'],
+  ['html[data-season="spring"].dark', '#0b140d', '#1b2d1e'],
+  ['html[data-season="summer"]', '#f0e7bd', '#fff9df'],
+  ['html[data-season="summer"].dark', '#171207', '#302717'],
+  ['html[data-season="fall"]', '#f2d8c5', '#fff3e8'],
+  ['html[data-season="fall"].dark', '#190d08', '#352016'],
+  ['html[data-season="winter"]', '#dcecf8', '#eef7ff'],
+  ['html[data-season="winter"].dark', '#08131d', '#172b3a']
 ];
 const expectedBorders = new Map([
   ['html[data-season="spring"]', ['rgba(24,48,27,.55)', 'rgba(24,48,27,.65)', 'rgba(24,48,27,.75)']],
@@ -93,6 +105,16 @@ test('every seasonal light and dark mode owns every palette primitive', () => {
   }
 });
 
+test('every palette owns its approved background and readable direct selection fill', () => {
+  for (const [selector, expectedBackground, expectedFill] of selectionFillModes) {
+    const block = cssBlock(selector);
+    const fill = declaration(block, 'selection-fill');
+    assert.equal(declaration(block, 'bg'), expectedBackground, `${selector} background changed`);
+    assert.equal(fill, expectedFill, `${selector} selection fill changed`);
+    assert.ok(contrast(declaration(block, 'fg'), fill) >= 4.5, `${selector} foreground on selection fill is below 4.5:1`);
+  }
+});
+
 test('ordinary UI aliases derive from season primitives without base blue literals', () => {
   const root = cssBlock(':root');
   const allowedPrimitives = new Set(seasonalCore);
@@ -123,9 +145,9 @@ test('verses reserve the seasonal accent border for the active selection', () =>
   assert.match(verse, /border:\s*2px solid transparent/);
 
   const active = cssBlock('.verse.active');
+  assert.match(active, /background:\s*var\(--selection-fill\)/);
   assert.match(active, /border-color:\s*var\(--accent\)/);
   assert.match(active, /border-width:\s*2px/);
-  assert.doesNotMatch(active, /background(?:-color)?\s*:/);
   assert.doesNotMatch(active, /(?:accent|verse)-glow/);
 
   const focusVisible = cssBlock('.verse:focus-visible');
@@ -149,6 +171,11 @@ test('verses reserve the seasonal accent border for the active selection', () =>
       assert.doesNotMatch(body, /border-color\s*:/, `${selector.trim()} overrides the reserved/active border`);
     }
   }
+});
+
+test('book and chapter buttons use the selection fill', () => {
+  assert.match(cssBlock('.book-btn'), /background:\s*var\(--selection-fill\)/);
+  assert.match(bible, /\.chapter-btn \{[\s\S]*?background:\s*var\(--selection-fill\)/);
 });
 
 test('retired verse glow is absent from CSS and text scaling', () => {
