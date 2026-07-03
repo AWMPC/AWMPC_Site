@@ -185,15 +185,18 @@ test('verses reserve the seasonal accent border for the active selection', () =>
   assert.doesNotMatch(bible, /startVerseFoundTransition|clearVerseHighlightTransition|verseHighlight(?:Target|Frame|CleanupTimer)/);
 
   const verseRules = [...bible.matchAll(/([^{}]*\.verse(?![-\w])[^{}]*)\{([^}]*)\}/g)];
-  for (const [, selector, body] of verseRules) {
-    if (!/\.verse\.active(?:\s|,|$)/.test(selector)) {
-      assert.doesNotMatch(body, /box-shadow\s*:/, `${selector.trim()} adds a verse shadow`);
-    }
-    if (!/\.verse:focus-visible(?:\s|,|$)/.test(selector)) {
-      assert.doesNotMatch(body, /outline\s*:/, `${selector.trim()} adds a verse outline`);
-    }
-    if (!/\.verse\.active(?:\s|,|$)/.test(selector)) {
-      assert.doesNotMatch(body, /border-color\s*:/, `${selector.trim()} overrides the reserved/active border`);
+  for (const [, selectorGroup, body] of verseRules) {
+    for (const selector of selectorGroup.split(',').map((selector) => selector.trim())) {
+      const isActiveVerse = /\.verse\.active(?:[:\s]|$)/.test(selector);
+      if (!isActiveVerse) {
+        assert.doesNotMatch(body, /box-shadow\s*:/, `${selector} adds a verse shadow`);
+      }
+      if (!/\.verse:focus-visible(?:\s|$)/.test(selector)) {
+        assert.doesNotMatch(body, /outline\s*:/, `${selector} adds a verse outline`);
+      }
+      if (!isActiveVerse) {
+        assert.doesNotMatch(body, /border-color\s*:/, `${selector} overrides the reserved/active border`);
+      }
     }
   }
 });
