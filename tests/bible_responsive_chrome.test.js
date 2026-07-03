@@ -76,7 +76,7 @@ test('desktop chrome is a collision-safe viewport flex row with distinct surface
 
   const nav = rule('.floating-nav');
   assert.match(nav, /position:\s*static;/);
-  assert.match(nav, /flex:\s*1 1 auto;/);
+  assert.match(nav, /flex:\s*0 1 auto;/);
   assert.match(nav, /min-width:\s*0;/);
   assert.match(nav, /max-width:\s*min\(/);
   assert.match(nav, /pointer-events:\s*auto;/);

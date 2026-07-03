@@ -45,6 +45,7 @@
     --display-panel-padding: 12px;
     --display-panel-gap: 8px;
     --display-nav-padding: 6px;
+    --floating-nav-book-width: 16ch;
     --motion-ease: cubic-bezier(.64, 0, .36, 1);
     --ui-radius: 20px;
     --ui-grid-gap: 8px;
@@ -378,7 +379,7 @@
     width: auto;
     max-width: min(720px, calc(100% - 180px));
     min-width: 0;
-    flex: 1 1 auto;
+    flex: 0 1 auto;
     min-height: var(--display-control-height);
     z-index: 120;
     pointer-events: auto;
@@ -412,7 +413,8 @@
     opacity: 0.35; cursor: not-allowed;
   }
   .floating-nav .fn-book {
-    flex: 1 1 auto; font-weight: 600; max-width: 42vw; min-width: 0; overflow: hidden; white-space: nowrap;
+    flex: 0 1 auto; flex-basis: var(--floating-nav-book-width); width: var(--floating-nav-book-width); max-width: var(--floating-nav-book-width);
+    font-weight: 600; min-width: 0; overflow: hidden; white-space: nowrap;
   }
   .floating-nav .fn-book .marquee-line { width: 100%; }
   .floating-nav .fn-chapter,
@@ -541,7 +543,8 @@
       max-width: none;
       flex: none;
     }
-    .floating-nav .fn-book { flex: 1 1 auto; max-width: none; }
+    .floating-nav .fn-book { flex: 1 1 auto; width: auto; max-width: 42vw; }
+    .floating-nav .fn-book .marquee-line { width: 100%; }
     .action-chrome {
       position: absolute;
       left: 12px;
