@@ -89,6 +89,7 @@ assert.equal(h.state({ view: 'verses', book: 'John', chapter: '3', verse: '16', 
 assert.equal(h.state({ view: 'verses', book: 'John', chapter: '3', verse: '16', sheet: { kind: 'history', page: '<script>' } }), null);
 
 assert.match(bible, /var appSheetState = \{[\s\S]*pointer: null,[\s\S]*settleTimer: null,[\s\S]*contentCleanup: null/);
+assert.match(bible, /pendingHistoryClose: false/);
 assert.match(bible, /function installAppSheetListeners\(\)[\s\S]*if \(appSheetListenersInstalled\) return;[\s\S]*appSheetHandle\.addEventListener\('pointerdown'/);
 assert.equal((bible.match(/installAppSheetListeners\(\);/g) || []).length, 1, 'listener installation has one startup call');
 assert.match(bible, /setPointerCapture\(e\.pointerId\)/);
@@ -148,6 +149,7 @@ function fakeElement() {
     },
     dispatch(type, event = {}) {
       event.target = event.target || this;
+      event.currentTarget = this;
       (listeners[type] || []).forEach(fn => fn(event));
     },
     setPointerCapture(id) { captures.add(id); },
@@ -177,6 +179,8 @@ const cancelledFrames = [];
 let nextTimer = 1;
 const timers = new Map();
 const cancelledTimers = [];
+let popupCloseCalls = 0;
+let textSelectionActive = false;
 const controllerContext = {
   Math,
   Date,
@@ -189,13 +193,17 @@ const controllerContext = {
   window: {
     clearTimeout(id) { cancelledTimers.push(id); timers.delete(id); },
     setTimeout(fn) { const id = nextTimer++; timers.set(id, fn); return id; },
+    getSelection() { return { isCollapsed: !textSelectionActive }; },
     location: { href: 'https://example.invalid/bible.html' }
   },
   history: {
-    pushState(...args) { historyCalls.push.push(args); },
-    replaceState(...args) { historyCalls.replace.push(args); },
+    state: null,
+    pushState(...args) { this.state = args[0]; historyCalls.push.push(args); },
+    replaceState(...args) { this.state = args[0]; historyCalls.replace.push(args); },
     back() { historyCalls.back += 1; }
   },
+  closeMenus() { popupCloseCalls += 1; },
+  fabPanelHistoryOpen: false,
   currentNavStateForHistory() { return { view: 'verses', book: 'John', chapter: '3', verse: '16' }; },
   shouldReduceVerseMotion() { return reduceMotion; },
   requestAnimationFrame(fn) { const id = nextFrame++; frames.set(id, fn); return id; },
@@ -345,5 +353,104 @@ assert.equal(historyCalls.back, backsBeforeCloseButton + 1, 'explicit close butt
 assert.equal(dialog.open, true, 'history-owned close button waits for popstate');
 api.pop({ view: 'verses', book: 'John', chapter: '3', verse: '16' });
 assert.equal(dialog.open, false, 'close-button dismissal converges on closure after popstate');
+
+api.pop({ view: 'verses', book: 'John', chapter: '3', verse: '16', sheet: { kind: 'history' } });
+const backsBeforeDoubleClose = historyCalls.back;
+assert.equal(api.close('first'), true);
+assert.equal(api.state.pendingHistoryClose, true);
+assert.equal(api.close('second'), true, 'repeat dismiss while back is pending is idempotently handled');
+assert.equal(historyCalls.back, backsBeforeDoubleClose + 1, 'double dismiss requests exactly one history.back');
+assert.equal(api.open('search', { page: 'during-close' }), false, 'open is rejected while history close is pending');
+assert.equal(api.state.pendingHistoryClose, true, 'rejected reopen cannot race the pending traversal');
+assert.equal(dialog.open, true);
+api.pop({ view: 'verses', book: 'John', chapter: '3', verse: '16' });
+assert.equal(dialog.open, false);
+assert.equal(api.state.pendingHistoryClose, false, 'popstate clears pending close state');
+
+controllerContext.history.state = {
+  view: 'verses', book: 'John', chapter: '3', verse: '16', popup: 'menu'
+};
+controllerContext.fabPanelHistoryOpen = true;
+const popupClosesBefore = popupCloseCalls;
+const popupReplacesBefore = historyCalls.replace.length;
+const popupPushesBefore = historyCalls.push.length;
+assert.equal(api.open('history', { opener }), true);
+assert.equal(popupCloseCalls, popupClosesBefore + 1, 'opening a sheet closes an underlying popup menu');
+assert.equal(controllerContext.fabPanelHistoryOpen, false);
+assert.equal(historyCalls.replace.length, popupReplacesBefore + 1, 'popup state is normalized in place');
+assert.equal(historyCalls.replace.at(-1)[0].popup, undefined);
+assert.equal(historyCalls.push.length, popupPushesBefore + 1, 'sheet then pushes over the canonical reader entry');
+api.close('popup-normalized');
+api.pop({ view: 'verses', book: 'John', chapter: '3', verse: '16' });
+
+api.pop({ view: 'verses', book: 'John', chapter: '3', verse: '16', sheet: { kind: 'history' } });
+body.scrollTop = 40;
+body.scrollHeight = 800;
+body.clientHeight = 400;
+body.dispatch('pointerdown', {
+  isPrimary: true, button: 0, pointerId: 20, clientX: 10, clientY: 10, timeStamp: 1
+});
+let bodyPrevented = 0;
+body.dispatch('pointermove', {
+  pointerId: 20, clientX: 11, clientY: 30, timeStamp: 20, preventDefault() { bodyPrevented += 1; }
+});
+assert.equal(api.state.pointer, null, 'body drag does not transfer away from a scroll boundary');
+assert.equal(bodyPrevented, 0);
+assert.equal(body.hasPointerCapture(20), false);
+
+body.scrollTop = 0;
+body.dispatch('pointerdown', {
+  isPrimary: true, button: 0, pointerId: 21, clientX: 10, clientY: 10, timeStamp: 30
+});
+body.dispatch('pointermove', {
+  pointerId: 21, clientX: 11, clientY: 35, timeStamp: 50, preventDefault() { bodyPrevented += 1; }
+});
+assert.equal(api.state.pointer.id, 21, 'body drag transfers to sheet at the relevant boundary');
+assert.equal(body.hasPointerCapture(21), true);
+assert.equal(bodyPrevented, 1);
+body.dispatch('pointercancel', { pointerId: 21, clientY: 35 });
+assert.equal(body.hasPointerCapture(21), false);
+
+const interactiveTarget = { closest() { return this; } };
+body.dispatch('pointerdown', {
+  isPrimary: true, button: 0, pointerId: 22, clientX: 10, clientY: 10, timeStamp: 60,
+  target: interactiveTarget
+});
+assert.equal(api.state.pointer, null, 'body drag ignores controls and selectable interactive content');
+
+textSelectionActive = true;
+body.dispatch('pointerdown', {
+  isPrimary: true, button: 0, pointerId: 24, clientX: 10, clientY: 10, timeStamp: 65
+});
+assert.equal(api.state.pointer, null, 'body drag does not steal an active text selection');
+textSelectionActive = false;
+
+body.dispatch('pointerdown', {
+  isPrimary: true, button: 0, pointerId: 23, clientX: 10, clientY: 10, timeStamp: 70
+});
+body.dispatch('pointermove', {
+  pointerId: 23, clientX: 35, clientY: 11, timeStamp: 80, preventDefault() { bodyPrevented += 1; }
+});
+assert.equal(api.state.pointer, null, 'horizontal body gesture is released to pager/content');
+assert.equal(body.hasPointerCapture(23), false);
+
+api.snap('fullscreen', true);
+handle.dispatch('pointerdown', {
+  isPrimary: true, button: 0, pointerId: 30, clientX: 10, clientY: 100, timeStamp: 100
+});
+handle.dispatch('pointermove', {
+  pointerId: 30, clientX: 11, clientY: 120, timeStamp: 120, preventDefault() {}
+});
+handle.dispatch('pointerup', { pointerId: 30, clientY: 120, timeStamp: 201 });
+assert.equal(api.state.snap, 'fullscreen', 'velocity expires after an 81ms hold');
+
+handle.dispatch('pointerdown', {
+  isPrimary: true, button: 0, pointerId: 31, clientX: 10, clientY: 100, timeStamp: 300
+});
+handle.dispatch('pointermove', {
+  pointerId: 31, clientX: 11, clientY: 120, timeStamp: 320, preventDefault() {}
+});
+handle.dispatch('pointerup', { pointerId: 31, clientY: 120, timeStamp: 400 });
+assert.equal(api.state.snap, 'compact', 'velocity remains fresh through the exact 80ms window');
 
 console.log('bible sheet controller tests passed');
