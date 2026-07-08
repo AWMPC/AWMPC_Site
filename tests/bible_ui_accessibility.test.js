@@ -200,7 +200,7 @@ assert.match(bible, /closeMenus\(\{ exceptFab: true, keepHistory: true \}\);[\s\
 assert.match(bible, /closeMenus\(\{ exceptMenu: menu, keepHistory: true \}\);[\s\S]*ensurePopupHistory\(true\);[\s\S]*menu\.classList\.add\('open'\);/);
 assert.match(bible, /if \(open\) openFabPanel\(true\);/);
 assert.match(bible, /else closeMenus\(\);/);
-assert.doesNotMatch(bible, /height: 100dvh;/);
+assert.doesNotMatch(bible, /\.fab-panel \{[^}]*height: 100dvh;/);
 assert.doesNotMatch(bible, /\.fab-root:has\(\.fab-panel\.open\) \.fab-main/);
 assert.doesNotMatch(bible, /id="fab-close"/);
 assert.doesNotMatch(bible, /fabClose\.addEventListener\('click'/);
@@ -227,6 +227,8 @@ assert.doesNotMatch(bible, /authArea\.appendChild\(outBtn\);/);
 assert.match(bible, /inBtn\.className = 'dd-item dd-signin-button';/);
 
 assert.match(bible, /id="fn-verse"/);
+assert.match(bible, /<dialog id="app-sheet" class="app-sheet edge-bottom snap-compact" aria-labelledby="app-sheet-title">/);
+assert.match(bible, /<button type="button" id="app-sheet-close" class="app-sheet-close" aria-label="Close">/);
 assert.match(bible, /function showVersePickerView\(bookName, chapterNum\)/);
 assert.match(bible, /view: 'verse-picker'/);
 assert.match(bible, /fnVerse\.textContent = activeVerse \? activeVerse : '1';/);
