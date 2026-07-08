@@ -1,7 +1,7 @@
 # Bible Marquee Border Isolation Design
 
 Date: 2026-07-08
-Status: Approved in conversation; awaiting written-spec review
+Status: Approved for implementation
 
 ## Problem
 
