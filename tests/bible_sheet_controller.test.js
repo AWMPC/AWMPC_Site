@@ -4,7 +4,8 @@ const path = require('node:path');
 const vm = require('node:vm');
 
 const root = path.resolve(__dirname, '..');
-const bible = fs.readFileSync(path.join(root, 'bible.html'), 'utf8');
+const biblePath = process.env.BIBLE_UNDER_TEST || path.join(root, 'bible.html');
+const bible = fs.readFileSync(biblePath, 'utf8');
 
 const dialogs = [...bible.matchAll(/<dialog\b[^>]*\bid="app-sheet"[^>]*>/g)];
 assert.equal(dialogs.length, 1, 'one persistent app sheet dialog is present');
@@ -322,5 +323,27 @@ assert.ok(pendingSettleTimer, 'animated close stores its settle timer');
 api.pop({ view: 'verses', book: 'John', chapter: '3', verse: '16', sheet: { kind: 'history' } });
 assert.ok(cancelledTimers.includes(pendingSettleTimer), 'reopen cancels the pending settle timer');
 reduceMotion = true;
+
+api.snap('compact', true);
+const releasesBeforePointerUp = handle.releaseCount;
+handle.dispatch('pointerdown', {
+  isPrimary: true, button: 0, pointerId: 9, clientX: 20, clientY: 120, timeStamp: 1
+});
+handle.dispatch('pointermove', {
+  pointerId: 9, clientX: 21, clientY: 20, timeStamp: 101, preventDefault() {}
+});
+const pointerUpFrame = api.state.frame;
+handle.dispatch('pointerup', { pointerId: 9, clientY: 20 });
+assert.equal(api.state.snap, 'fullscreen', 'pointerup settles an inward bottom drag to fullscreen');
+assert.equal(api.state.pointer, null, 'pointerup clears pointer state');
+assert.ok(cancelledFrames.includes(pointerUpFrame), 'pointerup cancels the pending drag RAF');
+assert.equal(handle.releaseCount, releasesBeforePointerUp + 1, 'pointerup releases held pointer capture');
+
+const backsBeforeCloseButton = historyCalls.back;
+close.dispatch('click');
+assert.equal(historyCalls.back, backsBeforeCloseButton + 1, 'explicit close button uses requestCloseAppSheet/history.back');
+assert.equal(dialog.open, true, 'history-owned close button waits for popstate');
+api.pop({ view: 'verses', book: 'John', chapter: '3', verse: '16' });
+assert.equal(dialog.open, false, 'close-button dismissal converges on closure after popstate');
 
 console.log('bible sheet controller tests passed');
