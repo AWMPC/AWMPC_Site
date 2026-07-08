@@ -411,6 +411,49 @@ assert.equal(bodyPrevented, 1);
 body.dispatch('pointercancel', { pointerId: 21, clientY: 35 });
 assert.equal(body.hasPointerCapture(21), false);
 
+api.snap('compact', true);
+body.scrollTop = 0;
+body.dispatch('pointerdown', {
+  isPrimary: true, button: 0, pointerId: 40, clientX: 10, clientY: 10, timeStamp: 100
+});
+body.dispatch('pointermove', {
+  pointerId: 40, clientX: 11, clientY: 40, timeStamp: 120, preventDefault() {}
+});
+const appliedBodyFrame = api.state.frame;
+frames.get(appliedBodyFrame)();
+frames.delete(appliedBodyFrame);
+assert.equal(dialog.style.getPropertyValue('--sheet-drag-offset'), '30px');
+assert.equal(body.hasPointerCapture(40), true);
+body.dispatch('pointermove', {
+  pointerId: 40, clientX: 11, clientY: 0, timeStamp: 140, preventDefault() {}
+});
+assert.equal(api.state.pointer, null, 'boundary reversal clears an applied body drag');
+assert.equal(body.hasPointerCapture(40), false);
+assert.equal(dialog.style.getPropertyValue('--sheet-drag-offset'), '');
+assert.equal(dialog.style.getPropertyValue('--sheet-backdrop-opacity'), '');
+assert.equal(api.state.snap, 'compact');
+assert.equal(dialog.classList.contains('snap-compact'), true);
+assert.equal(dialog.classList.contains('no-motion'), false, 'boundary reset restores stable transitions');
+
+body.dispatch('pointerdown', {
+  isPrimary: true, button: 0, pointerId: 41, clientX: 10, clientY: 10, timeStamp: 200
+});
+body.dispatch('pointermove', {
+  pointerId: 41, clientX: 11, clientY: 40, timeStamp: 220, preventDefault() {}
+});
+const pendingBodyFrame = api.state.frame;
+assert.ok(pendingBodyFrame);
+body.dispatch('pointermove', {
+  pointerId: 41, clientX: 11, clientY: 0, timeStamp: 240, preventDefault() {}
+});
+assert.equal(api.state.pointer, null, 'boundary reversal clears a pending body drag');
+assert.equal(api.state.frame, null);
+assert.ok(cancelledFrames.includes(pendingBodyFrame), 'boundary reversal cancels pending body RAF');
+assert.equal(body.hasPointerCapture(41), false);
+assert.equal(dialog.style.getPropertyValue('--sheet-drag-offset'), '');
+assert.equal(dialog.style.getPropertyValue('--sheet-backdrop-opacity'), '');
+assert.equal(api.state.snap, 'compact');
+
 const interactiveTarget = { closest() { return this; } };
 body.dispatch('pointerdown', {
   isPrimary: true, button: 0, pointerId: 22, clientX: 10, clientY: 10, timeStamp: 60,

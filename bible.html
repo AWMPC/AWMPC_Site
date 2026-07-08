@@ -2489,7 +2489,7 @@
       appSheetBodyBoundaryAllowsDrag(appSheetState.edge, direction, appSheetBody.scrollTop,
         appSheetBody.clientHeight, appSheetBody.scrollHeight);
     if (!boundaryAllows) {
-      if (!pointer.fromHandle) releaseAppSheetPointer();
+      if (!pointer.fromHandle) resetAppSheetPointer();
       return;
     }
     if (!pointer.captured) {
