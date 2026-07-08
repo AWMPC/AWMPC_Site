@@ -39,22 +39,25 @@ function uiApplicationProgram() {
 
 function executeApplication(source, scale) {
   const writes = {};
+  const calls = [];
   const document = { documentElement: { style: { setProperty(name, value) { writes[name] = value; } } } };
   const textScaleSelect = { value: '' };
   const State = { setTextScale() {} };
   const scheduleBottomChromeClearanceUpdate = () => {};
   const scheduleMarqueeMeasure = () => {};
+  const scheduleSelectionGridLayout = () => { calls.push('selection-layout'); };
   const run = Function(
     'document',
     'textScaleSelect',
     'State',
     'scheduleBottomChromeClearanceUpdate',
     'scheduleMarqueeMeasure',
+    'scheduleSelectionGridLayout',
     'scale',
     `${source}\napplyTextScale(scale, false);`
   );
-  run(document, textScaleSelect, State, scheduleBottomChromeClearanceUpdate, scheduleMarqueeMeasure, scale);
-  return writes;
+  run(document, textScaleSelect, State, scheduleBottomChromeClearanceUpdate, scheduleMarqueeMeasure, scheduleSelectionGridLayout, scale);
+  return { writes, calls };
 }
 
 test('ordinary UI geometry uses exact shrink-only values at every Text Scale', () => {
@@ -86,7 +89,7 @@ test('Text Scale application writes all exact UI values and each write is mutati
   };
 
   for (const [scale, values] of Object.entries(expected)) {
-    const writes = executeApplication(program, Number(scale));
+    const { writes } = executeApplication(program, Number(scale));
     assert.deepEqual(uiVariableNames.map((name) => writes[name]), values, `writes at ${scale}%`);
   }
 
@@ -96,7 +99,23 @@ test('Text Scale application writes all exact UI values and each write is mutati
     const escapedName = name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
     const write = new RegExp(`document\\.documentElement\\.style\\.setProperty\\('${escapedName}',[^;]+;`);
     const mutated = program.replace(write, `void ('${name}');`);
-    assert.equal(executeApplication(mutated, 50)[name], undefined, `mutation must remove ${name}`);
+    assert.equal(executeApplication(mutated, 50).writes[name], undefined, `mutation must remove ${name}`);
+  }
+});
+
+test('Text Scale records the full scale and schedules selection layout after geometry writes', () => {
+  const program = uiApplicationProgram();
+  const application = extract(/function applyTextScale\(value, persist\) \{[\s\S]*?\n  \}/, 'Text Scale application missing');
+  const assignment = application.indexOf('currentSelectionScale = scale;');
+  const finalGeometryWrite = application.indexOf("document.documentElement.style.setProperty('--ui-view-pad'");
+  const schedule = application.indexOf('scheduleSelectionGridLayout();');
+  assert.ok(assignment >= 0, 'current selection scale must be recorded');
+  assert.ok(assignment < schedule, 'scale is recorded before layout scheduling');
+  assert.ok(finalGeometryWrite < schedule, 'layout scheduling follows all geometry writes');
+
+  for (const scale of [50, 75, 100, 125, 150]) {
+    const result = executeApplication(program, scale);
+    assert.deepEqual(result.calls, ['selection-layout'], `one selection layout at ${scale}%`);
   }
 });
 

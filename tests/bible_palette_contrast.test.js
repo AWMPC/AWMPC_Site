@@ -11,7 +11,7 @@ const seasonalCore = [
   'note-bg', 'note-border', 'pill-bg'
 ];
 const derived = [
-  'verse-bg', 'fab-bg', 'fab-fg',
+  'verse-bg', 'verse-active-border', 'fab-bg', 'fab-fg',
   'float-nav-bg', 'float-nav-fg', 'float-nav-shadow',
   'card-bg', 'card-border', 'menu-bg', 'menu-shadow', 'hover-bg', 'shadow'
 ];
@@ -23,15 +23,15 @@ const seasonModes = [
 ];
 const selectionFillModes = [
   [':root', '#e8eff7', '#f4f7fb'],
-  ['html.dark', '#0a0e14', '#111722'],
+  ['html.dark', '#05080d', '#111722'],
   ['html[data-season="spring"]', '#e8f3e2', '#f3faef'],
-  ['html[data-season="spring"].dark', '#0b140d', '#101a11'],
+  ['html[data-season="spring"].dark', '#061008', '#101a11'],
   ['html[data-season="summer"]', '#f5edca', '#fff9df'],
-  ['html[data-season="summer"].dark', '#171207', '#1e190d'],
+  ['html[data-season="summer"].dark', '#100b03', '#1e190d'],
   ['html[data-season="fall"]', '#f6e2d4', '#fff3e8'],
-  ['html[data-season="fall"].dark', '#190d08', '#22120c'],
+  ['html[data-season="fall"].dark', '#100704', '#22120c'],
   ['html[data-season="winter"]', '#e6f1fa', '#eef7ff'],
-  ['html[data-season="winter"].dark', '#08131d', '#0d1b28']
+  ['html[data-season="winter"].dark', '#040d14', '#0d1b28']
 ];
 const formerLightSurfaces = new Map([
   [':root', '#e2ebf5'],
@@ -88,6 +88,14 @@ function contrast(a, b) {
   return (values[0] + 0.05) / (values[1] + 0.05);
 }
 
+function mixSrgb(foreground, background, foregroundWeight) {
+  const backgroundChannels = rgb(background);
+  const channels = rgb(foreground).map((channel, index) => (
+    Math.round(channel * foregroundWeight + backgroundChannels[index] * (1 - foregroundWeight))
+  ));
+  return `#${channels.map((channel) => channel.toString(16).padStart(2, '0')).join('')}`;
+}
+
 function compositeRgba(value, background) {
   const match = value.match(/^rgba\((\d+),(\d+),(\d+),([.\d]+)\)$/);
   assert.ok(match, `expected rgba boundary, got ${value}`);
@@ -119,6 +127,7 @@ test('every palette owns its approved background and readable direct selection f
     const fill = declaration(block, 'selection-fill');
     assert.equal(background, expectedBackground, `${selector} background changed`);
     assert.equal(fill, expectedFill, `${selector} selection fill changed`);
+    assert.ok(contrast(declaration(block, 'fg'), background) >= 4.5, `${selector} foreground on reader background is below 4.5:1`);
     assert.ok(contrast(declaration(block, 'fg'), fill) >= 4.5, `${selector} foreground on selection fill is below 4.5:1`);
 
     if (formerLightSurfaces.has(selector)) {
@@ -127,6 +136,7 @@ test('every palette owns its approved background and readable direct selection f
     }
     if (selector.endsWith('.dark')) {
       assert.ok(luminance(fill) > luminance(background), `${selector} dark selection fill must be barely lighter than its background`);
+      assert.ok(contrast(fill, background) >= 1.08, `${selector} dark selection fill is below 1.08:1 against its background`);
     }
   }
 });
@@ -152,9 +162,19 @@ test('ordinary UI aliases derive from season primitives without base blue litera
   }
 });
 
-test('verses reserve the seasonal accent border for the active selection', () => {
+test('verses reserve the derived seasonal border for the active selection', () => {
   const root = cssBlock(':root');
   assert.equal(declaration(root, 'verse-highlight'), 'var(--hover-bg)');
+  assert.equal(declaration(root, 'verse-active-border'), 'color-mix(in srgb, var(--accent) 60%, var(--selection-fill))');
+
+  const darkModes = selectionFillModes.filter(([mode]) => mode.endsWith('.dark'));
+  assert.equal(darkModes.length, 5, 'expected base plus four seasonal dark palettes');
+  for (const [selector] of darkModes) {
+    const block = cssBlock(selector);
+    const fill = declaration(block, 'selection-fill');
+    const mixedBorder = mixSrgb(declaration(block, 'accent'), fill, 0.6);
+    assert.ok(contrast(mixedBorder, fill) >= 3, `${selector} active border is below 3:1 against its selection fill`);
+  }
 
   const verse = cssBlock('.verse');
   assert.match(verse, /background:\s*transparent/);
@@ -162,12 +182,14 @@ test('verses reserve the seasonal accent border for the active selection', () =>
 
   const active = cssBlock('.verse.active');
   assert.match(active, /background:\s*var\(--selection-fill\)/);
-  assert.match(active, /border-color:\s*var\(--accent\)/);
+  assert.match(active, /border-color:\s*var\(--verse-active-border\)/);
+  assert.doesNotMatch(active, /border-color:\s*var\(--accent\)/);
   assert.match(active, /border-width:\s*1px/);
-  assert.match(active, /box-shadow:\s*0 8px 28px var\(--accent-glow\)/);
+  assert.doesNotMatch(active, /box-shadow\s*:/);
 
   const focusVisible = cssBlock('.verse:focus-visible');
-  assert.match(focusVisible, /outline:\s*none/);
+  assert.match(focusVisible, /outline:\s*2px solid var\(--verse-active-border\)/);
+  assert.match(focusVisible, /outline-offset:\s*2px/);
 
   const footnotesOpen = cssBlock('.verse.footnotes-open');
   const footnoteDeclarations = [...footnotesOpen.matchAll(/(?:^|;)\s*([\w-]+)\s*:/g)]
@@ -177,7 +199,23 @@ test('verses reserve the seasonal accent border for the active selection', () =>
   assert.doesNotMatch(bible, /found-highlight/);
   assert.doesNotMatch(bible, /startVerseFoundTransition|clearVerseHighlightTransition|verseHighlight(?:Target|Frame|CleanupTimer)/);
 
-  const verseRules = [...bible.matchAll(/([^{}]*\.verse(?![-\w])[^{}]*)\{([^}]*)\}/g)];
+  const stylesheet = bible.match(/<style>([\s\S]*?)<\/style>/);
+  assert.ok(stylesheet, 'missing stylesheet');
+  const cssRules = [...stylesheet[1].matchAll(/([^{}]+)\{([^{}]*)\}/g)];
+  const activeVerseRules = cssRules.filter(([, selectorGroup]) => (
+    selectorGroup.split(',').some((selector) => /\.verse\.active(?![-\w])/.test(selector.trim()))
+  ));
+  assert.ok(activeVerseRules.length > 0, 'missing active verse rule');
+  for (const [, selectorGroup, body] of activeVerseRules) {
+    assert.doesNotMatch(body, /box-shadow\s*:/, `${selectorGroup.trim()} adds an active verse shadow`);
+    assert.doesNotMatch(
+      body,
+      /(?:^|;)\s*border(?:-[\w-]+)?\s*:[^;]*var\(\s*--accent\s*\)[^;]*(?:;|$)/,
+      `${selectorGroup.trim()} directly restores the raw accent border`
+    );
+  }
+
+  const verseRules = cssRules.filter(([, selectorGroup]) => /\.verse(?![-\w])/.test(selectorGroup));
   for (const [, selectorGroup, body] of verseRules) {
     for (const selector of selectorGroup.split(',').map((selector) => selector.trim())) {
       const isActiveVerse = /\.verse\.active(?:[:\s]|$)/.test(selector);

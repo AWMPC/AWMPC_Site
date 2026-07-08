@@ -50,6 +50,7 @@
     --ui-radius: 20px;
     --ui-grid-gap: 8px;
     --ui-view-pad: 12px;
+    --selection-grid-columns: 3;
     --display-panel-width: 360px;
     --display-viewport-inset: 12px;
     --display-panel-motion-offset: 6px;
@@ -66,6 +67,7 @@
     --note-bg: rgba(11,99,206,.08); --note-border: #0b63ce;
     --err-bg: rgba(196,56,50,.12); --err-fg: #9f211d;
     --verse-bg: var(--bg2);
+    --verse-active-border: color-mix(in srgb, var(--accent) 60%, var(--selection-fill));
     --fab-bg: var(--surface-hi); --fab-fg: var(--accent);
     --float-nav-bg: color-mix(in srgb, var(--surface-hi) 92%, transparent);
     --float-nav-fg: var(--fg);
@@ -91,7 +93,7 @@
     --bottom-chrome-clearance: calc(var(--display-control-height) + (var(--display-nav-padding) * 2) + 20px);
   }
   html.dark {
-    --bg: #0a0e14; --bg2: #171c28; --bg3: #111722; --bg4: #1e2538;
+    --bg: #05080d; --bg2: #171c28; --bg3: #111722; --bg4: #1e2538;
     --surface: #171c28;
     --surface-hi: #1e2538;
     --fg: #edf0f7; --fg2: #c7cfdd; --fg3: #aeb7c7; --fg4: #929bad;
@@ -119,7 +121,7 @@
     --pill-bg: rgba(47,125,50,.1);
   }
   html[data-season="spring"].dark {
-    --bg: #0b140d; --bg2: #162419; --bg3: #132016; --bg4: #203323;
+    --bg: #061008; --bg2: #162419; --bg3: #132016; --bg4: #203323;
     --surface: #162419; --surface-hi: #203323;
     --fg: #ecf7e8; --fg2: #c8dec2; --fg3: #a9c4a4; --fg4: #91aa8e;
     --border: rgba(236,247,232,.50); --border2: rgba(236,247,232,.60); --border3: rgba(236,247,232,.72);
@@ -143,7 +145,7 @@
     --pill-bg: rgba(154,108,16,.1);
   }
   html[data-season="summer"].dark {
-    --bg: #171207; --bg2: #2a2413; --bg3: #251f11; --bg4: #3a3118;
+    --bg: #100b03; --bg2: #2a2413; --bg3: #251f11; --bg4: #3a3118;
     --surface: #2a2413; --surface-hi: #3a3118;
     --fg: #fff5ce; --fg2: #e8dcae; --fg3: #cdbf8e; --fg4: #b4a67c;
     --border: rgba(255,245,206,.50); --border2: rgba(255,245,206,.60); --border3: rgba(255,245,206,.72);
@@ -167,7 +169,7 @@
     --pill-bg: rgba(185,77,25,.1);
   }
   html[data-season="fall"].dark {
-    --bg: #190d08; --bg2: #301b13; --bg3: #291710; --bg4: #42251a;
+    --bg: #100704; --bg2: #301b13; --bg3: #291710; --bg4: #42251a;
     --surface: #301b13; --surface-hi: #42251a;
     --fg: #ffe9d8; --fg2: #edcbb4; --fg3: #d1ad95; --fg4: #b99580;
     --border: rgba(255,233,216,.50); --border2: rgba(255,233,216,.60); --border3: rgba(255,233,216,.72);
@@ -191,7 +193,7 @@
     --pill-bg: rgba(20,111,163,.1);
   }
   html[data-season="winter"].dark {
-    --bg: #08131d; --bg2: #122130; --bg3: #0f1c29; --bg4: #1b3042;
+    --bg: #040d14; --bg2: #122130; --bg3: #0f1c29; --bg4: #1b3042;
     --surface: #122130; --surface-hi: #1b3042;
     --fg: #e9f6ff; --fg2: #c5ddeb; --fg3: #a5c2d3; --fg4: #8ba9bb;
     --border: rgba(233,246,255,.50); --border2: rgba(233,246,255,.60); --border3: rgba(233,246,255,.72);
@@ -334,8 +336,8 @@
     }
   }
   @keyframes marquee-sway {
-    from { transform: translateX(0); }
-    to { transform: translateX(calc(var(--marquee-distance, 0px) * -1)); }
+    0%, 18% { transform: translateX(0); }
+    82%, 100% { transform: translateX(calc(var(--marquee-distance, 0px) * -1)); }
   }
   button:active,
   .dd-item:active,
@@ -416,6 +418,7 @@
     flex: 0 1 auto; flex-basis: var(--floating-nav-book-width); width: var(--floating-nav-book-width); max-width: var(--floating-nav-book-width);
     font-weight: 600; min-width: 0; overflow: hidden; white-space: nowrap;
   }
+  .floating-nav .fn-book.is-marquee { justify-content: flex-start; }
   .floating-nav .fn-book .marquee-line { width: 100%; }
   .floating-nav .fn-chapter,
   .floating-nav .fn-verse {
@@ -858,7 +861,7 @@
   /* Chapters view */
   .chapters-header { font-size: var(--text-22); margin-bottom: 14px; color: var(--fg); overflow: hidden; white-space: nowrap; }
   .chapter-grid {
-    display: grid; grid-template-columns: repeat(auto-fill, minmax(52px, 1fr)); gap: var(--ui-grid-gap);
+    display: grid; grid-template-columns: repeat(var(--selection-grid-columns), minmax(0, 1fr)); gap: var(--ui-grid-gap);
   }
   .chapter-btn {
     display: flex; align-items: center; justify-content: center;
@@ -873,7 +876,7 @@
   .chapter-btn:hover { background: var(--hover-bg); border-color: var(--accent); }
   .chapter-btn.active { background: var(--accent); color: var(--accent-fg); border-color: var(--accent); }
   .verse-grid {
-    display: grid; grid-template-columns: repeat(auto-fill, minmax(58px, 1fr)); gap: var(--ui-grid-gap);
+    display: grid; grid-template-columns: repeat(var(--selection-grid-columns), minmax(0, 1fr)); gap: var(--ui-grid-gap);
   }
 
   /* Verses view */
@@ -894,11 +897,10 @@
   }
   .verse.active {
     background: var(--selection-fill);
-    border-color: var(--accent);
+    border-color: var(--verse-active-border);
     border-width: 1px;
-    box-shadow: 0 8px 28px var(--accent-glow);
   }
-  .verse:focus-visible { outline: none; }
+  .verse:focus-visible { outline: 2px solid var(--verse-active-border); outline-offset: 2px; }
   .verse-num { font-size: .7em; font-weight: 700; color: var(--verse-num); vertical-align: super; margin-right: .2em; }
   .verse-edge-spacer,
   .verse-head-spacer,
@@ -1364,6 +1366,20 @@
     gridGap: 8,
     viewPad: 12
   };
+  var BASE_SELECTION_CELL_WIDTH = 58;
+
+  function selectionCellWidthForScale(scale) {
+    if (typeof scale !== 'number' || !isFinite(scale) || scale <= 0) scale = DEFAULT_TEXT_SCALE;
+    return BASE_SELECTION_CELL_WIDTH * scale / 100;
+  }
+
+  function selectionGridColumnCount(width, cellWidth, gap) {
+    if (typeof width !== 'number' || !isFinite(width) || width < 0) width = 0;
+    if (typeof cellWidth !== 'number' || !isFinite(cellWidth) || cellWidth <= 0) cellWidth = BASE_SELECTION_CELL_WIDTH;
+    if (typeof gap !== 'number' || !isFinite(gap) || gap < 0) gap = 0;
+    var raw = Math.floor((width + gap) / (cellWidth + gap));
+    return Math.max(3, Math.floor(raw / 3) * 3);
+  }
 
   function readerDetailForScale(scale) {
     var factor = Math.min(scale, 100) / 100;
@@ -2080,6 +2096,10 @@
   var cancelVerseActionsButton = document.getElementById('cancel-verse-actions');
   document.getElementById('app-version').textContent = APP_VERSION;
   var bottomChromeResizeObserver = null;
+  var activeSelectionGrid = null;
+  var selectionGridResizeObserver = null;
+  var selectionGridFrame = null;
+  var currentSelectionScale = DEFAULT_TEXT_SCALE;
 
   var bibleData = null;
   var currentBook = null;
@@ -2100,6 +2120,7 @@
   var verseChaseDestinationTop = 0;
   var verseChaseStartTime = null;
   var verseChaseDuration = 0;
+  var programmaticVerseScroll = false;
   var CHAPTER_CROSSFADE_MS = 200;
   var chapterCrossfadeTimer = null;
   var preservingChapterCrossfade = false;
@@ -2114,6 +2135,7 @@
   var uiView = 'books';
   function setUIView(nextView) {
     uiView = nextView;
+    if (nextView !== 'verses') endProgrammaticVerseScroll();
     viewInner.classList.toggle('reader-gestures', nextView === 'verses');
   }
   var booksHTML = null;
@@ -2156,6 +2178,41 @@
     });
   }
 
+  function updateSelectionGridLayout() {
+    selectionGridFrame = null;
+    var grid = activeSelectionGrid;
+    if (!grid || grid.isConnected === false || !viewInner.contains(grid)) return;
+    var width = grid.clientWidth;
+    if (typeof width !== 'number' || !isFinite(width) || width <= 0) return;
+    var gap = parseFloat(window.getComputedStyle(grid).columnGap);
+    var columns = selectionGridColumnCount(width, selectionCellWidthForScale(currentSelectionScale), gap);
+    grid.style.setProperty('--selection-grid-columns', String(columns));
+  }
+
+  function scheduleSelectionGridLayout() {
+    if (selectionGridFrame !== null) return;
+    selectionGridFrame = requestAnimationFrame(updateSelectionGridLayout);
+  }
+
+  function disconnectSelectionGridLayout() {
+    if (selectionGridResizeObserver) selectionGridResizeObserver.disconnect();
+    activeSelectionGrid = null;
+    if (selectionGridFrame !== null) cancelAnimationFrame(selectionGridFrame);
+    selectionGridFrame = null;
+  }
+
+  function observeSelectionGrid(grid) {
+    if ('ResizeObserver' in window && !selectionGridResizeObserver) {
+      selectionGridResizeObserver = new ResizeObserver(scheduleSelectionGridLayout);
+    }
+    disconnectSelectionGridLayout();
+    activeSelectionGrid = grid || null;
+    if (!activeSelectionGrid) return;
+    if (selectionGridResizeObserver) selectionGridResizeObserver.observe(activeSelectionGrid);
+    if (activeSelectionGrid.clientWidth > 0) updateSelectionGridLayout();
+    else scheduleSelectionGridLayout();
+  }
+
   function setMarqueeText(el, value) {
     el.textContent = '';
     el.classList.add('marquee-line');
@@ -2194,6 +2251,7 @@
     window.addEventListener('resize', function () {
       updateBottomChromeClearance();
       scheduleMarqueeMeasure();
+      scheduleSelectionGridLayout();
     });
     window.addEventListener('orientationchange', function () {
       updateBottomChromeClearance();
@@ -2213,9 +2271,23 @@
     scheduleBottomChromeClearanceUpdate();
   }
 
+  function beginProgrammaticVerseScroll() {
+    programmaticVerseScroll = true;
+    lastViewScrollTop = viewEl.scrollTop;
+  }
+
+  function endProgrammaticVerseScroll() {
+    programmaticVerseScroll = false;
+    lastViewScrollTop = viewEl.scrollTop;
+  }
+
   function updateBottomChromeFromScroll() {
     bottomChromeScrollFrame = null;
     var nextTop = viewEl.scrollTop;
+    if (programmaticVerseScroll) {
+      lastViewScrollTop = nextTop;
+      return;
+    }
     var delta = nextTop - lastViewScrollTop;
     if (nextTop <= 4) setBottomChromeHidden(false);
     else if (Math.abs(delta) >= 8) setBottomChromeHidden(delta > 0);
@@ -2392,6 +2464,7 @@
   function applyTextScale(value, persist) {
     var scale = normalizeTextScale(value);
     if (scale === null) scale = DEFAULT_TEXT_SCALE;
+    currentSelectionScale = scale;
     BASE_TEXT_PIXELS.forEach(function (pixels) {
       var scaled = Math.round(pixels * scale) / 100;
       document.documentElement.style.setProperty('--text-' + pixels, scaled + 'px');
@@ -2429,6 +2502,7 @@
     if (persist !== false) State.setTextScale(scale);
     scheduleBottomChromeClearanceUpdate();
     scheduleMarqueeMeasure();
+    scheduleSelectionGridLayout();
   }
   applyTextScale(State.getTextScale(), false);
   if (textScaleSelect) {
@@ -3483,14 +3557,17 @@
     verseChaseDestinationTop = 0;
     verseChaseStartTime = null;
     verseChaseDuration = 0;
+    endProgrammaticVerseScroll();
   }
 
   function releaseVerseChaseForFreeScroll() {
     if (uiView === 'verses' && verseChaseTarget) stopVerseChase();
+    else endProgrammaticVerseScroll();
   }
 
   function setVerseChaseTarget(target) {
     if (!target) return;
+    beginProgrammaticVerseScroll();
     if (shouldReduceVerseMotion()) {
       viewEl.scrollTop = desiredVerseScrollTop(target);
       stopVerseChase();
@@ -3957,6 +4034,7 @@
     prepareToLeaveReadingView();
     stopVerseChase();
     viewEl.scrollTop = 0;
+    disconnectSelectionGridLayout();
     viewInner.textContent = '';
     if (!preservingChapterCrossfade) {
       viewInner.classList.remove('chapter-transition-ready', 'chapter-transition-in');
@@ -4006,6 +4084,7 @@
     prepareToLeaveReadingView();
     stopVerseChase();
     viewEl.scrollTop = 0;
+    disconnectSelectionGridLayout();
     viewInner.textContent = '';
     if (!preservingChapterCrossfade) {
       viewInner.classList.remove('chapter-transition-ready', 'chapter-transition-in');
@@ -4051,12 +4130,14 @@
     }
     card.appendChild(grid);
     viewInner.appendChild(card);
+    observeSelectionGrid(grid);
   }
 
   function showVersePickerView(bookName, chapterNum) {
     prepareToLeaveReadingView();
     stopVerseChase();
     viewEl.scrollTop = 0;
+    disconnectSelectionGridLayout();
     viewInner.textContent = '';
     if (!preservingChapterCrossfade) {
       viewInner.classList.remove('chapter-transition-ready', 'chapter-transition-in');
@@ -4096,6 +4177,7 @@
     }
     card.appendChild(grid);
     viewInner.appendChild(card);
+    observeSelectionGrid(grid);
   }
 
   // ===================== VIEW: VERSES =====================
@@ -4103,6 +4185,7 @@
     prepareToLeaveReadingView();
     stopVerseChase();
     viewEl.scrollTop = 0;
+    disconnectSelectionGridLayout();
     viewInner.textContent = '';
     if (!preservingChapterCrossfade) {
       viewInner.classList.remove('chapter-transition-ready', 'chapter-transition-in');
@@ -4332,6 +4415,7 @@
   function showSearchView() {
     prepareToLeaveReadingView();
     viewEl.scrollTop = 0;
+    disconnectSelectionGridLayout();
     viewInner.textContent = '';
     currentBook = null;
     currentChapter = null;

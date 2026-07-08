@@ -196,7 +196,7 @@ test('production hidden and scroll lifecycle shares one state and coalesces anim
   const viewEl = { scrollTop: 24 };
   const lifecycle = Function(
     'viewEl', 'requestAnimationFrame', 'setBottomChromeHidden',
-    `var lastViewScrollTop = 0; var bottomChromeScrollFrame = null;
+    `var lastViewScrollTop = 0; var bottomChromeScrollFrame = null; var programmaticVerseScroll = false;
      ${productionFunction('updateBottomChromeFromScroll')}
      ${productionFunction('scheduleBottomChromeScrollUpdate')}
      return { schedule: scheduleBottomChromeScrollUpdate, state: function () { return bottomChromeScrollFrame; } };`,
@@ -215,6 +215,71 @@ test('production hidden and scroll lifecycle shares one state and coalesces anim
   frames.delete(nextId);
   nextCallback();
   assert.deepEqual(hiddenStates, [true, false]);
+});
+
+test('programmatic verse scrolling advances the chrome baseline without changing visibility', () => {
+  const frames = [];
+  const hiddenStates = [];
+  const viewEl = { scrollTop: 0 };
+  const lifecycle = Function(
+    'viewEl', 'requestAnimationFrame', 'setBottomChromeHidden',
+    `var lastViewScrollTop = 0;
+     var bottomChromeScrollFrame = null;
+     var programmaticVerseScroll = false;
+     ${productionFunction('beginProgrammaticVerseScroll')}
+     ${productionFunction('endProgrammaticVerseScroll')}
+     ${productionFunction('updateBottomChromeFromScroll')}
+     ${productionFunction('scheduleBottomChromeScrollUpdate')}
+     return {
+       begin: beginProgrammaticVerseScroll,
+       end: endProgrammaticVerseScroll,
+       schedule: scheduleBottomChromeScrollUpdate,
+       baseline: function () { return lastViewScrollTop; },
+       programmatic: function () { return programmaticVerseScroll; }
+     };`,
+  )(viewEl, (callback) => { frames.push(callback); return frames.length; }, (value) => hiddenStates.push(value));
+  const runNextFrame = () => frames.shift()();
+
+  lifecycle.begin();
+  lifecycle.begin();
+  viewEl.scrollTop = 16;
+  lifecycle.schedule();
+  runNextFrame();
+  assert.deepEqual(hiddenStates, [], 'scripted downward movement does not hide chrome');
+  assert.equal(lifecycle.baseline(), 16, 'owned scroll events advance the baseline');
+
+  lifecycle.end();
+  lifecycle.end();
+  assert.equal(lifecycle.programmatic(), false, 'repeated cleanup remains released');
+  assert.equal(lifecycle.baseline(), 16, 'release synchronizes the final scripted position');
+  viewEl.scrollTop = 23;
+  lifecycle.schedule();
+  runNextFrame();
+  viewEl.scrollTop = 16;
+  lifecycle.schedule();
+  runNextFrame();
+  assert.deepEqual(hiddenStates, [], 'manual movement below the 8px threshold does not toggle chrome');
+
+  viewEl.scrollTop = 24;
+  lifecycle.schedule();
+  runNextFrame();
+  assert.deepEqual(hiddenStates, [true], 'later manual downward movement still hides chrome');
+
+  viewEl.scrollTop = 16;
+  lifecycle.schedule();
+  runNextFrame();
+  viewEl.scrollTop = 2;
+  lifecycle.schedule();
+  runNextFrame();
+  assert.deepEqual(hiddenStates, [true, false, false], 'manual upward movement and the top reveal behavior are unchanged');
+
+  lifecycle.begin();
+  viewEl.scrollTop = 18;
+  lifecycle.schedule();
+  lifecycle.end();
+  runNextFrame();
+  assert.deepEqual(hiddenStates, [true, false, false], 'a delayed final scripted scroll event cannot hide chrome');
+  assert.equal(lifecycle.baseline(), 18, 'delayed final events retain the released baseline');
 });
 
 test('clearance mutation guards reject missing critical writes and observations', () => {

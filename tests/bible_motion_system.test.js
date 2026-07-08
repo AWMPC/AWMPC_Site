@@ -49,6 +49,45 @@ test('key animation families share easing and reduced motion disables them', () 
   ]) {
     assert.match(reducedMotion, new RegExp(`${selector.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')} \\{[^}]*animation: none;`));
   }
+
+  assert.match(
+    css,
+    /\.marquee-line\.is-marquee \{\s*--marquee-left-fade: 0px;\s*--marquee-right-fade: 14px;/,
+    'the static marquee mask exposes the inline start'
+  );
+  const reducedMarquee = reducedMotion.match(/\.marquee-line\.is-marquee \{([^}]*)\}/);
+  assert.ok(reducedMarquee, 'reduced motion disables the marquee mask animation');
+  assert.match(reducedMarquee[1], /^\s*animation: none;\s*$/, 'reduced motion keeps the static start mask');
+  assert.match(
+    reducedMotion,
+    /\.marquee-line\.is-marquee \.marquee-text \{\s*animation: none;\s*transform: none;\s*\}/,
+    'reduced motion resets marquee translation to the readable start'
+  );
+});
+
+test('marquee translation holds at each edge while the mask fade clears', () => {
+  const marqueeMask = css.match(/@keyframes marquee-mask-breathe \{([\s\S]*?)\n  \}/);
+  const marqueeSway = css.match(/@keyframes marquee-sway \{([\s\S]*?)\n  \}/);
+  assert.ok(marqueeMask, 'marquee mask keyframes remain defined');
+  assert.ok(marqueeSway, 'marquee sway keyframes remain defined');
+  assert.match(marqueeMask[1], /0%, 18% \{\s*--marquee-left-fade: 0px;\s*--marquee-right-fade: 14px;\s*\}/);
+  assert.match(marqueeMask[1], /44%, 56% \{\s*--marquee-left-fade: 14px;\s*--marquee-right-fade: 14px;\s*\}/);
+  assert.match(marqueeMask[1], /82%, 100% \{\s*--marquee-left-fade: 14px;\s*--marquee-right-fade: 0px;\s*\}/);
+  assert.match(marqueeSway[1], /0%, 18% \{\s*transform: translateX\(0\);\s*\}/);
+  assert.match(
+    marqueeSway[1],
+    /82%, 100% \{\s*transform: translateX\(calc\(var\(--marquee-distance, 0px\) \* -1\)\);\s*\}/
+  );
+});
+
+test('overflowing navigation book labels align from the English inline start', () => {
+  assert.match(bible, /<html lang="en">/, 'the marquee alignment contract is scoped to English LTR');
+  assert.match(css, /\.floating-nav button \{[^}]*justify-content: center;/, 'short navigation labels remain centered');
+  assert.match(
+    css,
+    /\.floating-nav \.fn-book\.is-marquee \{[^}]*justify-content: flex-start;/,
+    'overflowing book labels expose their beginning before motion starts'
+  );
 });
 
 test('JavaScript cubic verse easing matches the shared curve endpoints', () => {

@@ -6,6 +6,9 @@ const path = require('node:path');
 const root = path.resolve(__dirname, '..');
 const bible = fs.readFileSync(path.join(root, 'bible.html'), 'utf8');
 const functionNames = [
+  'beginProgrammaticVerseScroll',
+  'endProgrammaticVerseScroll',
+  'setUIView',
   'cubicVerseEase',
   'verseChaseDurationForDistance',
   'keepVerseChaseTargetVisible',
@@ -160,7 +163,20 @@ const runContract = Function('assert', `${productionFunctions}
     cancelled.push(id);
     frames.delete(id);
   }
-  const viewEl = { scrollTop: 0, scrollHeight: 1200, clientHeight: 400 };
+  let programmaticVerseScroll = false;
+  let viewScrollTop = 0;
+  const scrollWriteOwnership = [];
+  const viewClassToggles = [];
+  const viewInner = { classList: { toggle: (...args) => viewClassToggles.push(args) } };
+  const viewEl = {
+    get scrollTop() { return viewScrollTop; },
+    set scrollTop(value) {
+      viewScrollTop = value;
+      scrollWriteOwnership.push(programmaticVerseScroll);
+    },
+    scrollHeight: 1200,
+    clientHeight: 400
+  };
   let uiView = 'verses';
   let reduceMotion = false;
   function shouldReduceVerseMotion() { return reduceMotion; }
@@ -182,10 +198,15 @@ const runContract = Function('assert', `${productionFunctions}
   let verseChaseDestinationTop = 0;
   let verseChaseStartTime = null;
   let verseChaseDuration = 0;
+  let lastViewScrollTop = viewEl.scrollTop;
 
-  setVerseChaseTarget(target(300, 180, 220));
+  setVerseChaseTarget(target(300, 490, 530));
+  assert.equal(programmaticVerseScroll, true, 'ownership starts before visibility correction');
+  assert.equal(scrollWriteOwnership[0], true, 'visibility correction writes only after ownership starts');
   assert.equal(verseChaseFrame, 0, 'first chase retains pending frame ID zero');
   releaseVerseChaseForFreeScroll();
+  assert.equal(programmaticVerseScroll, false, 'manual interruption releases ownership before movement');
+  assert.equal(lastViewScrollTop, viewEl.scrollTop, 'manual interruption synchronizes the baseline');
   assert.equal(frames.size, 0, 'free scroll cancels pending frame ID zero');
   assert.deepEqual(cancelled, [0], 'frame ID zero reaches cancellation');
   assert.equal(verseChaseFrame, null, 'frame ID zero cleanup clears frame state');
@@ -200,6 +221,7 @@ const runContract = Function('assert', `${productionFunctions}
 
   viewEl.scrollTop = 0;
   setVerseChaseTarget(target(400, 180, 220));
+  assert.equal(programmaticVerseScroll, true, 'animated chase owns scripted scrolling');
   assert.equal(frames.size, 1, 'initial target schedules one frame');
   const firstFrame = [...frames.keys()][0];
   viewEl.scrollTop = 100;
@@ -229,20 +251,66 @@ const runContract = Function('assert', `${productionFunctions}
   assert.equal(verseChaseFrame, null, 'completion clears the frame');
   assert.equal(verseChaseTarget, null, 'completion clears the target');
   assert.equal(frames.size, 0, 'completion retains no scheduled work');
+  assert.equal(programmaticVerseScroll, false, 'normal completion releases ownership');
+  assert.equal(lastViewScrollTop, 760, 'normal completion synchronizes the exact destination');
 
   reduceMotion = true;
   viewEl.scrollTop = 10;
   setVerseChaseTarget(target(250, 180, 220));
   assert.equal(viewEl.scrollTop, 250, 'reduced motion moves immediately');
   assert.equal(frames.size, 0, 'reduced motion schedules no frame');
+  assert.equal(programmaticVerseScroll, false, 'reduced motion releases ownership after its immediate write');
+  assert.equal(lastViewScrollTop, 250, 'reduced motion synchronizes the immediate destination');
 
   reduceMotion = false;
+  viewEl.scrollTop = 100;
+  setVerseChaseTarget(target(100.25, 180, 220));
+  assert.equal(viewEl.scrollTop, 100.25, 'subpixel completion performs the exact final write');
+  assert.equal(programmaticVerseScroll, false, 'subpixel completion releases ownership');
+  assert.equal(lastViewScrollTop, 100.25, 'subpixel completion synchronizes the exact destination');
+
   setVerseChaseTarget(target(500, 180, 220));
   assert.equal(frames.size, 1, 'a later target schedules one frame');
   releaseVerseChaseForFreeScroll();
   assert.equal(frames.size, 0, 'free scroll retains no scheduled work');
   assert.equal(verseChaseTarget, null, 'free scroll clears the target');
   assert.deepEqual(cancelled, [0, 3], 'free scroll cancels the scheduled frame');
+  assert.equal(programmaticVerseScroll, false, 'wheel or touch release clears ownership');
+
+  setVerseChaseTarget(target(600, 180, 220));
+  assert.equal(programmaticVerseScroll, true, 'a new chase reacquires ownership');
+  stopVerseChase();
+  assert.equal(programmaticVerseScroll, false, 'explicit cancellation releases ownership');
+
+  setVerseChaseTarget(target(650, 180, 220));
+  uiView = 'books';
+  frameId = [...frames.keys()][0];
+  frames.get(frameId)(0);
+  frames.delete(frameId);
+  assert.equal(programmaticVerseScroll, false, 'leaving the verses view releases ownership');
+  assert.equal(verseChaseTarget, null, 'view transition clears the target');
+
+  const nonVerseViews = ['books', 'chapters', 'verse-picker', 'search'];
+  nonVerseViews.forEach((nextView, index) => {
+    setUIView('verses');
+    beginProgrammaticVerseScroll();
+    const finalTop = 123 + (index * 37);
+    viewEl.scrollTop = finalTop;
+    setUIView(nextView);
+    assert.equal(programmaticVerseScroll, false, nextView + ' transition immediately releases ownership');
+    assert.equal(lastViewScrollTop, finalTop, nextView + ' transition synchronizes the exact baseline');
+  });
+  assert.deepEqual(viewClassToggles.slice(-8), [
+    ['reader-gestures', true], ['reader-gestures', false],
+    ['reader-gestures', true], ['reader-gestures', false],
+    ['reader-gestures', true], ['reader-gestures', false],
+    ['reader-gestures', true], ['reader-gestures', false]
+  ], 'all production view transitions retain reader gesture state');
 `);
 
 runContract(assert);
+
+test('wheel and touch interruption release verse chase before native scrolling', () => {
+  assert.match(bible, /viewEl\.addEventListener\('wheel', releaseVerseChaseForFreeScroll, \{ passive: true \}\);/);
+  assert.match(bible, /viewEl\.addEventListener\('touchstart', releaseVerseChaseForFreeScroll, \{ passive: true \}\);/);
+});
