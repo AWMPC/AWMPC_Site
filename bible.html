@@ -295,23 +295,6 @@
     overflow: hidden;
     white-space: nowrap;
   }
-  @property --marquee-left-fade {
-    syntax: '<length>';
-    inherits: false;
-    initial-value: 14px;
-  }
-  @property --marquee-right-fade {
-    syntax: '<length>';
-    inherits: false;
-    initial-value: 14px;
-  }
-  .marquee-line.is-marquee {
-    --marquee-left-fade: 0px;
-    --marquee-right-fade: 14px;
-    mask-image: linear-gradient(90deg, transparent 0, #000 var(--marquee-left-fade), #000 calc(100% - var(--marquee-right-fade)), transparent 100%);
-    -webkit-mask-image: linear-gradient(90deg, transparent 0, #000 var(--marquee-left-fade), #000 calc(100% - var(--marquee-right-fade)), transparent 100%);
-    animation: marquee-mask-breathe 3s var(--motion-ease) infinite alternate;
-  }
   .marquee-text {
     display: inline-block;
     max-width: none;
@@ -320,20 +303,6 @@
   }
   .marquee-line.is-marquee .marquee-text {
     animation: marquee-sway 3s var(--motion-ease) infinite alternate;
-  }
-  @keyframes marquee-mask-breathe {
-    0%, 18% {
-      --marquee-left-fade: 0px;
-      --marquee-right-fade: 14px;
-    }
-    44%, 56% {
-      --marquee-left-fade: 14px;
-      --marquee-right-fade: 14px;
-    }
-    82%, 100% {
-      --marquee-left-fade: 14px;
-      --marquee-right-fade: 0px;
-    }
   }
   @keyframes marquee-sway {
     0%, 18% { transform: translateX(0); }
@@ -1228,7 +1197,6 @@
     *, *::before, *::after { transition-duration: 0.01ms !important; animation-duration: 0.01ms !important; }
     .view-inner { transition: none; }
     .floating-nav, .action-chrome { transition: none; }
-    .marquee-line.is-marquee { animation: none; }
     .marquee-line.is-marquee .marquee-text { animation: none; transform: none; }
     .loading-skeleton span { animation: none; background-position: 50% 0; }
     .press-ripple { animation: none; opacity: .12; transform: translate(-50%, -50%); }

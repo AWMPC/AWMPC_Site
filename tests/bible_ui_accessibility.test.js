@@ -99,12 +99,11 @@ assert.match(bible, /\.bottom-history-menu \.dd-meta \{[\s\S]*font-size: var\(--
 assert.match(bible, /\.dd-item \.dd-label \{ flex: 1; min-width: 0; \}/);
 assert.match(bible, /\.dd-empty \{[\s\S]*padding: var\(--display-panel-padding\);[\s\S]*font-size: var\(--display-control-font-size\);[\s\S]*text-align: center;/);
 assert.match(bible, /\.marquee-line \{[\s\S]*overflow: hidden;[\s\S]*white-space: nowrap;[\s\S]*\}/);
-assert.match(bible, /@property --marquee-left-fade \{[\s\S]*syntax: '<length>';[\s\S]*initial-value: 14px;/);
-assert.match(bible, /@property --marquee-right-fade \{[\s\S]*syntax: '<length>';[\s\S]*initial-value: 14px;/);
-assert.match(bible, /\.marquee-line\.is-marquee \{[\s\S]*--marquee-left-fade: 0px;[\s\S]*--marquee-right-fade: 14px;[\s\S]*mask-image: linear-gradient\(90deg, transparent 0, #000 var\(--marquee-left-fade\), #000 calc\(100% - var\(--marquee-right-fade\)\), transparent 100%\);[\s\S]*animation: marquee-mask-breathe 3s var\(--motion-ease\) infinite alternate;/);
-assert.match(bible, /@keyframes marquee-mask-breathe \{[\s\S]*0%, 18%[\s\S]*--marquee-left-fade: 0px;[\s\S]*44%, 56%[\s\S]*--marquee-left-fade: 14px;[\s\S]*82%, 100%[\s\S]*--marquee-right-fade: 0px;/);
 assert.match(bible, /\.marquee-line\.is-marquee \.marquee-text \{[\s\S]*animation: marquee-sway 3s var\(--motion-ease\) infinite alternate;/);
 assert.match(bible, /@keyframes marquee-sway \{[\s\S]*translateX\(calc\(var\(--marquee-distance, 0px\) \* -1\)\)/);
+assert.doesNotMatch(bible, /--marquee-(?:left|right)-fade/);
+assert.doesNotMatch(bible, /(?:-webkit-)?mask-image/);
+assert.doesNotMatch(bible, /marquee-mask-breathe/);
 assert.match(bible, /\.dd-item \.dd-title \{[\s\S]*overflow: hidden;[\s\S]*white-space: nowrap;/);
 assert.match(bible, /\.dd-item \.dd-meta \{[\s\S]*overflow: hidden;[\s\S]*white-space: nowrap;[\s\S]*font-size: var\(--text-15\);/);
 assert.match(bible, /@media \(max-width: 640px\) \{[\s\S]*\.floating-nav \{[\s\S]*top: calc\(8px \+ env\(safe-area-inset-top, 0px\)\);[\s\S]*bottom: auto;/);

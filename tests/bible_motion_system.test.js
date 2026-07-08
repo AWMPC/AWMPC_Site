@@ -32,7 +32,6 @@ test('one cubic easing token owns application transitions', () => {
 test('key animation families share easing and reduced motion disables them', () => {
   for (const [name, duration] of [
     ['press-ripple', '320ms'],
-    ['marquee-mask-breathe', '3s'],
     ['marquee-sway', '3s'],
     ['loading-skeleton-shimmer', '1.1s']
   ]) {
@@ -42,7 +41,6 @@ test('key animation families share easing and reduced motion disables them', () 
 
   const reducedMotion = css.slice(css.indexOf('@media (prefers-reduced-motion: reduce)'));
   for (const selector of [
-    '.marquee-line.is-marquee',
     '.marquee-line.is-marquee .marquee-text',
     '.loading-skeleton span',
     '.press-ripple'
@@ -51,33 +49,23 @@ test('key animation families share easing and reduced motion disables them', () 
   }
 
   assert.match(
-    css,
-    /\.marquee-line\.is-marquee \{\s*--marquee-left-fade: 0px;\s*--marquee-right-fade: 14px;/,
-    'the static marquee mask exposes the inline start'
-  );
-  const reducedMarquee = reducedMotion.match(/\.marquee-line\.is-marquee \{([^}]*)\}/);
-  assert.ok(reducedMarquee, 'reduced motion disables the marquee mask animation');
-  assert.match(reducedMarquee[1], /^\s*animation: none;\s*$/, 'reduced motion keeps the static start mask');
-  assert.match(
     reducedMotion,
     /\.marquee-line\.is-marquee \.marquee-text \{\s*animation: none;\s*transform: none;\s*\}/,
     'reduced motion resets marquee translation to the readable start'
   );
 });
 
-test('marquee translation holds at each edge while the mask fade clears', () => {
-  const marqueeMask = css.match(/@keyframes marquee-mask-breathe \{([\s\S]*?)\n  \}/);
+test('marquee translation holds at each edge without any fade or mask mechanism', () => {
   const marqueeSway = css.match(/@keyframes marquee-sway \{([\s\S]*?)\n  \}/);
-  assert.ok(marqueeMask, 'marquee mask keyframes remain defined');
   assert.ok(marqueeSway, 'marquee sway keyframes remain defined');
-  assert.match(marqueeMask[1], /0%, 18% \{\s*--marquee-left-fade: 0px;\s*--marquee-right-fade: 14px;\s*\}/);
-  assert.match(marqueeMask[1], /44%, 56% \{\s*--marquee-left-fade: 14px;\s*--marquee-right-fade: 14px;\s*\}/);
-  assert.match(marqueeMask[1], /82%, 100% \{\s*--marquee-left-fade: 14px;\s*--marquee-right-fade: 0px;\s*\}/);
   assert.match(marqueeSway[1], /0%, 18% \{\s*transform: translateX\(0\);\s*\}/);
   assert.match(
     marqueeSway[1],
     /82%, 100% \{\s*transform: translateX\(calc\(var\(--marquee-distance, 0px\) \* -1\)\);\s*\}/
   );
+  assert.doesNotMatch(css, /--marquee-(?:left|right)-fade/);
+  assert.doesNotMatch(css, /(?:-webkit-)?mask-image/);
+  assert.doesNotMatch(css, /marquee-mask-breathe/);
 });
 
 test('overflowing navigation book labels align from the English inline start', () => {
