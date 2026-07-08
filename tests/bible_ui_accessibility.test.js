@@ -5,6 +5,10 @@ const path = require('node:path');
 const root = path.resolve(__dirname, '..');
 const bible = fs.readFileSync(path.join(root, 'bible.html'), 'utf8');
 const sw = fs.readFileSync(path.join(root, 'sw.js'), 'utf8');
+const marqueeDeclarations = [...bible.matchAll(/([^{}]+)\{([^{}]*)\}/g)]
+  .filter(([, selector]) => /\.marquee-/.test(selector))
+  .map(([, , declarations]) => declarations)
+  .join('\n');
 
 assert.match(bible, /var APP_VERSION = '3\.3\.3';/);
 assert.match(sw, /var CACHE_NAME = 'bible-v3\.2\.0';/);
@@ -102,7 +106,7 @@ assert.match(bible, /\.marquee-line \{[^}]*overflow: hidden;[^}]*white-space: no
 assert.match(bible, /\.marquee-line\.is-marquee \.marquee-text \{[\s\S]*animation: marquee-sway 3s var\(--motion-ease\) infinite alternate;/);
 assert.match(bible, /@keyframes marquee-sway \{[\s\S]*translateX\(calc\(var\(--marquee-distance, 0px\) \* -1\)\)/);
 assert.doesNotMatch(bible, /--marquee-(?:left|right)-fade/);
-assert.doesNotMatch(bible, /(?:-webkit-)?mask-image/);
+assert.doesNotMatch(marqueeDeclarations, /(?:^|[;\s])(?:mask|mask-image|-webkit-mask|-webkit-mask-image)\s*:/);
 assert.doesNotMatch(bible, /marquee-mask-breathe/);
 assert.match(bible, /\.dd-item \.dd-title \{[\s\S]*overflow: hidden;[\s\S]*white-space: nowrap;/);
 assert.match(bible, /\.dd-item \.dd-meta \{[\s\S]*overflow: hidden;[\s\S]*white-space: nowrap;[\s\S]*font-size: var\(--text-15\);/);

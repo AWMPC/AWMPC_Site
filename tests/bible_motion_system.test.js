@@ -6,6 +6,14 @@ const test = require('node:test');
 const root = path.resolve(__dirname, '..');
 const bible = fs.readFileSync(path.join(root, 'bible.html'), 'utf8');
 const css = bible.match(/<style>([\s\S]*?)<\/style>/)[1];
+const marqueeMaskDeclaration = /(?:^|[;\s])(?:mask|mask-image|-webkit-mask|-webkit-mask-image)\s*:/;
+
+function marqueeRuleDeclarations(source) {
+  return [...source.matchAll(/([^{}]+)\{([^{}]*)\}/g)]
+    .filter(([, selector]) => /\.marquee-/.test(selector))
+    .map(([, , declarations]) => declarations)
+    .join('\n');
+}
 
 test('one cubic easing token owns application transitions', () => {
   assert.match(css, /:root \{[\s\S]*--motion-ease: cubic-bezier\(\.64, 0, \.36, 1\);/);
@@ -64,8 +72,21 @@ test('marquee translation holds at each edge without any fade or mask mechanism'
     /82%, 100% \{\s*transform: translateX\(calc\(var\(--marquee-distance, 0px\) \* -1\)\);\s*\}/
   );
   assert.doesNotMatch(css, /--marquee-(?:left|right)-fade/);
-  assert.doesNotMatch(css, /(?:-webkit-)?mask-image/);
+  assert.doesNotMatch(marqueeRuleDeclarations(css), marqueeMaskDeclaration);
   assert.doesNotMatch(css, /marquee-mask-breathe/);
+});
+
+test('marquee mask guard ignores unrelated masks and rejects every mask property', () => {
+  const unrelatedMask = '.decorative-icon { mask-image: url(icon.svg); -webkit-mask: none; }';
+  assert.doesNotMatch(
+    marqueeRuleDeclarations(`${unrelatedMask}\n.marquee-line { overflow: hidden; }`),
+    marqueeMaskDeclaration
+  );
+
+  for (const property of ['mask', 'mask-image', '-webkit-mask', '-webkit-mask-image']) {
+    const mutated = `${unrelatedMask}\n.marquee-line.is-marquee { ${property}: none; }`;
+    assert.match(marqueeRuleDeclarations(mutated), marqueeMaskDeclaration, `${property} is rejected on a marquee rule`);
+  }
 });
 
 test('overflowing navigation book labels align from the English inline start', () => {
