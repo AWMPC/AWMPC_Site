@@ -98,7 +98,7 @@ assert.match(bible, /\.bottom-history-menu \.dd-title \{[\s\S]*font-size: var\(-
 assert.match(bible, /\.bottom-history-menu \.dd-meta \{[\s\S]*font-size: var\(--text-15\);[\s\S]*line-height: 1\.15;/);
 assert.match(bible, /\.dd-item \.dd-label \{ flex: 1; min-width: 0; \}/);
 assert.match(bible, /\.dd-empty \{[\s\S]*padding: var\(--display-panel-padding\);[\s\S]*font-size: var\(--display-control-font-size\);[\s\S]*text-align: center;/);
-assert.match(bible, /\.marquee-line \{[\s\S]*overflow: hidden;[\s\S]*white-space: nowrap;[\s\S]*\}/);
+assert.match(bible, /\.marquee-line \{[^}]*overflow: hidden;[^}]*white-space: nowrap;[^}]*\}/);
 assert.match(bible, /\.marquee-line\.is-marquee \.marquee-text \{[\s\S]*animation: marquee-sway 3s var\(--motion-ease\) infinite alternate;/);
 assert.match(bible, /@keyframes marquee-sway \{[\s\S]*translateX\(calc\(var\(--marquee-distance, 0px\) \* -1\)\)/);
 assert.doesNotMatch(bible, /--marquee-(?:left|right)-fade/);
@@ -243,6 +243,7 @@ assert.match(bible, /var actionChrome = document\.getElementById\('action-chrome
 assert.match(bible, /var bottomChromeResizeObserver = null;/);
 assert.match(bible, /var marqueeFrame = null;/);
 assert.match(bible, /function measureMarqueeLines\(root\) \{[\s\S]*text\.scrollWidth - line\.clientWidth[\s\S]*line\.classList\.toggle\('is-marquee', distance > 1\);[\s\S]*\}/);
+assert.match(bible, /line\.style\.setProperty\('--marquee-distance', Math\.ceil\(distance\) \+ 'px'\);/);
 assert.match(bible, /function setMarqueeText\(el, value\) \{[\s\S]*el\.classList\.add\('marquee-line'\);[\s\S]*text\.className = 'marquee-text';[\s\S]*scheduleMarqueeMeasure\(\);[\s\S]*\}/);
 assert.match(bible, /function updateBottomChromeClearance\(\) \{[\s\S]*window\.matchMedia\('\(max-width: 640px\)'\)\.matches[\s\S]*floatingNav\.offsetHeight[\s\S]*actionChrome\.offsetHeight[\s\S]*setProperty\('--top-chrome-clearance',[\s\S]*setProperty\('--bottom-chrome-clearance',/);
 assert.match(bible, /function scheduleBottomChromeClearanceUpdate\(\) \{[\s\S]*updateBottomChromeClearance\(\);[\s\S]*requestAnimationFrame\(updateBottomChromeClearance\);[\s\S]*\}/);
