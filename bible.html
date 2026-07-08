@@ -1076,6 +1076,7 @@
     padding: 0 var(--display-panel-padding) max(var(--display-panel-padding), env(safe-area-inset-bottom));
   }
   .app-sheet.edge-top .app-sheet-shell { padding-top: env(safe-area-inset-top); }
+  .app-sheet.snap-fullscreen .app-sheet-shell { padding-top: env(safe-area-inset-top); }
 
   @media (prefers-reduced-motion: reduce) {
     .app-sheet, .app-sheet::backdrop { transition-duration: 0s; }
@@ -2153,7 +2154,7 @@
   var currentSelectionScale = DEFAULT_TEXT_SCALE;
 
   /* APP SHEET PURE HELPERS START */
-  var APP_SHEET_KINDS = ['history', 'settings', 'search', 'selection'];
+  var APP_SHEET_KINDS = ['history', 'settings', 'search', 'selection', 'verse-actions'];
   var APP_SHEET_EDGES = ['top', 'bottom'];
   var APP_SHEET_SNAPS = ['compact', 'fullscreen'];
   function appSheetEnumHas(values, value) { return typeof value === 'string' && values.indexOf(value) !== -1; }
@@ -2209,13 +2210,45 @@
     closing: false
   };
   var appSheetListenersInstalled = false;
+  var appSheetDescriptors = Object.create(null);
+
+  function registerAppSheetDescriptor(kind, descriptor) {
+    if (!isValidAppSheetKind(kind) || !descriptor || typeof descriptor.title !== 'string' ||
+        !descriptor.title || typeof descriptor.render !== 'function') return false;
+    appSheetDescriptors[kind] = { title: descriptor.title, render: descriptor.render };
+    return true;
+  }
+
+  function resolveAppSheetDescriptor(kind) {
+    return isValidAppSheetKind(kind) ? appSheetDescriptors[kind] || null : null;
+  }
+
+  function defaultAppSheetRenderer(label) {
+    return function (target) { target.textContent = label + ' will appear here.'; };
+  }
+
+  registerAppSheetDescriptor('history', { title: 'History', render: defaultAppSheetRenderer('Reading history') });
+  registerAppSheetDescriptor('settings', { title: 'Settings', render: defaultAppSheetRenderer('Settings') });
+  registerAppSheetDescriptor('search', { title: 'Search', render: defaultAppSheetRenderer('Search') });
+  registerAppSheetDescriptor('selection', { title: 'Selection', render: defaultAppSheetRenderer('Selection tools') });
+  registerAppSheetDescriptor('verse-actions', { title: 'Verse Actions', render: defaultAppSheetRenderer('Verse actions') });
+
+  function releaseAppSheetPointer() {
+    var pointer = appSheetState.pointer;
+    if (!pointer) return;
+    try {
+      if (typeof appSheetHandle.hasPointerCapture === 'function' &&
+          appSheetHandle.hasPointerCapture(pointer.id)) appSheetHandle.releasePointerCapture(pointer.id);
+    } catch (releaseError) {}
+    appSheetState.pointer = null;
+  }
 
   function clearAppSheetMotion() {
-    if (appSheetState.frame) cancelAnimationFrame(appSheetState.frame);
-    if (appSheetState.settleTimer) window.clearTimeout(appSheetState.settleTimer);
+    if (appSheetState.frame !== null) cancelAnimationFrame(appSheetState.frame);
+    if (appSheetState.settleTimer !== null) window.clearTimeout(appSheetState.settleTimer);
     appSheetState.frame = null;
     appSheetState.settleTimer = null;
-    appSheetState.pointer = null;
+    releaseAppSheetPointer();
     appSheet.style.removeProperty('--sheet-drag-offset');
     appSheet.style.removeProperty('--sheet-backdrop-opacity');
     appSheet.classList.remove('no-motion', 'is-closing');
@@ -2246,6 +2279,9 @@
     appSheetState.opener = null;
     appSheetState.historyOwned = false;
     appSheetState.closing = false;
+    appSheet.classList.remove('edge-top', 'snap-fullscreen');
+    appSheet.classList.add('edge-bottom', 'snap-compact');
+    appSheetTitle.textContent = 'Panel';
   }
 
   function setSheetSnap(snap, immediate) {
@@ -2289,13 +2325,18 @@
     return validatedAppSheetHistoryState(state);
   }
 
-  function renderAppSheetContent(options) {
+  function renderAppSheetContent(descriptor) {
     cleanupAppSheetContent();
-    if (typeof options.render === 'function') {
-      var cleanup = options.render(appSheetBody, appSheetState.kind);
+    try {
+      var cleanup = descriptor.render(appSheetBody, {
+        kind: appSheetState.kind,
+        edge: appSheetState.edge,
+        snap: appSheetState.snap,
+        page: appSheetState.page
+      });
       if (typeof cleanup === 'function') appSheetState.contentCleanup = cleanup;
-    } else if (typeof options.content === 'function') {
-      options.content(appSheetBody, appSheetState.kind);
+    } catch (renderError) {
+      appSheetBody.textContent = 'This panel is unavailable.';
     }
   }
 
@@ -2306,6 +2347,19 @@
     var snap = options.snap == null ? 'compact' : options.snap;
     var page = options.page == null ? null : options.page;
     if (!isValidAppSheetEdge(edge) || !isValidAppSheetSnap(snap) || (page != null && typeof page !== 'string')) return false;
+    if (typeof options.render === 'function') {
+      registerAppSheetDescriptor(kind, {
+        title: typeof options.title === 'string' && options.title ? options.title : kind,
+        render: options.render
+      });
+    } else if (typeof options.content === 'function') {
+      registerAppSheetDescriptor(kind, {
+        title: typeof options.title === 'string' && options.title ? options.title : kind,
+        render: options.content
+      });
+    }
+    var descriptor = resolveAppSheetDescriptor(kind);
+    if (!descriptor) return false;
     var historyState = options.historyState || sheetHistoryState(kind, page);
     if (!options.fromPop && !historyState) return false;
     var wasOpen = appSheet.open;
@@ -2317,9 +2371,9 @@
     if (!wasOpen) appSheetState.opener = options.opener || document.activeElement;
     appSheet.classList.toggle('edge-top', edge === 'top');
     appSheet.classList.toggle('edge-bottom', edge === 'bottom');
-    appSheetTitle.textContent = typeof options.title === 'string' && options.title ? options.title : 'Panel';
+    appSheetTitle.textContent = typeof options.title === 'string' && options.title ? options.title : descriptor.title;
     setSheetSnap(snap, true);
-    renderAppSheetContent(options);
+    renderAppSheetContent(descriptor);
     if (!wasOpen) {
       try { appSheet.showModal(); } catch (e) { resetAppSheetState(); return false; }
     }
@@ -2386,8 +2440,15 @@
     e.preventDefault();
     var offset = appSheetState.edge === 'bottom' ? Math.max(-160, dy) : Math.min(160, dy);
     var progress = Math.max(0, 1 - Math.abs(offset) / Math.max(appSheet.offsetHeight, 1));
-    appSheet.style.setProperty('--sheet-drag-offset', offset + 'px');
-    appSheet.style.setProperty('--sheet-backdrop-opacity', String(progress));
+    pointer.pendingOffset = offset;
+    pointer.pendingProgress = progress;
+    if (appSheetState.frame !== null) return;
+    appSheetState.frame = requestAnimationFrame(function () {
+      appSheetState.frame = null;
+      if (!appSheetState.pointer || appSheetState.pointer !== pointer) return;
+      appSheet.style.setProperty('--sheet-drag-offset', pointer.pendingOffset + 'px');
+      appSheet.style.setProperty('--sheet-backdrop-opacity', String(pointer.pendingProgress));
+    });
   }
 
   function settleAppSheetPointer(e, cancelled) {

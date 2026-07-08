@@ -18,6 +18,8 @@ assert.match(bible, /\.app-sheet\.snap-fullscreen[\s\S]*100dvh/);
 assert.match(bible, /\.app-sheet::backdrop[\s\S]*backdrop-filter: blur\(3px\)/);
 assert.match(bible, /env\(safe-area-inset-bottom/);
 assert.match(bible, /env\(safe-area-inset-top/);
+assert.match(bible, /\.app-sheet\.snap-fullscreen[\s\S]*padding-top: env\(safe-area-inset-top/,
+  'bottom-edge fullscreen preserves the top safe area');
 
 const pureStart = bible.indexOf('/* APP SHEET PURE HELPERS START */');
 const pureEnd = bible.indexOf('/* APP SHEET PURE HELPERS END */');
@@ -31,6 +33,7 @@ vm.runInNewContext(pureSource, context);
 const h = context.hooks;
 
 assert.equal(h.validKind('history'), true);
+assert.equal(h.validKind('verse-actions'), true, 'verse actions is an approved sheet kind');
 assert.equal(h.validKind('__proto__'), false, 'kind enum rejects inherited/property attacks');
 assert.equal(h.validEdge('top'), true);
 assert.equal(h.validEdge('side'), false);
@@ -53,6 +56,22 @@ assert.equal(h.outcome('bottom', 'compact', 10, 0.41), 'closed', 'velocity thres
 assert.equal(h.outcome('bottom', 'fullscreen', 90, 0.1), 'compact');
 assert.equal(h.outcome('top', 'fullscreen', -90, -0.1), 'compact');
 assert.equal(h.outcome('bottom', 'compact', 20, 0.1), 'compact');
+assert.equal(h.outcome('bottom', 'compact', 79, 0), 'compact');
+assert.equal(h.outcome('bottom', 'compact', 80, 0), 'compact');
+assert.equal(h.outcome('bottom', 'compact', 81, 0), 'closed', 'distance changes immediately above 80px');
+assert.equal(h.outcome('bottom', 'compact', 20, 0.399), 'compact');
+assert.equal(h.outcome('bottom', 'compact', 20, 0.4), 'compact');
+assert.equal(h.outcome('bottom', 'compact', 20, 0.401), 'closed', 'velocity changes immediately above .4px/ms');
+
+function outcomeFromMutation(find, replacement, displacement, velocity) {
+  const mutated = bible.slice(pureStart, pureEnd).replace(find, replacement);
+  assert.notEqual(mutated, bible.slice(pureStart, pureEnd), 'requested mutation must alter production source');
+  const mutatedContext = { Math };
+  vm.runInNewContext(mutated + '\nthis.outcome = appSheetDragOutcome;', mutatedContext);
+  return mutatedContext.outcome('bottom', 'compact', displacement, velocity);
+}
+assert.equal(outcomeFromMutation(/> 80/g, '> 89', 81, 0), 'compact', '80-to-89 mutation is killed');
+assert.equal(outcomeFromMutation(/> \.4/g, '> .405', 20, 0.401), 'compact', '.4-to-.405 mutation is killed');
 
 const validState = h.state({
   view: 'verses', book: 'John', chapter: '3', verse: '16',
@@ -95,6 +114,7 @@ function fakeElement() {
   const listeners = Object.create(null);
   const classes = new Set();
   const properties = Object.create(null);
+  const captures = new Set();
   return {
     open: false,
     isConnected: true,
@@ -105,6 +125,7 @@ function fakeElement() {
     textContent: '',
     listenerCount: 0,
     focusCount: 0,
+    releaseCount: 0,
     classList: {
       add(...names) { names.forEach(name => classes.add(name)); },
       remove(...names) { names.forEach(name => classes.delete(name)); },
@@ -117,7 +138,8 @@ function fakeElement() {
     },
     style: {
       setProperty(name, value) { properties[name] = value; },
-      removeProperty(name) { delete properties[name]; }
+      removeProperty(name) { delete properties[name]; },
+      getPropertyValue(name) { return properties[name] || ''; }
     },
     addEventListener(type, fn) {
       this.listenerCount += 1;
@@ -127,7 +149,10 @@ function fakeElement() {
       event.target = event.target || this;
       (listeners[type] || []).forEach(fn => fn(event));
     },
-    setPointerCapture() {},
+    setPointerCapture(id) { captures.add(id); },
+    hasPointerCapture(id) { return captures.has(id); },
+    releasePointerCapture(id) { captures.delete(id); this.releaseCount += 1; },
+    losePointerCapture(id) { captures.delete(id); },
     showModal() { this.open = true; },
     close() { this.open = false; },
     focus() { this.focusCount += 1; }
@@ -144,6 +169,13 @@ const title = fakeElement();
 const body = fakeElement();
 const opener = fakeElement();
 const historyCalls = { push: [], replace: [], back: 0 };
+let reduceMotion = true;
+let nextFrame = 1;
+const frames = new Map();
+const cancelledFrames = [];
+let nextTimer = 1;
+const timers = new Map();
+const cancelledTimers = [];
 const controllerContext = {
   Math,
   Date,
@@ -153,21 +185,25 @@ const controllerContext = {
   appSheetTitle: title,
   appSheetBody: body,
   document: { activeElement: opener },
-  window: { clearTimeout, setTimeout, location: { href: 'https://example.invalid/bible.html' } },
+  window: {
+    clearTimeout(id) { cancelledTimers.push(id); timers.delete(id); },
+    setTimeout(fn) { const id = nextTimer++; timers.set(id, fn); return id; },
+    location: { href: 'https://example.invalid/bible.html' }
+  },
   history: {
     pushState(...args) { historyCalls.push.push(args); },
     replaceState(...args) { historyCalls.replace.push(args); },
     back() { historyCalls.back += 1; }
   },
   currentNavStateForHistory() { return { view: 'verses', book: 'John', chapter: '3', verse: '16' }; },
-  shouldReduceVerseMotion() { return true; },
-  requestAnimationFrame(fn) { fn(); return 1; },
-  cancelAnimationFrame() {}
+  shouldReduceVerseMotion() { return reduceMotion; },
+  requestAnimationFrame(fn) { const id = nextFrame++; frames.set(id, fn); return id; },
+  cancelAnimationFrame(id) { cancelledFrames.push(id); frames.delete(id); }
 };
 const controllerSource = bible.slice(pureStart, pureEnd) + '\n' +
   bible.slice(controllerStart, controllerEnd) + '\nthis.api = {' +
   'install: installAppSheetListeners, open: openAppSheet, close: requestCloseAppSheet,' +
-  'pop: handleAppSheetPopState, snap: setSheetSnap, state: appSheetState};';
+  'pop: handleAppSheetPopState, snap: setSheetSnap, register: registerAppSheetDescriptor, state: appSheetState};';
 vm.runInNewContext(controllerSource, controllerContext);
 const api = controllerContext.api;
 
@@ -178,13 +214,17 @@ assert.equal(dialog.listenerCount + handle.listenerCount + close.listenerCount, 
   'listener setup is idempotent');
 
 let cleanupCount = 0;
-assert.equal(api.open('history', {
-  opener,
-  title: 'History',
-  render(target) { target.textContent = 'rendered'; return () => { cleanupCount += 1; }; }
+assert.equal(api.register('history', {
+  title: 'Registered History',
+  render(target, sheet) {
+    target.textContent = 'history:' + (sheet.page || 'root');
+    return () => { cleanupCount += 1; };
+  }
 }), true);
+assert.equal(api.open('history', { opener, page: 'recent' }), true);
 assert.equal(dialog.open, true);
-assert.equal(title.textContent, 'History');
+assert.equal(title.textContent, 'Registered History');
+assert.equal(body.textContent, 'history:recent');
 assert.equal(historyCalls.push.length, 1, 'first open pushes one sheet entry');
 assert.equal(historyCalls.replace.length, 0);
 
@@ -192,6 +232,8 @@ assert.equal(api.open('search', { page: 'results' }), true);
 assert.equal(historyCalls.push.length, 1, 'switching an open sheet never pushes again');
 assert.equal(historyCalls.replace.length, 1, 'switching kind/page replaces the owned sheet entry');
 assert.equal(cleanupCount, 1, 'old content cleanup runs before replacement');
+assert.equal(title.textContent, 'Search');
+assert.notEqual(body.textContent, '', 'default descriptors render deterministic content');
 
 assert.equal(api.close('button'), true);
 assert.equal(historyCalls.back, 1, 'dismissal traverses back from an owned entry');
@@ -204,16 +246,81 @@ assert.equal(api.pop({
   view: 'verses', book: 'John', chapter: '3', verse: '16', sheet: { kind: 'history', page: 'recent' }
 }), true, 'Forward reopens a validated sheet state');
 assert.equal(dialog.open, true);
+assert.equal(title.textContent, 'Registered History', 'Forward resolves the registered title');
+assert.equal(body.textContent, 'history:recent', 'Forward resolves registered content and page');
 assert.equal(historyCalls.push.length, 1, 'Forward restoration does not push');
 assert.equal(api.pop({ view: 'verses', book: 'John', chapter: '3', verse: '16', sheet: { kind: 'bad' } }), true);
 assert.equal(dialog.open, false, 'invalid Forward sheet state cannot remain open');
 
 api.open('history', { opener });
+assert.equal(dialog.classList.contains('edge-top'), false);
+api.open('history', { opener, edge: 'top' });
+assert.equal(api.state.edge, 'top');
+assert.equal(dialog.classList.contains('edge-top'), true, 'top edge state and class move together');
+
 handle.dispatch('pointerdown', {
   isPrimary: true, button: 0, pointerId: 7, clientX: 10, clientY: 10, timeStamp: 1
 });
 assert.equal(api.state.pointer.id, 7);
+handle.dispatch('pointermove', {
+  pointerId: 7, clientX: 11, clientY: 110, timeStamp: 101, preventDefault() {}
+});
+const firstDragFrame = api.state.frame;
+assert.ok(firstDragFrame, 'drag DOM writes are scheduled through RAF');
+assert.equal(dialog.style.getPropertyValue('--sheet-drag-offset'), '');
+handle.dispatch('pointermove', {
+  pointerId: 7, clientX: 11, clientY: 120, timeStamp: 111, preventDefault() {}
+});
+assert.equal(api.state.frame, firstDragFrame, 'multiple drag moves coalesce into one RAF');
+frames.get(firstDragFrame)();
+frames.delete(firstDragFrame);
+assert.equal(dialog.style.getPropertyValue('--sheet-drag-offset'), '110px');
+assert.equal(dialog.style.getPropertyValue('--sheet-backdrop-opacity'), '0.78', 'backdrop progress is proportional');
+
+handle.dispatch('pointermove', {
+  pointerId: 7, clientX: 11, clientY: 130, timeStamp: 121, preventDefault() {}
+});
+const cancelledDragFrame = api.state.frame;
 handle.dispatch('pointercancel', { pointerId: 7, clientY: 30 });
 assert.equal(api.state.pointer, null, 'pointercancel resets pointer state');
+assert.ok(cancelledFrames.includes(cancelledDragFrame), 'pointercancel cancels pending RAF');
+assert.equal(handle.releaseCount, 1, 'pointercancel explicitly releases held pointer capture');
+
+handle.dispatch('pointerdown', {
+  isPrimary: true, button: 0, pointerId: 8, clientX: 10, clientY: 10, timeStamp: 1
+});
+handle.dispatch('pointermove', {
+  pointerId: 8, clientX: 11, clientY: 100, timeStamp: 90, preventDefault() {}
+});
+const lostFrame = api.state.frame;
+handle.losePointerCapture(8);
+handle.dispatch('lostpointercapture', { pointerId: 8 });
+assert.equal(api.state.pointer, null, 'lost capture clears pointer state');
+assert.ok(cancelledFrames.includes(lostFrame), 'lost capture cancels pending RAF');
+
+let cancelPrevented = 0;
+const backsBeforeCancel = historyCalls.back;
+dialog.dispatch('cancel', { preventDefault() { cancelPrevented += 1; } });
+assert.equal(cancelPrevented, 1, 'native Escape/cancel is prevented for the unified close path');
+assert.equal(historyCalls.back, backsBeforeCancel + 1, 'Escape/cancel requests history dismissal');
+api.pop({ view: 'verses', book: 'John', chapter: '3', verse: '16' });
+assert.equal(dialog.classList.contains('edge-top'), false, 'close resets top-edge presentation state');
+assert.equal(dialog.classList.contains('edge-bottom'), true);
+
+api.pop({ view: 'verses', book: 'John', chapter: '3', verse: '16', sheet: { kind: 'history' } });
+const backsBeforeBackdrop = historyCalls.back;
+dialog.dispatch('click', { target: dialog });
+assert.equal(historyCalls.back, backsBeforeBackdrop + 1, 'backdrop click uses the unified history close path');
+api.pop({ view: 'verses', book: 'John', chapter: '3', verse: '16' });
+
+api.pop({ view: 'verses', book: 'John', chapter: '3', verse: '16', sheet: { kind: 'history' } });
+reduceMotion = false;
+api.state.historyOwned = false;
+api.close('test-timer');
+const pendingSettleTimer = api.state.settleTimer;
+assert.ok(pendingSettleTimer, 'animated close stores its settle timer');
+api.pop({ view: 'verses', book: 'John', chapter: '3', verse: '16', sheet: { kind: 'history' } });
+assert.ok(cancelledTimers.includes(pendingSettleTimer), 'reopen cancels the pending settle timer');
+reduceMotion = true;
 
 console.log('bible sheet controller tests passed');
