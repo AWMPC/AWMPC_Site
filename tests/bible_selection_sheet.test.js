@@ -119,8 +119,16 @@ test('selection indicator is a compact noninteractive 36 by 28 tonal float', () 
 test('selection panels reserve the tonal float and mobile top edge owns only a local inset', () => {
   const panel = extract(/\.selection-panel \{[^}]*\}/, 'selection panel rule missing');
   assert.match(panel,
-    /padding:\s*0\s+var\(--display-panel-padding\)\s+max\(52px,\s*calc\(var\(--display-panel-padding\) \+ env\(safe-area-inset-bottom\)\)\)/,
+    /padding:\s*0\s+var\(--display-panel-padding\)\s+max\(52px,\s*calc\(44px \+ env\(safe-area-inset-bottom\)\)\)/,
     'the final selection row must clear the 28px tonal float and free-edge handle');
+  for (const safeArea of [0, 34]) {
+    const reserved = Math.max(52, 44 + safeArea);
+    const indicatorBottom = safeArea;
+    const indicatorTop = indicatorBottom + 28;
+    assert.ok(reserved >= indicatorTop,
+      `${safeArea}px safe area keeps final content above the complete tonal float`);
+    assert.ok(reserved >= 52, `${safeArea}px safe area retains the minimum handle/float clearance`);
+  }
   const mobile = extract(/@media \(max-width: 640px\) \{[\s\S]*?\.app-sheet\.edge-top \.selection-panel\s*\{[^}]*\}[\s\S]*?\n  \}/,
     'mobile top-opening selection inset missing');
   assert.match(mobile, /\.app-sheet\.edge-top \.selection-panel\s*\{[^}]*padding-top:\s*\.5rem/);

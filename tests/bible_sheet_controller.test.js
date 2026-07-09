@@ -502,7 +502,7 @@ function fakeElement() {
   const writes = Object.create(null);
   const captures = new Set();
   const attributes = Object.create(null);
-  return {
+  const element = {
     open: false,
     isConnected: true,
     offsetHeight: 500,
@@ -564,6 +564,9 @@ function fakeElement() {
     },
     blur() { this.blurCount += 1; if (typeof this.onBlur === 'function') this.onBlur(); }
   };
+  element.children = [];
+  element.appendChild = function (child) { this.children.push(child); child.parentNode = this; return child; };
+  return element;
 }
 
 const controllerStart = bible.indexOf('/* APP SHEET CONTROLLER START */');
@@ -571,6 +574,10 @@ const controllerEnd = bible.indexOf('/* APP SHEET CONTROLLER END */');
 assert.ok(controllerStart >= 0 && controllerEnd > controllerStart);
 const selectionHistorySource = bible.match(/  function selectionHistoryState\([^\n]*\) \{[\s\S]*?\n  \}/)[0];
 const selectionPageSource = bible.match(/  function setSelectionPage\([^\n]*\) \{[\s\S]*?\n  \}/)[0];
+const selectionCommitSource = controllerFunction('commitSelectionVerse');
+const currentVerseActionSource = controllerFunction('currentVerseAction');
+const finishVerseActionSource = controllerFunction('finishVerseAction');
+const renderVerseActionsSource = controllerFunction('renderVerseActionsSheet');
 const dialog = fakeElement();
 const handle = fakeElement();
 const body = fakeElement();
@@ -656,7 +663,12 @@ const controllerContext = {
   onSelectionTouchMove() {},
   onSelectionTouchEnd() {},
   onSelectionTouchCancel() {},
-  document: { activeElement: opener, documentElement: { clientHeight: 780 } },
+  document: {
+    activeElement: opener,
+    documentElement: { clientHeight: 780 },
+    createElement(tagName) { const element = fakeElement(); element.tagName = String(tagName).toUpperCase(); return element; },
+    createTextNode(value) { return { nodeType: 3, textContent: String(value) }; }
+  },
   ResizeObserver: FakeResizeObserver,
   getComputedStyle(element) {
     if (element === handle || element === selectionIndicator) return { marginBlockStart: '0px', marginBlockEnd: '0px' };
@@ -724,6 +736,17 @@ const controllerContext = {
   },
   canonicalVerseUrl() { return '/bible'; },
   openSelectionSheet() { legacySelectionOpenCalls += 1; },
+  showSelectedVerseWithTransition() {},
+  readerRouteScope: 0,
+  navFromPop: false,
+  verseActionGeneration: 1,
+  verseActionClosing: false,
+  verseActionInFlight: false,
+  verseActionTarget: fakeElement(),
+  verseActionPayload() {
+    return { reference: 'John 3:16', copyText: 'text', copyLink: '/bible', combined: 'text /bible', url: '/bible' };
+  },
+  announceStatus() {},
   window: {
     innerHeight: 800,
     innerWidth: 1200,
@@ -753,10 +776,13 @@ const controllerContext = {
   cancelAnimationFrame(id) { cancelledFrames.push(id); frames.delete(id); }
 };
 const controllerSource = bible.slice(pureStart, pureEnd) + '\n' +
-  bible.slice(controllerStart, controllerEnd) + '\n' + selectionHistorySource + '\n' + selectionPageSource + '\nthis.api = {' +
+  bible.slice(controllerStart, controllerEnd) + '\n' + selectionHistorySource + '\n' + selectionPageSource + '\n' +
+  selectionCommitSource + '\n' + currentVerseActionSource + '\n' + finishVerseActionSource + '\n' +
+  renderVerseActionsSource + '\nthis.api = {' +
   'install: installAppSheetListeners, open: openAppSheet, close: requestCloseAppSheet,' +
   'pop: handleAppSheetPopState, snap: setSheetSnap, register: registerAppSheetDescriptor,' +
-  'retarget: retargetAppSheetMeasurement, selectPage: setSelectionPage, state: appSheetState};';
+  'retarget: retargetAppSheetMeasurement, selectPage: setSelectionPage, commitSelection: commitSelectionVerse,' +
+  'finishAction: finishVerseAction, state: appSheetState};';
 vm.runInNewContext(controllerSource, controllerContext);
 const api = controllerContext.api;
 function currentReturnPopState() {
@@ -2042,12 +2068,20 @@ const replacedOpenFrame = api.state.openFrame;
 const replacedOpenCallback = frames.get(replacedOpenFrame);
 assert.equal(api.open('search', { opener: replacementOpener }), true);
 assert.ok(cancelledFrames.includes(replacedOpenFrame), 'kind replacement cancels the old opening paint');
+assert.equal([opener, replacementOpener].filter(item => item.classList.contains('active')).length, 1,
+  'kind replacement transfers exactly one active launcher');
+assert.equal(opener.getAttribute('aria-expanded'), 'false');
+assert.equal(replacementOpener.getAttribute('aria-expanded'), 'true');
 const replacementSnapshot = {
   kind: api.state.kind,
   phase: api.state.phase,
   anchor: api.state.anchor,
   classes: motionClassSnapshot(),
-  focus: replacementOpener.focusCount
+  focus: replacementOpener.focusCount,
+  oldActive: opener.classList.contains('active'),
+  newActive: replacementOpener.classList.contains('active'),
+  oldExpanded: opener.getAttribute('aria-expanded'),
+  newExpanded: replacementOpener.getAttribute('aria-expanded')
 };
 replacedOpenCallback();
 assert.deepEqual({
@@ -2055,7 +2089,11 @@ assert.deepEqual({
   phase: api.state.phase,
   anchor: api.state.anchor,
   classes: motionClassSnapshot(),
-  focus: replacementOpener.focusCount
+  focus: replacementOpener.focusCount,
+  oldActive: opener.classList.contains('active'),
+  newActive: replacementOpener.classList.contains('active'),
+  oldExpanded: opener.getAttribute('aria-expanded'),
+  newExpanded: replacementOpener.getAttribute('aria-expanded')
 }, replacementSnapshot, 'stale kind opening callback cannot mutate its replacement');
 
 const staleResizeFrame = api.state.measureFrame;
@@ -2153,5 +2191,85 @@ for (let cycle = 0; cycle < 3; cycle += 1) {
   assert.equal(measure.textContent, '', `selection cycle ${cycle} releases retained nodes`);
   assert.equal(dialog.listenerCount + handle.listenerCount + body.listenerCount, installedListenerCount);
 }
+
+function assertLauncherClearedImmediately(launcher, message) {
+  assert.equal(api.state.phase, 'closing', `${message} enters terminal closing before completion`);
+  assert.equal(dialog.open, true, `${message} remains animating when launcher state clears`);
+  assert.equal(launcher.classList.contains('active'), false, `${message} clears .active immediately`);
+  assert.equal(launcher.getAttribute('aria-expanded'), 'false', `${message} clears aria-expanded immediately`);
+}
+
+function finishUnownedAnimatedClose() {
+  const timer = api.state.settleTimer;
+  assert.ok(timer && timers.has(timer), 'unowned close exposes a pending animation completion');
+  const callback = timers.get(timer);
+  callback();
+  timers.delete(timer);
+  assert.equal(dialog.open, false);
+}
+
+function openSettled(kind, launcher, options = {}) {
+  reduceMotion = true;
+  assert.equal(api.open(kind, { opener: launcher, ...options }), true);
+  for (const [id, callback] of [...frames]) { callback(); frames.delete(id); }
+  assert.equal(launcher.classList.contains('active'), true);
+  assert.equal(launcher.getAttribute('aria-expanded'), 'true');
+  reduceMotion = false;
+}
+
+openSettled('history', opener, { page: 'keyboard-close' });
+let keyboardPrevented = 0;
+handle.dispatch('keydown', { key: 'Escape', repeat: false, preventDefault() { keyboardPrevented += 1; } });
+assert.equal(keyboardPrevented, 1);
+assertLauncherClearedImmediately(opener, 'keyboard-handle Escape');
+api.pop(currentReturnPopState());
+assert.equal(dialog.open, false);
+
+openSettled('history', opener, { page: 'pop-close' });
+const popReturn = currentReturnPopState();
+assert.equal(api.pop(popReturn), true);
+assertLauncherClearedImmediately(opener, 'popstate');
+finishUnownedAnimatedClose();
+
+openSettled('history', opener, { page: 'drag-close', edge: 'bottom' });
+api.state.determinedHeight = 224;
+handle.dispatch('pointerdown', {
+  isPrimary: true, button: 0, pointerId: 911, clientX: 20, clientY: 100, timeStamp: 1
+});
+handle.dispatch('pointermove', {
+  pointerId: 911, clientX: 20, clientY: 300, timeStamp: 101, preventDefault() {}
+});
+handle.dispatch('pointerup', { pointerId: 911, clientY: 340, timeStamp: 120 });
+assertLauncherClearedImmediately(opener, 'drag release outcome');
+api.pop(currentReturnPopState());
+assert.equal(dialog.open, false);
+
+openSettled('selection', opener, { page: 'verses' });
+assert.equal(api.commitSelection(16), true, 'real selection commit executes');
+assertLauncherClearedImmediately(opener, 'selection completion');
+finishUnownedAnimatedClose();
+
+controllerContext.verseActionGeneration = 1;
+controllerContext.verseActionClosing = false;
+controllerContext.verseActionInFlight = true;
+controllerContext.verseActionTarget = fakeElement();
+openSettled('verse-actions', opener);
+api.finishAction(1, 'Verse copied.', true);
+assertLauncherClearedImmediately(opener, 'verse-action success');
+api.pop(currentReturnPopState());
+assert.equal(dialog.open, false);
+
+controllerContext.verseActionGeneration = 20;
+controllerContext.verseActionClosing = false;
+controllerContext.verseActionInFlight = false;
+controllerContext.verseActionTarget = fakeElement();
+openSettled('verse-actions', opener);
+const actionRoot = measure.children.at(-1);
+const actionForm = actionRoot.children[0];
+const cancelAction = actionForm.children.at(-1);
+cancelAction.dispatch('click');
+assertLauncherClearedImmediately(opener, 'verse-action cancel');
+api.pop(currentReturnPopState());
+assert.equal(dialog.open, false);
 
 console.log('bible sheet controller tests passed');
