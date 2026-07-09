@@ -995,13 +995,13 @@ assert.equal(api.state.kind, 'selection');
 
 assert.equal(api.close('button'), true);
 assert.equal(historyCalls.back, 1, 'dismissal traverses back from an owned entry');
-assert.equal(dialog.open, true, 'dialog waits for popstate before closing');
-assert.equal(api.state.phase, 'closing', 'history-backed dismissal enters closing immediately');
-assert.equal(dialog.classList.contains('is-closing'), true, 'visual close starts before popstate');
+assert.equal(dialog.open, false, 'reduced history-backed dismissal completes immediately');
+assert.equal(api.state.phase, 'closed');
+assert.equal(dialog.classList.contains('is-closing'), false);
 assert.equal(fabMain.getAttribute('aria-expanded'), 'false', 'launcher state collapses immediately');
 assert.equal(opener.getAttribute('aria-expanded'), 'false');
 assert.equal(opener.classList.contains('active'), false, 'launcher highlight clears before popstate');
-assert.equal(api.pop(currentReturnPopState()), true);
+assert.equal(api.pop(currentReturnPopState()), false, 'late reduced-motion reconciliation is already complete');
 assert.equal(dialog.open, false);
 assert.equal(api.state.anchor, 'right');
 assert.equal(api.state.determinedWidth, 0);
@@ -1249,6 +1249,7 @@ controllerContext.document.activeElement = opener;
 api.pop({ view: 'verses', book: 'John', chapter: '3', verse: '16', sheet: { kind: 'history' } });
 const readerFocusBefore = viewInner.focusCount;
 const readerListenerBaseline = viewInner.listenerCount;
+reduceMotion = false;
 assert.equal(api.close('selection-complete', 'reader'), true);
 const terminalCloseTimer = api.state.historyTimer;
 const terminalCloseCallback = timers.get(terminalCloseTimer);
@@ -1268,6 +1269,7 @@ for (const key of ['Enter', 'ArrowUp', 'ArrowDown', 'Escape']) {
 }
 assert.equal(historyCalls.back, terminalCloseBacks, 'close-time keyboard input cannot traverse history again');
 assert.equal(api.close('late-policy-change', 'none'), true, 'repeat close is idempotent');
+reduceMotion = true;
 api.pop(currentReturnPopState());
 assert.equal(viewInner.focusCount, readerFocusBefore + 1, 'completion returns focus to the reader');
 assert.equal(viewInner.focusOptions.at(-1).preventScroll, true, 'reader focus never scrolls the underlying chapter');
@@ -1486,6 +1488,7 @@ assert.equal(handle.releaseCount, releasesBeforePointerUp + 1, 'pointerup releas
 
 api.pop({ view: 'verses', book: 'John', chapter: '3', verse: '16', sheet: { kind: 'history' } });
 const backsBeforeDoubleClose = historyCalls.back;
+reduceMotion = false;
 assert.equal(api.close('first'), true);
 assert.equal(api.state.pendingHistoryClose, true);
 assert.equal(api.close('second'), true, 'repeat dismiss while back is pending is idempotently handled');
@@ -1493,6 +1496,7 @@ assert.equal(historyCalls.back, backsBeforeDoubleClose + 1, 'double dismiss requ
 assert.equal(api.open('search', { page: 'during-close' }), false, 'open is rejected while history close is pending');
 assert.equal(api.state.pendingHistoryClose, true, 'rejected reopen cannot race the pending traversal');
 assert.equal(dialog.open, true);
+reduceMotion = true;
 api.pop(currentReturnPopState());
 assert.equal(dialog.open, false);
 assert.equal(api.state.pendingHistoryClose, false, 'popstate clears pending close state');
@@ -1501,6 +1505,7 @@ api.open('history', { opener, page: 'queue-origin' });
 const queuedGeneration = api.state.generation;
 const queuedReturnGeneration = api.state.historyReturnGeneration;
 const queuedFocusBaseline = opener.focusCount + viewInner.focusCount;
+reduceMotion = false;
 api.close('queue-post-close', 'none');
 const queuedFinishCallback = timers.get(api.state.historyTimer);
 const queuedSearchState = {
@@ -1524,6 +1529,7 @@ api.pop({
 assert.equal(api.state.pendingPostCloseState.sheet.kind, 'search', 'cross-chain state cannot replace queued destination');
 api.pop(queuedSettingsState);
 assert.equal(api.state.pendingPostCloseState.sheet.kind, 'settings', 'latest valid same-chain destination wins');
+reduceMotion = true;
 queuedFinishCallback();
 assert.equal(dialog.open, true, 'terminal finish applies queued sheet without browser replay');
 assert.equal(api.state.kind, 'settings');
@@ -1538,6 +1544,7 @@ api.open('history', { opener, page: 'legacy-selection-origin' });
 const legacyClosingGeneration = api.state.generation;
 const legacyClosingReturn = api.state.historyReturnGeneration;
 const legacyOpenBaseline = legacySelectionOpenCalls;
+reduceMotion = false;
 api.close('legacy-selection-close', 'none');
 const legacySelectionFinish = timers.get(api.state.historyTimer);
 api.pop({
@@ -1551,6 +1558,7 @@ assert.equal(api.state.pendingPostCloseState.sheet.kind, 'selection');
 assert.equal(api.state.pendingPostCloseState.sheet.generation, legacyClosingGeneration,
   'sanitized legacy selection is tagged to the closing runtime generation');
 assert.equal(api.state.pendingPostCloseState.sheet.returnGeneration, legacyClosingReturn);
+reduceMotion = true;
 legacySelectionFinish();
 assert.equal(dialog.open, true, 'accepted legacy selection opens after terminal finish');
 assert.equal(api.state.kind, 'selection');
@@ -1567,6 +1575,7 @@ controllerContext.document.activeElement = opener;
 api.open('history', { opener, page: 'sheet-then-reader' });
 const sheetThenReaderGeneration = api.state.generation;
 const sheetThenReaderReturn = api.state.historyReturnGeneration;
+reduceMotion = false;
 api.close('sheet-then-reader-close', 'none');
 const sheetThenReaderCallback = timers.get(api.state.historyTimer);
 api.pop({
@@ -1577,6 +1586,7 @@ api.pop({
 assert.equal(api.state.pendingPostCloseState.sheet.kind, 'search');
 api.pop({ view: 'verses', book: 'John', chapter: '3', verse: '16',
   sheetReturnGeneration: sheetThenReaderReturn });
+reduceMotion = true;
 assert.equal(dialog.open, false, 'later accepted reader destination supersedes queued sheet before finish');
 assert.equal(api.state.pendingPostCloseState, null);
 sheetThenReaderCallback();
@@ -1586,11 +1596,13 @@ controllerContext.document.activeElement = opener;
 api.open('history', { opener, page: 'reader-then-sheet' });
 const readerThenSheetGeneration = api.state.generation;
 const readerThenSheetReturn = api.state.historyReturnGeneration;
+reduceMotion = false;
 api.close('reader-then-sheet-close', 'none');
 const readerThenSheetCallback = timers.get(api.state.historyTimer);
 api.pop({ view: 'verses', book: 'John', chapter: '3', verse: '16',
   sheetReturnGeneration: readerThenSheetReturn });
 assert.equal(dialog.open, false);
+reduceMotion = true;
 api.pop({
   view: 'verses', book: 'John', chapter: '3', verse: '16',
   sheet: { kind: 'search', page: 'latest-sheet', generation: readerThenSheetGeneration,
@@ -1604,9 +1616,11 @@ api.state.historyOwned = false;
 api.close('reader-then-sheet-cleanup', 'none');
 
 api.open('history', { opener, page: 'stale-close-timer' });
+reduceMotion = false;
 api.close('history-timer');
 const staleHistoryTimer = api.state.historyTimer;
 const staleHistoryCallback = timers.get(staleHistoryTimer);
+reduceMotion = true;
 api.pop(currentReturnPopState());
 api.open('search', { opener, page: 'new-generation' });
 const generationAfterStaleClose = api.state.generation;
@@ -1937,13 +1951,33 @@ frames.delete(interruptedOpenFrame);
 assert.equal(dialog.classList.contains('is-preparing'), false,
   'first paint reveals the measured off-edge pose');
 assert.equal(dialog.classList.contains('is-opening'), true);
-assert.equal(dialog.style.getPropertyValue('--sheet-backdrop-opacity'), '',
-  'first reveal advances backdrop progress with the still off-edge sheet');
+assert.equal(dialog.style.getPropertyValue('--sheet-backdrop-opacity'), '0',
+  'first reveal preserves paired zero progress for both backdrop and sheet');
 const interruptedOpenFrame2 = api.state.openFrame2;
 const interruptedOpenCallback2 = frames.get(interruptedOpenFrame2);
+interruptedOpenCallback2();
+frames.delete(interruptedOpenFrame2);
+assert.equal(dialog.classList.contains('is-opening'), false);
+assert.equal(dialog.style.getPropertyValue('--sheet-backdrop-opacity'), '',
+  'second paint starts sheet and backdrop transitions together');
+const pairedOpenTimer = api.state.settleTimer;
+timers.get(pairedOpenTimer)();
+timers.delete(pairedOpenTimer);
+api.state.historyOwned = false;
+api.close('paired-open-test-reset');
+const pairedResetTimer = api.state.settleTimer;
+timers.get(pairedResetTimer)();
+timers.delete(pairedResetTimer);
+
+assert.equal(api.open('history', { opener, edge: 'top' }), true);
+const interruptedRevealFrame = api.state.openFrame;
+frames.get(interruptedRevealFrame)();
+frames.delete(interruptedRevealFrame);
+const staleInterruptedFrame2 = api.state.openFrame2;
+const staleInterruptedCallback2 = frames.get(staleInterruptedFrame2);
 api.state.historyOwned = false;
 api.close('open-interruption');
-assert.ok(cancelledFrames.includes(interruptedOpenFrame2), 'close cancels the owned second opening frame');
+assert.ok(cancelledFrames.includes(staleInterruptedFrame2), 'close cancels the owned second opening frame');
 assert.match(dialog.style.getPropertyValue('--sheet-drag-offset'), /^-\d+px$/,
   'top close reverses toward the same navbar edge');
 const interruptedCloseSnapshot = {
@@ -1952,7 +1986,7 @@ const interruptedCloseSnapshot = {
   offset: dialog.style.getPropertyValue('--sheet-drag-offset'),
   focus: opener.focusCount
 };
-interruptedOpenCallback2();
+staleInterruptedCallback2();
 assert.deepEqual({
   phase: api.state.phase,
   classes: motionClassSnapshot(),
@@ -2031,8 +2065,24 @@ assert.equal(dialog.classList.contains('inline-left'), true,
 assert.equal(timers.size, timerCountBeforeReducedOpen, 'reduced open has no animation fallback timer');
 assert.equal(frames.size, frameCountBeforeReducedOpen + 2,
   'reduced open schedules only measurement and fade work, never lifecycle animation frames');
-api.state.historyOwned = false;
-api.close('motion-test-reduced-cleanup');
+const reducedHistoryReturn = currentReturnPopState();
+const reducedBacksBeforeClose = historyCalls.back;
+const reducedFramesBeforeClose = frames.size;
+const reducedTimersBeforeClose = timers.size;
+assert.equal(api.state.historyOwned, true, 'reduced close test retains real history ownership');
+assert.equal(api.close('motion-test-reduced-cleanup'), true);
+assert.equal(historyCalls.back, reducedBacksBeforeClose + 1, 'history-owned reduced close requests Back exactly once');
+assert.equal(dialog.open, false, 'history-owned reduced close completes synchronously');
+assert.equal(api.state.phase, 'closed');
+assert.equal(api.state.openFrame, null);
+assert.equal(api.state.openFrame2, null);
+assert.equal(api.state.historyTimer, null, 'reduced close owns no history fallback timer');
+assert.equal(api.state.settleTimer, null, 'reduced close owns no lifecycle fallback timer');
+assert.ok(frames.size <= reducedFramesBeforeClose, 'reduced close schedules no lifecycle animation frame');
+assert.equal(timers.size, reducedTimersBeforeClose, 'reduced history close schedules no fallback timer');
+assert.equal(api.pop(reducedHistoryReturn), false, 'late matching Back reconciliation is an idempotent no-op');
+assert.equal(dialog.open, false);
+assert.equal(api.close('motion-test-reduced-repeat'), false, 'repeat close remains idempotent after immediate completion');
 
 const selectionFrameBaseline = frames.size;
 const selectionTimerBaseline = timers.size;

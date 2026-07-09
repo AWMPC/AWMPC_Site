@@ -2885,12 +2885,12 @@
       appSheetState.openFrame = null;
       if (!isCurrentAppSheetGeneration(generation) || appSheetState.phase !== 'opening') return;
       appSheet.classList.remove('is-preparing');
-      appSheet.style.removeProperty('--sheet-backdrop-opacity');
       var secondFrame = requestAnimationFrame(function () {
         if (appSheetState.openFrame2 !== secondFrame) return;
         appSheetState.openFrame2 = null;
         if (!isCurrentAppSheetGeneration(generation) || appSheetState.phase !== 'opening') return;
         appSheet.classList.remove('is-opening');
+        appSheet.style.removeProperty('--sheet-backdrop-opacity');
         appSheetState.phase = 'settling';
         var timer = window.setTimeout(function () {
           if (appSheetState.settleTimer !== timer) return;
@@ -3104,19 +3104,24 @@
     appSheet.style.setProperty('--sheet-drag-offset', (appSheetState.edge === 'bottom' ? 1 : -1) *
       (appSheetViewportHeight() || appSheetState.determinedHeight || 1) + 'px');
     appSheet.style.setProperty('--sheet-backdrop-opacity', '0');
+    var reducedMotion = shouldReduceVerseMotion();
     if (appSheetState.historyOwned && source !== 'popstate') {
       if (!appSheetState.pendingHistoryClose) {
         appSheetState.pendingHistoryClose = true;
         history.back();
       }
-      if (appSheetState.historyTimer !== null) window.clearTimeout(appSheetState.historyTimer);
-      var historyTimer = window.setTimeout(function () {
-        if (appSheetState.historyTimer !== historyTimer) return;
-        appSheetState.historyTimer = null;
-        if (isCurrentAppSheetGeneration(generation) && appSheetState.phase === 'closing') finishCloseAppSheet();
-      }, APP_SHEET_OPEN_CLOSE_MS);
-      appSheetState.historyTimer = historyTimer;
-    } else if (shouldReduceVerseMotion()) {
+      if (!isCurrentAppSheetGeneration(generation) || appSheetState.phase !== 'closing') return true;
+      if (reducedMotion) finishCloseAppSheet();
+      else {
+        if (appSheetState.historyTimer !== null) window.clearTimeout(appSheetState.historyTimer);
+        var historyTimer = window.setTimeout(function () {
+          if (appSheetState.historyTimer !== historyTimer) return;
+          appSheetState.historyTimer = null;
+          if (isCurrentAppSheetGeneration(generation) && appSheetState.phase === 'closing') finishCloseAppSheet();
+        }, APP_SHEET_OPEN_CLOSE_MS);
+        appSheetState.historyTimer = historyTimer;
+      }
+    } else if (reducedMotion) {
       finishCloseAppSheet();
     } else {
       if (appSheetState.settleTimer !== null) window.clearTimeout(appSheetState.settleTimer);
