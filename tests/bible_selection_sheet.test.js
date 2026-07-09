@@ -942,7 +942,8 @@ function runTouchAdapter() {
   const pager = {
     clientWidth: 320, releaseCount: 0,
     setPointerCapture(id) { captures.add(id); }, hasPointerCapture(id) { return captures.has(id); },
-    releasePointerCapture(id) { captures.delete(id); this.releaseCount += 1; }
+    releasePointerCapture(id) { captures.delete(id); this.releaseCount += 1; },
+    captureCount() { return captures.size; }
   };
   return Function('window', 'pager', 'frames', 'timers', `
     ${helpers}
@@ -1005,6 +1006,8 @@ function runTouchAdapter() {
       kind: function (value) { appSheetState.kind = value; },
       compatibilityArmed: function () { return !!selectionCompatibilityGuard; },
       releaseCount: function () { return selectionPager.releaseCount; },
+      captureCount: function () { return selectionPager.captureCount(); },
+      frameCount: function () { return frames.length; },
       guardArmed: function () { return !!selectionClickGuard; },
       guardClick: guardSelectionClick,
       sheetPointer: function () { return appSheetState.pointer; },
@@ -1027,6 +1030,16 @@ function touchEvent(id, x, y, time, target) {
   return {
     changedTouches: [{ identifier: id, clientX: x, clientY: y }], target, timeStamp: time,
     prevented: 0, stopped: 0,
+    preventDefault() { this.prevented += 1; }, stopPropagation() { this.stopped += 1; }
+  };
+}
+
+function multiTouchEvent(count, time, target) {
+  return {
+    changedTouches: Array.from({ length: count }, (_, index) => ({
+      identifier: 1000 + index, clientX: 100 + index, clientY: 40 + index
+    })),
+    target, timeStamp: time, prevented: 0, stopped: 0,
     preventDefault() { this.prevented += 1; }, stopPropagation() { this.stopped += 1; }
   };
 }
@@ -1216,6 +1229,39 @@ test('generic and action buttons cannot originate vertical touch dragging', () =
     assert.equal(h.boundary(), null);
     assert.equal(h.sheetPointer(), null);
     assert.equal(move.prevented, 0);
+  }
+});
+
+test('initial multi-contact touchstart is rejected atomically and single-touch recovery works', () => {
+  const scenarios = [
+    { kind: 'history', target: blankTouchTarget(null), count: 2, compat: true },
+    { kind: 'selection', target: gridTarget('.book-btn'), count: 2, compat: false },
+    { kind: 'selection', target: blankTouchTarget({ scrollTop: 0, clientHeight: 200, scrollHeight: 600 }),
+      count: 32, compat: true }
+  ];
+  for (const scenario of scenarios) {
+    const h = runTouchAdapter();
+    h.kind(scenario.kind);
+    if (scenario.compat) {
+      h.bodyPointerDown({ ...pointerEvent(500, 100, 40, 1, scenario.target), pointerType: 'touch',
+        currentTarget: {}, isTouchAdapter: false });
+      assert.ok(h.boundary());
+    }
+    const start = multiTouchEvent(scenario.count, 2, scenario.target);
+    h.start(start);
+    assert.equal(h.count(), 0);
+    assert.equal(h.pointer(), null);
+    assert.equal(h.sheetPointer(), null);
+    assert.equal(h.boundary(), null, 'matching compatibility candidate is cleared');
+    assert.equal(h.frameCount(), 0);
+    assert.equal(h.captureCount(), 0);
+    assert.equal(h.guardArmed(), false);
+    assert.equal(start.prevented, 0);
+
+    h.start(touchEvent(60, 100, 40, 3, scenario.target));
+    assert.equal(h.count(), 1, 'subsequent single-touch starts from a clean state');
+    h.cancel(touchEvent(60, 100, 40, 4, scenario.target));
+    assert.equal(h.count(), 0);
   }
 });
 

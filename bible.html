@@ -3934,7 +3934,7 @@
       cancelAppSheetGesture({ pointerId: activeSheetPointer.id });
       if (!matchingTouchCandidate) return;
     }
-    if (!e.changedTouches || !e.changedTouches.length) return;
+    if (!e.changedTouches || e.changedTouches.length !== 1) return;
     var horizontalAllowed = appSheetState.kind === 'selection' && selectionPointerTargetAllowsSwipe(e.target);
     var verticalAllowed = appSheetTouchTargetAllowsVertical(e.target);
     if (!horizontalAllowed && !verticalAllowed) return;
