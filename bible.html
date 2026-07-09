@@ -2795,8 +2795,8 @@
     appSheetState.viewportFrame = null;
     var ownership = appSheetState.viewportListener;
     if (ownership && ownership.viewport && typeof ownership.viewport.removeEventListener === 'function') {
-      ownership.viewport.removeEventListener('resize', ownership.handler);
-      ownership.viewport.removeEventListener('scroll', ownership.handler);
+      try { ownership.viewport.removeEventListener('resize', ownership.handler); } catch (resizeCleanupError) {}
+      try { ownership.viewport.removeEventListener('scroll', ownership.handler); } catch (scrollCleanupError) {}
     }
     appSheetState.viewportListener = null;
     appSheetState.viewportOwnerGeneration = null;
@@ -2821,21 +2821,26 @@
     return true;
   }
 
-  function scheduleSearchViewportGeometry(generation) {
-    if (!isCurrentAppSheetGeneration(generation) || appSheetState.kind !== 'search' ||
-        !appSheetState.searchFullscreenLatched || appSheetState.viewportOwnerGeneration !== generation ||
+  function scheduleAppSheetViewportUpdate(generation) {
+    if (!isCurrentAppSheetGeneration(generation) || appSheetState.phase === 'closing' ||
+        appSheetState.phase === 'closed' || appSheetState.viewportOwnerGeneration !== generation ||
         appSheetState.viewportFrame !== null) return false;
     var frame = requestAnimationFrame(function () {
       if (appSheetState.viewportFrame !== frame) return;
       appSheetState.viewportFrame = null;
-      updateSearchViewportGeometry(generation);
+      if (!isCurrentAppSheetGeneration(generation) || appSheetState.phase === 'closing' ||
+          appSheetState.phase === 'closed' || appSheetState.viewportOwnerGeneration !== generation) return;
+      if (appSheetState.kind === 'search' && appSheetState.searchFullscreenLatched) {
+        updateSearchViewportGeometry(generation);
+      }
+      scheduleAppSheetMeasurement(generation);
       scheduleAppSheetOverflowFades(generation);
     });
     appSheetState.viewportFrame = frame;
     return true;
   }
 
-  function installSearchViewportOwnership(generation) {
+  function installAppSheetViewportOwnership(generation) {
     if (!isCurrentAppSheetGeneration(generation) || appSheetState.phase === 'closed' ||
         appSheetState.viewportOwnerGeneration !== generation) return false;
     if (appSheetState.viewportListener) return true;
@@ -2845,16 +2850,19 @@
     var handler = function () {
       if (!isCurrentAppSheetGeneration(generation)) return;
       resetBibleWheelBurst();
-      if (appSheetState.kind === 'search' && appSheetState.searchFullscreenLatched) {
-        scheduleSearchViewportGeometry(generation);
-      } else {
-        scheduleAppSheetMeasurement(generation);
-        scheduleAppSheetOverflowFades(generation);
-      }
+      scheduleAppSheetViewportUpdate(generation);
     };
     appSheetState.viewportListener = { viewport: viewport, handler: handler, generation: generation };
-    viewport.addEventListener(['resize'][0], handler, { passive: true });
-    viewport.addEventListener('scroll', handler, { passive: true });
+    try {
+      viewport.addEventListener(['resize'][0], handler, { passive: true });
+      viewport.addEventListener('scroll', handler, { passive: true });
+    } catch (viewportListenerError) {
+      try { viewport.removeEventListener('resize', handler); } catch (resizeCleanupError) {}
+      try { viewport.removeEventListener('scroll', handler); } catch (scrollCleanupError) {}
+      if (appSheetState.viewportListener && appSheetState.viewportListener.handler === handler) {
+        appSheetState.viewportListener = null;
+      }
+    }
     return true;
   }
 
@@ -2869,7 +2877,7 @@
     }
     appSheetState.searchFullscreenLatched = true;
     appSheet.classList.add('search-viewport-fullscreen');
-    installSearchViewportOwnership(generation);
+    installAppSheetViewportOwnership(generation);
     if (!setSheetSnap('fullscreen', true)) {
       cleanupAppSheetViewportOwnership(generation);
       return false;
@@ -3458,6 +3466,10 @@
     appSheetState.phase = wasOpen ? 'idle' : 'opening';
     appSheetState.determinedHeight = 0;
     appSheetState.determinedWidth = 0;
+    appSheetState.viewportOwnerGeneration = appSheetState.generation;
+    if (typeof installAppSheetViewportOwnership === 'function') {
+      installAppSheetViewportOwnership(appSheetState.generation);
+    }
     if (!wasOpen) appSheetState.opener = options.opener || document.activeElement;
     else if (options.opener && options.opener !== appSheetState.opener) {
       setAppSheetLauncherExpanded(appSheetState.opener, false);

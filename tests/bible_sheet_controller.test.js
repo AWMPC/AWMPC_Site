@@ -472,7 +472,7 @@ assert.match(bible, /shouldReduceVerseMotion\(\)[\s\S]*setSheetSnap/);
 assert.match(bible, /function openAppSheet\(kind, options\)/);
 assert.match(bible, /function setSheetSnap\(snap, immediate\)/);
 for (const name of ['cleanupAppSheetViewportOwnership', 'updateSearchViewportGeometry',
-  'scheduleSearchViewportGeometry', 'installSearchViewportOwnership', 'latchMobileSearchFullscreen']) {
+  'scheduleAppSheetViewportUpdate', 'installAppSheetViewportOwnership', 'latchMobileSearchFullscreen']) {
   assert.match(bible, new RegExp('function ' + name + '\\('), `${name} is an explicit generation-owned controller primitive`);
 }
 assert.match(controllerFunction('setSheetSnap'),
@@ -799,7 +799,7 @@ const controllerSource = bible.slice(pureStart, pureEnd) + '\n' +
   'pop: handleAppSheetPopState, snap: setSheetSnap, register: registerAppSheetDescriptor,' +
   'retarget: retargetAppSheetMeasurement, selectPage: setSelectionPage, commitSelection: commitSelectionVerse,' +
   'finishAction: finishVerseAction, latchSearch: latchMobileSearchFullscreen,' +
-  'updateSearchViewport: updateSearchViewportGeometry, scheduleSearchViewport: scheduleSearchViewportGeometry,' +
+  'updateSearchViewport: updateSearchViewportGeometry, scheduleViewport: scheduleAppSheetViewportUpdate,' +
   'cleanupViewport: cleanupAppSheetViewportOwnership, refresh: refreshOwnerScopedAppSheet, state: appSheetState};';
 vm.runInNewContext(controllerSource, controllerContext);
 const api = controllerContext.api;
@@ -838,6 +838,10 @@ assert.equal(opener.classList.contains('active'), true);
 assert.equal(dialog.getAttribute('aria-label'), 'History — Bible panel');
 assert.equal(handle.getAttribute('aria-label'), 'Expand History panel');
 assert.equal(measure.textContent, 'history:recent');
+assert.equal(viewportListeners.resize.length, viewportResizeListenerBaseline + 1,
+  'determined History owns one generation-scoped viewport resize listener');
+assert.equal(viewportListeners.scroll.length, 1,
+  'determined History owns one generation-scoped viewport scroll listener');
 assert.equal(frames.size, 2, 'opening schedules one measurement frame and one coalesced fade frame');
 for (const [id, callback] of [...frames]) { callback(); frames.delete(id); }
 assert.equal(dialog.style.getPropertyValue('--sheet-height'), '224px',
@@ -852,6 +856,23 @@ assert.equal(api.state.anchor, 'right', 'opener center on the midpoint or right 
 assert.equal(dialog.classList.contains('inline-right'), true);
 assert.equal(dialog.classList.contains('inline-left'), false);
 assert.equal(resizeObserverInstances.length, 2, 'measurement and overflow each own one scoped observer');
+
+viewportListeners.resize.at(-1)();
+const historyViewportFrame = api.state.viewportFrame;
+viewportListeners.scroll[0]();
+viewportListeners.resize.at(-1)();
+assert.equal(api.state.viewportFrame, historyViewportFrame,
+  'non-Search viewport resize and scroll bursts coalesce into one owner RAF');
+assert.equal(frames.size, 1);
+frames.get(historyViewportFrame)();
+frames.delete(historyViewportFrame);
+assert.equal(frames.size, 2, 'viewport owner RAF schedules generic measurement and overflow fades');
+for (const [id, callback] of [...frames]) { callback(); frames.delete(id); }
+const staleHistoryViewportListener = viewportListeners.resize.at(-1);
+api.state.generation += 1;
+staleHistoryViewportListener();
+assert.equal(api.state.viewportFrame, null, 'a non-Search viewport listener is inert after its generation expires');
+api.state.generation -= 1;
 
 measure.scrollHeight = 900;
 resizeObserverInstances[0].fire();
@@ -1971,6 +1992,7 @@ assert.equal(dialog.open, false, 'selector replacement survives recorded Back/Fo
 
 for (let cycle = 0; cycle < 3; cycle += 1) {
   assert.equal(api.open('history', { opener, page: 'lifecycle-' + cycle }), true);
+  const cycleViewportListener = viewportListeners.resize.at(-1);
   for (const [id, callback] of [...frames]) { callback(); frames.delete(id); }
   handle.dispatch('pointerdown', {
     isPrimary: true, button: 0, pointerId: 200 + cycle, clientX: 0, clientY: 0, timeStamp: 1
@@ -1988,6 +2010,11 @@ for (let cycle = 0; cycle < 3; cycle += 1) {
     assert.equal(api.state[field], null, `cycle ${cycle} releases ${field}`);
   }
   assert.equal(api.state.searchFullscreenLatched, false, `cycle ${cycle} releases Search fullscreen ownership`);
+  assert.equal(viewportListeners.resize.length, viewportResizeListenerBaseline,
+    `cycle ${cycle} removes the exact viewport resize listener`);
+  assert.equal(viewportListeners.scroll.length, 0, `cycle ${cycle} removes the exact viewport scroll listener`);
+  assert.equal((viewportListeners.resize || []).includes(cycleViewportListener), false,
+    `cycle ${cycle} removes its exact viewport callback identity`);
   assert.equal(measure.textContent, '', `cycle ${cycle} releases rendered nodes`);
   assert.equal(handle.hasPointerCapture(200 + cycle), false, `cycle ${cycle} releases capture`);
   assert.equal(dialog.classList.contains('is-dragging'), false);
@@ -2401,6 +2428,18 @@ assert.equal(api.latchSearch(api.state.generation), true,
 assert.equal(viewportListeners.resize.length, viewportResizeListenerBaseline,
   'an unremovable visualViewport listener is never installed');
 api.cleanupViewport(api.state.generation);
+controllerContext.window.visualViewport.removeEventListener = savedRemoveViewportListener;
+dialog.open = false;
+
+delete controllerContext.window.visualViewport.removeEventListener;
+assert.equal(api.open('history', { opener, page: 'partial-viewport' }), true,
+  'a generic sheet opens safely with a geometry-only partial visualViewport API');
+assert.equal(api.state.viewportOwnerGeneration, api.state.generation,
+  'partial API still records the logical opening-generation owner');
+assert.equal(viewportListeners.resize.length, viewportResizeListenerBaseline,
+  'partial API installs no unremovable generic listener');
+api.cleanupViewport(api.state.generation);
+assert.equal(api.state.viewportOwnerGeneration, null);
 controllerContext.window.visualViewport.removeEventListener = savedRemoveViewportListener;
 dialog.open = false;
 
