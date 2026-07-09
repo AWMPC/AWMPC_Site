@@ -2480,6 +2480,15 @@
     return state;
   }
 
+  function isCurrentAppSheetHistoryToken(sheet) {
+    if (!sheet) return false;
+    if (appSheetState.historyReturnGeneration === null) {
+      return sheet.generation == null && sheet.returnGeneration == null;
+    }
+    return sheet.generation === appSheetState.generation &&
+      sheet.returnGeneration === appSheetState.historyReturnGeneration;
+  }
+
   function appSheetViewportHeight() {
     var visualHeight = window.visualViewport && window.visualViewport.height;
     if (isFiniteAppSheetNumber(visualHeight) && visualHeight > 0) return visualHeight;
@@ -2810,9 +2819,7 @@
   function handleAppSheetPopState(state) {
     var validated = validatedAppSheetHistoryState(state);
     if (validated) {
-      if (appSheet.open &&
-          ((appSheetState.historyReturnGeneration !== null && validated.sheet.generation == null) ||
-           (validated.sheet.generation != null && validated.sheet.generation !== appSheetState.generation))) return true;
+      if (appSheet.open && !isCurrentAppSheetHistoryToken(validated.sheet)) return true;
       if (validated.sheet.kind === 'selection') {
         history.replaceState(validated, '', canonicalVerseUrl(validated.book, validated.chapter, validated.verse));
       }
@@ -2826,9 +2833,7 @@
       return true;
     }
     if (state && state.sheet && state.sheet.kind === 'selection') {
-      if (appSheet.open &&
-          ((appSheetState.historyReturnGeneration !== null && state.sheet.generation == null) ||
-           (state.sheet.generation != null && state.sheet.generation !== appSheetState.generation))) return true;
+      if (appSheet.open && !isCurrentAppSheetHistoryToken(state.sheet)) return true;
       var reader = normalizeVerseReference(state.book, state.chapter, state.verse);
       if (reader) {
         var context = normalizedSelectionContext(state.sheet.book, state.sheet.chapter, reader);

@@ -291,8 +291,11 @@ assert.doesNotMatch(controllerFunction('openAppSheet'), /options\.(?:render|cont
 assert.doesNotMatch(bible, /appSheetState\.closing/);
 assert.match(bible, /function isCurrentAppSheetGeneration\(generation\)/);
 assert.match(controllerFunction('handleAppSheetPopState'),
-  /validated\.sheet\.generation !== appSheetState\.generation/,
+  /!isCurrentAppSheetHistoryToken\(validated\.sheet\)/,
   'old sheet-entry callbacks are rejected while a newer sheet is open');
+assert.match(controllerFunction('isCurrentAppSheetHistoryToken'),
+  /sheet\.generation === appSheetState\.generation[\s\S]*sheet\.returnGeneration === appSheetState\.historyReturnGeneration/,
+  'tagged callbacks require matching runtime and immutable chain identities');
 assert.match(controllerFunction('handleAppSheetPopState'),
   /state\.sheetReturnGeneration !== appSheetState\.historyReturnGeneration/,
   'old close callbacks are rejected while a newer sheet is open');
@@ -823,10 +826,27 @@ api.close('invalidate-old-history-generation');
 api.open('history', { page: 'new' });
 const currentAfterReopen = {
   generation: api.state.generation, kind: api.state.kind, content: measure.textContent,
-  phase: api.state.phase, focus: opener.focusCount
+  phase: api.state.phase, focus: opener.focusCount,
+  historyPushes: historyCalls.push.length, historyReplaces: historyCalls.replace.length, historyBacks: historyCalls.back
 };
 assert.notEqual(currentAfterReopen.generation, staleGeneration);
 assert.notEqual(api.state.historyReturnGeneration, staleReturnGeneration);
+const collidingSheetPop = {
+  view: 'verses', book: 'John', chapter: '3', verse: '16',
+  sheet: {
+    kind: 'search', page: 'colliding-chain', generation: currentAfterReopen.generation,
+    returnGeneration: staleReturnGeneration
+  }
+};
+const collidingLegacySelectionFallback = {
+  view: 'books', book: 'John', chapter: '3', verse: '16',
+  sheet: {
+    kind: 'selection', page: 'books', generation: currentAfterReopen.generation,
+    returnGeneration: staleReturnGeneration
+  }
+};
+assert.equal(api.pop(collidingSheetPop), true);
+assert.equal(api.pop(collidingLegacySelectionFallback), true);
 assert.equal(api.pop(staleSheetPop), true);
 assert.equal(api.pop(staleClosePop), true);
 assert.equal(api.pop(untaggedStaleSheetPop), true);
@@ -834,7 +854,9 @@ assert.equal(api.pop(untaggedStaleClosePop), true);
 assert.equal(api.pop(untaggedInvalidSelectionFallback), true);
 assert.deepEqual({
   generation: api.state.generation, kind: api.state.kind, content: measure.textContent,
-  phase: api.state.phase, focus: opener.focusCount, legacySelectionOpenCalls
+  phase: api.state.phase, focus: opener.focusCount,
+  historyPushes: historyCalls.push.length, historyReplaces: historyCalls.replace.length, historyBacks: historyCalls.back,
+  legacySelectionOpenCalls
 }, { ...currentAfterReopen, legacySelectionOpenCalls: 0 },
   'tagged and untagged stale sheet/close/legacy-selection callbacks cannot mutate a reopened sheet');
 
