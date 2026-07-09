@@ -2309,6 +2309,7 @@
   var APP_SHEET_KINDS = ['history', 'settings', 'search', 'selection', 'verse-actions'];
   var APP_SHEET_EDGES = ['top', 'bottom'];
   var APP_SHEET_SNAPS = ['determined', 'fullscreen'];
+  var APP_SHEET_ANCHORS = ['left', 'right'];
   var APP_SHEET_PHASES = ['closed', 'idle', 'dragging', 'settling', 'closing'];
   var APP_SHEET_AXIS_LOCK_PX = 8;
   var APP_SHEET_SNAP_PX = 80;
@@ -2316,10 +2317,16 @@
   var APP_SHEET_VELOCITY_RECENCY_MS = 80;
   var APP_SHEET_MAX_VELOCITY = 3;
   var APP_SHEET_CLICK_GUARD_MS = 500;
+  var BIBLE_WHEEL_AXIS_RATIO = 1.25;
+  var BIBLE_WHEEL_ACTIVATION_PX = 48;
+  var BIBLE_WHEEL_IDLE_MS = 160;
+  var BIBLE_WHEEL_LINE_PX = 16;
+  var BIBLE_WHEEL_MAX_EVENT_PX = 120;
   function appSheetEnumHas(values, value) { return typeof value === 'string' && values.indexOf(value) !== -1; }
   function isValidAppSheetKind(value) { return appSheetEnumHas(APP_SHEET_KINDS, value); }
   function isValidAppSheetEdge(value) { return appSheetEnumHas(APP_SHEET_EDGES, value); }
   function isValidAppSheetSnap(value) { return appSheetEnumHas(APP_SHEET_SNAPS, value); }
+  function isValidAppSheetAnchor(value) { return appSheetEnumHas(APP_SHEET_ANCHORS, value); }
   function isFiniteAppSheetNumber(value) { return typeof value === 'number' && Number.isFinite(value); }
   function appSheetOverflowFadeState(scrollTop, clientHeight, scrollHeight) {
     if (!isFiniteAppSheetNumber(scrollTop) ||
@@ -2341,6 +2348,36 @@
     if (fixed > cap) return null;
     var determined = Math.max(fixed, Math.min(Math.ceil(contentHeight + chromeHeight), cap));
     return determined > 0 ? determined : null;
+  }
+  function appSheetDeterminedWidth(contentWidth, chromeWidth, viewportWidth, minimumWidth, gutterWidth, fillsPanel) {
+    if (!isFiniteAppSheetNumber(contentWidth) || contentWidth < 0 ||
+        !isFiniteAppSheetNumber(chromeWidth) || chromeWidth < 0 ||
+        !isFiniteAppSheetNumber(viewportWidth) || viewportWidth <= 0 ||
+        !isFiniteAppSheetNumber(minimumWidth) || minimumWidth <= 0 ||
+        !isFiniteAppSheetNumber(gutterWidth) || gutterWidth < 0 ||
+        typeof fillsPanel !== 'boolean') return null;
+    var maximum = Math.floor(Math.min(viewportWidth * .5, viewportWidth - gutterWidth));
+    if (maximum < minimumWidth) return maximum > 0 ? maximum : null;
+    return Math.ceil(Math.max(minimumWidth,
+      Math.min(fillsPanel ? maximum : contentWidth + chromeWidth, maximum)));
+  }
+  function appSheetHorizontalAnchor(openerLeft, openerWidth, viewportWidth) {
+    if (!isFiniteAppSheetNumber(openerLeft) ||
+        !isFiniteAppSheetNumber(openerWidth) || openerWidth < 0 ||
+        !isFiniteAppSheetNumber(viewportWidth) || viewportWidth <= 0) return null;
+    return openerLeft + openerWidth / 2 < viewportWidth / 2 ? 'left' : 'right';
+  }
+  function normalizeBibleWheelDelta(value, mode, viewportWidth) {
+    if (!isFiniteAppSheetNumber(value) || !Number.isInteger(mode) || mode < 0 || mode > 2 ||
+        !isFiniteAppSheetNumber(viewportWidth) || viewportWidth <= 0) return null;
+    var pixels = mode === 0 ? value : (mode === 1 ? value * BIBLE_WHEEL_LINE_PX : value * viewportWidth);
+    return Math.max(-BIBLE_WHEEL_MAX_EVENT_PX, Math.min(BIBLE_WHEEL_MAX_EVENT_PX, pixels));
+  }
+  function bibleWheelClaimDirection(deltaX, deltaY) {
+    if (!isFiniteAppSheetNumber(deltaX) || !isFiniteAppSheetNumber(deltaY) ||
+        Math.abs(deltaX) < BIBLE_WHEEL_ACTIVATION_PX ||
+        Math.abs(deltaX) < Math.abs(deltaY) * BIBLE_WHEEL_AXIS_RATIO) return 0;
+    return deltaX < 0 ? -1 : 1;
   }
   function appSheetEffectiveSnapDistance(adjacentDistance) {
     if (!isFiniteAppSheetNumber(adjacentDistance) || adjacentDistance <= 0) return null;

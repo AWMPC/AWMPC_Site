@@ -155,6 +155,7 @@ assert.ok(pureStart >= 0 && pureEnd > pureStart, 'pure sheet decisions are testa
 const pureSource = bible.slice(pureStart, pureEnd) + '\nthis.hooks = {' +
   'validKind: isValidAppSheetKind, validEdge: isValidAppSheetEdge, validSnap: isValidAppSheetSnap,' +
   'finite: isFiniteAppSheetNumber, determinedHeight: appSheetDeterminedHeight,' +
+  'width: appSheetDeterminedWidth, anchor: appSheetHorizontalAnchor,' +
   'effectiveDistance: appSheetEffectiveSnapDistance, outcome: appSheetReleaseOutcome,' +
   'visual: appSheetGestureVisual,' +
   'axis: appSheetAxis, boundary: appSheetBoundaryAllowsDrag, phases: APP_SHEET_PHASES,' +
@@ -184,6 +185,22 @@ assert.equal(h.finite(Infinity), false);
 assert.equal(h.finite(-Infinity), false);
 assert.equal(h.finite(NaN), false);
 assert.equal(h.finite(new Number(1)), false);
+
+assert.equal(h.width(180, 40, 1200, 220, 24, false), 220,
+  'desktop sheet width respects its minimum');
+assert.equal(h.width(420, 40, 1200, 220, 24, false), 460,
+  'desktop sheet width includes fixed chrome');
+assert.equal(h.width(900, 40, 1200, 220, 24, false), 600,
+  'desktop sheet width caps at half the viewport');
+assert.equal(h.width(120, 40, 1200, 220, 24, true), 600,
+  'panel-filling desktop sheets use the available maximum');
+assert.equal(h.width(Infinity, 40, 1200, 220, 24, false), null,
+  'invalid content width is rejected');
+
+assert.equal(h.anchor(0, 80, 1200), 'left');
+assert.equal(h.anchor(560, 80, 1200), 'right', 'midpoint ties anchor right');
+assert.equal(h.anchor(900, 80, 1200), 'right');
+assert.equal(h.anchor(0, 80, 0), null, 'a zero viewport cannot determine an anchor');
 
 assert.equal(h.determinedHeight(176, 48, 800), 224, 'short content keeps its natural height');
 assert.equal(h.determinedHeight(900, 48, 800), 560, 'long content caps at floor(70dvh)');
