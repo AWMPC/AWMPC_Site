@@ -24,6 +24,7 @@ function clone(value) {
 }
 
 function startupHarness(options = {}) {
+  const source = options.source || startupSource;
   const dataset = options.dataset || {
     Genesis: { 1: { 1: 'Beginning', 2: 'Earth' } },
     John: { 3: { 16: 'Loved' } },
@@ -115,7 +116,7 @@ function startupHarness(options = {}) {
         String(context.currentChapter) === String(chapter);
     }
   };
-  vm.runInNewContext(`${startupSource}\nthis.startupApi = {
+  vm.runInNewContext(`${source}\nthis.startupApi = {
     newestValidChapterPosition,
     defaultStartupReadingReference,
     startupReadingReference,
@@ -222,7 +223,7 @@ test('active verse routes debounce with replace only, preserve validated sheet s
   assert.equal(h.calls.replace.length, 1, 'uncommitted or stale reader state is ignored');
 });
 
-test('owner isolation resets the reader canonically unless a private sheet is retained', () => {
+test('owner isolation always resets the reader canonically even when a private sheet is retained', () => {
   const reset = startupHarness({ uiView: 'verses', currentBook: 'John', currentChapter: 3, activeVerse: '16' });
   assert.equal(reset.api.resetReaderForOwnerIsolation(false), true);
   assert.deepEqual(reset.calls.show[0], { book: 'Genesis', chapter: 1, verse: '1', navFromPop: true });
@@ -230,9 +231,9 @@ test('owner isolation resets the reader canonically unless a private sheet is re
   assert.equal(reset.calls.replace.length, 1);
 
   const retained = startupHarness({ uiView: 'verses', currentBook: 'John', currentChapter: 3, activeVerse: '16' });
-  assert.equal(retained.api.resetReaderForOwnerIsolation(true), false);
-  assert.equal(retained.calls.show.length, 0, 'open private sheet refresh does not jump behind the sheet');
-  assert.equal(retained.calls.replace.length, 0);
+  assert.equal(retained.api.resetReaderForOwnerIsolation(true), true);
+  assert.deepEqual(retained.calls.show[0], { book: 'Genesis', chapter: 1, verse: '1', navFromPop: true });
+  assert.equal(retained.calls.replace.length, 1, 'the prior owner route is replaced beneath the retained sheet');
 });
 
 test('integration wires route tracking, pagehide flush, auth resets, and prevents late auth startup jumps', () => {
@@ -254,7 +255,7 @@ test('integration wires route tracking, pagehide flush, auth resets, and prevent
     'data load initializes the reader exactly once');
 });
 
-test('canonical route can be parsed on reload and routing guards are mutation-sensitive', () => {
+test('canonical route can be parsed on reload and routing guards reject executable mutations', () => {
   const first = startupHarness({ uiView: 'verses', currentBook: 'John', currentChapter: 3, activeVerse: '16' });
   first.api.replaceReadingRoute('John', 3, '16');
   const canonical = first.calls.replace[0].url;
@@ -262,9 +263,72 @@ test('canonical route can be parsed on reload and routing guards are mutation-se
   reload.api.openInitialViewFromUrl();
   assert.deepEqual(reload.calls.show[0], { book: 'John', chapter: 3, verse: '16', navFromPop: true });
 
-  assert.match(startupSource, /history\.replaceState\(/);
-  assert.doesNotMatch(startupSource, /history\.pushState\(/);
-  assert.match(startupSource, /isCurrentVersesView\(reference\.book, reference\.chapter\)/);
-  assert.match(startupSource, /activeVerse !== reference\.verse/);
-  assert.match(startupSource, /validatedAppSheetHistoryState\(appSheetState\.historyState\)/);
+  const retainedLeak = startupSource.replace(
+    'if (!bibleData) return false;',
+    'if (!bibleData || retainedOwnerSheet) return false;'
+  );
+  assert.notEqual(retainedLeak, startupSource, 'retained-sheet privacy mutant must apply');
+  const leaked = startupHarness({
+    source: retainedLeak,
+    uiView: 'verses', currentBook: 'John', currentChapter: 3, activeVerse: '16'
+  });
+  assert.equal(leaked.api.resetReaderForOwnerIsolation(true), false,
+    'the mutant demonstrates the previous-owner reader leak');
+
+  const reversedPrecedence = startupSource.replace(
+    'linkedReference || newestValidChapterPosition() || defaultStartupReadingReference()',
+    'newestValidChapterPosition() || linkedReference || defaultStartupReadingReference()'
+  );
+  assert.notEqual(reversedPrecedence, startupSource, 'URL precedence mutant must apply');
+  const wrongPriority = startupHarness({
+    source: reversedPrecedence,
+    search: '?book=John&chapter=3&verse=16',
+    positions: [{ key: 'Psalms|23', book: 'Psalms', chapter: '23', verse: '1' }]
+  });
+  wrongPriority.api.openInitialViewFromUrl();
+  assert.deepEqual(wrongPriority.calls.show[0], {
+    book: 'Psalms', chapter: 23, verse: '1', navFromPop: true
+  }, 'the mutant demonstrates why an explicit URL must remain first');
+
+  const pushMutation = startupSource.replace(
+    'history.replaceState(state, \'\', canonicalVerseUrl(reference.book, reference.chapter, reference.verse));',
+    'history.pushState(state, \'\', canonicalVerseUrl(reference.book, reference.chapter, reference.verse));'
+  );
+  assert.notEqual(pushMutation, startupSource, 'replace-only route mutant must apply');
+  const historyGrowth = startupHarness({
+    source: pushMutation,
+    uiView: 'verses', currentBook: 'John', currentChapter: 3, activeVerse: '16'
+  });
+  historyGrowth.api.replaceReadingRoute('John', 3, '16');
+  assert.equal(historyGrowth.calls.push.length, 1, 'the mutant demonstrates unwanted history growth');
+});
+
+test('pagehide executes route and chapter-position flushes in privacy-safe order', () => {
+  const pagehide = sourceBetween(
+    "  window.addEventListener('pagehide', function () {",
+    "  window.addEventListener('pageshow', function (event) {"
+  );
+  const body = pagehide.slice(pagehide.indexOf('{') + 1, pagehide.lastIndexOf('}'));
+  function execute(source) {
+    const calls = [];
+    vm.runInNewContext(`(function () {${source}})()`, {
+      _clearSyncTimers() { calls.push('sync'); },
+      flushReadingRouteReplace() { calls.push('route'); },
+      rememberCurrentChapterPosition() { calls.push('remember'); },
+      flushChapterPositions() { calls.push('positions'); },
+      cancelHistorySettle() { calls.push('settle'); },
+      clearPendingReaderVerseAction() { calls.push('reader-action'); },
+      clearSuppressReaderClick() { calls.push('reader-click'); },
+      closeVerseActions() { calls.push('verse-actions'); },
+      uiView: 'verses',
+      bibleLoadGeneration: 0,
+      bibleLoadRequest: null
+    });
+    return calls;
+  }
+  const persistenceCalls = calls => calls.filter(call => ['route', 'remember', 'positions'].includes(call));
+  assert.deepEqual(persistenceCalls(execute(body)), ['route', 'remember', 'positions']);
+  const withoutRouteFlush = body.replace('flushReadingRouteReplace();', '');
+  assert.notDeepEqual(persistenceCalls(execute(withoutRouteFlush)), ['route', 'remember', 'positions'],
+    'removing the route flush must be observable');
 });

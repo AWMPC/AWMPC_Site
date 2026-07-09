@@ -6331,7 +6331,7 @@
 
   function resetReaderForOwnerIsolation(retainedOwnerSheet) {
     clearPendingReadingRoute();
-    if (!bibleData || retainedOwnerSheet) return false;
+    if (!bibleData) return false;
     return showCanonicalReadingReference(defaultStartupReadingReference());
   }
   /* STARTUP READING LOCATION END */
