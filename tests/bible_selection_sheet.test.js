@@ -101,10 +101,10 @@ test('book and chapter choices update isolated context before advancing, while v
   const commit = extract(/function commitSelectionVerse\(verse\) \{[\s\S]*?\n  \}/, 'verse commit handler missing');
   assert.match(book, /selectionContext\.book = bookName/);
   assert.match(book, /selectionContext\.chapter =/);
-  assert.match(book, /setSelectionPage\('chapters', true\)/);
+  assert.match(book, /setSelectionPage\('chapters', true, 'keyboard'\)/);
   assert.doesNotMatch(book, /showVersesView|showSelectedVerse/);
   assert.match(chapter, /selectionContext\.chapter = normalized\.chapter/);
-  assert.match(chapter, /setSelectionPage\('verses', true\)/);
+  assert.match(chapter, /setSelectionPage\('verses', true, 'keyboard'\)/);
   assert.doesNotMatch(chapter, /showVersesView|showSelectedVerse/);
   assert.match(commit, /normalizeVerseReference/);
   assert.match(commit, /history\.replaceState/);
@@ -363,6 +363,7 @@ function runDotRenderer(source = bible) {
   const document = { createElement: tag => new FakeElement(tag) };
   const api = Function('document', 'calls', `
     var selectionPages = ['books', 'chapters', 'verses'];
+    var bibleData = {};
     var selectionSheetPage = 'books';
     var selectionContext = null;
     var selectionGrids = null;
@@ -534,7 +535,7 @@ function runSelectionFlow(events) {
     }
     function renderSelectionChapters() { events.push(['render-chapters']); }
     function renderSelectionVerses() { events.push(['render-verses']); }
-    function setSelectionPage(page, replace) { events.push(['page', page, replace]); return true; }
+    function setSelectionPage(page, replace, focusMode) { events.push(['page', page, replace, focusMode]); return true; }
     function canonicalVerseUrl(book, chapter, verse) { return book + '/' + chapter + '/' + verse; }
     function showSelectedVerseWithTransition(book, chapter, verse) { events.push(['reader', book, chapter, verse]); }
     function requestCloseAppSheet(source, focusPolicy) { events.push(['close', source, focusPolicy]); return true; }
@@ -554,16 +555,67 @@ test('B to C to V executes validated context while only verse commit mutates rea
   assert.equal(api.book('__proto__'), false);
   assert.equal(api.book('John'), true);
   assert.deepEqual(api.context(), { book: 'John', chapter: 3 });
+  assert.deepEqual(events.find(event => event[0] === 'page'), ['page', 'chapters', true, 'keyboard']);
   assert.equal(events.some(event => event[0] === 'reader' || event[0] === 'replace'), false);
   assert.equal(api.chapter(999), false);
   assert.equal(api.chapter(4), true);
   assert.deepEqual(api.context(), { book: 'John', chapter: 4 });
+  assert.deepEqual(events.filter(event => event[0] === 'page').at(-1), ['page', 'verses', true, 'keyboard']);
   assert.equal(events.some(event => event[0] === 'reader' || event[0] === 'replace'), false);
   assert.equal(api.verse(999), false);
   assert.equal(api.verse(1), true);
   assert.deepEqual(events.filter(event => event[0] === 'replace').length, 1);
   assert.deepEqual(events.filter(event => event[0] === 'reader'), [['reader', 'John', 4, '1']]);
   assert.deepEqual(events.at(-1), ['close', 'selection-complete', 'reader']);
+});
+
+test('real focused book activation relocates focus before the old panel becomes inert', () => {
+  const panels = [new FakeElement('section'), new FakeElement('section'), new FakeElement('section')];
+  const dots = [new FakeElement('span'), new FakeElement('span'), new FakeElement('span')];
+  panels.forEach(panel => { panel.inert = false; });
+  const oldButton = new FakeElement('button');
+  const nextButton = new FakeElement('button');
+  panels[0].appendChild(oldButton);
+  panels[1].appendChild(nextButton);
+  const focusOrder = [];
+  const document = { activeElement: oldButton };
+  nextButton.focus = function () { focusOrder.push(['next', panels[0].inert]); document.activeElement = nextButton; };
+  const api = Function('selectionPanels', 'selectionDots', 'document', `
+    var selectionPages = ['books', 'chapters', 'verses'];
+    var bibleData = {};
+    var selectionSheetPage = 'books';
+    var selectionContext = { book: 'Genesis', chapter: 1 };
+    var selectionTrack = { style: { transform: '' }, classList: { toggle: function () {} } };
+    var selectionRetargetFrame = null;
+    var selectionRetargetTimer = null;
+    var selectionLive = { textContent: '' };
+    var appSheetState = { page: 'books', kind: 'selection', historyOwned: false };
+    var appSheet = { open: false };
+    var window = { setTimeout: function () { return 1; }, clearTimeout: function () {}, location: { href: '' } };
+    var history = { replaceState: function () {} };
+    function selectionChapterKeys() { return ['1']; }
+    function sanitizedSelectionDataContext() { return { book: 'John', chapter: 1 }; }
+    function renderSelectionChapters() {}
+    function renderSelectionVerses() {}
+    function disconnectSelectionGridLayout() {}
+    function cancelAnimationFrame() {}
+    function shouldReduceVerseMotion() { return true; }
+    function retargetAppSheetMeasurement() {}
+    function scheduleSelectionGridRetarget() {}
+    function selectionHistoryState() { return null; }
+    function currentSelectionReaderReference() { return null; }
+    function tagAppSheetHistoryStateForCurrentLifecycle() { return null; }
+    function isValidSelectionPage(page) { return selectionPages.indexOf(page) >= 0; }
+    ${functionSource('focusSelectionPanel')}
+    ${functionSource('updateSelectionPageSemantics')}
+    ${functionSource('setSelectionPage')}
+    ${functionSource('selectSelectionBook')}
+    return selectSelectionBook;
+  `)(panels, dots, document);
+  assert.equal(api('John'), true);
+  assert.deepEqual(focusOrder, [['next', false]]);
+  assert.equal(panels[0].inert, true);
+  assert.equal(panels[1].inert, false);
 });
 
 function runGestureProgram(source = bible, selectionCollapsed = true) {
@@ -858,7 +910,7 @@ function runTouchAdapter() {
   const axis = functionSource('appSheetAxis');
   const boundary = functionSource('appSheetBodyBoundaryAllowsDrag');
   const names = [
-    'selectionPointerTargetAllowsSwipe', 'selectionCellTarget', 'clearSelectionClickGuard',
+    'selectionPointerTargetAllowsSwipe', 'appSheetTouchTargetAllowsVertical', 'selectionCellTarget', 'clearSelectionClickGuard',
     'armSelectionClickGuard', 'guardSelectionClick', 'clearSelectionCompatibilityGuard',
     'rememberSelectionTouchCompatibility', 'isSelectionCompatibilityPointer',
     'resetSelectionPointerToStablePage', 'renderSelectionPointerFrame', 'releaseSelectionPointer',
@@ -871,9 +923,11 @@ function runTouchAdapter() {
   const source = names.map(functionSource).join('\n');
   const frames = [];
   const timers = [];
+  const captures = new Set();
   const pager = {
-    clientWidth: 320,
-    setPointerCapture() {}, hasPointerCapture() { return false; }, releasePointerCapture() {}
+    clientWidth: 320, releaseCount: 0,
+    setPointerCapture(id) { captures.add(id); }, hasPointerCapture(id) { return captures.has(id); },
+    releasePointerCapture(id) { captures.delete(id); this.releaseCount += 1; }
   };
   return Function('window', 'pager', 'frames', 'timers', `
     ${helpers}
@@ -895,7 +949,7 @@ function runTouchAdapter() {
     var SELECTION_TOUCH_TIMEOUT_MS = 1200;
     var SELECTION_ENDPOINT_RESISTANCE_PX = 32;
     var appSheetBody = { scrollTop: 0, clientHeight: 200, scrollHeight: 500 };
-    var appSheetState = { generation: 7, edge: 'bottom', candidate: null, pointer: null };
+    var appSheetState = { generation: 7, kind: 'selection', edge: 'bottom', candidate: null, pointer: null };
     function requestAnimationFrame(fn) { frames.push(fn); return frames.length; }
     function cancelAnimationFrame() { selectionPointerFrame = null; }
     function beginAppSheetGesture(e) { appSheetState.candidate = { id: e.pointerId, startY: e.clientY }; }
@@ -919,7 +973,7 @@ function runTouchAdapter() {
     ${source}
     return {
       start: onSelectionTouchStart, move: onSelectionTouchMove, end: onSelectionTouchEnd,
-      cancel: onSelectionTouchCancel, pointerDown: onSelectionPointerDown,
+      cancel: onSelectionTouchCancel, pointerDown: onSelectionPointerDown, pointerMove: onSelectionPointerMove,
       page: function () { return selectionSheetPage; }, pointer: function () { return selectionPointer; },
       count: function () { return selectionTouchIdentifiers.size; },
       boundary: function () { return appSheetState.candidate && {
@@ -929,7 +983,9 @@ function runTouchAdapter() {
       }; },
       track: function () { return selectionTrack.style.transform; },
       generation: function (value) { appSheetState.generation = value; },
+      kind: function (value) { appSheetState.kind = value; },
       compatibilityArmed: function () { return !!selectionCompatibilityGuard; },
+      releaseCount: function () { return selectionPager.releaseCount; },
       guardArmed: function () { return !!selectionClickGuard; },
       guardClick: guardSelectionClick,
       sheetPointer: function () { return appSheetState.pointer; },
@@ -1066,6 +1122,66 @@ test('touch vertical motion stays native mid-scroll and only boundary-origin mot
   assert.ok(edgeMove.prevented > 0, 'unconsumable boundary-origin movement claims the sheet');
   edge.cancel(touchEvent(11, 102, 90, 21, edgeTarget));
   assert.equal(edge.count(), 0);
+});
+
+test('sheet-body touch adapter owns generic and selector blank-region boundary drags', () => {
+  const verticalGuard = functionSource('appSheetTouchTargetAllowsVertical');
+  assert.match(verticalGuard, /a,input,select,textarea,label/);
+  assert.doesNotMatch(verticalGuard, /\bp,span,li\b/);
+  assert.match(bible, /appSheetBody\.addEventListener\('touchstart', onSelectionTouchStart, \{ passive: false \}\)/);
+  assert.match(bible, /appSheetBody\.addEventListener\('touchmove', onSelectionTouchMove, \{ passive: false \}\)/);
+  assert.doesNotMatch(bible, /selectionPager\.addEventListener\('touchstart'/);
+
+  function blankTarget(panel) {
+    return { closest(selector) { return selector === '.selection-panel' ? panel : null; } };
+  }
+  const generic = runTouchAdapter();
+  generic.kind('history');
+  const genericTarget = blankTarget(null);
+  generic.start(touchEvent(30, 100, 40, 1, genericTarget));
+  const genericMove = touchEvent(30, 102, 90, 20, genericTarget);
+  generic.move(genericMove);
+  assert.equal(generic.sheetPointer().id, -31);
+  assert.ok(genericMove.prevented > 0);
+  generic.cancel(touchEvent(30, 102, 90, 21, genericTarget));
+  assert.equal(generic.count(), 0);
+
+  const selector = runTouchAdapter();
+  const panel = { scrollTop: 0, clientHeight: 200, scrollHeight: 600 };
+  const selectorTarget = blankTarget(panel);
+  selector.start(touchEvent(31, 100, 40, 1, selectorTarget));
+  assert.equal(selector.pointer(), null, 'blank selector content does not start horizontal paging');
+  const selectorMove = touchEvent(31, 102, 90, 20, selectorTarget);
+  selector.move(selectorMove);
+  assert.equal(selector.sheetPointer().id, -32);
+  assert.ok(selectorMove.prevented > 0);
+  selector.cancel(touchEvent(31, 102, 90, 21, selectorTarget));
+});
+
+test('touch arriving during mouse or pen paging cancels without reverse-hybrid adoption', () => {
+  for (const pointerType of ['mouse', 'pen']) {
+    const candidate = runTouchAdapter();
+    const target = gridTarget('.chapter-btn');
+    candidate.pointerDown({ ...pointerEvent(120, 180, 40, 1, target), pointerType });
+    candidate.start(touchEvent(20, 170, 40, 2, target));
+    assert.equal(candidate.pointer(), null);
+    assert.equal(candidate.count(), 0);
+    assert.equal(candidate.guardArmed(), false, 'unclaimed reverse hybrid does not arm suppression');
+
+    const claimed = runTouchAdapter();
+    claimed.pointerDown({ ...pointerEvent(121, 180, 40, 1, target), pointerType });
+    claimed.pointerMove({ ...pointerEvent(121, 80, 40, 10, target), pointerType });
+    claimed.start(touchEvent(21, 170, 40, 11, target));
+    claimed.flush();
+    assert.equal(claimed.pointer(), null);
+    assert.equal(claimed.count(), 0);
+    assert.equal(claimed.track(), 'translateX(-100%)');
+    assert.equal(claimed.guardArmed(), true);
+    assert.equal(claimed.releaseCount(), 1, 'reverse hybrid releases captured mouse/pen ownership');
+    claimed.pointerMove({ ...pointerEvent(121, 20, 40, 12, target), pointerType });
+    claimed.move(touchEvent(21, 20, 40, 13, target));
+    assert.equal(claimed.page(), 'chapters');
+  }
 });
 
 function runResponsiveCycle() {

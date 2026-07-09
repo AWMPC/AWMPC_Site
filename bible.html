@@ -2571,7 +2571,7 @@
     }
     var chromeHeight = values[1] + values[2] + values[3];
     if (appSheetState.kind === 'selection' && typeof appSheetMeasure.querySelector === 'function') {
-      var dotsHeight = appSheetOuterBlockSize(appSheetMeasure.querySelector('.selection-dots'));
+      var dotsHeight = appSheetOuterBlockSize(appSheetMeasure.querySelector('.selection-indicator'));
       if (dotsHeight === null) return null;
       chromeHeight += dotsHeight;
     }
@@ -2627,6 +2627,7 @@
   }
 
   function cleanupAppSheetContent() {
+    if (typeof clearAppSheetTouchAdapterState === 'function') clearAppSheetTouchAdapterState();
     if (typeof appSheetState.contentCleanup === 'function') {
       try { appSheetState.contentCleanup(); } catch (e) {}
     }
@@ -3208,6 +3209,10 @@
     appSheetBody.addEventListener('lostpointercapture', function (e) {
       if (appSheetState.pointer && appSheetState.pointer.id === e.pointerId) cancelAppSheetGesture(e);
     });
+    appSheetBody.addEventListener('touchstart', onSelectionTouchStart, { passive: false });
+    appSheetBody.addEventListener('touchmove', onSelectionTouchMove, { passive: false });
+    appSheetBody.addEventListener('touchend', onSelectionTouchEnd, { passive: false });
+    appSheetBody.addEventListener('touchcancel', onSelectionTouchCancel, { passive: false });
     window.addEventListener(['resize'][0], function () {
       scheduleAppSheetMeasurement(appSheetState.generation);
     });
@@ -3634,7 +3639,7 @@
     selectionContext.chapter = normalized.chapter;
     renderSelectionChapters();
     renderSelectionVerses();
-    return setSelectionPage('chapters', true);
+    return setSelectionPage('chapters', true, 'keyboard');
   }
 
   function selectSelectionChapter(chapter) {
@@ -3642,7 +3647,7 @@
     if (!normalized) return false;
     selectionContext.chapter = normalized.chapter;
     renderSelectionVerses();
-    return setSelectionPage('verses', true);
+    return setSelectionPage('verses', true, 'keyboard');
   }
 
   function commitSelectionVerse(verse) {
@@ -3670,6 +3675,15 @@
     if (!target || typeof target.closest !== 'function') return false;
     if (target.closest('a,input,select,textarea,label,[contenteditable="true"]')) return false;
     return !!target.closest('.book-btn,.chapter-btn,.verse-btn');
+  }
+
+  function appSheetTouchTargetAllowsVertical(target) {
+    try {
+      var selection = window.getSelection && window.getSelection();
+      if (selection && !selection.isCollapsed) return false;
+    } catch (selectionError) {}
+    if (!target || typeof target.closest !== 'function') return target === appSheetBody;
+    return !target.closest('a,input,select,textarea,label,[role="button"],[contenteditable="true"]');
   }
 
   function selectionCellTarget(target) {
@@ -3712,7 +3726,8 @@
   function rememberSelectionTouchCompatibility(entry) {
     clearSelectionCompatibilityGuard();
     if (!entry || entry.generation !== appSheetState.generation) return;
-    selectionCompatibilityGuard = { target: entry.target, generation: entry.generation,
+    selectionCompatibilityGuard = { target: selectionCellTarget(entry.target) || entry.target,
+      generation: entry.generation,
       expiresAt: Date.now() + SELECTION_COMPATIBILITY_GUARD_MS };
     selectionCompatibilityGuardTimer = window.setTimeout(clearSelectionCompatibilityGuard,
       SELECTION_COMPATIBILITY_GUARD_MS);
@@ -3727,7 +3742,7 @@
       return false;
     }
     return (e.pointerType === 'mouse' || !e.pointerType) &&
-      selectionCellTarget(e.target) === selectionCompatibilityGuard.target;
+      (selectionCellTarget(e.target) || e.target) === selectionCompatibilityGuard.target;
   }
 
   function resetSelectionPointerToStablePage() {
@@ -3886,6 +3901,12 @@
     }
   }
 
+  function clearAppSheetTouchAdapterState() {
+    var entries = Array.from(selectionTouchIdentifiers.values());
+    resetSelectionPointerToStablePage();
+    for (var i = 0; i < entries.length; i++) clearSelectionTouch(entries[i].identifier);
+  }
+
   function selectionTouchInput(entry, touch, event) {
     return {
       pointerId: entry.pointerId, clientX: touch.clientX, clientY: touch.clientY,
@@ -3900,17 +3921,28 @@
       cancelSelectionTouchCollision();
       return;
     }
-    if (!e.changedTouches || !e.changedTouches.length || !selectionPointerTargetAllowsSwipe(e.target)) return;
+    if (selectionPointer) {
+      resetSelectionPointerToStablePage();
+      return;
+    }
+    var activeSheetPointer = appSheetState.pointer || appSheetState.candidate;
+    if (activeSheetPointer && !activeSheetPointer.touchAdapter) {
+      cancelAppSheetGesture({ pointerId: activeSheetPointer.id });
+      return;
+    }
+    if (!e.changedTouches || !e.changedTouches.length) return;
+    var horizontalAllowed = appSheetState.kind === 'selection' && selectionPointerTargetAllowsSwipe(e.target);
+    var verticalAllowed = horizontalAllowed || appSheetTouchTargetAllowsVertical(e.target);
+    if (!horizontalAllowed && !verticalAllowed) return;
     var touch = e.changedTouches[0];
     var identifier = touch.identifier;
-    var entry = { identifier: identifier, pointerId: -(identifier + 1), target: selectionCellTarget(e.target),
-      generation: appSheetState.generation, timer: null };
+    var entry = { identifier: identifier, pointerId: -(identifier + 1), target: e.target,
+      horizontalAllowed: horizontalAllowed, generation: appSheetState.generation, timer: null };
     entry.timer = window.setTimeout(function () { clearSelectionTouch(identifier); }, SELECTION_TOUCH_TIMEOUT_MS);
     selectionTouchIdentifiers.set(identifier, entry);
     var input = selectionTouchInput(entry, touch, e);
-    selectionPointer = null;
-    onSelectionPointerDown(input);
-    beginAppSheetGesture(Object.assign({}, input, { target: appSheetBody }));
+    if (horizontalAllowed) onSelectionPointerDown(input);
+    if (verticalAllowed) beginAppSheetGesture(Object.assign({}, input, { target: appSheetBody }));
     var scroller = e.target && typeof e.target.closest === 'function' ?
       e.target.closest('.selection-panel') : null;
     if (!scroller) scroller = appSheetBody;
@@ -3935,7 +3967,7 @@
     var touch = selectionTouchByIdentifier(e.changedTouches, entry.identifier);
     if (!touch) return;
     var input = selectionTouchInput(entry, touch, e);
-    onSelectionPointerMove(input);
+    if (entry.horizontalAllowed) onSelectionPointerMove(input);
     if (selectionPointer && selectionPointer.axis === 'x') {
       cancelAppSheetGesture(input);
       e.preventDefault();
@@ -3998,10 +4030,6 @@
       selectionPager.removeEventListener('pointerup', onSelectionPointerUp);
       selectionPager.removeEventListener('pointercancel', onSelectionPointerCancel);
       selectionPager.removeEventListener('lostpointercapture', onSelectionLostPointerCapture);
-      selectionPager.removeEventListener('touchstart', onSelectionTouchStart);
-      selectionPager.removeEventListener('touchmove', onSelectionTouchMove);
-      selectionPager.removeEventListener('touchend', onSelectionTouchEnd);
-      selectionPager.removeEventListener('touchcancel', onSelectionTouchCancel);
       selectionPager.removeEventListener('click', guardSelectionClick, true);
       selectionPager.removeEventListener('keydown', onSelectionPagerKeyDown);
     }
@@ -4075,10 +4103,6 @@
     selectionPager.addEventListener('pointerup', onSelectionPointerUp);
     selectionPager.addEventListener('pointercancel', onSelectionPointerCancel);
     selectionPager.addEventListener('lostpointercapture', onSelectionLostPointerCapture);
-    selectionPager.addEventListener('touchstart', onSelectionTouchStart, { passive: false });
-    selectionPager.addEventListener('touchmove', onSelectionTouchMove, { passive: false });
-    selectionPager.addEventListener('touchend', onSelectionTouchEnd, { passive: false });
-    selectionPager.addEventListener('touchcancel', onSelectionTouchCancel, { passive: false });
     selectionPager.addEventListener('click', guardSelectionClick, true);
     selectionPager.addEventListener('keydown', onSelectionPagerKeyDown);
     selectionTrack.addEventListener('transitionend', finishSelectionPageSettle);

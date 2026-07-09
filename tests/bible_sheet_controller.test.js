@@ -443,11 +443,11 @@ const body = fakeElement();
 const measure = fakeElement();
 measure.scrollHeight = 180;
 let activeMeasurementPanel = null;
-const selectionDots = fakeElement();
-selectionDots.rectHeight = 32;
-selectionDots.getBoundingClientRect = () => ({ height: selectionDots.rectHeight });
+const selectionIndicator = fakeElement();
+selectionIndicator.rectHeight = 28;
+selectionIndicator.getBoundingClientRect = () => ({ height: selectionIndicator.rectHeight });
 measure.querySelector = selector => selector === '.selection-panel[aria-hidden="false"]' ? activeMeasurementPanel :
-  (selector === '.selection-dots' ? selectionDots : null);
+  (selector === '.selection-indicator' ? selectionIndicator : null);
 const selectionTrackForHistory = fakeElement();
 const fadeTop = fakeElement();
 const fadeBottom = fakeElement();
@@ -502,10 +502,14 @@ const controllerContext = {
   appSheetFadeBottom: fadeBottom,
   viewInner,
   fabMain,
+  onSelectionTouchStart() {},
+  onSelectionTouchMove() {},
+  onSelectionTouchEnd() {},
+  onSelectionTouchCancel() {},
   document: { activeElement: opener, documentElement: { clientHeight: 780 } },
   ResizeObserver: FakeResizeObserver,
   getComputedStyle(element) {
-    if (element === handle || element === selectionDots) return { marginBlockStart: '0px', marginBlockEnd: '0px' };
+    if (element === handle || element === selectionIndicator) return { marginBlockStart: '0px', marginBlockEnd: '0px' };
     if (element === body) return {
       paddingBlockStart: bodyPaddingStart + 'px', paddingBlockEnd: bodyPaddingEnd + 'px'
     };
@@ -1530,7 +1534,7 @@ assert.equal(resizeObserverInstances.at(-1).targets[0], activePanelA,
 let selectionMeasureFrame = [...frames.keys()][0];
 frames.get(selectionMeasureFrame)();
 frames.delete(selectionMeasureFrame);
-assert.equal(dialog.style.getPropertyValue('--sheet-height'), '256px');
+assert.equal(dialog.style.getPropertyValue('--sheet-height'), '252px');
 const firstSelectionObserver = resizeObserverInstances.at(-1);
 activeMeasurementPanel = activePanelB;
 api.retarget();
@@ -1539,7 +1543,7 @@ assert.equal(resizeObserverInstances.at(-1).targets[0], activePanelB, 'page sett
 selectionMeasureFrame = [...frames.keys()][0];
 frames.get(selectionMeasureFrame)();
 frames.delete(selectionMeasureFrame);
-assert.equal(dialog.style.getPropertyValue('--sheet-height'), '296px',
+assert.equal(dialog.style.getPropertyValue('--sheet-height'), '292px',
   'active page changes recompute without hidden persistent panel inflation');
 
 const selectorReturnState = historyCalls.replace.map(call => call[0]).findLast(state =>
