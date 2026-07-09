@@ -3690,8 +3690,12 @@
   }
 
   function guardSelectionClick(e) {
-    if (!selectionClickGuard || e.detail === 0 ||
-        selectionClickGuard.generation !== appSheetState.generation) return false;
+    if (!selectionClickGuard) return false;
+    if (selectionClickGuard.generation !== appSheetState.generation) {
+      clearSelectionClickGuard();
+      return false;
+    }
+    if (e.detail === 0) return false;
     if (selectionCellTarget(e.target) !== selectionClickGuard.target) return false;
     e.preventDefault();
     e.stopPropagation();
@@ -3727,9 +3731,12 @@
   }
 
   function resetSelectionPointerToStablePage() {
+    var pointer = selectionPointer;
+    var claimedTarget = pointer && pointer.axis === 'x' && pointer.captured ? pointer.target : null;
     if (selectionPointerFrame !== null) cancelAnimationFrame(selectionPointerFrame);
     selectionPointerFrame = null;
     releaseSelectionPointer();
+    if (claimedTarget) armSelectionClickGuard(claimedTarget);
     if (selectionTrack) {
       selectionTrack.classList.add('no-motion');
       selectionTrack.style.transform = 'translateX(' +

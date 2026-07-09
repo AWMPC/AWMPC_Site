@@ -583,13 +583,14 @@ function runGestureProgram(source = bible, selectionCollapsed = true) {
     new RegExp(`function ${name}\\([^)]*\\) \\{[\\s\\S]*?\\n  \\}`), `${name} missing`)).join('\n');
   const pages = [];
   const captures = [];
+  const timers = [];
   const pager = {
     clientWidth: 320,
     setPointerCapture(id) { captures.push(['set', id]); },
     hasPointerCapture() { return true; },
     releasePointerCapture(id) { captures.push(['release', id]); }
   };
-  const api = Function('window', 'selectionPager', 'pages', `
+  const api = Function('window', 'selectionPager', 'pages', 'timers', `
     ${helpers}
     ${axis}
     var selectionSheetPage = 'chapters';
@@ -615,6 +616,8 @@ function runGestureProgram(source = bible, selectionCollapsed = true) {
       cancel: onSelectionPointerCancel, lost: onSelectionLostPointerCapture,
       guardClick: guardSelectionClick,
       guardArmed: function () { return !!selectionClickGuard; },
+      generation: function (value) { appSheetState.generation = value; },
+      expire: function () { while (timers.length) timers.shift().fn(); },
       track: function () { return selectionTrack.style.transform; },
       setPage: function (page) { selectionSheetPage = page; selectionTrack.style.transform =
         'translateX(' + (-100 * selectionPages.indexOf(page)) + '%)'; },
@@ -622,8 +625,8 @@ function runGestureProgram(source = bible, selectionCollapsed = true) {
     };
   `)({
     getSelection: () => ({ isCollapsed: selectionCollapsed }),
-    setTimeout: function () { return 1; }, clearTimeout: function () {}
-  }, pager, pages);
+    setTimeout: function (fn, ms) { timers.push({ fn, ms }); return timers.length; }, clearTimeout: function () {}
+  }, pager, pages, timers);
   return { api, pages, captures };
 }
 
@@ -784,6 +787,7 @@ test('a different pointer cancels candidate and claimed paging without adopting 
   candidate.api.down(pointerEvent(70, 180, 40, 1, target));
   candidate.api.down(pointerEvent(71, 170, 40, 2, target));
   assert.equal(candidate.api.pointer(), null);
+  assert.equal(candidate.api.guardArmed(), false, 'unclaimed candidate collision does not arm click suppression');
   assert.equal(candidate.api.track(), 'translateX(-100%)');
   candidate.api.move(pointerEvent(70, 50, 40, 10, target));
   candidate.api.move(pointerEvent(71, 50, 40, 11, target));
@@ -795,9 +799,36 @@ test('a different pointer cancels candidate and claimed paging without adopting 
   claimed.api.down(pointerEvent(73, 170, 40, 11, target));
   assert.equal(claimed.api.pointer(), null);
   assert.equal(claimed.api.track(), 'translateX(-100%)');
+  assert.equal(claimed.api.guardArmed(), true, 'claimed collision arms matching-target suppression');
+  claimed.api.lost(pointerEvent(72, 80, 40, 12, target));
+  const unrelated = gridTarget('.verse-btn');
+  assert.equal(claimed.api.guardClick({ detail: 1, target: unrelated, preventDefault() {}, stopPropagation() {} }), false);
+  assert.equal(claimed.api.guardArmed(), true, 'unrelated click does not consume the guard');
+  assert.equal(claimed.api.guardClick({ detail: 0, target, preventDefault() {}, stopPropagation() {} }), false);
+  assert.equal(claimed.api.guardArmed(), true, 'keyboard activation does not consume the guard');
+  let suppressed = 0;
+  assert.equal(claimed.api.guardClick({ detail: 1, target, preventDefault() { suppressed += 1; }, stopPropagation() {} }), true);
+  assert.equal(suppressed, 1);
+  assert.equal(claimed.api.guardClick({ detail: 1, target, preventDefault() {}, stopPropagation() {} }), false,
+    'matching pointer click is suppressed once');
   claimed.api.up(pointerEvent(72, 40, 40, 20, target));
   claimed.api.up(pointerEvent(73, 40, 40, 21, target));
   assert.equal(claimed.api.page(), 'chapters');
+
+  const stale = runGestureProgram();
+  stale.api.down(pointerEvent(74, 180, 40, 1, target));
+  stale.api.move(pointerEvent(74, 80, 40, 10, target));
+  stale.api.down(pointerEvent(75, 170, 40, 11, target));
+  stale.api.generation(2);
+  assert.equal(stale.api.guardClick({ detail: 1, target, preventDefault() {}, stopPropagation() {} }), false);
+  assert.equal(stale.api.guardArmed(), false, 'generation change clears collision suppression');
+
+  const expired = runGestureProgram();
+  expired.api.down(pointerEvent(76, 180, 40, 1, target));
+  expired.api.move(pointerEvent(76, 80, 40, 10, target));
+  expired.api.down(pointerEvent(77, 170, 40, 11, target));
+  expired.api.expire();
+  assert.equal(expired.api.guardArmed(), false, 'collision suppression expires after its timeout');
 });
 
 test('endpoint resistance is finite and bounded for hostile huge displacement', () => {
@@ -899,6 +930,8 @@ function runTouchAdapter() {
       track: function () { return selectionTrack.style.transform; },
       generation: function (value) { appSheetState.generation = value; },
       compatibilityArmed: function () { return !!selectionCompatibilityGuard; },
+      guardArmed: function () { return !!selectionClickGuard; },
+      guardClick: guardSelectionClick,
       sheetPointer: function () { return appSheetState.pointer; },
       flush: function () { while (frames.length) frames.shift()(); },
       expireCompatibility: function () {
@@ -947,6 +980,15 @@ test('touch adapter pages once, deduplicates compatibility pointers, and clears 
   assert.equal(h.count(), 0);
   assert.equal(h.pointer(), null);
   assert.equal(h.track(), 'translateX(-100%)', 'claimed collision returns to the starting stable page');
+  assert.equal(h.guardArmed(), true, 'claimed touch collision arms matching-target suppression');
+  assert.equal(h.guardClick({ detail: 0, target, preventDefault() {}, stopPropagation() {} }), false);
+  assert.equal(h.guardArmed(), true);
+  const unrelated = gridTarget('.chapter-btn');
+  assert.equal(h.guardClick({ detail: 1, target: unrelated, preventDefault() {}, stopPropagation() {} }), false);
+  let touchSuppressed = 0;
+  assert.equal(h.guardClick({ detail: 1, target, preventDefault() { touchSuppressed += 1; }, stopPropagation() {} }), true);
+  assert.equal(touchSuppressed, 1);
+  assert.equal(h.guardClick({ detail: 1, target, preventDefault() {}, stopPropagation() {} }), false);
   h.end(touchEvent(6, 20, 42, 12, target));
   h.end(touchEvent(7, 20, 42, 13, target));
   assert.equal(h.page(), 'chapters');
