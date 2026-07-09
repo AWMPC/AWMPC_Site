@@ -40,11 +40,15 @@ test('overflow fade geometry is strict and uses a one-pixel edge tolerance', () 
   assert.deepEqual(state(0, 100, 220), { top: false, bottom: true });
   assert.deepEqual(state(60, 100, 220), { top: true, bottom: true });
   assert.deepEqual(state(120, 100, 220), { top: true, bottom: false });
+  assert.deepEqual(state(-1, 100, 220), { top: false, bottom: true },
+    'elastic top overscroll clamps to the logical start');
+  assert.deepEqual(state(500, 100, 220), { top: true, bottom: false },
+    'elastic bottom overscroll clamps to the logical end');
   assert.deepEqual(state(1, 100, 220), { top: false, bottom: true });
   assert.deepEqual(state(119, 100, 220), { top: true, bottom: false });
   for (const args of [['0', 100, 220], [0, '100', 220], [0, 100, '220'],
     [Infinity, 100, 220], [0, Infinity, 220], [0, 100, Infinity],
-    [-1, 100, 220], [0, -1, 220], [0, 100, -1]]) {
+    [0, -1, 220], [0, 100, -1]]) {
     assert.deepEqual(state(...args), { top: false, bottom: false }, `hostile geometry: ${args}`);
   }
 });
@@ -62,7 +66,7 @@ function fakeClassList() {
 function fakeScroller() {
   const listeners = new Map();
   return {
-    scrollTop: 0, clientHeight: 100, scrollHeight: 220,
+    scrollTop: 0, clientHeight: 100, scrollHeight: 220, firstElementChild: null,
     addCount: 0, removeCount: 0,
     addEventListener(type, fn, options) { this.addCount += 1; listeners.set(type, { fn, options }); },
     removeEventListener(type, fn) {
@@ -88,18 +92,24 @@ function lifecycleHarness() {
   const body = fakeScroller();
   const firstPanel = fakeScroller();
   const secondPanel = fakeScroller();
+  const genericContent = { name: 'generic-content' };
+  const firstPanelContent = { name: 'first-panel-content' };
+  const secondPanelContent = { name: 'second-panel-content' };
+  firstPanel.firstElementChild = firstPanelContent;
+  secondPanel.firstElementChild = secondPanelContent;
   let activePanel = firstPanel;
   const fadeTop = { classList: fakeClassList() };
   const fadeBottom = { classList: fakeClassList() };
   const state = {
     kind: 'history', phase: 'idle', generation: 4,
-    overflowFrame: null, overflowObserver: null, overflowScroller: null, overflowListener: null
+    overflowFrame: null, overflowObserver: null, overflowScroller: null,
+    overflowContentTarget: null, overflowListener: null
   };
   const context = {
     Number,
     appSheetState: state,
     appSheetBody: body,
-    appSheetMeasure: { querySelector() { return activePanel; } },
+    appSheetMeasure: Object.assign(genericContent, { querySelector() { return activePanel; } }),
     appSheetFadeTop: fadeTop,
     appSheetFadeBottom: fadeBottom,
     ResizeObserver: FakeResizeObserver,
@@ -109,6 +119,7 @@ function lifecycleHarness() {
   };
   const names = [
     'isFiniteAppSheetNumber', 'appSheetOverflowFadeState', 'currentAppSheetOverflowScroller',
+    'currentAppSheetOverflowContentTarget',
     'renderAppSheetOverflowFades', 'scheduleAppSheetOverflowFades',
     'cleanupAppSheetOverflowFades', 'installAppSheetOverflowFades', 'retargetAppSheetOverflowFades'
   ];
@@ -117,7 +128,8 @@ function lifecycleHarness() {
     'render: renderAppSheetOverflowFades, cleanup: cleanupAppSheetOverflowFades,' +
     'retarget: retargetAppSheetOverflowFades};', context);
   return {
-    api: context.api, state, body, firstPanel, secondPanel, fadeTop, fadeBottom, frames, cancelled, observers,
+    api: context.api, state, body, firstPanel, secondPanel, genericContent, firstPanelContent,
+    secondPanelContent, fadeTop, fadeBottom, frames, cancelled, observers,
     setActivePanel(panel) { activePanel = panel; },
     flush() { const entries = [...frames]; frames.clear(); for (const [, callback] of entries) callback(); }
   };
@@ -128,7 +140,7 @@ test('overflow lifecycle observes one scroller, coalesces work, retargets, and r
   assert.equal(h.api.install(h.body), true);
   assert.equal(h.body.listenerCount(), 1);
   assert.equal(h.observers.length, 1);
-  assert.deepEqual(h.observers[0].targets, [h.body]);
+  assert.deepEqual(h.observers[0].targets, [h.body, h.genericContent]);
   assert.equal(h.frames.size, 1, 'install schedules one fade RAF');
 
   h.body.fire('scroll');
@@ -137,6 +149,14 @@ test('overflow lifecycle observes one scroller, coalesces work, retargets, and r
   h.flush();
   assert.equal(h.fadeTop.classList.contains('is-visible'), false);
   assert.equal(h.fadeBottom.classList.contains('is-visible'), true);
+
+  h.body.scrollHeight = 80;
+  h.observers[0].fire([{ target: h.genericContent }]);
+  assert.equal(h.frames.size, 1, 'search skeleton-to-results content mutation schedules one RAF');
+  h.flush();
+  assert.equal(h.fadeTop.classList.contains('is-visible'), false);
+  assert.equal(h.fadeBottom.classList.contains('is-visible'), false);
+  h.body.scrollHeight = 220;
 
   h.body.scrollTop = 60;
   h.body.fire('scroll');
@@ -166,13 +186,17 @@ test('overflow lifecycle observes one scroller, coalesces work, retargets, and r
   assert.equal(h.body.listenerCount(), 0, 'generic body is released on selection retarget');
   assert.equal(h.firstPanel.listenerCount(), 1);
   assert.equal(h.observers.length, 2);
-  assert.deepEqual(h.observers[1].targets, [h.firstPanel]);
+  assert.deepEqual(h.observers[1].targets, [h.firstPanel, h.firstPanelContent]);
+  h.firstPanel.scrollHeight = 260;
+  h.observers[1].fire([{ target: h.firstPanelContent }]);
+  assert.equal(h.frames.size, 1, 'active selector content-only mutation schedules one RAF');
+  h.flush();
   h.setActivePanel(h.secondPanel);
   h.api.retarget();
   assert.equal(h.firstPanel.listenerCount(), 0);
   assert.equal(h.secondPanel.listenerCount(), 1, 'only the active panel remains observed');
   assert.equal(h.observers.length, 3);
-  assert.deepEqual(h.observers[2].targets, [h.secondPanel]);
+  assert.deepEqual(h.observers[2].targets, [h.secondPanel, h.secondPanelContent]);
 
   const pendingCleanupFrame = [...h.frames.keys()][0];
   h.api.cleanup();
@@ -185,6 +209,7 @@ test('overflow lifecycle observes one scroller, coalesces work, retargets, and r
   assert.equal(h.state.overflowFrame, null);
   assert.equal(h.state.overflowObserver, null);
   assert.equal(h.state.overflowScroller, null);
+  assert.equal(h.state.overflowContentTarget, null);
   assert.equal(h.state.overflowListener, null);
   assert.equal(h.body.addCount, h.body.removeCount);
   assert.equal(h.firstPanel.addCount, h.firstPanel.removeCount);

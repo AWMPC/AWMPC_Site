@@ -2324,12 +2324,14 @@
   function isValidAppSheetSnap(value) { return appSheetEnumHas(APP_SHEET_SNAPS, value); }
   function isFiniteAppSheetNumber(value) { return typeof value === 'number' && Number.isFinite(value); }
   function appSheetOverflowFadeState(scrollTop, clientHeight, scrollHeight) {
-    if (!isFiniteAppSheetNumber(scrollTop) || scrollTop < 0 ||
+    if (!isFiniteAppSheetNumber(scrollTop) ||
         !isFiniteAppSheetNumber(clientHeight) || clientHeight < 0 ||
         !isFiniteAppSheetNumber(scrollHeight) || scrollHeight < 0) return { top: false, bottom: false };
+    var maxScrollTop = Math.max(0, scrollHeight - clientHeight);
+    var clampedScrollTop = Math.max(0, Math.min(scrollTop, maxScrollTop));
     return {
-      top: scrollTop > 1,
-      bottom: scrollTop + clientHeight < scrollHeight - 1
+      top: clampedScrollTop > 1,
+      bottom: clampedScrollTop + clientHeight < scrollHeight - 1
     };
   }
   function appSheetDeterminedHeight(contentHeight, chromeHeight, viewportHeight) {
@@ -2472,6 +2474,7 @@
     overflowFrame: null,
     overflowObserver: null,
     overflowScroller: null,
+    overflowContentTarget: null,
     overflowListener: null,
     contentCleanup: null,
     historyState: null,
@@ -2662,6 +2665,13 @@
     return appSheetBody;
   }
 
+  function currentAppSheetOverflowContentTarget(scroller) {
+    if (appSheetState.kind === 'selection') {
+      return scroller && scroller.firstElementChild ? scroller.firstElementChild : scroller;
+    }
+    return appSheetMeasure;
+  }
+
   function renderAppSheetOverflowFades(generation) {
     if (!isCurrentAppSheetGeneration(generation) || appSheetState.phase === 'closed') return false;
     var scroller = appSheetState.overflowScroller;
@@ -2694,6 +2704,7 @@
     if (appSheetState.overflowObserver) appSheetState.overflowObserver.disconnect();
     appSheetState.overflowObserver = null;
     appSheetState.overflowScroller = null;
+    appSheetState.overflowContentTarget = null;
     appSheetState.overflowListener = null;
     appSheetFadeTop.classList.toggle('is-visible', false);
     appSheetFadeBottom.classList.toggle('is-visible', false);
@@ -2710,10 +2721,14 @@
     };
     scroller.addEventListener('scroll', appSheetState.overflowListener, { passive: true });
     if (typeof ResizeObserver === 'function') {
+      appSheetState.overflowContentTarget = currentAppSheetOverflowContentTarget(scroller);
       appSheetState.overflowObserver = new ResizeObserver(function () {
         if (isCurrentAppSheetGeneration(generation)) scheduleAppSheetOverflowFades(generation);
       });
       appSheetState.overflowObserver.observe(scroller);
+      if (appSheetState.overflowContentTarget && appSheetState.overflowContentTarget !== scroller) {
+        appSheetState.overflowObserver.observe(appSheetState.overflowContentTarget);
+      }
     }
     scheduleAppSheetOverflowFades(generation);
     return true;
