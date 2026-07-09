@@ -70,6 +70,29 @@ test('selection renderer owns one persistent three-panel track and decorative in
   assert.match(css, /\.selection-indicator[\s\S]*?bottom:/);
 });
 
+test('selection pager owns one non-passive wheel listener with symmetric burst cleanup', () => {
+  const renderer = extract(/function renderSelectionSheet\(target, sheet\) \{[\s\S]*?\n  \}/,
+    'selection renderer missing');
+  const cleanup = extract(/function cleanupSelectionSheet\(\) \{[\s\S]*?\n  \}/,
+    'selection cleanup missing');
+  assert.match(renderer, /resetBibleWheelBurst\(\)/, 'replacement starts from a clean generation');
+  assert.match(renderer, /selectionPager\.addEventListener\('wheel', onSelectionWheel, \{ passive: false \}\)/);
+  assert.match(cleanup, /selectionPager\.removeEventListener\('wheel', onSelectionWheel\)/);
+  assert.match(cleanup, /resetBibleWheelBurst\(\)/, 'timer and burst state are cleared at teardown');
+  assert.equal((renderer.match(/addEventListener\('wheel'/g) || []).length, 1,
+    'render installs no per-panel or duplicate wheel listener');
+});
+
+test('wheel burst resets on visibility loss, blur, and viewport resizing', () => {
+  const install = extract(/function installAppSheetListeners\(\) \{[\s\S]*?\n  \}/,
+    'app sheet listener installer missing');
+  assert.match(install, /document\.addEventListener\('visibilitychange'/);
+  assert.match(install, /document\.hidden[\s\S]*?resetBibleWheelBurst\(\)/);
+  assert.match(install, /window\.addEventListener\('blur', resetBibleWheelBurst\)/);
+  assert.match(install, /window\.addEventListener\(\['resize'\]\[0\],[\s\S]*?resetBibleWheelBurst\(\)/);
+  assert.match(install, /window\.visualViewport\.addEventListener\(\['resize'\]\[0\],[\s\S]*?resetBibleWheelBurst\(\)/);
+});
+
 test('selection layout constrains the active panel as the sole vertical scroller', () => {
   const host = extract(/\.app-sheet-body\.selection-sheet-host\s*\{[^}]*\}/,
     'selection host CSS missing');
@@ -439,6 +462,7 @@ function runDotRenderer(source = bible) {
     function onSelectionTouchCancel() {}
     function guardSelectionClick() {}
     function onSelectionPagerKeyDown() {}
+    function onSelectionWheel() {}
     function finishSelectionPageSettle() {}
     function onSelectionDotKeyDown() {}
     function installSelectionEdgeListener() {}

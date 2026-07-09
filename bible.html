@@ -2562,6 +2562,66 @@
   var appSheetListenersInstalled = false;
   var appSheetDescriptors = Object.create(null);
   var appSheetReaderFocusCleanup = null;
+  var bibleWheelBurst = { x: 0, y: 0, consumed: false, direction: 0, timer: null, generation: 0 };
+
+  function resetBibleWheelBurst() {
+    if (bibleWheelBurst.timer !== null) window.clearTimeout(bibleWheelBurst.timer);
+    bibleWheelBurst.x = 0;
+    bibleWheelBurst.y = 0;
+    bibleWheelBurst.consumed = false;
+    bibleWheelBurst.direction = 0;
+    bibleWheelBurst.timer = null;
+    bibleWheelBurst.generation = isFiniteAppSheetNumber(bibleWheelBurst.generation) ?
+      bibleWheelBurst.generation + 1 : 1;
+  }
+
+  function bibleWheelTargetBlocked(event) {
+    if (!event || event.ctrlKey || event.metaKey || event.shiftKey) return true;
+    if (appSheetState.phase === 'dragging' || appSheetState.phase === 'settling' ||
+        appSheetState.phase === 'opening' || appSheetState.phase === 'closing' ||
+        appSheetState.pointer || appSheetState.candidate ||
+        (typeof selectionPointer !== 'undefined' && selectionPointer)) return true;
+    var target = event.target;
+    if (target && (target.isContentEditable || (typeof target.closest === 'function' &&
+        target.closest('input, textarea, select, [contenteditable]')))) return true;
+    try {
+      var selected = window.getSelection && window.getSelection();
+      if (selected && selected.isCollapsed === false) return true;
+    } catch (error) {
+      return true;
+    }
+    return false;
+  }
+
+  function accumulateBibleWheel(event) {
+    if (bibleWheelTargetBlocked(event)) return 0;
+    var viewportWidth = window.visualViewport && isFiniteAppSheetNumber(window.visualViewport.width) &&
+      window.visualViewport.width > 0 ? window.visualViewport.width : window.innerWidth;
+    if (!isFiniteAppSheetNumber(viewportWidth) || viewportWidth <= 0) {
+      viewportWidth = document.documentElement && document.documentElement.clientWidth;
+    }
+    var dx = normalizeBibleWheelDelta(event.deltaX, event.deltaMode, viewportWidth);
+    var dy = normalizeBibleWheelDelta(event.deltaY, event.deltaMode, viewportWidth);
+    if (dx === null || dy === null) return 0;
+
+    if (bibleWheelBurst.timer !== null) window.clearTimeout(bibleWheelBurst.timer);
+    bibleWheelBurst.generation = isFiniteAppSheetNumber(bibleWheelBurst.generation) ?
+      bibleWheelBurst.generation + 1 : 1;
+    var generation = bibleWheelBurst.generation;
+    bibleWheelBurst.timer = window.setTimeout(function () {
+      if (generation !== bibleWheelBurst.generation) return;
+      resetBibleWheelBurst();
+    }, BIBLE_WHEEL_IDLE_MS);
+
+    if (bibleWheelBurst.consumed) return bibleWheelBurst.direction;
+    var eventDirection = dx < 0 ? -1 : dx > 0 ? 1 : 0;
+    if (!bibleWheelBurst.direction && eventDirection) bibleWheelBurst.direction = eventDirection;
+    if (eventDirection && eventDirection !== bibleWheelBurst.direction) return 0;
+    bibleWheelBurst.x += dx;
+    bibleWheelBurst.y += dy;
+    var direction = bibleWheelClaimDirection(bibleWheelBurst.x, bibleWheelBurst.y);
+    return direction === bibleWheelBurst.direction ? direction : 0;
+  }
 
   function registerAppSheetDescriptor(kind, descriptor) {
     if (!isValidAppSheetKind(kind) || !descriptor || typeof descriptor.title !== 'string' ||
@@ -3563,11 +3623,17 @@
     appSheetBody.addEventListener('touchmove', onSelectionTouchMove, { passive: false });
     appSheetBody.addEventListener('touchend', onSelectionTouchEnd, { passive: false });
     appSheetBody.addEventListener('touchcancel', onSelectionTouchCancel, { passive: false });
+    if (document.addEventListener) document.addEventListener('visibilitychange', function () {
+      if (document.hidden) resetBibleWheelBurst();
+    });
+    window.addEventListener('blur', resetBibleWheelBurst);
     window.addEventListener(['resize'][0], function () {
+      resetBibleWheelBurst();
       scheduleAppSheetMeasurement(appSheetState.generation);
       scheduleAppSheetOverflowFades(appSheetState.generation);
     });
     if (window.visualViewport) window.visualViewport.addEventListener(['resize'][0], function () {
+      resetBibleWheelBurst();
       scheduleAppSheetMeasurement(appSheetState.generation);
       scheduleAppSheetOverflowFades(appSheetState.generation);
     });
@@ -4350,6 +4416,19 @@
     appSheet.classList.toggle('edge-bottom', edge === 'bottom');
   }
 
+  function onSelectionWheel(event) {
+    if (!event || !selectionPager || !appSheet.open || appSheetState.kind !== 'selection' ||
+        !selectionPager.contains(event.target)) return;
+    var direction = accumulateBibleWheel(event);
+    if (!direction) return;
+    event.preventDefault();
+    if (bibleWheelBurst.consumed) return;
+    bibleWheelBurst.consumed = true;
+    var index = selectionPages.indexOf(selectionSheetPage);
+    var next = Math.max(0, Math.min(selectionPages.length - 1, index + direction));
+    if (next !== index) setSelectionPage(selectionPages[next], true, 'pointer');
+  }
+
   function installSelectionEdgeListener() {
     selectionMediaQuery = window.matchMedia('(max-width: 640px)');
     selectionMediaListener = function () { applySelectionSheetEdge(); };
@@ -4380,7 +4459,9 @@
       selectionPager.removeEventListener('lostpointercapture', onSelectionLostPointerCapture);
       selectionPager.removeEventListener('click', guardSelectionClick, true);
       selectionPager.removeEventListener('keydown', onSelectionPagerKeyDown);
+      selectionPager.removeEventListener('wheel', onSelectionWheel);
     }
+    if (typeof resetBibleWheelBurst === 'function') resetBibleWheelBurst();
     if (selectionTrack) selectionTrack.removeEventListener('transitionend', finishSelectionPageSettle);
     if (appSheetBody) appSheetBody.classList.remove('selection-sheet-host');
     selectionPointer = null;
@@ -4405,6 +4486,7 @@
   }
 
   function renderSelectionSheet(target, sheet) {
+    if (typeof resetBibleWheelBurst === 'function') resetBibleWheelBurst();
     appSheetBody.classList.add('selection-sheet-host');
     selectionSheetPage = normalizedSelectionPage(sheet.page);
     var reader = currentSelectionReaderReference();
@@ -4453,6 +4535,7 @@
     selectionPager.addEventListener('lostpointercapture', onSelectionLostPointerCapture);
     selectionPager.addEventListener('click', guardSelectionClick, true);
     selectionPager.addEventListener('keydown', onSelectionPagerKeyDown);
+    selectionPager.addEventListener('wheel', onSelectionWheel, { passive: false });
     selectionTrack.addEventListener('transitionend', finishSelectionPageSettle);
     installSelectionEdgeListener();
     setSelectionPage(selectionSheetPage, false);
