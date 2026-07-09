@@ -2410,10 +2410,15 @@
         !isFiniteAppSheetNumber(viewportWidth) || viewportWidth <= 0) return null;
     return openerLeft + openerWidth / 2 < viewportWidth / 2 ? 'left' : 'right';
   }
-  function normalizeBibleWheelDelta(value, mode, viewportWidth) {
+  function scaleBibleWheelDelta(value, mode, viewportWidth) {
     if (!isFiniteAppSheetNumber(value) || !Number.isInteger(mode) || mode < 0 || mode > 2 ||
         !isFiniteAppSheetNumber(viewportWidth) || viewportWidth <= 0) return null;
     var pixels = mode === 0 ? value : (mode === 1 ? value * BIBLE_WHEEL_LINE_PX : value * viewportWidth);
+    return isFiniteAppSheetNumber(pixels) ? pixels : null;
+  }
+  function normalizeBibleWheelDelta(value, mode, viewportWidth) {
+    var pixels = scaleBibleWheelDelta(value, mode, viewportWidth);
+    if (pixels === null) return null;
     return Math.max(-BIBLE_WHEEL_MAX_EVENT_PX, Math.min(BIBLE_WHEEL_MAX_EVENT_PX, pixels));
   }
   function bibleWheelClaimDirection(deltaX, deltaY) {
@@ -2724,6 +2729,8 @@
     if (!isFiniteAppSheetNumber(viewportWidth) || viewportWidth <= 0) {
       viewportWidth = document.documentElement && document.documentElement.clientWidth;
     }
+    var axisDx = scaleBibleWheelDelta(event.deltaX, event.deltaMode, viewportWidth);
+    var axisDy = scaleBibleWheelDelta(event.deltaY, event.deltaMode, viewportWidth);
     var dx = normalizeBibleWheelDelta(event.deltaX, event.deltaMode, viewportWidth);
     var dy = normalizeBibleWheelDelta(event.deltaY, event.deltaMode, viewportWidth);
     if (dx === null || dy === null) {
@@ -2733,7 +2740,10 @@
       restoreBibleWheelConsumedLock(invalidConsumed, invalidDirection);
       return 0;
     }
-    if (releaseOnVertical === true && dy !== 0 && Math.abs(dy) >= Math.abs(dx) * BIBLE_WHEEL_AXIS_RATIO) {
+    var axisAbsX = Math.abs(axisDx);
+    var axisAbsY = Math.abs(axisDy);
+    if (releaseOnVertical === true && axisDy !== 0 &&
+        (axisDx === 0 || (axisAbsY >= axisAbsX && axisAbsY / axisAbsX >= BIBLE_WHEEL_AXIS_RATIO))) {
       resetBibleWheelBurst();
       return 0;
     }

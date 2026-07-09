@@ -36,7 +36,8 @@ test('wheel delta normalization rejects invalid geometry and modes', () => {
     [NaN, 0, 800], [-Infinity, 0, 800], [new Number(1), 0, 800],
     [{ valueOf() { return 1; } }, 0, 800], [[1], 0, 800],
     [1, '0', 800], [1, new Number(0), 800], [1, [], 800],
-    [1, 0, '800'], [1, 0, new Number(800)], [1, 0, [800]]
+    [1, 0, '800'], [1, 0, new Number(800)], [1, 0, [800]],
+    [Number.MAX_VALUE, 2, 800]
   ]) assert.equal(h.normalize(...args), null, `invalid normalized delta input: ${String(args)}`);
 });
 
@@ -112,6 +113,7 @@ function wheelHarness(page = 'chapters') {
     var bibleWheelBurst = { x: 0, y: 0, consumed: false, direction: 0, timer: null, generation: 0 };
     var bibleReaderWheelTransitionLock = { active: false, direction: 0, generation: 0 };
     function isFiniteAppSheetNumber(value) { return typeof value === 'number' && Number.isFinite(value); }
+    ${functionSource('scaleBibleWheelDelta')}
     ${functionSource('normalizeBibleWheelDelta')}
     ${functionSource('bibleWheelClaimDirection')}
     ${functionSource('clearBibleReaderWheelTransitionLock')}
@@ -285,6 +287,21 @@ test('selector vertical boundary is inclusive while just-below diagonal momentum
   assert.equal(justBelowRatio.prevented, true, 'sub-boundary diagonal momentum remains in the claimed gesture');
   assert.equal(below.api.burst().consumed, true);
   assert.deepEqual(below.pages, [['chapters', true, 'pointer']]);
+});
+
+test('selector classifies vertical boundaries before pixel, line, and page accumulation caps', () => {
+  for (const event of [
+    wheelEvent(100, 200),
+    wheelEvent(8, 16, { deltaMode: 1 }),
+    wheelEvent(.2, .4, { deltaMode: 2 })
+  ]) {
+    const { api, pages } = wheelHarness('books');
+    api.wheel(wheelEvent(48));
+    api.wheel(event);
+    assert.equal(event.prevented, false, `saturated delta mode ${event.deltaMode} remains vertically classified`);
+    assert.equal(api.burst().consumed, false);
+    assert.deepEqual(pages, [['chapters', true, 'pointer']]);
+  }
 });
 
 test('selector wheel relocates focus only when the old panel owns it', () => {
@@ -530,6 +547,7 @@ function readerWheelHarness(options = {}) {
     function isFiniteAppSheetNumber(value) { return typeof value === 'number' && Number.isFinite(value); }
     function releaseVerseChaseForFreeScroll() { stats.releases++; }
     function showAdjacentChapter(direction) { chapters.push(direction); return ${options.endpoint === true ? 'false' : 'true'}; }
+    ${functionSource('scaleBibleWheelDelta')}
     ${functionSource('normalizeBibleWheelDelta')}
     ${functionSource('bibleWheelClaimDirection')}
     ${functionSource('bibleWheelEventHorizontalDirection')}
@@ -688,7 +706,7 @@ test('reader transition owns the consumed lock across idle expiry and starts qui
     clearTimeout(timer) { if (timer) timer.cleared = true; }
   };
   const source = [
-    'normalizeBibleWheelDelta', 'bibleWheelClaimDirection', 'clearBibleReaderWheelTransitionLock',
+    'scaleBibleWheelDelta', 'normalizeBibleWheelDelta', 'bibleWheelClaimDirection', 'clearBibleReaderWheelTransitionLock',
     'bibleWheelEventHorizontalDirection',
     'resetBibleWheelBurst', 'restoreBibleWheelConsumedLock', 'holdBibleReaderWheelTransitionLock',
     'finishBibleReaderWheelTransitionLock', 'bibleWheelTargetBlocked', 'accumulateBibleWheel',
@@ -807,7 +825,7 @@ test('reduced-motion reader render skips crossfade timing but preserves a fresh 
     clearTimeout(timer) { if (timer) timer.cleared = true; }
   };
   const source = [
-    'normalizeBibleWheelDelta', 'bibleWheelClaimDirection', 'clearBibleReaderWheelTransitionLock',
+    'scaleBibleWheelDelta', 'normalizeBibleWheelDelta', 'bibleWheelClaimDirection', 'clearBibleReaderWheelTransitionLock',
     'bibleWheelEventHorizontalDirection', 'resetBibleWheelBurst', 'restoreBibleWheelConsumedLock',
     'holdBibleReaderWheelTransitionLock', 'finishBibleReaderWheelTransitionLock',
     'bibleWheelTargetBlocked', 'accumulateBibleWheel', 'onBibleReaderWheel',
