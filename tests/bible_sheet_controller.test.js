@@ -61,6 +61,7 @@ assert.equal(h.determinedHeight(176, 48, 800), 224, 'short content keeps its nat
 assert.equal(h.determinedHeight(900, 48, 800), 560, 'long content caps at floor(70dvh)');
 assert.equal(h.determinedHeight(0, 560.1, 800), null, 'fixed chrome that rounds above the cap is impossible');
 assert.equal(h.determinedHeight(0, 559.1, 800), 560, 'fixed chrome is rounded up before comparison');
+assert.equal(h.determinedHeight(0, 0, 800), null, 'a determined sheet must have positive height');
 for (const args of [
   [-1, 48, 800], [176, -1, 800], [176, 48, 0], [176, 48, -1],
   [Infinity, 48, 800], [176, Infinity, 800], [176, 48, Infinity], ['176', 48, 800]
@@ -95,6 +96,10 @@ assert.equal(release('bottom', 'fullscreen', 500, 0), 'determined',
 assert.equal(release('bottom', 'determined', 79.999, 0), 'determined', 'below threshold stays put');
 assert.equal(release('bottom', 'determined', 10, .4, 224, 800, 80), 'closed',
   'same-direction velocity qualifies through the exact recency window');
+assert.equal(release('bottom', 'determined', 10, .399), 'determined',
+  'positive velocity below threshold preserves the starting snap');
+assert.equal(release('bottom', 'determined', -10, -.399), 'determined',
+  'negative velocity below threshold preserves the starting snap');
 assert.equal(release('bottom', 'determined', 0, .4, 224, 800, 81), 'determined', 'expired velocity is ignored');
 assert.equal(release('bottom', 'determined', -10, .4), 'determined',
   'outward velocity is ignored after inward displacement');
@@ -115,6 +120,15 @@ for (const args of [
   ['bottom', 'determined', 80, 0, 224, 800, -1],
   ['bottom', 'determined', 80, 0, 800, 800, 0]
 ]) assert.equal(h.outcome(...args), null, `invalid release input: ${String(args)}`);
+const validReleaseFields = ['bottom', 'determined', 80, 0, 224, 800, 0];
+for (const fieldIndex of [2, 3, 4, 5, 6]) {
+  for (const invalidValue of ['1', Infinity]) {
+    const invalidFields = validReleaseFields.slice();
+    invalidFields[fieldIndex] = invalidValue;
+    assert.equal(h.outcome(...invalidFields), null,
+      `release numeric field ${fieldIndex} rejects ${String(invalidValue)}`);
+  }
+}
 
 const validState = h.state({
   view: 'verses', book: 'John', chapter: '3', verse: '16',

@@ -2284,7 +2284,8 @@
     var cap = Math.floor(viewportHeight * .7);
     var fixed = Math.ceil(chromeHeight);
     if (fixed > cap) return null;
-    return Math.max(fixed, Math.min(Math.ceil(contentHeight + chromeHeight), cap));
+    var determined = Math.max(fixed, Math.min(Math.ceil(contentHeight + chromeHeight), cap));
+    return determined > 0 ? determined : null;
   }
   function appSheetEffectiveSnapDistance(adjacentDistance) {
     if (!isFiniteAppSheetNumber(adjacentDistance) || adjacentDistance <= 0) return null;
