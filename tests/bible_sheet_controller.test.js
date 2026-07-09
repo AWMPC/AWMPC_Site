@@ -262,6 +262,15 @@ assert.deepEqual(JSON.parse(JSON.stringify(validState)), {
   readerRouteScope: 0,
   sheet: { kind: 'history', page: 'recent' }
 });
+const generatedState = h.state({
+  view: 'verses', book: 'John', chapter: '3', verse: '16',
+  sheet: { kind: 'history', page: 'recent', generation: 7 }
+});
+assert.equal(generatedState.sheet.generation, 7, 'validated sheet history preserves only a strict scalar generation token');
+assert.equal(h.state({
+  view: 'verses', book: 'John', chapter: '3', verse: '16',
+  sheet: { kind: 'history', generation: '7' }
+}), null, 'history generation tokens reject coercion');
 assert.equal(h.state({ view: 'books', sheet: { kind: 'history' } }), null);
 assert.equal(h.state({ view: 'verses', book: '', chapter: '3', verse: '16', sheet: { kind: 'history' } }), null);
 assert.equal(h.state({ view: 'verses', book: 'John', chapter: '3', verse: '16', sheet: { kind: 'evil' } }), null);
@@ -270,15 +279,21 @@ assert.equal(h.state({ view: 'verses', book: 'John', chapter: '3', verse: '16', 
 
 for (const field of ['kind', 'edge', 'snap', 'phase', 'generation', 'determinedHeight', 'candidate', 'gesture',
   'pointer', 'frame', 'measureFrame', 'settleTimer', 'historyTimer', 'resizeObserver', 'contentCleanup',
-  'historyState', 'historyOwned', 'pendingHistoryClose', 'opener', 'focusPolicy']) {
+  'historyState', 'historyReturnGeneration', 'historyOwned', 'pendingHistoryClose', 'opener', 'focusPolicy']) {
   assert.match(bible, new RegExp('var appSheetState = \\{[\\s\\S]*' + field + ':'), `state explicitly owns ${field}`);
 }
 assert.doesNotMatch(controllerFunction('openAppSheet'), /options\.(?:render|content)/);
 assert.doesNotMatch(bible, /appSheetState\.closing/);
 assert.match(bible, /function isCurrentAppSheetGeneration\(generation\)/);
+assert.match(controllerFunction('handleAppSheetPopState'),
+  /validated\.sheet\.generation !== appSheetState\.generation/,
+  'old sheet-entry callbacks are rejected while a newer sheet is open');
+assert.match(controllerFunction('handleAppSheetPopState'),
+  /state\.sheetReturnGeneration !== appSheetState\.historyReturnGeneration/,
+  'old close callbacks are rejected while a newer sheet is open');
 assert.match(bible, /function applyTextScale\([\s\S]*scheduleAppSheetMeasurement\(appSheetState\.generation\)/,
   'text scale changes remeasure an open determined sheet');
-assert.match(bible, /function finishSelectionPageSettle\([\s\S]*installAppSheetMeasurement\(appSheetState\.generation\)/,
+assert.match(bible, /function finishSelectionPageSettle\([\s\S]*retargetAppSheetMeasurement\(\)/,
   'settled selection pages retarget intrinsic measurement');
 assert.match(bible, /pendingHistoryClose: false/);
 assert.match(bible, /function installAppSheetListeners\(\)[\s\S]*if \(appSheetListenersInstalled\) return;[\s\S]*appSheetHandle\.addEventListener\('pointerdown'/);
@@ -370,6 +385,12 @@ const handle = fakeElement();
 const body = fakeElement();
 const measure = fakeElement();
 measure.scrollHeight = 180;
+let activeMeasurementPanel = null;
+const selectionDots = fakeElement();
+selectionDots.rectHeight = 32;
+selectionDots.getBoundingClientRect = () => ({ height: selectionDots.rectHeight });
+measure.querySelector = selector => selector === '.selection-panel[aria-hidden="false"]' ? activeMeasurementPanel :
+  (selector === '.selection-dots' ? selectionDots : null);
 const fadeTop = fakeElement();
 const fadeBottom = fakeElement();
 const opener = fakeElement();
@@ -417,7 +438,7 @@ const controllerContext = {
   document: { activeElement: opener, documentElement: { clientHeight: 780 } },
   ResizeObserver: FakeResizeObserver,
   getComputedStyle(element) {
-    if (element === handle) return { marginBlockStart: '0px', marginBlockEnd: '0px' };
+    if (element === handle || element === selectionDots) return { marginBlockStart: '0px', marginBlockEnd: '0px' };
     if (element === body) return {
       paddingBlockStart: bodyPaddingStart + 'px', paddingBlockEnd: bodyPaddingEnd + 'px'
     };
@@ -432,6 +453,9 @@ const controllerContext = {
   renderSettingsSheet() {
     return () => { settingsCleanupExpansion.push(fabMain.getAttribute('aria-expanded')); };
   },
+  renderSelectionSheet(target) { target.textContent = 'selection'; },
+  normalizedSelectionPage(page) { return ['books', 'chapters', 'verses'].includes(page) ? page : 'books'; },
+  sanitizedSelectionDataContext() { return null; },
   window: {
     innerHeight: 800,
     visualViewport: {
@@ -462,7 +486,8 @@ const controllerContext = {
 const controllerSource = bible.slice(pureStart, pureEnd) + '\n' +
   bible.slice(controllerStart, controllerEnd) + '\nthis.api = {' +
   'install: installAppSheetListeners, open: openAppSheet, close: requestCloseAppSheet,' +
-  'pop: handleAppSheetPopState, snap: setSheetSnap, register: registerAppSheetDescriptor, state: appSheetState};';
+  'pop: handleAppSheetPopState, snap: setSheetSnap, register: registerAppSheetDescriptor,' +
+  'retarget: retargetAppSheetMeasurement, state: appSheetState};';
 vm.runInNewContext(controllerSource, controllerContext);
 const api = controllerContext.api;
 
@@ -530,6 +555,34 @@ const viewportFrame = [...frames.keys()][0];
 frames.get(viewportFrame)();
 frames.delete(viewportFrame);
 assert.equal(dialog.style.getPropertyValue('--sheet-height'), '420px', 'visual viewport changes recalculate the cap');
+
+measure.scrollHeight = 900;
+controllerContext.window.visualViewport.height = NaN;
+controllerContext.window.innerHeight = 700;
+windowListeners.resize[0]();
+let fallbackFrame = [...frames.keys()][0];
+frames.get(fallbackFrame)();
+frames.delete(fallbackFrame);
+assert.equal(dialog.style.getPropertyValue('--sheet-height'), '489px', 'invalid visual viewport falls back to finite innerHeight');
+controllerContext.window.visualViewport.height = Infinity;
+controllerContext.window.innerHeight = NaN;
+controllerContext.document.documentElement.clientHeight = 600;
+windowListeners.resize[0]();
+fallbackFrame = [...frames.keys()][0];
+frames.get(fallbackFrame)();
+frames.delete(fallbackFrame);
+assert.equal(dialog.style.getPropertyValue('--sheet-height'), '420px', 'nonfinite window geometry falls back to clientHeight');
+const fallbackWrites = dialog.styleWriteCount;
+controllerContext.document.documentElement.clientHeight = -Infinity;
+windowListeners.resize[0]();
+fallbackFrame = [...frames.keys()][0];
+frames.get(fallbackFrame)();
+frames.delete(fallbackFrame);
+assert.equal(dialog.style.getPropertyValue('--sheet-height'), '420px');
+assert.equal(dialog.styleWriteCount, fallbackWrites, 'fully hostile viewport geometry cannot write an unbounded height');
+controllerContext.window.visualViewport.height = 600;
+controllerContext.window.innerHeight = 800;
+controllerContext.document.documentElement.clientHeight = 780;
 api.snap('fullscreen', true);
 measure.scrollHeight = 180;
 viewportListeners.resize[0]();
@@ -553,22 +606,23 @@ bodyPaddingStart = 0;
 bodyPaddingEnd = 0;
 
 measure.scrollHeight = Infinity;
+const writesBeforeInvalidGeometry = dialog.styleWriteCount;
 resizeObserverInstances[0].fire();
 const invalidGeometryFrame = [...frames.keys()][0];
 frames.get(invalidGeometryFrame)();
 frames.delete(invalidGeometryFrame);
 assert.equal(dialog.style.getPropertyValue('--sheet-height'), '160px', 'invalid geometry preserves the bounded safe height');
-assert.equal(dialog.styleWriteCount, heightWrites + 4, 'invalid geometry does not produce an unbounded style write');
+assert.equal(dialog.styleWriteCount, writesBeforeInvalidGeometry, 'invalid geometry does not produce an unbounded style write');
 measure.scrollHeight = 180;
 const firstGenerationObserver = resizeObserverInstances[0];
 assert.equal(historyCalls.push.length, 1, 'first open pushes one sheet entry');
-assert.equal(historyCalls.replace.length, 0);
+assert.equal(historyCalls.replace.length, 1, 'first open tags the underlying reader entry for generation-safe Back');
 
 assert.equal(api.open('search', { page: 'results' }), true);
 assert.ok(firstGenerationObserver.disconnected, 'content replacement disconnects the previous observer');
 assert.equal(fabMain.getAttribute('aria-expanded'), 'false', 'kind switch away from Settings remains collapsed');
 assert.equal(historyCalls.push.length, 1, 'switching an open sheet never pushes again');
-assert.equal(historyCalls.replace.length, 1, 'switching kind/page replaces the owned sheet entry');
+assert.equal(historyCalls.replace.length, 2, 'switching kind/page replaces the owned sheet entry');
 assert.equal(cleanupCount, 1, 'old content cleanup runs before replacement');
 assert.equal(dialog.getAttribute('aria-label'), 'Search — Bible panel');
 assert.notEqual(measure.textContent, '', 'default descriptors render deterministic content');
@@ -699,7 +753,46 @@ assert.deepEqual({
   height: dialog.style.getPropertyValue('--sheet-height'), phase: api.state.phase,
   kind: api.state.kind, content: measure.textContent, focus: opener.focusCount
 }, reopened, 'stale observer, RAF, and timer callbacks cannot mutate the reopened generation');
+
+const staleGeneration = api.state.generation;
+const staleSheetPop = {
+  view: 'verses', book: 'John', chapter: '3', verse: '16',
+  sheet: { kind: 'search', page: 'old', generation: staleGeneration }
+};
+const staleClosePop = {
+  view: 'verses', book: 'John', chapter: '3', verse: '16', sheetReturnGeneration: staleGeneration
+};
+api.open('history', { page: 'new' });
+const currentAfterReopen = {
+  generation: api.state.generation, kind: api.state.kind, content: measure.textContent,
+  phase: api.state.phase, focus: opener.focusCount
+};
+assert.notEqual(currentAfterReopen.generation, staleGeneration);
+assert.equal(api.pop(staleSheetPop), true);
+assert.equal(api.pop(staleClosePop), true);
+assert.deepEqual({
+  generation: api.state.generation, kind: api.state.kind, content: measure.textContent,
+  phase: api.state.phase, focus: opener.focusCount
+}, currentAfterReopen, 'old-generation sheet and close popstate callbacks cannot mutate a reopened sheet');
 reduceMotion = true;
+
+api.state.historyOwned = false;
+api.close('prepare-forward-contract');
+const forwardToken = 777;
+assert.equal(api.pop({
+  view: 'verses', book: 'John', chapter: '3', verse: '16',
+  sheet: { kind: 'history', page: 'forward', generation: forwardToken }
+}), true);
+assert.equal(dialog.open, true, 'user Forward still restores a generation-tagged sheet');
+assert.equal(api.state.historyReturnGeneration, forwardToken);
+assert.equal(api.pop({
+  view: 'verses', book: 'John', chapter: '3', verse: '16', sheetReturnGeneration: forwardToken
+}), true);
+assert.equal(dialog.open, false, 'matching adjacent return token preserves user Back close semantics');
+api.pop({
+  view: 'verses', book: 'John', chapter: '3', verse: '16',
+  sheet: { kind: 'history', generation: 778 }
+});
 
 api.snap('determined', true);
 const releasesBeforePointerUp = handle.releaseCount;
@@ -739,7 +832,8 @@ const popupPushesBefore = historyCalls.push.length;
 assert.equal(api.open('history', { opener }), true);
 assert.equal(popupCloseCalls, popupClosesBefore + 1, 'opening a sheet closes an underlying popup menu');
 assert.equal(controllerContext.fabPanelHistoryOpen, false);
-assert.equal(historyCalls.replace.length, popupReplacesBefore + 1, 'popup state is normalized in place');
+assert.equal(historyCalls.replace.length, popupReplacesBefore + 2,
+  'popup normalization is followed by generation-tagging the canonical return entry');
 assert.equal(historyCalls.replace.at(-1)[0].popup, undefined);
 assert.equal(historyCalls.push.length, popupPushesBefore + 1, 'sheet then pushes over the canonical reader entry');
 api.close('popup-normalized');
@@ -857,5 +951,31 @@ handle.dispatch('pointermove', {
 });
 handle.dispatch('pointerup', { pointerId: 31, clientY: 120, timeStamp: 400 });
 assert.equal(api.state.snap, 'determined', 'velocity remains fresh through the exact 80ms window');
+
+const activePanelA = fakeElement();
+activePanelA.scrollHeight = 180;
+const activePanelB = fakeElement();
+activePanelB.scrollHeight = 220;
+const hiddenPanel = fakeElement();
+hiddenPanel.scrollHeight = 900;
+measure.scrollHeight = hiddenPanel.scrollHeight;
+activeMeasurementPanel = activePanelA;
+api.open('selection', { page: 'books' });
+assert.equal(resizeObserverInstances.at(-1).targets[0], activePanelA,
+  'selection measurement observes only the active panel, not a taller hidden panel');
+let selectionMeasureFrame = [...frames.keys()][0];
+frames.get(selectionMeasureFrame)();
+frames.delete(selectionMeasureFrame);
+assert.equal(dialog.style.getPropertyValue('--sheet-height'), '256px');
+const firstSelectionObserver = resizeObserverInstances.at(-1);
+activeMeasurementPanel = activePanelB;
+api.retarget();
+assert.ok(firstSelectionObserver.disconnected);
+assert.equal(resizeObserverInstances.at(-1).targets[0], activePanelB, 'page settle retargets the observer');
+selectionMeasureFrame = [...frames.keys()][0];
+frames.get(selectionMeasureFrame)();
+frames.delete(selectionMeasureFrame);
+assert.equal(dialog.style.getPropertyValue('--sheet-height'), '296px',
+  'active page changes recompute without hidden persistent panel inflation');
 
 console.log('bible sheet controller tests passed');

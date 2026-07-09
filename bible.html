@@ -2353,6 +2353,10 @@
     if (state.sheet.kind !== 'selection' && state.sheet.page != null && (typeof state.sheet.page !== 'string' ||
         state.sheet.page.length > 128 || !/^[A-Za-z0-9._~-]*$/.test(state.sheet.page))) return null;
     var sheet = { kind: state.sheet.kind };
+    if (state.sheet.generation != null) {
+      if (!Number.isSafeInteger(state.sheet.generation) || state.sheet.generation <= 0) return null;
+      sheet.generation = state.sheet.generation;
+    }
     if (state.sheet.kind === 'selection') {
       sheet.page = normalizedSelectionPage(state.sheet.page);
       var data = typeof bibleData === 'undefined' ? null : bibleData;
@@ -2399,6 +2403,7 @@
     resizeObserver: null,
     contentCleanup: null,
     historyState: null,
+    historyReturnGeneration: null,
     historyOwned: false,
     pendingHistoryClose: false,
     focusPolicy: 'none'
@@ -2544,6 +2549,13 @@
     scheduleAppSheetMeasurement(generation);
   }
 
+  function retargetAppSheetMeasurement() {
+    var generation = appSheetState.generation;
+    if (!isCurrentAppSheetGeneration(generation) || appSheetState.phase === 'closed') return false;
+    installAppSheetMeasurement(generation);
+    return true;
+  }
+
   function clearAppSheetMotion() {
     if (appSheetState.frame !== null) cancelAnimationFrame(appSheetState.frame);
     if (appSheetState.settleTimer !== null) window.clearTimeout(appSheetState.settleTimer);
@@ -2602,6 +2614,7 @@
     appSheetState.snap = 'determined';
     appSheetState.page = null;
     appSheetState.historyState = null;
+    appSheetState.historyReturnGeneration = null;
     appSheetState.opener = null;
     appSheetState.historyOwned = false;
     appSheetState.pendingHistoryClose = false;
@@ -2731,6 +2744,7 @@
     if (kind === 'selection') page = historyState.sheet.page;
     if (!options.fromPop) normalizePopupHistoryBeforeSheetOpen();
     var wasOpen = appSheet.open;
+    var previousReturnGeneration = appSheetState.historyReturnGeneration;
     clearAppSheetMotion();
     if (typeof cleanupAppSheetMeasurement === 'function') cleanupAppSheetMeasurement();
     appSheetState.generation = typeof appSheetState.generation === 'number' && Number.isFinite(appSheetState.generation) ?
@@ -2739,6 +2753,10 @@
     syncAppSheetLauncherState();
     appSheetState.edge = edge;
     appSheetState.page = page;
+    var incomingHistoryGeneration = historyState.sheet.generation;
+    appSheetState.historyReturnGeneration = options.fromPop ? (incomingHistoryGeneration || null) :
+      (wasOpen ? previousReturnGeneration : appSheetState.generation);
+    historyState.sheet.generation = appSheetState.generation;
     appSheetState.historyState = historyState;
     appSheetState.phase = 'idle';
     appSheetState.determinedHeight = 0;
@@ -2755,10 +2773,16 @@
     if (!options.fromPop) {
       if (wasOpen && appSheetState.historyOwned) history.replaceState(historyState, '', window.location.href);
       else {
+        var returnState = currentNavStateForHistory();
+        if (returnState) {
+          returnState.sheetReturnGeneration = appSheetState.historyReturnGeneration;
+          history.replaceState(returnState, '', window.location.href);
+        }
         history.pushState(historyState, '', window.location.href);
         appSheetState.historyOwned = true;
       }
     } else if (options.fromPop) {
+      history.replaceState(historyState, '', window.location.href);
       appSheetState.historyOwned = true;
       appSheetState.pendingHistoryClose = false;
     }
@@ -2769,6 +2793,8 @@
   function handleAppSheetPopState(state) {
     var validated = validatedAppSheetHistoryState(state);
     if (validated) {
+      if (appSheet.open && validated.sheet.generation != null &&
+          validated.sheet.generation !== appSheetState.generation) return true;
       if (validated.sheet.kind === 'selection') {
         history.replaceState(validated, '', canonicalVerseUrl(validated.book, validated.chapter, validated.verse));
       }
@@ -2795,6 +2821,8 @@
       }
     }
     if (appSheet.open) {
+      if (state && state.sheetReturnGeneration != null &&
+          state.sheetReturnGeneration !== appSheetState.historyReturnGeneration) return true;
       if (appSheetState.kind === 'selection' && state &&
           (state.view === 'books' || state.view === 'chapters' || state.view === 'verse-picker')) return false;
       appSheetState.historyOwned = false;
@@ -3162,7 +3190,7 @@
     if (selectionRetargetTimer !== null) window.clearTimeout(selectionRetargetTimer);
     selectionRetargetTimer = null;
     scheduleSelectionGridRetarget();
-    if (typeof installAppSheetMeasurement === 'function') installAppSheetMeasurement(appSheetState.generation);
+    if (typeof retargetAppSheetMeasurement === 'function') retargetAppSheetMeasurement();
   }
 
   function updateSelectionPageSemantics() {
@@ -3190,8 +3218,8 @@
     selectionTrack.classList.toggle('no-motion', shouldReduceVerseMotion());
     selectionTrack.style.transform = 'translateX(' + (-100 * selectionPages.indexOf(page)) + '%)';
     updateSelectionPageSemantics();
-    if (shouldReduceVerseMotion() && typeof installAppSheetMeasurement === 'function') {
-      installAppSheetMeasurement(appSheetState.generation);
+    if (shouldReduceVerseMotion() && typeof retargetAppSheetMeasurement === 'function') {
+      retargetAppSheetMeasurement();
     }
     if (shouldReduceVerseMotion()) scheduleSelectionGridRetarget();
     else selectionRetargetTimer = window.setTimeout(finishSelectionPageSettle, 240);
