@@ -70,6 +70,32 @@ test('selection renderer owns one persistent three-panel track and three real ac
   assert.match(css, /\.app-sheet\.edge-top[\s\S]*?\.selection-dots[\s\S]*?order:\s*2/);
 });
 
+function pixelDeclaration(rule, property) {
+  const match = rule.match(new RegExp(`${property}:\\s*(\\d+(?:\\.\\d+)?)px`));
+  assert.ok(match, `${property} pixel declaration missing`);
+  return Number(match[1]);
+}
+
+test('selection dots keep a 44px native target around an 8px visual marker', () => {
+  const target = extract(/\.selection-dot \{[^}]*\}/, 'selection dot target rule missing');
+  const marker = extract(/\.selection-dot::before \{[^}]*\}/, 'selection dot visual marker rule missing');
+  assert.ok(pixelDeclaration(target, 'width') >= 44, 'dot button width meets the native target floor');
+  assert.ok(pixelDeclaration(target, 'min-height') >= 44, 'dot button height meets the native target floor');
+  assert.equal(pixelDeclaration(marker, 'width'), 8, 'visual dot width remains 8px');
+  assert.equal(pixelDeclaration(marker, 'height'), 8, 'visual dot height remains 8px');
+  assert.match(bible, /\.selection-dot:focus-visible\s*\{[^}]*outline:/, 'dot target has a visible keyboard focus ring');
+  assert.match(bible, /\.selection-dot\[aria-selected="true"\]::before/, 'selected semantics continue to style the marker');
+
+  const targetMutant = bible.replace(target,
+    target.replace('width: 44px; min-height: 44px;', 'width: 28px; min-height: 28px;'));
+  const mutatedTarget = extractFrom(targetMutant, /\.selection-dot \{[^}]*\}/, 'mutated dot target rule missing');
+  assert.ok(pixelDeclaration(mutatedTarget, 'width') < 44, 'undersized target mutation is observable');
+
+  const markerMutant = bible.replace("content: ''; display: block; width: 8px; height: 8px;", "content: ''; display: block; width: 12px; height: 12px;");
+  const mutatedMarker = extractFrom(markerMutant, /\.selection-dot::before \{[^}]*\}/, 'mutated dot marker rule missing');
+  assert.notEqual(pixelDeclaration(mutatedMarker, 'width'), 8, 'visual marker mutation is observable');
+});
+
 test('navbar opens exact selection pages without invoking destructive legacy views', () => {
   const handlers = extract(/fnBook\.addEventListener\('click',[\s\S]*?fnVerse\.addEventListener\('click',[\s\S]*?\n  \}\);/, 'selection navbar handlers missing');
   assert.match(handlers, /openSelectionSheet\('books',\s*e\.currentTarget\)/);

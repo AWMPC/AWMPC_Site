@@ -1096,9 +1096,10 @@
     min-height: 32px; padding: 6px var(--display-panel-padding);
   }
   .selection-dot {
-    width: 28px; min-height: 28px; padding: 0; border: 0; border-radius: var(--radius-pill);
+    width: 44px; min-height: 44px; padding: 0; border: 0; border-radius: var(--radius-pill);
     background: transparent; cursor: pointer;
   }
+  .selection-dot:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
   .selection-dot::before {
     content: ''; display: block; width: 8px; height: 8px; margin: auto;
     border-radius: 50%; background: var(--fg4);
