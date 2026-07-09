@@ -636,7 +636,7 @@ frames.delete(initialMeasureFrame);
 assert.equal(dialog.style.getPropertyValue('--sheet-height'), '224px',
   'short content uses intrinsic height plus fixed chrome');
 assert.equal(api.state.determinedHeight, 224);
-assert.equal(resizeObserverInstances.length, 1);
+assert.equal(resizeObserverInstances.length, 2, 'measurement and overflow each own one scoped observer');
 
 measure.scrollHeight = 900;
 resizeObserverInstances[0].fire();
@@ -1535,7 +1535,7 @@ let selectionMeasureFrame = [...frames.keys()][0];
 frames.get(selectionMeasureFrame)();
 frames.delete(selectionMeasureFrame);
 assert.equal(dialog.style.getPropertyValue('--sheet-height'), '252px');
-const firstSelectionObserver = resizeObserverInstances.at(-1);
+const firstSelectionObserver = resizeObserverInstances.at(-2);
 activeMeasurementPanel = activePanelB;
 api.retarget();
 assert.ok(firstSelectionObserver.disconnected);

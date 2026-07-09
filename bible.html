@@ -1094,9 +1094,14 @@
   .app-sheet-fade {
     position: absolute; left: 0; right: 0; height: 28px; z-index: 2;
     opacity: 0; pointer-events: none;
+    transition-property: opacity;
+    transition-duration: 160ms;
+    transition-timing-function: var(--motion-ease);
   }
-  .app-sheet-fade-top { top: 0; }
-  .app-sheet-fade-bottom { bottom: 0; }
+  .app-sheet-fade.is-visible { opacity: 1; }
+  .app-sheet-fade-top { top: 0; background: linear-gradient(to bottom, var(--surface), transparent); }
+  .app-sheet-fade-bottom { bottom: 0; background: linear-gradient(to top, var(--surface), transparent); }
+  .app-sheet-body.selection-sheet-host ~ .app-sheet-fade-bottom { bottom: 28px; }
   .settings-sheet-content { display: grid; gap: var(--display-panel-gap); }
   .settings-sheet-content > .fab-card,
   .settings-sheet-content > .app-version { width: 100%; }
@@ -1151,6 +1156,18 @@
 
   @media (prefers-reduced-motion: reduce) {
     .app-sheet, .app-sheet::backdrop { transition-duration: 0s; }
+    .app-sheet-fade, .selection-indicator-dot, .selection-track { transition-duration: 0s; }
+  }
+
+  @media (forced-colors: active) {
+    .app-sheet-fade-top { background: linear-gradient(to bottom, Canvas, transparent); }
+    .app-sheet-fade-bottom { background: linear-gradient(to top, Canvas, transparent); }
+    .selection-indicator {
+      background: Canvas; color: CanvasText; border: 1px solid CanvasText; box-shadow: none;
+      -webkit-backdrop-filter: none; backdrop-filter: none;
+    }
+    .selection-indicator-dot { background: CanvasText; }
+    .selection-indicator-dot.is-active { background: Highlight; }
   }
 
   .verse-actions {
@@ -2301,6 +2318,15 @@
   function isValidAppSheetEdge(value) { return appSheetEnumHas(APP_SHEET_EDGES, value); }
   function isValidAppSheetSnap(value) { return appSheetEnumHas(APP_SHEET_SNAPS, value); }
   function isFiniteAppSheetNumber(value) { return typeof value === 'number' && Number.isFinite(value); }
+  function appSheetOverflowFadeState(scrollTop, clientHeight, scrollHeight) {
+    if (!isFiniteAppSheetNumber(scrollTop) || scrollTop < 0 ||
+        !isFiniteAppSheetNumber(clientHeight) || clientHeight < 0 ||
+        !isFiniteAppSheetNumber(scrollHeight) || scrollHeight < 0) return { top: false, bottom: false };
+    return {
+      top: scrollTop > 1,
+      bottom: scrollTop + clientHeight < scrollHeight - 1
+    };
+  }
   function appSheetDeterminedHeight(contentHeight, chromeHeight, viewportHeight) {
     if (!isFiniteAppSheetNumber(contentHeight) || contentHeight < 0 ||
         !isFiniteAppSheetNumber(chromeHeight) || chromeHeight < 0 ||
@@ -2438,6 +2464,10 @@
     frame: null,
     measureFrame: null,
     resizeObserver: null,
+    overflowFrame: null,
+    overflowObserver: null,
+    overflowScroller: null,
+    overflowListener: null,
     contentCleanup: null,
     historyState: null,
     historyReturnGeneration: null,
@@ -2619,6 +2649,76 @@
     return true;
   }
 
+  function currentAppSheetOverflowScroller() {
+    if (appSheetState.kind === 'selection' && typeof appSheetMeasure.querySelector === 'function') {
+      var active = appSheetMeasure.querySelector('.selection-panel[aria-hidden="false"]');
+      if (active) return active;
+    }
+    return appSheetBody;
+  }
+
+  function renderAppSheetOverflowFades(generation) {
+    if (!isCurrentAppSheetGeneration(generation) || appSheetState.phase === 'closed') return false;
+    var scroller = appSheetState.overflowScroller;
+    if (!scroller) return false;
+    var state = appSheetOverflowFadeState(scroller.scrollTop, scroller.clientHeight, scroller.scrollHeight);
+    appSheetFadeTop.classList.toggle('is-visible', state.top);
+    appSheetFadeBottom.classList.toggle('is-visible', state.bottom);
+    return true;
+  }
+
+  function scheduleAppSheetOverflowFades(generation) {
+    generation = generation == null ? appSheetState.generation : generation;
+    if (!isCurrentAppSheetGeneration(generation) || appSheetState.phase === 'closed' ||
+        !appSheetState.overflowScroller || appSheetState.overflowFrame !== null) return false;
+    var frame = requestAnimationFrame(function () {
+      if (appSheetState.overflowFrame === frame) appSheetState.overflowFrame = null;
+      if (!isCurrentAppSheetGeneration(generation)) return;
+      renderAppSheetOverflowFades(generation);
+    });
+    appSheetState.overflowFrame = frame;
+    return true;
+  }
+
+  function cleanupAppSheetOverflowFades() {
+    if (appSheetState.overflowFrame !== null) cancelAnimationFrame(appSheetState.overflowFrame);
+    appSheetState.overflowFrame = null;
+    if (appSheetState.overflowScroller && appSheetState.overflowListener) {
+      appSheetState.overflowScroller.removeEventListener('scroll', appSheetState.overflowListener);
+    }
+    if (appSheetState.overflowObserver) appSheetState.overflowObserver.disconnect();
+    appSheetState.overflowObserver = null;
+    appSheetState.overflowScroller = null;
+    appSheetState.overflowListener = null;
+    appSheetFadeTop.classList.toggle('is-visible', false);
+    appSheetFadeBottom.classList.toggle('is-visible', false);
+  }
+
+  function installAppSheetOverflowFades(scroller) {
+    cleanupAppSheetOverflowFades();
+    var generation = appSheetState.generation;
+    if (!isCurrentAppSheetGeneration(generation) || appSheetState.phase === 'closed' || !scroller ||
+        typeof scroller.addEventListener !== 'function') return false;
+    appSheetState.overflowScroller = scroller;
+    appSheetState.overflowListener = function () {
+      if (isCurrentAppSheetGeneration(generation)) scheduleAppSheetOverflowFades(generation);
+    };
+    scroller.addEventListener('scroll', appSheetState.overflowListener, { passive: true });
+    if (typeof ResizeObserver === 'function') {
+      appSheetState.overflowObserver = new ResizeObserver(function () {
+        if (isCurrentAppSheetGeneration(generation)) scheduleAppSheetOverflowFades(generation);
+      });
+      appSheetState.overflowObserver.observe(scroller);
+    }
+    renderAppSheetOverflowFades(generation);
+    return true;
+  }
+
+  function retargetAppSheetOverflowFades() {
+    if (appSheetState.phase === 'closed') return false;
+    return installAppSheetOverflowFades(currentAppSheetOverflowScroller());
+  }
+
   function clearAppSheetMotion() {
     clearAppSheetGestureResources();
     if (appSheetState.settleTimer !== null) window.clearTimeout(appSheetState.settleTimer);
@@ -2715,6 +2815,7 @@
   function resetAppSheetState() {
     appSheetState.generation += 1;
     cleanupAppSheetMeasurement();
+    cleanupAppSheetOverflowFades();
     if (appSheetState.historyTimer !== null) window.clearTimeout(appSheetState.historyTimer);
     appSheetState.historyTimer = null;
     clearAppSheetMotion();
@@ -2758,6 +2859,7 @@
     appSheet.classList.toggle('snap-fullscreen', snap === 'fullscreen');
     appSheet.classList.remove('no-motion');
     syncAppSheetAccessibleState();
+    renderAppSheetOverflowFades(generation);
     if (synchronous) {
       appSheetState.phase = appSheet.open ? 'idle' : appSheetState.phase;
       if (snap === 'determined') scheduleAppSheetMeasurement(generation);
@@ -2768,6 +2870,7 @@
         appSheetState.settleTimer = null;
         appSheetState.phase = 'idle';
         if (appSheetState.snap === 'determined') scheduleAppSheetMeasurement(generation);
+        renderAppSheetOverflowFades(generation);
       }, 260);
     }
     return true;
@@ -2808,6 +2911,7 @@
     appSheetState.focusPolicy = focusPolicy;
     clearAppSheetGestureResources();
     cleanupAppSheetMeasurement();
+    cleanupAppSheetOverflowFades();
     var generation = appSheetState.generation;
     syncAppSheetLauncherState();
     appSheet.classList.add('is-closing');
@@ -2865,6 +2969,7 @@
       appSheetMeasure.textContent = 'This panel is unavailable.';
     }
     installAppSheetMeasurement(appSheetState.generation);
+    installAppSheetOverflowFades(currentAppSheetOverflowScroller());
   }
 
   function refreshOwnerScopedAppSheet() {
@@ -3216,9 +3321,11 @@
     appSheetBody.addEventListener('touchcancel', onSelectionTouchCancel, { passive: false });
     window.addEventListener(['resize'][0], function () {
       scheduleAppSheetMeasurement(appSheetState.generation);
+      renderAppSheetOverflowFades(appSheetState.generation);
     });
     if (window.visualViewport) window.visualViewport.addEventListener(['resize'][0], function () {
       scheduleAppSheetMeasurement(appSheetState.generation);
+      renderAppSheetOverflowFades(appSheetState.generation);
     });
   }
   /* APP SHEET CONTROLLER END */
@@ -3433,6 +3540,7 @@
     selectionRetargetTimer = null;
     scheduleSelectionGridRetarget();
     if (typeof retargetAppSheetMeasurement === 'function') retargetAppSheetMeasurement();
+    if (typeof retargetAppSheetOverflowFades === 'function') retargetAppSheetOverflowFades();
   }
 
   function focusSelectionPanel(panel, mode) {
@@ -3489,6 +3597,9 @@
       selectionPages.indexOf(page)].replace(/^./, function (letter) { return letter.toUpperCase(); });
     if (shouldReduceVerseMotion() && typeof retargetAppSheetMeasurement === 'function') {
       retargetAppSheetMeasurement();
+    }
+    if (shouldReduceVerseMotion() && typeof retargetAppSheetOverflowFades === 'function') {
+      retargetAppSheetOverflowFades();
     }
     if (shouldReduceVerseMotion()) scheduleSelectionGridRetarget();
     else selectionRetargetTimer = window.setTimeout(finishSelectionPageSettle, 240);
@@ -4421,6 +4532,7 @@
     scheduleMarqueeMeasure();
     scheduleSelectionGridLayout();
     if (typeof scheduleAppSheetMeasurement === 'function') scheduleAppSheetMeasurement(appSheetState.generation);
+    if (typeof renderAppSheetOverflowFades === 'function') renderAppSheetOverflowFades(appSheetState.generation);
   }
   applyTextScale(State.getTextScale(), false);
   if (textScaleSelect) {
