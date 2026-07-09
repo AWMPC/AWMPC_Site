@@ -2711,7 +2711,7 @@
     return false;
   }
 
-  function accumulateBibleWheel(event) {
+  function accumulateBibleWheel(event, releaseOnVertical) {
     if (bibleWheelTargetBlocked(event)) {
       var blockedConsumed = bibleWheelBurst.consumed;
       var blockedDirection = bibleWheelBurst.direction;
@@ -2733,7 +2733,7 @@
       restoreBibleWheelConsumedLock(invalidConsumed, invalidDirection);
       return 0;
     }
-    if (dy !== 0 && Math.abs(dy) >= Math.abs(dx) * BIBLE_WHEEL_AXIS_RATIO) {
+    if (releaseOnVertical === true && dy !== 0 && Math.abs(dy) >= Math.abs(dx) * BIBLE_WHEEL_AXIS_RATIO) {
       resetBibleWheelBurst();
       return 0;
     }
@@ -4724,7 +4724,7 @@
   function onSelectionWheel(event) {
     if (!event || !selectionPager || !appSheet.open || appSheetState.kind !== 'selection' ||
         !selectionPager.contains(event.target)) return;
-    var direction = accumulateBibleWheel(event);
+    var direction = accumulateBibleWheel(event, true);
     if (!direction) return;
     event.preventDefault();
     if (bibleWheelBurst.consumed) return;

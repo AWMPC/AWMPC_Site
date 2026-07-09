@@ -263,6 +263,30 @@ test('repeated vertical input stays native while ambiguous and horizontal moment
   assert.deepEqual(locked.pages, [['chapters', true, 'pointer']], 'one gesture still pages exactly once');
 });
 
+test('selector vertical boundary is inclusive while just-below diagonal momentum stays locked', () => {
+  const boundary = wheelHarness('books');
+  boundary.api.wheel(wheelEvent(48));
+  const equalRatio = wheelEvent(40, 50);
+  boundary.api.wheel(equalRatio);
+  assert.equal(equalRatio.prevented, false, 'the exact 1.25 vertical ratio releases selector ownership');
+  assert.equal(boundary.api.burst().consumed, false);
+  const boundaryFresh = wheelEvent(48);
+  boundary.api.wheel(boundaryFresh);
+  assert.equal(boundaryFresh.prevented, true);
+  assert.deepEqual(boundary.pages, [
+    ['chapters', true, 'pointer'],
+    ['verses', true, 'pointer']
+  ]);
+
+  const below = wheelHarness('books');
+  below.api.wheel(wheelEvent(48));
+  const justBelowRatio = wheelEvent(40, 49.999);
+  below.api.wheel(justBelowRatio);
+  assert.equal(justBelowRatio.prevented, true, 'sub-boundary diagonal momentum remains in the claimed gesture');
+  assert.equal(below.api.burst().consumed, true);
+  assert.deepEqual(below.pages, [['chapters', true, 'pointer']]);
+});
+
 test('selector wheel relocates focus only when the old panel owns it', () => {
   const focused = wheelHarness('chapters');
   focused.api.wheel(wheelEvent(48));
@@ -738,6 +762,13 @@ test('reader transition owns the consumed lock across idle expiry and starts qui
 
   transition.fn();
   assert.equal(api.lock().active, false);
+  const verticalDuringQuiet = wheelEvent(0, 80);
+  api.wheel(verticalDuringQuiet);
+  const horizontalResidual = wheelEvent(120);
+  api.wheel(horizontalResidual);
+  assert.equal(horizontalResidual.prevented, true, 'reader quiet ownership survives a vertical-dominant event');
+  assert.deepEqual(chapters, [1], 'vertical input cannot release residual momentum into a second chapter');
+
   const afterTransition = wheelEvent(120);
   api.wheel(afterTransition);
   assert.equal(afterTransition.prevented, true);
