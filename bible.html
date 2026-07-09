@@ -2231,6 +2231,33 @@
     var direction = displacement < 0 || velocity < -.4 ? 1 : -1;
     return selectionPages[Math.max(0, Math.min(selectionPages.length - 1, current + direction))];
   }
+  function selectionChapterKeys(data, book) {
+    if (!data || typeof book !== 'string' || !Object.prototype.hasOwnProperty.call(data, book) ||
+        !data[book] || typeof data[book] !== 'object') return [];
+    return Object.keys(data[book]).filter(function (chapter) {
+      return /^\d{1,3}$/.test(chapter) && data[book][chapter] && typeof data[book][chapter] === 'object';
+    }).sort(function (a, b) { return parseInt(a, 10) - parseInt(b, 10); });
+  }
+  function sanitizedSelectionDataContext(data, book, chapter, fallbackBook, fallbackChapter) {
+    var books = data && typeof data === 'object' ? Object.keys(data) : [];
+    var selectedBook = selectionChapterKeys(data, book).length ? book :
+      (selectionChapterKeys(data, fallbackBook).length ? fallbackBook : null);
+    if (!selectedBook) {
+      for (var i = 0; i < books.length; i++) {
+        if (selectionChapterKeys(data, books[i]).length) {
+          selectedBook = books[i];
+          break;
+        }
+      }
+    }
+    if (!selectedBook) return null;
+    var chapters = selectionChapterKeys(data, selectedBook);
+    var requested = String(chapter == null ? '' : chapter);
+    var fallback = String(fallbackChapter == null ? '' : fallbackChapter);
+    var selectedChapter = chapters.indexOf(requested) !== -1 ? requested :
+      (selectedBook === fallbackBook && chapters.indexOf(fallback) !== -1 ? fallback : chapters[0]);
+    return { book: selectedBook, chapter: parseInt(selectedChapter, 10) };
+  }
   /* SELECTION SHEET PURE HELPERS END */
 
   /* APP SHEET PURE HELPERS START */
@@ -2267,14 +2294,29 @@
     if (!state || state.view !== 'verses' || typeof state.book !== 'string' || !state.book ||
         !/^\d+$/.test(String(state.chapter)) || !/^\d+$/.test(String(state.verse)) ||
         !state.sheet || !isValidAppSheetKind(state.sheet.kind)) return null;
-    if (state.sheet.page != null && (typeof state.sheet.page !== 'string' ||
+    if (state.sheet.kind !== 'selection' && state.sheet.page != null && (typeof state.sheet.page !== 'string' ||
         state.sheet.page.length > 128 || !/^[A-Za-z0-9._~-]*$/.test(state.sheet.page))) return null;
     var sheet = { kind: state.sheet.kind };
     if (state.sheet.kind === 'selection') {
       sheet.page = normalizedSelectionPage(state.sheet.page);
-      if (typeof state.sheet.book === 'string' && state.sheet.book.length > 0 && state.sheet.book.length <= 80 &&
-          !/[\u0000-\u001f\u007f]/.test(state.sheet.book)) sheet.book = state.sheet.book;
-      if (/^\d+$/.test(String(state.sheet.chapter))) sheet.chapter = String(state.sheet.chapter);
+      var data = typeof bibleData === 'undefined' ? null : bibleData;
+      var fallbackBook = typeof navBook === 'string' ? navBook : null;
+      var fallbackChapter = typeof navChapter === 'number' || typeof navChapter === 'string' ? navChapter : null;
+      var context = sanitizedSelectionDataContext(
+        data, state.sheet.book, state.sheet.chapter, fallbackBook, fallbackChapter
+      );
+      if (context) {
+        sheet.book = context.book;
+        sheet.chapter = String(context.chapter);
+      } else {
+        sheet.page = 'books';
+      }
+      if (data && typeof normalizeVerseReference === 'function') {
+        var reader = normalizeVerseReference(state.book, state.chapter, state.verse);
+        if (!reader && typeof currentSelectionReaderReference === 'function') reader = currentSelectionReaderReference();
+        if (!reader) return null;
+        state = { book: reader.book, chapter: String(reader.chapter), verse: String(reader.verse) };
+      }
     } else if (state.sheet.page) sheet.page = state.sheet.page;
     return { view: 'verses', book: state.book, chapter: String(state.chapter), verse: String(state.verse), sheet: sheet };
   }
@@ -2492,8 +2534,9 @@
     }
     var descriptor = resolveAppSheetDescriptor(kind);
     if (!descriptor) return false;
-    var historyState = options.historyState || sheetHistoryState(kind, page);
-    if (!options.fromPop && !historyState) return false;
+    var historyState = validatedAppSheetHistoryState(options.historyState || sheetHistoryState(kind, page));
+    if (!historyState || historyState.sheet.kind !== kind) return false;
+    if (kind === 'selection') page = historyState.sheet.page;
     if (!options.fromPop) normalizePopupHistoryBeforeSheetOpen();
     var wasOpen = appSheet.open;
     clearAppSheetMotion();
@@ -2529,6 +2572,9 @@
   function handleAppSheetPopState(state) {
     var validated = validatedAppSheetHistoryState(state);
     if (validated) {
+      if (validated.sheet.kind === 'selection') {
+        history.replaceState(validated, '', canonicalVerseUrl(validated.book, validated.chapter, validated.verse));
+      }
       appSheetState.pendingHistoryClose = false;
       openAppSheet(validated.sheet.kind, {
         page: validated.sheet.page || null,
@@ -3053,7 +3099,8 @@
   }
 
   function selectSelectionBook(bookName) {
-    var normalized = normalizeBookChapter(bookName, '1');
+    if (!selectionChapterKeys(bibleData, bookName).length) return false;
+    var normalized = sanitizedSelectionDataContext(bibleData, bookName, null, bookName, null);
     if (!normalized) return false;
     selectionContext.book = bookName;
     selectionContext.chapter = normalized.chapter;

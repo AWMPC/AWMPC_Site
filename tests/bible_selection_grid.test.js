@@ -194,6 +194,16 @@ test('selection observer reuses one instance, disconnects before retarget, and r
   h.api.disconnectSelectionGridLayout();
   assert.equal(h.api.target(), null);
   assert.equal(h.observers[0].disconnects, 3);
+
+  const disconnectedMutation = bible.replace(
+    'if (selectionGridResizeObserver) selectionGridResizeObserver.disconnect();',
+    'if (selectionGridResizeObserver) { /* mutation: retained observer */ }'
+  );
+  const mutant = makeLifecycleHarness(7, disconnectedMutation);
+  mutant.api.observeSelectionGrid(gridFixture(388, 8));
+  mutant.api.observeSelectionGrid(gridFixture(586, 8));
+  mutant.api.disconnectSelectionGridLayout();
+  assert.notEqual(mutant.observers[0].disconnects, 3, 'observer-disconnect mutation is observable');
 });
 
 test('writer uses live full scale and resolved gap to cross modulo-three tiers', () => {

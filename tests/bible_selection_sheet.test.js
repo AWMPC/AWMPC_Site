@@ -165,3 +165,548 @@ test('selection descriptor is real, invalid selection history is sanitized, and 
   assert.match(cleanup, /selectionGrids = null/);
   assert.match(cleanup, /selectionMediaQuery = null/);
 });
+
+function functionSource(name) {
+  return extract(new RegExp(`function ${name}\\([^)]*\\) \\{[\\s\\S]*?\\n  \\}`), `${name} missing`);
+}
+
+class FakeElement {
+  constructor(tagName = 'div') {
+    this.tagName = tagName.toUpperCase();
+    this.children = [];
+    this.attributes = new Map();
+    this.listeners = new Map();
+    this.className = '';
+    this.id = '';
+    this.style = { transform: '', setProperty() {} };
+    this.classList = {
+      values: new Set(),
+      add: (...names) => names.forEach(name => this.classList.values.add(name)),
+      remove: (...names) => names.forEach(name => this.classList.values.delete(name)),
+      toggle: (name, force) => {
+        if (force === false) this.classList.values.delete(name);
+        else this.classList.values.add(name);
+      }
+    };
+    this.isConnected = true;
+    this.clientWidth = 320;
+  }
+  appendChild(child) { this.children.push(child); child.parentNode = this; return child; }
+  setAttribute(name, value) { this.attributes.set(name, String(value)); }
+  getAttribute(name) { return this.attributes.get(name) ?? null; }
+  removeAttribute(name) { this.attributes.delete(name); }
+  addEventListener(type, listener) {
+    if (!this.listeners.has(type)) this.listeners.set(type, []);
+    this.listeners.get(type).push(listener);
+  }
+  removeEventListener(type, listener) {
+    const list = this.listeners.get(type) || [];
+    this.listeners.set(type, list.filter(item => item !== listener));
+  }
+  dispatch(type, extras = {}) {
+    const event = { currentTarget: this, target: this, preventDefault() {}, stopPropagation() {}, ...extras };
+    for (const listener of this.listeners.get(type) || []) listener(event);
+  }
+  focus() { this.focused = true; }
+}
+
+function validatorFor(data, navBook = 'John', navChapter = 3) {
+  const source = [
+    extract(/\/\* SELECTION SHEET PURE HELPERS START \*\/[\s\S]*?\/\* SELECTION SHEET PURE HELPERS END \*\//,
+      'selection helpers missing'),
+    extract(/var APP_SHEET_KINDS = [\s\S]*?function validatedAppSheetHistoryState\(state\) \{[\s\S]*?\n  \}/,
+      'sheet validator program missing')
+  ].join('\n');
+  return Function('data', 'fallbackBook', 'fallbackChapter', `
+    var bibleData = data;
+    var navBook = fallbackBook;
+    var navChapter = fallbackChapter;
+    ${source}
+    return validatedAppSheetHistoryState;
+  `)(data, navBook, navChapter);
+}
+
+test('hostile selection history is executable-data sanitized before it is returned', () => {
+  const validate = validatorFor({
+    Genesis: { 1: { 1: 'beginning' }, 2: { 1: 'second' } },
+    John: { 3: { 16: 'love' }, 4: { 1: 'well' } }
+  });
+  const base = { view: 'verses', book: 'John', chapter: '3', verse: '16' };
+
+  const hostile = validate({ ...base, sheet: { kind: 'selection', page: '../verses', book: '__proto__', chapter: '999' } });
+  assert.deepEqual(hostile.sheet, { kind: 'selection', page: 'books', book: 'John', chapter: '3' });
+
+  const invalidChapter = validate({ ...base, sheet: { kind: 'selection', page: 'verses', book: 'Genesis', chapter: '999' } });
+  assert.deepEqual(invalidChapter.sheet, { kind: 'selection', page: 'verses', book: 'Genesis', chapter: '1' });
+
+  const noNav = validatorFor({ Genesis: { 1: { 1: 'beginning' } } }, 'Missing', 88);
+  const first = noNav({ ...base, sheet: { kind: 'selection', page: 'verses', book: 'Missing', chapter: '0' } });
+  assert.deepEqual(first.sheet, { kind: 'selection', page: 'verses', book: 'Genesis', chapter: '1' });
+});
+
+function runOpenWithHistory(historyState, source = bible) {
+  const open = extractFrom(source, /function openAppSheet\(kind, options\) \{[\s\S]*?\n  \}/, 'openAppSheet missing');
+  const rendered = [];
+  const appSheetState = {
+    pendingHistoryClose: false, kind: null, edge: 'bottom', page: null,
+    historyState: null, closing: false, opener: null, historyOwned: false
+  };
+  const appSheet = new FakeElement('dialog');
+  appSheet.open = false;
+  appSheet.showModal = function () { this.open = true; };
+  const result = Function('supplied', 'appSheetState', 'appSheet', 'rendered', `
+    var document = { activeElement: null };
+    var history = { pushState: function () {}, replaceState: function () {} };
+    var window = { location: { href: '/bible' } };
+    var appSheetTitle = { textContent: '' };
+    function isValidAppSheetKind(value) { return value === 'selection'; }
+    function isValidAppSheetEdge(value) { return value === 'top' || value === 'bottom'; }
+    function isValidAppSheetSnap(value) { return value === 'compact' || value === 'fullscreen'; }
+    function registerAppSheetDescriptor() {}
+    function resolveAppSheetDescriptor() { return { title: 'Selection', render: function () {} }; }
+    function sheetHistoryState() { return null; }
+    function validatedAppSheetHistoryState(state) {
+      return {
+        view: state.view, book: state.book, chapter: state.chapter, verse: state.verse,
+        sheet: { kind: 'selection', page: 'books', book: 'John', chapter: '3' }
+      };
+    }
+    function normalizePopupHistoryBeforeSheetOpen() {}
+    function clearAppSheetMotion() {}
+    function syncAppSheetLauncherState() {}
+    function setSheetSnap() {}
+    function resetAppSheetState() {}
+    function renderAppSheetContent() { rendered.push(appSheetState.historyState); }
+    ${open}
+    return openAppSheet('selection', { fromPop: true, page: 'verses', historyState: supplied });
+  `)(historyState, appSheetState, appSheet, rendered);
+  return { result, appSheetState, rendered };
+}
+
+function runForwardHistory(state) {
+  const handler = functionSource('handleAppSheetPopState');
+  const validate = validatorFor({ Genesis: { 1: { 1: 'beginning' } }, John: { 3: { 16: 'love' } } });
+  const replacements = [];
+  const opens = [];
+  const result = Function('state', 'validate', 'replacements', 'opens', `
+    var appSheetState = { pendingHistoryClose: false, kind: null, historyOwned: false };
+    var appSheet = { open: false };
+    var window = { innerWidth: 500 };
+    var history = { replaceState: function (next) { replacements.push(next); } };
+    function validatedAppSheetHistoryState(value) { return validate(value); }
+    function openAppSheet(kind, options) { opens.push([kind, options]); return true; }
+    function selectionSheetEdge() { return 'top'; }
+    function canonicalVerseUrl() { return '/bible'; }
+    function normalizeVerseReference() { return null; }
+    function normalizedSelectionContext() { return null; }
+    function selectionHistoryState() { return null; }
+    function normalizedSelectionPage() { return 'books'; }
+    function openSelectionSheet() {}
+    function requestCloseAppSheet() {}
+    ${handler}
+    return handleAppSheetPopState(state);
+  `)(state, validate, replacements, opens);
+  return { result, replacements, opens };
+}
+
+test('Forward history and app sheet render receive sanitized state immediately', () => {
+  const hostile = {
+    view: 'verses', book: 'John', chapter: '3', verse: '16',
+    sheet: { kind: 'selection', page: '../verses', book: 'Missing', chapter: '999' }
+  };
+  const forward = runForwardHistory(hostile);
+  assert.equal(forward.result, true);
+  assert.deepEqual(forward.replacements[0].sheet, { kind: 'selection', page: 'books', book: 'John', chapter: '3' });
+  assert.deepEqual(forward.opens[0][1].historyState, forward.replacements[0]);
+
+  const opened = runOpenWithHistory(hostile);
+  assert.equal(opened.result, true);
+  assert.deepEqual(opened.appSheetState.historyState.sheet,
+    { kind: 'selection', page: 'books', book: 'John', chapter: '3' });
+  assert.deepEqual(opened.rendered[0], opened.appSheetState.historyState);
+
+  const openMutation = bible.replace(
+    'validatedAppSheetHistoryState(options.historyState || sheetHistoryState(kind, page))',
+    'options.historyState || sheetHistoryState(kind, page)'
+  );
+  assert.notDeepEqual(runOpenWithHistory(hostile, openMutation).appSheetState.historyState.sheet,
+    { kind: 'selection', page: 'books', book: 'John', chapter: '3' }, 'open-state sanitizer mutation is observable');
+});
+
+function runDotRenderer(source = bible) {
+  const createPanel = extractFrom(source, /function createSelectionPanel\(page, label\) \{[\s\S]*?\n  \}/,
+    'selection panel factory missing');
+  const render = extractFrom(source, /function renderSelectionSheet\(target, sheet\) \{[\s\S]*?\n  \}/,
+    'selection renderer missing');
+  const calls = [];
+  const document = { createElement: tag => new FakeElement(tag) };
+  const api = Function('document', 'calls', `
+    var selectionPages = ['books', 'chapters', 'verses'];
+    var selectionSheetPage = 'books';
+    var selectionContext = null;
+    var selectionGrids = null;
+    var selectionPager = null;
+    var selectionDots = null;
+    var selectionTrack = null;
+    var selectionPanels = null;
+    function normalizedSelectionPage(page) { return selectionPages.indexOf(page) < 0 ? 'books' : page; }
+    function currentSelectionReaderReference() { return { book: 'John', chapter: 3, verse: '16' }; }
+    function normalizedSelectionContext(book, chapter, fallback) { return { book: book || fallback.book, chapter: chapter || fallback.chapter }; }
+    function renderSelectionBooks() {}
+    function renderSelectionChapters() {}
+    function renderSelectionVerses() {}
+    function onSelectionPointerDown() {}
+    function onSelectionPointerMove() {}
+    function onSelectionPointerUp() {}
+    function onSelectionPointerCancel() {}
+    function onSelectionLostPointerCapture() {}
+    function finishSelectionPageSettle() {}
+    function onSelectionDotKeyDown() {}
+    function installSelectionEdgeListener() {}
+    function cleanupSelectionSheet() {}
+    function setSelectionPage(page, replace) { calls.push([page, replace]); selectionSheetPage = page; }
+    ${createPanel}
+    ${render}
+    var target = document.createElement('div');
+    renderSelectionSheet(target, { page: 'books', context: { book: 'John', chapter: 3 } });
+    return { dots: selectionDots, panels: selectionPanels, calls: calls };
+  `)(document, calls);
+  return api;
+}
+
+function extractFrom(source, pattern, message) {
+  const match = source.match(pattern);
+  assert.ok(match, message);
+  return match[0];
+}
+
+test('dot tabs and activation execute, and a role mutation is observable', () => {
+  const rendered = runDotRenderer();
+  assert.deepEqual(rendered.dots.map(dot => dot.getAttribute('role')), ['tab', 'tab', 'tab']);
+  assert.deepEqual(rendered.panels.map(panel => panel.getAttribute('role')), ['tabpanel', 'tabpanel', 'tabpanel']);
+  rendered.dots[2].dispatch('click');
+  assert.deepEqual(rendered.calls.at(-1), ['verses', true]);
+
+  const mutant = bible.replace("dot.setAttribute('role', 'tab');", "dot.setAttribute('role', 'presentation');");
+  assert.notDeepEqual(runDotRenderer(mutant).dots.map(dot => dot.getAttribute('role')), ['tab', 'tab', 'tab']);
+});
+
+function runDotSemantics(source = bible) {
+  const update = extractFrom(source, /function updateSelectionPageSemantics\(\) \{[\s\S]*?\n  \}/,
+    'selection semantics updater missing');
+  const dots = [new FakeElement('button'), new FakeElement('button'), new FakeElement('button')];
+  const panels = [new FakeElement('section'), new FakeElement('section'), new FakeElement('section')];
+  Function('selectionDots', 'selectionPanels', `
+    var selectionPages = ['books', 'chapters', 'verses'];
+    var selectionSheetPage = 'chapters';
+    ${update}
+    updateSelectionPageSemantics();
+  `)(dots, panels);
+  return { dots, panels };
+}
+
+test('dot active semantics execute and an aria-selected mutation is observable', () => {
+  const state = runDotSemantics();
+  assert.deepEqual(state.dots.map(dot => dot.getAttribute('aria-selected')), ['false', 'true', 'false']);
+  assert.deepEqual(state.dots.map(dot => dot.getAttribute('aria-current')), [null, 'page', null]);
+  assert.deepEqual(state.panels.map(panel => panel.getAttribute('aria-hidden')), ['true', 'false', 'true']);
+
+  const mutant = bible.replace(
+    "selectionDots[i].setAttribute('aria-selected', active ? 'true' : 'false');",
+    "selectionDots[i].setAttribute('aria-selected', active ? 'false' : 'true');"
+  );
+  assert.notDeepEqual(runDotSemantics(mutant).dots.map(dot => dot.getAttribute('aria-selected')),
+    ['false', 'true', 'false']);
+});
+
+test('navbar direct-page launchers execute without touching the reader', () => {
+  const handlers = extract(/fnBook\.addEventListener\('click',[\s\S]*?fnVerse\.addEventListener\('click',[\s\S]*?\n  \}\);/,
+    'navbar handler program missing');
+  const calls = [];
+  const fnBook = new FakeElement('button');
+  const fnChapter = new FakeElement('button');
+  const fnVerse = new FakeElement('button');
+  Function('fnBook', 'fnChapter', 'fnVerse', 'calls', `
+    var bibleData = {};
+    function openSelectionSheet(page, opener) { calls.push([page, opener]); }
+    ${handlers}
+  `)(fnBook, fnChapter, fnVerse, calls);
+  fnBook.dispatch('click');
+  fnChapter.dispatch('click');
+  fnVerse.dispatch('click');
+  assert.deepEqual(calls.map(call => call[0]), ['books', 'chapters', 'verses']);
+  assert.deepEqual(calls.map(call => call[1]), [fnBook, fnChapter, fnVerse]);
+});
+
+function runSelectionFlow(events) {
+  const source = [
+    functionSource('selectionChapterKeys'),
+    functionSource('sanitizedSelectionDataContext'),
+    functionSource('selectSelectionBook'),
+    functionSource('selectSelectionChapter'),
+    functionSource('commitSelectionVerse')
+  ].join('\n');
+  return Function('events', `
+    var bibleData = { Genesis: { 1: { 1: 'beginning' } }, John: { 3: { 16: 'love' }, 4: { 1: 'well' } } };
+    var selectionContext = { book: 'Genesis', chapter: 1 };
+    var appSheetState = { historyOwned: true };
+    var navFromPop = false;
+    var history = { replaceState: function (state, unused, url) { events.push(['replace', state, url]); } };
+    function normalizeBookChapter(book, chapter) {
+      if (!Object.prototype.hasOwnProperty.call(bibleData, book)) return null;
+      var key = String(chapter);
+      if (!Object.prototype.hasOwnProperty.call(bibleData[book], key)) return null;
+      return { book: book, chapter: parseInt(key, 10) };
+    }
+    function normalizeVerseReference(book, chapter, verse) {
+      var context = normalizeBookChapter(book, chapter);
+      return context && Object.prototype.hasOwnProperty.call(bibleData[book][String(context.chapter)], String(verse)) ?
+        { book: book, chapter: context.chapter, verse: String(verse) } : null;
+    }
+    function renderSelectionChapters() { events.push(['render-chapters']); }
+    function renderSelectionVerses() { events.push(['render-verses']); }
+    function setSelectionPage(page, replace) { events.push(['page', page, replace]); return true; }
+    function canonicalVerseUrl(book, chapter, verse) { return book + '/' + chapter + '/' + verse; }
+    function showSelectedVerseWithTransition(book, chapter, verse) { events.push(['reader', book, chapter, verse]); }
+    function finishCloseAppSheet() { events.push(['close']); }
+    ${source}
+    return {
+      book: selectSelectionBook,
+      chapter: selectSelectionChapter,
+      verse: commitSelectionVerse,
+      context: function () { return selectionContext; }
+    };
+  `)(events);
+}
+
+test('B to C to V executes validated context while only verse commit mutates reader/history', () => {
+  const events = [];
+  const api = runSelectionFlow(events);
+  assert.equal(api.book('__proto__'), false);
+  assert.equal(api.book('John'), true);
+  assert.deepEqual(api.context(), { book: 'John', chapter: 3 });
+  assert.equal(events.some(event => event[0] === 'reader' || event[0] === 'replace'), false);
+  assert.equal(api.chapter(999), false);
+  assert.equal(api.chapter(4), true);
+  assert.deepEqual(api.context(), { book: 'John', chapter: 4 });
+  assert.equal(events.some(event => event[0] === 'reader' || event[0] === 'replace'), false);
+  assert.equal(api.verse(999), false);
+  assert.equal(api.verse(1), true);
+  assert.deepEqual(events.filter(event => event[0] === 'replace').length, 1);
+  assert.deepEqual(events.filter(event => event[0] === 'reader'), [['reader', 'John', 4, '1']]);
+  assert.equal(events.at(-1)[0], 'close');
+});
+
+function runGestureProgram(source = bible) {
+  const helpers = extractFrom(source,
+    /\/\* SELECTION SHEET PURE HELPERS START \*\/[\s\S]*?\/\* SELECTION SHEET PURE HELPERS END \*\//,
+    'selection pure helpers missing');
+  const axis = extractFrom(source, /function appSheetAxis\(dx, dy\) \{[\s\S]*?\n  \}/, 'axis helper missing');
+  const names = [
+    'selectionPointerTargetAllowsSwipe', 'releaseSelectionPointer', 'onSelectionPointerDown',
+    'onSelectionPointerMove', 'settleSelectionPointer', 'onSelectionPointerUp',
+    'onSelectionPointerCancel', 'onSelectionLostPointerCapture'
+  ];
+  const functions = names.map(name => extractFrom(source,
+    new RegExp(`function ${name}\\([^)]*\\) \\{[\\s\\S]*?\\n  \\}`), `${name} missing`)).join('\n');
+  const pages = [];
+  const captures = [];
+  const pager = {
+    setPointerCapture(id) { captures.push(['set', id]); },
+    hasPointerCapture() { return true; },
+    releasePointerCapture(id) { captures.push(['release', id]); }
+  };
+  const api = Function('window', 'selectionPager', 'pages', `
+    ${helpers}
+    ${axis}
+    var selectionSheetPage = 'chapters';
+    var selectionPointer = null;
+    var SELECTION_POINTER_RECENCY_MS = 80;
+    function setSelectionPage(page) { selectionSheetPage = page; pages.push(page); }
+    ${functions}
+    return {
+      down: onSelectionPointerDown, move: onSelectionPointerMove, up: onSelectionPointerUp,
+      cancel: onSelectionPointerCancel, lost: onSelectionLostPointerCapture,
+      page: function () { return selectionSheetPage; }, pointer: function () { return selectionPointer; }
+    };
+  `)({ getSelection: () => ({ isCollapsed: true }) }, pager, pages);
+  return { api, pages, captures };
+}
+
+function pointerEvent(id, x, y, time, target = { closest: () => null }) {
+  return {
+    pointerId: id, clientX: x, clientY: y, timeStamp: time, target,
+    isPrimary: true, button: 0, prevented: false, stopped: false,
+    preventDefault() { this.prevented = true; },
+    stopPropagation() { this.stopped = true; }
+  };
+}
+
+test('horizontal gestures execute one page both ways while vertical, cancel, and lost capture do not page', () => {
+  const h = runGestureProgram();
+  h.api.down(pointerEvent(1, 100, 20, 1));
+  h.api.move(pointerEvent(1, 0, 22, 20));
+  h.api.up(pointerEvent(1, 0, 22, 22));
+  assert.equal(h.api.page(), 'verses');
+  assert.deepEqual(h.pages, ['verses']);
+
+  h.api.down(pointerEvent(2, 0, 20, 30));
+  h.api.move(pointerEvent(2, 100, 21, 45));
+  h.api.up(pointerEvent(2, 100, 21, 47));
+  assert.equal(h.api.page(), 'chapters');
+  assert.deepEqual(h.pages, ['verses', 'chapters']);
+
+  h.api.down(pointerEvent(3, 0, 0, 50));
+  h.api.move(pointerEvent(3, 2, 90, 60));
+  assert.equal(h.api.pointer(), null, 'vertical ownership transfers to the sheet controller');
+  assert.equal(h.api.page(), 'chapters');
+
+  h.api.down(pointerEvent(4, 100, 0, 70));
+  h.api.move(pointerEvent(4, 0, 0, 80));
+  h.api.cancel(pointerEvent(4, 0, 0, 81));
+  assert.equal(h.api.page(), 'chapters');
+  assert.equal(h.api.pointer(), null);
+
+  h.api.down(pointerEvent(5, 100, 0, 90));
+  h.api.move(pointerEvent(5, 0, 0, 100));
+  h.api.lost(pointerEvent(5, 0, 0, 101));
+  assert.equal(h.api.page(), 'chapters');
+  assert.equal(h.api.pointer(), null);
+
+  const directionMutant = bible.replace('current + direction', 'current - direction');
+  const mutated = runGestureProgram(directionMutant);
+  mutated.api.down(pointerEvent(6, 100, 0, 1));
+  mutated.api.move(pointerEvent(6, 0, 0, 10));
+  mutated.api.up(pointerEvent(6, 0, 0, 11));
+  assert.notEqual(mutated.api.page(), 'verses', 'gesture direction mutation is observable');
+
+  const cancelMutant = bible.replace(
+    'function onSelectionPointerCancel(e) { settleSelectionPointer(e, true); }',
+    'function onSelectionPointerCancel(e) { settleSelectionPointer(e, false); }'
+  );
+  const cancelled = runGestureProgram(cancelMutant);
+  cancelled.api.down(pointerEvent(7, 100, 0, 1));
+  cancelled.api.move(pointerEvent(7, 0, 0, 10));
+  cancelled.api.cancel(pointerEvent(7, 0, 0, 11));
+  assert.notEqual(cancelled.api.page(), 'chapters', 'cancel-listener mutation is observable');
+});
+
+function runResponsiveCycle() {
+  const source = [
+    functionSource('applySelectionSheetEdge'),
+    functionSource('installSelectionEdgeListener'),
+    functionSource('cleanupSelectionSheet')
+  ].join('\n');
+  const media = {
+    matches: true, added: [], removed: [],
+    addEventListener(type, fn) { this.added.push([type, fn]); },
+    removeEventListener(type, fn) { this.removed.push([type, fn]); }
+  };
+  const appSheet = new FakeElement('dialog');
+  const appSheetBody = new FakeElement('div');
+  const api = Function('window', 'appSheet', 'appSheetBody', `
+    var appSheetState = { kind: 'selection', edge: 'bottom' };
+    var selectionMediaQuery = null;
+    var selectionMediaListener = null;
+    var selectionPager = null;
+    var selectionTrack = null;
+    var selectionPanels = null;
+    var selectionDots = null;
+    var selectionGrids = null;
+    var selectionContext = null;
+    var selectionPointer = null;
+    var selectionRetargetFrame = null;
+    var selectionRetargetTimer = null;
+    function disconnectSelectionGridLayout() {}
+    function releaseSelectionPointer() { selectionPointer = null; }
+    function cancelAnimationFrame() {}
+    function clearTimeout() {}
+    ${source}
+    return { install: installSelectionEdgeListener, cleanup: cleanupSelectionSheet, state: appSheetState };
+  `)({ matchMedia: () => media, clearTimeout() {} }, appSheet, appSheetBody);
+  api.install();
+  return { api, media, appSheet };
+}
+
+test('responsive edge listener executes live changes and leaves no listener across repeated cycles', () => {
+  for (let i = 0; i < 3; i += 1) {
+    const h = runResponsiveCycle();
+    assert.equal(h.api.state.edge, 'top');
+    assert.equal(h.media.added.length, 1);
+    h.media.matches = false;
+    h.media.added[0][1]();
+    assert.equal(h.api.state.edge, 'bottom');
+    h.api.cleanup();
+    assert.equal(h.media.removed.length, 1);
+    assert.equal(h.media.removed[0][1], h.media.added[0][1]);
+  }
+});
+
+test('reduced motion page switching is immediate and retargets only after disconnect', () => {
+  const setter = functionSource('setSelectionPage');
+  const order = [];
+  const track = new FakeElement('div');
+  const api = Function('track', 'order', `
+    var selectionPages = ['books', 'chapters', 'verses'];
+    var selectionSheetPage = 'books';
+    var selectionTrack = track;
+    var selectionRetargetFrame = null;
+    var selectionRetargetTimer = null;
+    var selectionContext = { book: 'John', chapter: 3 };
+    var appSheet = { open: false };
+    var appSheetState = { page: null, kind: 'selection', historyOwned: false };
+    var history = { replaceState: function () {} };
+    var window = { clearTimeout: function () {} };
+    function isValidSelectionPage(page) { return selectionPages.indexOf(page) >= 0; }
+    function disconnectSelectionGridLayout() { order.push('disconnect'); }
+    function cancelAnimationFrame() {}
+    function shouldReduceVerseMotion() { return true; }
+    function updateSelectionPageSemantics() { order.push('semantics'); }
+    function scheduleSelectionGridRetarget() { order.push('retarget'); }
+    function currentSelectionReaderReference() { return null; }
+    function selectionHistoryState() { return null; }
+    ${setter}
+    return { set: setSelectionPage, page: function () { return selectionSheetPage; } };
+  `)(track, order);
+  assert.equal(api.set('verses', false), true);
+  assert.equal(api.page(), 'verses');
+  assert.equal(track.style.transform, 'translateX(-200%)');
+  assert.equal(track.classList.values.has('no-motion'), true);
+  assert.deepEqual(order, ['disconnect', 'semantics', 'retarget']);
+});
+
+function runActiveGridRetarget(source = bible) {
+  const active = functionSource('activeSelectionGridFor');
+  const retarget = extractFrom(source, /function retargetActiveSelectionGrid\(\) \{[\s\S]*?\n  \}/,
+    'active grid retarget missing');
+  const chapters = new FakeElement('div');
+  const verses = new FakeElement('div');
+  chapters.clientWidth = 0;
+  verses.clientWidth = 320;
+  const observed = [];
+  const api = Function('chapters', 'verses', 'observed', `
+    var selectionGrids = { chapters: chapters, verses: verses };
+    var selectionTrack = { isConnected: true };
+    var selectionSheetPage = 'chapters';
+    var selectionRetargetFrame = 1;
+    function observeSelectionGrid(grid) { observed.push(grid); }
+    ${active}
+    ${retarget}
+    return { run: retargetActiveSelectionGrid, page: function (value) { selectionSheetPage = value; } };
+  `)(chapters, verses, observed);
+  return { api, chapters, verses, observed };
+}
+
+test('retarget executes only for the active visible grid and rejects a zero-width mutation', () => {
+  const h = runActiveGridRetarget();
+  h.api.run();
+  assert.deepEqual(h.observed, [], 'zero-width active grid is never observed');
+  h.api.page('verses');
+  h.api.run();
+  assert.deepEqual(h.observed, [h.verses]);
+
+  const mutant = bible.replace('grid.clientWidth <= 0', 'grid.clientWidth < 0');
+  const changed = runActiveGridRetarget(mutant);
+  changed.api.run();
+  assert.notDeepEqual(changed.observed, [], 'zero-width observer guard mutation is observable');
+});
