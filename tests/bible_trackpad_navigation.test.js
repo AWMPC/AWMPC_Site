@@ -127,6 +127,10 @@ test('selector wheel accumulates one claimed page per idle-delimited burst', () 
   api.wheel(momentum);
   assert.equal(momentum.prevented, true, 'claimed momentum remains owned');
   assert.equal(pages.length, 1, 'momentum cannot page twice');
+  const oppositeMomentum = wheelEvent(-120);
+  api.wheel(oppositeMomentum);
+  assert.equal(oppositeMomentum.prevented, true, 'opposite momentum remains owned after direction locks');
+  assert.equal(pages.length, 1, 'opposite momentum cannot flip direction or page twice');
   assert.equal(timers.at(-1).ms, 160);
 
   api.expire();
@@ -137,16 +141,19 @@ test('selector wheel accumulates one claimed page per idle-delimited burst', () 
   assert.deepEqual(pages.at(-1), ['chapters', true, 'pointer']);
 });
 
-test('wheel direction locks, normalization is integrated, and vertical gestures stay native', () => {
+test('wheel direction locks only after a claim, normalization is integrated, and vertical gestures stay native', () => {
   const { api, pages } = wheelHarness();
   api.wheel(wheelEvent(24));
-  api.wheel(wheelEvent(-120));
-  assert.equal(pages.length, 0, 'reversal cannot claim the opposite page');
-  const line = wheelEvent(2, 0, { deltaMode: 1 });
-  api.wheel(line);
-  assert.equal(line.prevented, true, 'line-mode motion joins the locked forward burst');
-  assert.deepEqual(pages, [['verses', true, 'pointer']]);
+  const reversal = wheelEvent(-120);
+  api.wheel(reversal);
+  assert.equal(reversal.prevented, true, 'pre-claim deltas accumulate algebraically to a backward claim');
+  assert.deepEqual(pages, [['books', true, 'pointer']]);
 
+  api.reset();
+  const line = wheelEvent(3, 0, { deltaMode: 1 });
+  api.wheel(line);
+  assert.equal(line.prevented, true, 'line-mode motion reaches the shared activation threshold');
+  assert.deepEqual(pages.at(-1), ['chapters', true, 'pointer']);
   api.reset();
   for (const event of [wheelEvent(50, 41), wheelEvent(120, 120), wheelEvent(Infinity),
     wheelEvent(.1, 0, { deltaMode: 2 })]) {

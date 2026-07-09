@@ -2615,11 +2615,11 @@
 
     if (bibleWheelBurst.consumed) return bibleWheelBurst.direction;
     var eventDirection = dx < 0 ? -1 : dx > 0 ? 1 : 0;
-    if (!bibleWheelBurst.direction && eventDirection) bibleWheelBurst.direction = eventDirection;
-    if (eventDirection && eventDirection !== bibleWheelBurst.direction) return 0;
+    if (bibleWheelBurst.direction && eventDirection && eventDirection !== bibleWheelBurst.direction) return 0;
     bibleWheelBurst.x += dx;
     bibleWheelBurst.y += dy;
     var direction = bibleWheelClaimDirection(bibleWheelBurst.x, bibleWheelBurst.y);
+    if (!bibleWheelBurst.direction && direction) bibleWheelBurst.direction = direction;
     return direction === bibleWheelBurst.direction ? direction : 0;
   }
 
