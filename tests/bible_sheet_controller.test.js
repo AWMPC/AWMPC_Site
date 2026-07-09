@@ -90,7 +90,8 @@ assert.equal(release('top', 'determined', -80, -0.1), 'closed', 'top outward clo
 assert.equal(release('bottom', 'fullscreen', 80, 0.1), 'determined', 'fullscreen moves outward only');
 assert.equal(release('top', 'fullscreen', -80, -0.1), 'determined');
 assert.equal(release('bottom', 'fullscreen', -1000, -3), 'fullscreen', 'fullscreen has no inward state');
-assert.equal(release('bottom', 'fullscreen', 1000, 3), 'determined', 'large movement advances one state only');
+assert.equal(release('bottom', 'fullscreen', 500, 0), 'determined',
+  'above-threshold displacement alone advances one state and kills equality-only comparison mutants');
 assert.equal(release('bottom', 'determined', 79.999, 0), 'determined', 'below threshold stays put');
 assert.equal(release('bottom', 'determined', 10, .4, 224, 800, 80), 'closed',
   'same-direction velocity qualifies through the exact recency window');
