@@ -352,4 +352,27 @@ function fakeElement(tag = 'div') {
   cleanup();
 }
 
+{
+  const closeCalls = [];
+  let legacyFinishCalls = 0;
+  const context = {
+    selectionContext: { book: 'John', chapter: 3 },
+    normalizeVerseReference(book, chapter, verse) { return { book, chapter, verse }; },
+    readerRouteScope: 0,
+    history: { replaceState() {} },
+    canonicalVerseUrl() { return '/bible'; },
+    appSheetState: { historyOwned: true },
+    navFromPop: false,
+    showSelectedVerseWithTransition() {},
+    requestCloseAppSheet(...args) { closeCalls.push(args); return true; },
+    finishCloseAppSheet() { legacyFinishCalls += 1; }
+  };
+  vm.runInNewContext(`${functionSource('commitSelectionVerse')}
+this.commit = commitSelectionVerse;`, context);
+  assert.equal(context.commit(16), true);
+  assert.deepEqual(closeCalls, [['selection-complete', 'reader']],
+    'selection completion freezes reader focus in the generation-safe close lifecycle');
+  assert.equal(legacyFinishCalls, 0, 'selection completion cannot bypass close policy and generation checks');
+}
+
 console.log('Bible sheet content behavior tests pass');

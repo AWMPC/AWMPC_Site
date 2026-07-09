@@ -380,6 +380,7 @@ function fakeElement() {
     textContent: '',
     listenerCount: 0,
     focusCount: 0,
+    focusOptions: [],
     releaseCount: 0,
     classList: {
       add(...names) { names.forEach(name => classes.add(name)); },
@@ -415,7 +416,7 @@ function fakeElement() {
     losePointerCapture(id) { captures.delete(id); },
     showModal() { this.open = true; },
     close() { this.open = false; },
-    focus() { this.focusCount += 1; }
+    focus(options) { this.focusCount += 1; this.focusOptions.push(options); }
   };
 }
 
@@ -459,6 +460,9 @@ let staticHistoryRenderCount = 0;
 let legacySelectionOpenCalls = 0;
 let bodyPaddingStart = 0;
 let bodyPaddingEnd = 0;
+let selectionCleanupCount = 0;
+let trackSelectionResources = false;
+const selectionMediaListeners = new Set();
 const resizeObserverInstances = [];
 const windowListeners = Object.create(null);
 const viewportListeners = Object.create(null);
@@ -504,7 +508,24 @@ const controllerContext = {
   renderSettingsSheet() {
     return () => { settingsCleanupExpansion.push(fabMain.getAttribute('aria-expanded')); };
   },
-  renderSelectionSheet(target) { target.textContent = 'selection'; },
+  renderSelectionSheet(target) {
+    target.textContent = 'selection';
+    if (!trackSelectionResources) return;
+    const mediaListener = () => {};
+    selectionMediaListeners.add(mediaListener);
+    const frame = nextFrame++;
+    frames.set(frame, () => {});
+    const timer = nextTimer++;
+    timers.set(timer, () => {});
+    return () => {
+      selectionCleanupCount += 1;
+      selectionMediaListeners.delete(mediaListener);
+      cancelledFrames.push(frame);
+      frames.delete(frame);
+      cancelledTimers.push(timer);
+      timers.delete(timer);
+    };
+  },
   normalizedSelectionPage(page) { return ['books', 'chapters', 'verses'].includes(page) ? page : 'books'; },
   sanitizedSelectionDataContext() { return { book: 'John', chapter: 3 }; },
   bibleData: { John: { 3: { 16: 'verse' } } },
@@ -772,9 +793,15 @@ assert.equal(api.state.phase, 'idle');
 assert.equal(dialog.classList.contains('is-dragging'), false);
 assert.equal(handle.hasPointerCapture(7), false);
 handle.dispatch('pointerdown', {
-  isPrimary: true, button: 0, pointerId: 77, clientX: 10, clientY: 10, timeStamp: 2
+  isPrimary: false, button: 0, pointerId: 77, clientX: 10, clientY: 10, timeStamp: 2
 });
-assert.equal(api.state.candidate.id, 7, 'a second pointer cannot replace the active candidate');
+assert.equal(api.state.candidate, null, 'a second pointer cancels the active candidate without replacing it');
+assert.equal(api.state.pointer, null);
+assert.equal(api.state.snap, 'determined', 'candidate cancellation returns to the frozen starting snap');
+assert.equal(handle.hasPointerCapture(77), false);
+handle.dispatch('pointerdown', {
+  isPrimary: true, button: 0, pointerId: 7, clientX: 10, clientY: 10, timeStamp: 3
+});
 handle.dispatch('pointermove', {
   pointerId: 7, clientX: 11, clientY: 17, timeStamp: 7, preventDefault() { throw new Error('pre-lock move claimed'); }
 });
@@ -801,10 +828,49 @@ handle.dispatch('pointermove', {
   pointerId: 7, clientX: 11, clientY: 130, timeStamp: 121, preventDefault() {}
 });
 const cancelledDragFrame = api.state.frame;
+const releasesBeforeConcurrentPointer = handle.releaseCount;
+handle.dispatch('pointerdown', {
+  isPrimary: false, button: 0, pointerId: 78, clientX: 12, clientY: 130, timeStamp: 122
+});
+assert.equal(api.state.pointer, null, 'a second pointer cancels the claimed gesture');
+assert.equal(api.state.gesture, null);
+assert.equal(api.state.frame, null);
+assert.ok(cancelledFrames.includes(cancelledDragFrame));
+assert.equal(handle.releaseCount, releasesBeforeConcurrentPointer + 1);
+assert.equal(handle.hasPointerCapture(78), false, 'the second pointer never becomes a gesture');
+assert.equal(dialog.classList.contains('is-dragging'), false);
+assert.equal(dialog.style.getPropertyValue('--sheet-live-height'), '');
+assert.equal(dialog.style.getPropertyValue('--sheet-drag-offset'), '');
+assert.equal(dialog.style.getPropertyValue('--sheet-backdrop-opacity'), '');
+assert.equal(api.state.snap, 'determined', 'claimed cancellation returns to the frozen starting snap');
+handle.dispatch('pointerdown', {
+  isPrimary: true, button: 0, pointerId: 7, clientX: 10, clientY: 10, timeStamp: 123
+});
+handle.dispatch('pointermove', {
+  pointerId: 7, clientX: 11, clientY: 130, timeStamp: 130, preventDefault() {}
+});
+const explicitCancelFrame = api.state.frame;
 handle.dispatch('pointercancel', { pointerId: 7, clientY: 30 });
 assert.equal(api.state.pointer, null, 'pointercancel resets pointer state');
-assert.ok(cancelledFrames.includes(cancelledDragFrame), 'pointercancel cancels pending RAF');
-assert.equal(handle.releaseCount, 2, 'pointercancel explicitly releases held pointer capture');
+assert.ok(cancelledFrames.includes(explicitCancelFrame), 'pointercancel cancels pending RAF');
+assert.equal(handle.releaseCount, releasesBeforeConcurrentPointer + 2,
+  'pointercancel explicitly releases held pointer capture');
+
+const validHeightBeforeInvalidClaim = api.state.determinedHeight;
+api.state.determinedHeight = 0;
+handle.dispatch('pointerdown', {
+  isPrimary: true, button: 0, pointerId: 79, clientX: 10, clientY: 10, timeStamp: 140
+});
+handle.dispatch('pointermove', {
+  pointerId: 79, clientX: 10, clientY: 30, timeStamp: 150, preventDefault() {}
+});
+assert.equal(api.state.candidate, null, 'invalid frozen handle geometry fully cancels the candidate');
+assert.equal(api.state.pointer, null);
+assert.equal(api.state.gesture, null);
+assert.equal(dialog.classList.contains('is-dragging'), false);
+assert.equal(dialog.style.getPropertyValue('--sheet-live-height'), '');
+assert.equal(dialog.style.getPropertyValue('--sheet-drag-offset'), '');
+api.state.determinedHeight = validHeightBeforeInvalidClaim;
 
 handle.dispatch('pointerdown', {
   isPrimary: true, button: 0, pointerId: 8, clientX: 10, clientY: 10, timeStamp: 1
@@ -851,6 +917,7 @@ assert.equal(api.close('selection-complete', 'reader'), true);
 assert.equal(api.close('late-policy-change', 'none'), true, 'repeat close is idempotent');
 api.pop(currentReturnPopState());
 assert.equal(viewInner.focusCount, readerFocusBefore + 1, 'completion returns focus to the reader');
+assert.equal(viewInner.focusOptions.at(-1).preventScroll, true, 'reader focus never scrolls the underlying chapter');
 assert.equal(viewInner.getAttribute('tabindex'), null, 'temporary reader tabindex is removed after focus');
 api.pop(currentReturnPopState());
 assert.equal(viewInner.focusCount, readerFocusBefore + 1, 'late close callbacks never focus twice');
@@ -1271,6 +1338,37 @@ for (let cycle = 0; cycle < 3; cycle += 1) {
   assert.equal(dialog.listenerCount + handle.listenerCount + body.listenerCount, installedListenerCount,
     `cycle ${cycle} does not retain listeners`);
   assert.equal(resizeObserverInstances.at(-1).disconnected, true, `cycle ${cycle} disconnects observer`);
+}
+
+const selectionFrameBaseline = frames.size;
+const selectionTimerBaseline = timers.size;
+trackSelectionResources = true;
+for (let cycle = 0; cycle < 3; cycle += 1) {
+  const cleanupBaseline = selectionCleanupCount;
+  assert.equal(api.open('selection', { opener, page: 'books' }), true);
+  assert.equal(selectionMediaListeners.size, 1, `selection cycle ${cycle} installs one media listener`);
+  assert.equal(api.open('selection', { opener: replacementOpener, page: 'chapters' }), true);
+  assert.equal(selectionCleanupCount, cleanupBaseline + 1, `selection cycle ${cycle} cleans replaced owner`);
+  assert.equal(selectionMediaListeners.size, 1, `selection cycle ${cycle} replaces rather than retains media listener`);
+  api.state.determinedHeight = 256;
+  handle.dispatch('pointerdown', {
+    isPrimary: true, button: 0, pointerId: 300 + cycle, clientX: 0, clientY: 0, timeStamp: 1
+  });
+  handle.dispatch('pointermove', {
+    pointerId: 300 + cycle, clientX: 0, clientY: 20, timeStamp: 20, preventDefault() {}
+  });
+  assert.equal(handle.hasPointerCapture(300 + cycle), true);
+  handle.dispatch('pointercancel', { pointerId: 300 + cycle, clientY: 20, timeStamp: 21 });
+  assert.equal(api.close('selection-lifecycle'), true);
+  api.pop(currentReturnPopState());
+  assert.equal(selectionCleanupCount, cleanupBaseline + 2, `selection cycle ${cycle} invokes both cleanup callbacks`);
+  assert.equal(selectionMediaListeners.size, 0, `selection cycle ${cycle} releases media listener`);
+  assert.equal(frames.size, selectionFrameBaseline, `selection cycle ${cycle} returns RAF registry to baseline`);
+  assert.equal(timers.size, selectionTimerBaseline, `selection cycle ${cycle} returns timer registry to baseline`);
+  assert.equal(resizeObserverInstances.at(-1).disconnected, true);
+  assert.equal(handle.hasPointerCapture(300 + cycle), false);
+  assert.equal(measure.textContent, '', `selection cycle ${cycle} releases retained nodes`);
+  assert.equal(dialog.listenerCount + handle.listenerCount + body.listenerCount, installedListenerCount);
 }
 
 console.log('bible sheet controller tests passed');

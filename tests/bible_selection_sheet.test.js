@@ -497,7 +497,7 @@ function runSelectionFlow(events) {
     function setSelectionPage(page, replace) { events.push(['page', page, replace]); return true; }
     function canonicalVerseUrl(book, chapter, verse) { return book + '/' + chapter + '/' + verse; }
     function showSelectedVerseWithTransition(book, chapter, verse) { events.push(['reader', book, chapter, verse]); }
-    function finishCloseAppSheet() { events.push(['close']); }
+    function requestCloseAppSheet(source, focusPolicy) { events.push(['close', source, focusPolicy]); return true; }
     ${source}
     return {
       book: selectSelectionBook,
@@ -523,7 +523,7 @@ test('B to C to V executes validated context while only verse commit mutates rea
   assert.equal(api.verse(1), true);
   assert.deepEqual(events.filter(event => event[0] === 'replace').length, 1);
   assert.deepEqual(events.filter(event => event[0] === 'reader'), [['reader', 'John', 4, '1']]);
-  assert.equal(events.at(-1)[0], 'close');
+  assert.deepEqual(events.at(-1), ['close', 'selection-complete', 'reader']);
 });
 
 function runGestureProgram(source = bible, selectionCollapsed = true) {

@@ -2954,10 +2954,16 @@
   }
 
   function beginAppSheetGesture(e) {
-    if (!appSheet.open || appSheetState.phase !== 'idle' || !e.isPrimary || e.button !== 0 ||
+    if (!appSheet.open || e.button !== 0 ||
         !isFiniteAppSheetNumber(e.pointerId) || !isFiniteAppSheetNumber(e.clientX) ||
         !isFiniteAppSheetNumber(e.clientY)) return;
-    if (appSheetState.candidate || appSheetState.pointer) return;
+    var active = appSheetState.pointer || appSheetState.candidate;
+    if (active) {
+      if (active.id !== e.pointerId) cancelAppSheetGesture({ pointerId: active.id });
+      return;
+    }
+    if (!e.isPrimary) return;
+    if (appSheetState.phase !== 'idle') return;
     var fromHandle = e.currentTarget === appSheetHandle;
     if (!fromHandle && !appSheetBodyTargetAllowsDrag(e.target)) return;
     appSheetState.candidate = {
@@ -2980,9 +2986,14 @@
         candidate.clientHeight, candidate.scrollHeight) :
       appSheetBodyBoundaryAllowsDrag(appSheetState.edge, direction, candidate.scrollTop,
         candidate.clientHeight, candidate.scrollHeight);
-    if (!boundaryAllows || !isCurrentAppSheetGeneration(candidate.generation) ||
-        !isFiniteAppSheetNumber(candidate.determinedHeight) || candidate.determinedHeight <= 0 ||
-        !isFiniteAppSheetNumber(candidate.viewportHeight) || candidate.viewportHeight <= candidate.determinedHeight) {
+    var invalidGeometry = !isCurrentAppSheetGeneration(candidate.generation) ||
+      !isFiniteAppSheetNumber(candidate.determinedHeight) || candidate.determinedHeight <= 0 ||
+      !isFiniteAppSheetNumber(candidate.viewportHeight) || candidate.viewportHeight <= candidate.determinedHeight;
+    if (invalidGeometry) {
+      cancelAppSheetGesture({ pointerId: candidate.id });
+      return false;
+    }
+    if (!boundaryAllows) {
       if (!candidate.fromHandle) appSheetState.candidate = null;
       return false;
     }
@@ -3533,7 +3544,7 @@
     } finally {
       navFromPop = false;
     }
-    finishCloseAppSheet();
+    requestCloseAppSheet('selection-complete', 'reader');
     return true;
   }
 
