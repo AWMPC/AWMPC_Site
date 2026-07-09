@@ -45,29 +45,29 @@ test('horizontal swipe changes at most one page and ignores vertical or short mo
   assert.equal(selectionSwipePage('chapters', -10, -0.5, 'x'), 'verses');
 });
 
-test('selection renderer owns one persistent three-panel track and three real accessible dots', () => {
+test('selection renderer owns one persistent three-panel track and decorative indicator', () => {
   const renderer = extract(
     /function renderSelectionSheet\(target, sheet\) \{[\s\S]*?\n  \}/,
     'selection renderer missing'
   );
   const panelFactory = extract(/function createSelectionPanel\(page, label\) \{[\s\S]*?\n  \}/, 'selection panel factory missing');
-  const semantics = extract(/function updateSelectionPageSemantics\(\) \{[\s\S]*?\n  \}/, 'selection semantics updater missing');
+  const semantics = extract(/function updateSelectionPageSemantics\([^)]*\) \{[\s\S]*?\n  \}/, 'selection semantics updater missing');
   assert.match(renderer, /selection-track/);
-  assert.match(renderer, /role', 'tablist'/);
-  assert.match(panelFactory, /role', 'tabpanel'/);
+  assert.match(renderer, /selection-indicator/);
+  assert.match(panelFactory, /role', 'region'/);
   assert.match(renderer, /createSelectionPanel\('books', 'Books'\)/);
   assert.match(renderer, /createSelectionPanel\('chapters', 'Chapters'\)/);
   assert.match(renderer, /createSelectionPanel\('verses', 'Verses'\)/);
   assert.match(renderer, /selectionPages\.length/);
-  assert.match(renderer, /document\.createElement\('button'\)/);
-  assert.match(renderer, /aria-selected/);
-  assert.match(semantics, /aria-current/);
+  assert.match(renderer, /document\.createElement\('span'\)/);
+  assert.match(renderer, /aria-hidden', 'true'/);
+  assert.match(semantics, /classList\.toggle\('is-active'/);
   assert.doesNotMatch(renderer, /innerHTML/);
 
   const css = extract(/\.selection-pager \{[\s\S]*?\.app-sheet\.edge-top \.selection-viewport \{[^}]*\}/, 'selection pager CSS missing');
   assert.match(css, /\.selection-track\s*\{[\s\S]*?display:\s*flex/);
   assert.match(css, /\.selection-panel\s*\{[\s\S]*?flex:\s*0 0 100%/);
-  assert.match(css, /\.app-sheet\.edge-top[\s\S]*?\.selection-dots[\s\S]*?order:\s*2/);
+  assert.match(css, /\.selection-indicator[\s\S]*?bottom:/);
 });
 
 function pixelDeclaration(rule, property) {
@@ -76,24 +76,15 @@ function pixelDeclaration(rule, property) {
   return Number(match[1]);
 }
 
-test('selection dots keep a 44px native target around an 8px visual marker', () => {
-  const target = extract(/\.selection-dot \{[^}]*\}/, 'selection dot target rule missing');
-  const marker = extract(/\.selection-dot::before \{[^}]*\}/, 'selection dot visual marker rule missing');
-  assert.ok(pixelDeclaration(target, 'width') >= 44, 'dot button width meets the native target floor');
-  assert.ok(pixelDeclaration(target, 'min-height') >= 44, 'dot button height meets the native target floor');
-  assert.equal(pixelDeclaration(marker, 'width'), 8, 'visual dot width remains 8px');
-  assert.equal(pixelDeclaration(marker, 'height'), 8, 'visual dot height remains 8px');
-  assert.match(bible, /\.selection-dot:focus-visible\s*\{[^}]*outline:/, 'dot target has a visible keyboard focus ring');
-  assert.match(bible, /\.selection-dot\[aria-selected="true"\]::before/, 'selected semantics continue to style the marker');
-
-  const targetMutant = bible.replace(target,
-    target.replace('width: 44px; min-height: 44px;', 'width: 28px; min-height: 28px;'));
-  const mutatedTarget = extractFrom(targetMutant, /\.selection-dot \{[^}]*\}/, 'mutated dot target rule missing');
-  assert.ok(pixelDeclaration(mutatedTarget, 'width') < 44, 'undersized target mutation is observable');
-
-  const markerMutant = bible.replace("content: ''; display: block; width: 8px; height: 8px;", "content: ''; display: block; width: 12px; height: 12px;");
-  const mutatedMarker = extractFrom(markerMutant, /\.selection-dot::before \{[^}]*\}/, 'mutated dot marker rule missing');
-  assert.notEqual(pixelDeclaration(mutatedMarker, 'width'), 8, 'visual marker mutation is observable');
+test('selection indicator is a compact noninteractive 36 by 28 tonal float', () => {
+  const target = extract(/\.selection-indicator \{[^}]*\}/, 'selection indicator rule missing');
+  const marker = extract(/\.selection-indicator-dot \{[^}]*\}/, 'selection indicator marker rule missing');
+  assert.equal(pixelDeclaration(target, 'width'), 36);
+  assert.equal(pixelDeclaration(target, 'height'), 28);
+  assert.equal(pixelDeclaration(marker, 'width'), 4);
+  assert.equal(pixelDeclaration(marker, 'height'), 4);
+  assert.match(target, /pointer-events:\s*none/);
+  assert.match(target, /user-select:\s*none/);
 });
 
 test('navbar opens exact selection pages without invoking destructive legacy views', () => {
@@ -122,7 +113,7 @@ test('book and chapter choices update isolated context before advancing, while v
 });
 
 test('selection page switches replace sheet history and retarget only the settled visible grid', () => {
-  const setter = extract(/function setSelectionPage\(page, replaceHistory\) \{[\s\S]*?\n  \}/, 'selection page setter missing');
+  const setter = extract(/function setSelectionPage\(page, replaceHistory, focusMode\) \{[\s\S]*?\n  \}/, 'selection page setter missing');
   assert.match(setter, /disconnectSelectionGridLayout\(\)/);
   assert.match(setter, /translateX\('/);
   assert.match(setter, /scheduleSelectionGridRetarget\(\)/);
@@ -218,6 +209,8 @@ class FakeElement {
     this.clientWidth = 320;
   }
   appendChild(child) { this.children.push(child); child.parentNode = this; return child; }
+  contains(child) { return child === this || this.children.some(item => item.contains && item.contains(child)); }
+  querySelector() { return this.children.find(child => child.tagName === 'BUTTON') || null; }
   setAttribute(name, value) { this.attributes.set(name, String(value)); }
   getAttribute(name) { return this.attributes.get(name) ?? null; }
   removeAttribute(name) { this.attributes.delete(name); }
@@ -377,6 +370,7 @@ function runDotRenderer(source = bible) {
     var selectionDots = null;
     var selectionTrack = null;
     var selectionPanels = null;
+    var selectionLive = null;
     function normalizedSelectionPage(page) { return selectionPages.indexOf(page) < 0 ? 'books' : page; }
     function currentSelectionReaderReference() { return { book: 'John', chapter: 3, verse: '16' }; }
     function normalizedSelectionContext(book, chapter, fallback) { return { book: book || fallback.book, chapter: chapter || fallback.chapter }; }
@@ -388,6 +382,12 @@ function runDotRenderer(source = bible) {
     function onSelectionPointerUp() {}
     function onSelectionPointerCancel() {}
     function onSelectionLostPointerCapture() {}
+    function onSelectionTouchStart() {}
+    function onSelectionTouchMove() {}
+    function onSelectionTouchEnd() {}
+    function onSelectionTouchCancel() {}
+    function guardSelectionClick() {}
+    function onSelectionPagerKeyDown() {}
     function finishSelectionPageSettle() {}
     function onSelectionDotKeyDown() {}
     function installSelectionEdgeListener() {}
@@ -409,43 +409,83 @@ function extractFrom(source, pattern, message) {
   return match[0];
 }
 
-test('dot tabs and activation execute, and a role mutation is observable', () => {
+test('decorative indicator renders spans while panels retain named region semantics', () => {
   const rendered = runDotRenderer();
-  assert.deepEqual(rendered.dots.map(dot => dot.getAttribute('role')), ['tab', 'tab', 'tab']);
-  assert.deepEqual(rendered.panels.map(panel => panel.getAttribute('role')), ['tabpanel', 'tabpanel', 'tabpanel']);
-  rendered.dots[2].dispatch('click');
-  assert.deepEqual(rendered.calls.at(-1), ['verses', true]);
-
-  const mutant = bible.replace("dot.setAttribute('role', 'tab');", "dot.setAttribute('role', 'presentation');");
-  assert.notDeepEqual(runDotRenderer(mutant).dots.map(dot => dot.getAttribute('role')), ['tab', 'tab', 'tab']);
+  assert.deepEqual(rendered.dots.map(dot => dot.tagName), ['SPAN', 'SPAN', 'SPAN']);
+  assert.deepEqual(rendered.dots.map(dot => dot.getAttribute('role')), [null, null, null]);
+  assert.deepEqual(rendered.panels.map(panel => panel.getAttribute('role')), ['region', 'region', 'region']);
 });
 
 function runDotSemantics(source = bible) {
-  const update = extractFrom(source, /function updateSelectionPageSemantics\(\) \{[\s\S]*?\n  \}/,
+  const update = extractFrom(source, /function updateSelectionPageSemantics\([^)]*\) \{[\s\S]*?\n  \}/,
     'selection semantics updater missing');
   const dots = [new FakeElement('button'), new FakeElement('button'), new FakeElement('button')];
   const panels = [new FakeElement('section'), new FakeElement('section'), new FakeElement('section')];
   Function('selectionDots', 'selectionPanels', `
     var selectionPages = ['books', 'chapters', 'verses'];
     var selectionSheetPage = 'chapters';
+    var document = { activeElement: null };
+    function focusSelectionPanel() {}
     ${update}
     updateSelectionPageSemantics();
   `)(dots, panels);
   return { dots, panels };
 }
 
-test('dot active semantics execute and an aria-selected mutation is observable', () => {
+test('indicator active state and inactive panel semantics execute', () => {
   const state = runDotSemantics();
-  assert.deepEqual(state.dots.map(dot => dot.getAttribute('aria-selected')), ['false', 'true', 'false']);
-  assert.deepEqual(state.dots.map(dot => dot.getAttribute('aria-current')), [null, 'page', null]);
+  assert.deepEqual(state.dots.map(dot => dot.classList.values.has('is-active')), [false, true, false]);
   assert.deepEqual(state.panels.map(panel => panel.getAttribute('aria-hidden')), ['true', 'false', 'true']);
+});
 
-  const mutant = bible.replace(
-    "selectionDots[i].setAttribute('aria-selected', active ? 'true' : 'false');",
-    "selectionDots[i].setAttribute('aria-selected', active ? 'false' : 'true');"
-  );
-  assert.notDeepEqual(runDotSemantics(mutant).dots.map(dot => dot.getAttribute('aria-selected')),
-    ['false', 'true', 'false']);
+test('pointer focus relocates before old panel inerting and keyboard focus selects first enabled control', () => {
+  const focusSource = functionSource('focusSelectionPanel');
+  const semanticsSource = functionSource('updateSelectionPageSemantics');
+  const panels = [new FakeElement('section'), new FakeElement('section'), new FakeElement('section')];
+  const dots = [new FakeElement('span'), new FakeElement('span'), new FakeElement('span')];
+  panels.forEach(panel => { panel.inert = false; });
+  const focusedButton = new FakeElement('button');
+  panels[2].appendChild(focusedButton);
+  const oldButton = new FakeElement('button');
+  panels[1].appendChild(oldButton);
+  const focusOrder = [];
+  panels[2].focus = function () { focusOrder.push(['panel', panels[1].inert]); };
+  focusedButton.focus = function () { focusOrder.push(['button']); };
+  const api = Function('selectionPanels', 'selectionDots', 'document', `
+    var selectionPages = ['books', 'chapters', 'verses'];
+    var selectionSheetPage = 'verses';
+    ${focusSource}
+    ${semanticsSource}
+    return updateSelectionPageSemantics;
+  `)(panels, dots, { activeElement: oldButton });
+  api('pointer', panels[1]);
+  assert.deepEqual(focusOrder[0], ['panel', false], 'new panel receives focus before the old panel becomes inert');
+  assert.equal(panels[1].inert, true);
+  api('keyboard', panels[1]);
+  assert.deepEqual(focusOrder.at(-1), ['button']);
+});
+
+test('Alt arrow paging is bounded, focuses through the setter, and announces the resulting page', () => {
+  const keyboard = functionSource('onSelectionPagerKeyDown');
+  const events = [];
+  const api = Function('events', `
+    var selectionPages = ['books', 'chapters', 'verses'];
+    var selectionSheetPage = 'chapters';
+    var selectionLive = { textContent: '' };
+    function setSelectionPage(page, replace, focusMode) {
+      events.push([page, replace, focusMode]); selectionSheetPage = page;
+    }
+    ${keyboard}
+    return { key: onSelectionPagerKeyDown, live: selectionLive,
+      page: function () { return selectionSheetPage; } };
+  `)(events);
+  let prevented = 0;
+  api.key({ altKey: true, key: 'ArrowRight', preventDefault() { prevented += 1; } });
+  assert.deepEqual(events, [['verses', true, 'keyboard']]);
+  api.key({ altKey: true, key: 'ArrowRight', preventDefault() { prevented += 1; } });
+  assert.equal(api.page(), 'verses');
+  assert.equal(api.live.textContent, 'Verses');
+  assert.equal(prevented, 2);
 });
 
 test('navbar direct-page launchers execute without touching the reader', () => {
@@ -532,7 +572,8 @@ function runGestureProgram(source = bible, selectionCollapsed = true) {
     'selection pure helpers missing');
   const axis = extractFrom(source, /function appSheetAxis\(dx, dy\) \{[\s\S]*?\n  \}/, 'axis helper missing');
   const names = [
-    'selectionPointerTargetAllowsSwipe', 'releaseSelectionPointer', 'onSelectionPointerDown',
+    'selectionPointerTargetAllowsSwipe', 'selectionCellTarget', 'clearSelectionClickGuard',
+    'armSelectionClickGuard', 'guardSelectionClick', 'renderSelectionPointerFrame', 'releaseSelectionPointer', 'onSelectionPointerDown',
     'onSelectionPointerMove', 'settleSelectionPointer', 'onSelectionPointerUp',
     'onSelectionPointerCancel', 'onSelectionLostPointerCapture'
   ];
@@ -541,6 +582,7 @@ function runGestureProgram(source = bible, selectionCollapsed = true) {
   const pages = [];
   const captures = [];
   const pager = {
+    clientWidth: 320,
     setPointerCapture(id) { captures.push(['set', id]); },
     hasPointerCapture() { return true; },
     releasePointerCapture(id) { captures.push(['release', id]); }
@@ -550,15 +592,30 @@ function runGestureProgram(source = bible, selectionCollapsed = true) {
     ${axis}
     var selectionSheetPage = 'chapters';
     var selectionPointer = null;
+    var selectionTrack = { style: { transform: '' }, classList: { add: function () {} } };
+    var selectionPointerFrame = null;
+    var selectionTouchIdentifiers = new Map();
+    var selectionClickGuard = null;
+    var selectionClickGuardTimer = null;
+    var appSheetState = { generation: 1 };
     var SELECTION_POINTER_RECENCY_MS = 80;
+    var SELECTION_CLICK_GUARD_MS = 500;
+    function requestAnimationFrame(fn) { fn(); return 1; }
+    function cancelAnimationFrame() {}
     function setSelectionPage(page) { selectionSheetPage = page; pages.push(page); }
     ${functions}
     return {
       down: onSelectionPointerDown, move: onSelectionPointerMove, up: onSelectionPointerUp,
       cancel: onSelectionPointerCancel, lost: onSelectionLostPointerCapture,
+      guardClick: guardSelectionClick,
+      guardArmed: function () { return !!selectionClickGuard; },
+      track: function () { return selectionTrack.style.transform; },
       page: function () { return selectionSheetPage; }, pointer: function () { return selectionPointer; }
     };
-  `)({ getSelection: () => ({ isCollapsed: selectionCollapsed }) }, pager, pages);
+  `)({
+    getSelection: () => ({ isCollapsed: selectionCollapsed }),
+    setTimeout: function () { return 1; }, clearTimeout: function () {}
+  }, pager, pages);
   return { api, pages, captures };
 }
 
@@ -579,8 +636,19 @@ function interactiveTarget(kind) {
   };
 }
 
-test('controls and selected text never let the horizontal pager claim pointer ownership', () => {
-  for (const kind of ['button', 'input', 'a']) {
+function gridTarget(kind = '.chapter-btn') {
+  return {
+    panel: null,
+    closest(selector) {
+      if (selector === '.book-btn,.chapter-btn,.verse-btn') return this;
+      if (selector === '.selection-panel') return this.panel;
+      return selector.split(',').map(value => value.trim()).includes(kind) ? this : null;
+    }
+  };
+}
+
+test('inputs and links stay native while real grid buttons can claim horizontal paging', () => {
+  for (const kind of ['input', 'a']) {
     const h = runGestureProgram();
     const down = pointerEvent(20, 100, 0, 1, interactiveTarget(kind));
     const move = pointerEvent(20, 0, 1, 10, interactiveTarget(kind));
@@ -595,8 +663,8 @@ test('controls and selected text never let the horizontal pager claim pointer ow
   }
 
   const selected = runGestureProgram(bible, false);
-  const selectedDown = pointerEvent(21, 100, 0, 1);
-  const selectedMove = pointerEvent(21, 0, 1, 10);
+  const selectedDown = pointerEvent(21, 100, 0, 1, gridTarget());
+  const selectedMove = pointerEvent(21, 0, 1, 10, gridTarget());
   selected.api.down(selectedDown);
   selected.api.move(selectedMove);
   assert.equal(selected.api.pointer(), null, 'non-collapsed text selection blocks pager ownership');
@@ -611,62 +679,60 @@ test('controls and selected text never let the horizontal pager claim pointer ow
     'if (selection && false) return false;'
   ));
   const selectedMutation = runGestureProgram(selectionGuardMutant, false);
-  const mutationDown = pointerEvent(22, 100, 0, 1);
-  const mutationMove = pointerEvent(22, 0, 1, 10);
+  const mutationDown = pointerEvent(22, 100, 0, 1, gridTarget());
+  const mutationMove = pointerEvent(22, 0, 1, 10, mutationDown.target);
   selectedMutation.api.down(mutationDown);
   selectedMutation.api.move(mutationMove);
   assert.notDeepEqual(selectedMutation.captures, [], 'selected-text guard mutation is observable');
   assert.equal(mutationMove.prevented, true);
 
-  const buttonGuardMutant = bible.replace(
-    "return !target.closest('button,a,input,select,textarea,label,p,pre,code,[role=\"button\"],[contenteditable=\"true\"]');",
-    "return !target.closest('a,input,select,textarea,label,p,pre,code,[role=\"button\"],[contenteditable=\"true\"]');"
-  );
-  const buttonMutation = runGestureProgram(buttonGuardMutant);
-  const buttonDown = pointerEvent(23, 100, 0, 1, interactiveTarget('button'));
-  const buttonMove = pointerEvent(23, 0, 1, 10, interactiveTarget('button'));
-  buttonMutation.api.down(buttonDown);
-  buttonMutation.api.move(buttonMove);
-  assert.notDeepEqual(buttonMutation.captures, [], 'button exclusion mutation is observable');
-  assert.equal(buttonMove.prevented, true);
+  const grid = runGestureProgram();
+  const target = gridTarget('.book-btn');
+  const down = pointerEvent(23, 100, 0, 1, target);
+  const move = pointerEvent(23, 0, 1, 10, target);
+  grid.api.down(down);
+  grid.api.move(move);
+  assert.notDeepEqual(grid.captures, []);
+  assert.equal(move.prevented, true);
 });
 
 test('horizontal gestures execute one page both ways while vertical, cancel, and lost capture do not page', () => {
   const h = runGestureProgram();
-  h.api.down(pointerEvent(1, 100, 20, 1));
-  h.api.move(pointerEvent(1, 0, 22, 20));
-  h.api.up(pointerEvent(1, 0, 22, 22));
+  const target = gridTarget();
+  h.api.down(pointerEvent(1, 100, 20, 1, target));
+  h.api.move(pointerEvent(1, 0, 22, 20, target));
+  h.api.up(pointerEvent(1, 0, 22, 22, target));
   assert.equal(h.api.page(), 'verses');
   assert.deepEqual(h.pages, ['verses']);
 
-  h.api.down(pointerEvent(2, 0, 20, 30));
-  h.api.move(pointerEvent(2, 100, 21, 45));
-  h.api.up(pointerEvent(2, 100, 21, 47));
+  h.api.down(pointerEvent(2, 0, 20, 30, target));
+  h.api.move(pointerEvent(2, 100, 21, 45, target));
+  h.api.up(pointerEvent(2, 100, 21, 47, target));
   assert.equal(h.api.page(), 'chapters');
   assert.deepEqual(h.pages, ['verses', 'chapters']);
 
-  h.api.down(pointerEvent(3, 0, 0, 50));
-  h.api.move(pointerEvent(3, 2, 90, 60));
+  h.api.down(pointerEvent(3, 0, 0, 50, target));
+  h.api.move(pointerEvent(3, 2, 90, 60, target));
   assert.equal(h.api.pointer(), null, 'vertical ownership transfers to the sheet controller');
   assert.equal(h.api.page(), 'chapters');
 
-  h.api.down(pointerEvent(4, 100, 0, 70));
-  h.api.move(pointerEvent(4, 0, 0, 80));
-  h.api.cancel(pointerEvent(4, 0, 0, 81));
+  h.api.down(pointerEvent(4, 100, 0, 70, target));
+  h.api.move(pointerEvent(4, 0, 0, 80, target));
+  h.api.cancel(pointerEvent(4, 0, 0, 81, target));
   assert.equal(h.api.page(), 'chapters');
   assert.equal(h.api.pointer(), null);
 
-  h.api.down(pointerEvent(5, 100, 0, 90));
-  h.api.move(pointerEvent(5, 0, 0, 100));
-  h.api.lost(pointerEvent(5, 0, 0, 101));
+  h.api.down(pointerEvent(5, 100, 0, 90, target));
+  h.api.move(pointerEvent(5, 0, 0, 100, target));
+  h.api.lost(pointerEvent(5, 0, 0, 101, target));
   assert.equal(h.api.page(), 'chapters');
   assert.equal(h.api.pointer(), null);
 
   const directionMutant = bible.replace('current + direction', 'current - direction');
   const mutated = runGestureProgram(directionMutant);
-  mutated.api.down(pointerEvent(6, 100, 0, 1));
-  mutated.api.move(pointerEvent(6, 0, 0, 10));
-  mutated.api.up(pointerEvent(6, 0, 0, 11));
+  mutated.api.down(pointerEvent(6, 100, 0, 1, target));
+  mutated.api.move(pointerEvent(6, 0, 0, 10, target));
+  mutated.api.up(pointerEvent(6, 0, 0, 11, target));
   assert.notEqual(mutated.api.page(), 'verses', 'gesture direction mutation is observable');
 
   const cancelMutant = bible.replace(
@@ -674,10 +740,179 @@ test('horizontal gestures execute one page both ways while vertical, cancel, and
     'function onSelectionPointerCancel(e) { settleSelectionPointer(e, false); }'
   );
   const cancelled = runGestureProgram(cancelMutant);
-  cancelled.api.down(pointerEvent(7, 100, 0, 1));
-  cancelled.api.move(pointerEvent(7, 0, 0, 10));
-  cancelled.api.cancel(pointerEvent(7, 0, 0, 11));
+  cancelled.api.down(pointerEvent(7, 100, 0, 1, target));
+  cancelled.api.move(pointerEvent(7, 0, 0, 10, target));
+  cancelled.api.cancel(pointerEvent(7, 0, 0, 11, target));
   assert.notEqual(cancelled.api.page(), 'chapters', 'cancel-listener mutation is observable');
+});
+
+test('real book, chapter, and verse cells support pen and mouse paging with one-shot click suppression', () => {
+  for (const kind of ['.book-btn', '.chapter-btn', '.verse-btn']) {
+    for (const pointerType of ['pen', 'mouse']) {
+      const h = runGestureProgram();
+      const target = gridTarget(kind);
+      const down = { ...pointerEvent(50, 180, 40, 1, target), pointerType };
+      const move = { ...pointerEvent(50, 80, 42, 20, target), pointerType };
+      h.api.down(down);
+      h.api.move(move);
+      assert.match(h.api.track(), /-100px/, `${pointerType} ${kind} follows the pointer live`);
+      h.api.up({ ...pointerEvent(50, 80, 42, 25, target), pointerType });
+      h.api.lost({ ...pointerEvent(50, 80, 42, 26, target), pointerType });
+      assert.equal(h.api.page(), 'verses');
+      assert.equal(h.api.guardArmed(), true);
+      assert.equal(h.api.guardClick({ detail: 0, target, preventDefault() {}, stopPropagation() {} }), false);
+      assert.equal(h.api.guardArmed(), true, 'keyboard click leaves matching pointer guard armed');
+      let prevented = 0;
+      assert.equal(h.api.guardClick({ detail: 1, target, preventDefault() { prevented += 1; }, stopPropagation() {} }), true);
+      assert.equal(prevented, 1);
+      assert.equal(h.api.guardClick({ detail: 1, target, preventDefault() {}, stopPropagation() {} }), false);
+    }
+  }
+});
+
+function runTouchAdapter() {
+  const helpers = extract(/\/\* SELECTION SHEET PURE HELPERS START \*\/[\s\S]*?\/\* SELECTION SHEET PURE HELPERS END \*\//,
+    'selection helpers missing');
+  const axis = functionSource('appSheetAxis');
+  const boundary = functionSource('appSheetBodyBoundaryAllowsDrag');
+  const names = [
+    'selectionPointerTargetAllowsSwipe', 'selectionCellTarget', 'clearSelectionClickGuard',
+    'armSelectionClickGuard', 'guardSelectionClick', 'renderSelectionPointerFrame', 'releaseSelectionPointer',
+    'onSelectionPointerDown', 'onSelectionPointerMove', 'settleSelectionPointer',
+    'selectionTouchByIdentifier', 'clearSelectionTouch', 'selectionTouchInput',
+    'onSelectionTouchStart', 'onSelectionTouchMove', 'settleSelectionTouch',
+    'onSelectionTouchEnd', 'onSelectionTouchCancel'
+  ];
+  const source = names.map(functionSource).join('\n');
+  const frames = [];
+  const timers = [];
+  const pager = {
+    clientWidth: 320,
+    setPointerCapture() {}, hasPointerCapture() { return false; }, releasePointerCapture() {}
+  };
+  return Function('window', 'pager', 'frames', 'timers', `
+    ${helpers}
+    ${axis}
+    ${boundary}
+    var selectionSheetPage = 'chapters';
+    var selectionPager = pager;
+    var selectionTrack = { style: { transform: '' }, classList: { add: function () {} } };
+    var selectionPointer = null;
+    var selectionPointerFrame = null;
+    var selectionClickGuard = null;
+    var selectionClickGuardTimer = null;
+    var selectionTouchIdentifiers = new Map();
+    var SELECTION_POINTER_RECENCY_MS = 80;
+    var SELECTION_CLICK_GUARD_MS = 500;
+    var SELECTION_TOUCH_TIMEOUT_MS = 1200;
+    var appSheetBody = { scrollTop: 0, clientHeight: 200, scrollHeight: 500 };
+    var appSheetState = { generation: 7, edge: 'bottom', candidate: null, pointer: null };
+    function requestAnimationFrame(fn) { frames.push(fn); return frames.length; }
+    function cancelAnimationFrame() { selectionPointerFrame = null; }
+    function beginAppSheetGesture(e) { appSheetState.candidate = { id: e.pointerId, startY: e.clientY }; }
+    function cancelAppSheetGesture(e) {
+      if (appSheetState.candidate && appSheetState.candidate.id === e.pointerId) appSheetState.candidate = null;
+      if (appSheetState.pointer && appSheetState.pointer.id === e.pointerId) appSheetState.pointer = null;
+    }
+    function updateAppSheetGesture(e) {
+      var candidate = appSheetState.candidate;
+      if (candidate && !appSheetBodyBoundaryAllowsDrag(appSheetState.edge,
+          e.clientY > candidate.startY ? 1 : -1, candidate.scrollTop,
+          candidate.clientHeight, candidate.scrollHeight)) {
+        appSheetState.candidate = null;
+        return;
+      }
+      if (candidate) { appSheetState.pointer = { id: e.pointerId }; e.preventDefault(); }
+      appSheetState.candidate = null;
+    }
+    function finishAppSheetGesture() { appSheetState.pointer = null; }
+    function setSelectionPage(page) { selectionSheetPage = page; }
+    ${source}
+    return {
+      start: onSelectionTouchStart, move: onSelectionTouchMove, end: onSelectionTouchEnd,
+      cancel: onSelectionTouchCancel, pointerDown: onSelectionPointerDown,
+      page: function () { return selectionSheetPage; }, pointer: function () { return selectionPointer; },
+      count: function () { return selectionTouchIdentifiers.size; },
+      boundary: function () { return appSheetState.candidate && {
+        scrollTop: appSheetState.candidate.scrollTop,
+        clientHeight: appSheetState.candidate.clientHeight,
+        scrollHeight: appSheetState.candidate.scrollHeight
+      }; },
+      track: function () { return selectionTrack.style.transform; },
+      generation: function (value) { appSheetState.generation = value; },
+      sheetPointer: function () { return appSheetState.pointer; },
+      flush: function () { while (frames.length) frames.shift()(); },
+      expire: function () { while (timers.length) timers.shift()(); }
+    };
+  `)({
+    getSelection: () => ({ isCollapsed: true }),
+    setTimeout(fn) { timers.push(fn); return timers.length; }, clearTimeout() {}
+  }, pager, frames, timers);
+}
+
+function touchEvent(id, x, y, time, target) {
+  return {
+    changedTouches: [{ identifier: id, clientX: x, clientY: y }], target, timeStamp: time,
+    prevented: 0, stopped: 0,
+    preventDefault() { this.prevented += 1; }, stopPropagation() { this.stopped += 1; }
+  };
+}
+
+test('touch adapter pages once, deduplicates compatibility pointers, and clears identifiers', () => {
+  const h = runTouchAdapter();
+  const target = gridTarget('.verse-btn');
+  target.panel = { scrollTop: 120, clientHeight: 240, scrollHeight: 720 };
+  h.start(touchEvent(2, 180, 40, 1, target));
+  assert.equal(h.count(), 1);
+  assert.deepEqual(h.boundary(), { scrollTop: 120, clientHeight: 240, scrollHeight: 720 },
+    'vertical ownership snapshots the nested scroller at touch start');
+  h.start(touchEvent(9, 160, 40, 2, target));
+  assert.equal(h.count(), 1, 'a different second touch cannot replace ownership');
+  h.pointerDown(pointerEvent(99, 180, 40, 2, target));
+  assert.equal(h.pointer().id, -3, 'compatibility pointer cannot replace active touch');
+  const move = touchEvent(2, 80, 42, 20, target);
+  h.move(move);
+  h.flush();
+  assert.match(h.track(), /-100px/);
+  assert.ok(move.prevented > 0);
+  h.end(touchEvent(2, 80, 42, 25, target));
+  assert.equal(h.page(), 'verses');
+  assert.equal(h.count(), 0);
+
+  h.start(touchEvent(3, 180, 40, 30, target));
+  h.cancel(touchEvent(3, 100, 40, 35, target));
+  assert.equal(h.count(), 0, 'cancel clears the identifier');
+  h.start(touchEvent(4, 180, 40, 40, target));
+  h.generation(8);
+  h.move(touchEvent(4, 170, 40, 45, target));
+  assert.equal(h.count(), 0, 'generation change clears stale touch ownership');
+  h.start(touchEvent(5, 180, 40, 50, target));
+  h.expire();
+  assert.equal(h.count(), 0, 'timeout clears abandoned touch ownership');
+  assert.equal(h.pointer(), null, 'timeout also releases retained gesture state');
+});
+
+test('touch vertical motion stays native mid-scroll and only boundary-origin motion claims the sheet', () => {
+  const mid = runTouchAdapter();
+  const midTarget = gridTarget('.book-btn');
+  midTarget.panel = { scrollTop: 80, clientHeight: 200, scrollHeight: 600 };
+  mid.start(touchEvent(10, 100, 40, 1, midTarget));
+  const nativeMove = touchEvent(10, 102, 90, 20, midTarget);
+  mid.move(nativeMove);
+  assert.equal(mid.sheetPointer(), null);
+  assert.equal(nativeMove.prevented, 0, 'mid-scroll vertical movement remains native');
+  mid.cancel(touchEvent(10, 102, 90, 21, midTarget));
+
+  const edge = runTouchAdapter();
+  const edgeTarget = gridTarget('.book-btn');
+  edgeTarget.panel = { scrollTop: 0, clientHeight: 200, scrollHeight: 600 };
+  edge.start(touchEvent(11, 100, 40, 1, edgeTarget));
+  const edgeMove = touchEvent(11, 102, 90, 20, edgeTarget);
+  edge.move(edgeMove);
+  assert.equal(edge.sheetPointer().id, -12);
+  assert.ok(edgeMove.prevented > 0, 'unconsumable boundary-origin movement claims the sheet');
+  edge.cancel(touchEvent(11, 102, 90, 21, edgeTarget));
+  assert.equal(edge.count(), 0);
 });
 
 function runResponsiveCycle() {
@@ -704,10 +939,23 @@ function runResponsiveCycle() {
     var selectionGrids = null;
     var selectionContext = null;
     var selectionPointer = null;
+    var selectionPointerFrame = null;
+    var selectionClickGuard = null;
+    var selectionClickGuardTimer = null;
+    var selectionTouchIdentifiers = new Map();
+    var selectionLive = null;
     var selectionRetargetFrame = null;
     var selectionRetargetTimer = null;
     function disconnectSelectionGridLayout() {}
     function releaseSelectionPointer() { selectionPointer = null; }
+    function clearSelectionClickGuard() { selectionClickGuard = null; }
+    function clearSelectionTouch(identifier) { selectionTouchIdentifiers.delete(identifier); }
+    function onSelectionPointerDown() {} function onSelectionPointerMove() {}
+    function onSelectionPointerUp() {} function onSelectionPointerCancel() {}
+    function onSelectionLostPointerCapture() {} function onSelectionTouchStart() {}
+    function onSelectionTouchMove() {} function onSelectionTouchEnd() {}
+    function onSelectionTouchCancel() {} function guardSelectionClick() {}
+    function onSelectionPagerKeyDown() {} function finishSelectionPageSettle() {}
     function cancelAnimationFrame() {}
     function clearTimeout() {}
     ${source}
@@ -729,6 +977,59 @@ test('responsive edge listener executes live changes and leaves no listener acro
     assert.equal(h.media.removed.length, 1);
     assert.equal(h.media.removed[0][1], h.media.added[0][1]);
   }
+});
+
+test('selector touch adapter, click guard, and live frame are wired to real grid cells', () => {
+  const guard = functionSource('selectionPointerTargetAllowsSwipe');
+  assert.match(guard, /\.book-btn,\.chapter-btn,\.verse-btn/);
+  assert.match(guard, /a,input,select,textarea,label/);
+  const start = functionSource('onSelectionTouchStart');
+  const move = functionSource('onSelectionTouchMove');
+  const cleanup = functionSource('clearSelectionTouch');
+  assert.match(start, /changedTouches/);
+  assert.match(start, /selectionTouchIdentifiers\.set/);
+  assert.match(start, /generation:\s*appSheetState\.generation/);
+  assert.match(move, /preventDefault\(\)/);
+  assert.match(move, /onSelectionPointerMove/);
+  assert.match(cleanup, /selectionTouchIdentifiers\.delete/);
+  assert.match(cleanup, /clearTimeout/);
+  assert.match(bible, /addEventListener\('touchstart', onSelectionTouchStart, \{ passive: false \}\)/);
+  assert.match(bible, /addEventListener\('touchmove', onSelectionTouchMove, \{ passive: false \}\)/);
+  assert.match(bible, /function renderSelectionPointerFrame\(pointer\)[\s\S]*translateX/);
+  assert.match(bible, /function guardSelectionClick\(e\)[\s\S]*e\.detail === 0/);
+  assert.match(bible, /SELECTION_CLICK_GUARD_MS\s*=\s*500/);
+});
+
+test('selector panels provide inert focus-safe paging and bounded keyboard announcements', () => {
+  const semantics = functionSource('updateSelectionPageSemantics');
+  const focus = functionSource('focusSelectionPanel');
+  assert.match(semantics, /document\.activeElement/);
+  assert.match(focus, /focus\(\{ preventScroll: true \}\)/);
+  assert.match(semantics, /setAttribute\('aria-hidden', active \? 'false' : 'true'\)/);
+  assert.match(semantics, /\.inert = !active/);
+  const keyboard = functionSource('onSelectionPagerKeyDown');
+  assert.match(keyboard, /e\.altKey/);
+  assert.match(keyboard, /ArrowLeft/);
+  assert.match(keyboard, /ArrowRight/);
+  assert.match(focus, /querySelector\('button:not\(\[disabled\]\)'\)/);
+  assert.match(functionSource('setSelectionPage'), /selectionLive\.textContent/);
+});
+
+test('approved decorative Tonal Float replaces interactive selector dots at the bottom', () => {
+  const render = extract(/function renderSelectionSheet\(target, sheet\) \{[\s\S]*?\n  \}/, 'selection renderer missing');
+  assert.match(render, /indicator\.className = 'selection-indicator'/);
+  assert.match(render, /indicator\.setAttribute\('aria-hidden', 'true'\)/);
+  assert.match(render, /dot = document\.createElement\('span'\)/);
+  assert.doesNotMatch(render, /dot\.addEventListener\('click'|role', 'tab'|tablist/);
+  const css = extract(/\.selection-indicator \{[\s\S]*?\.selection-indicator-dot\.is-active \{[^}]*\}/,
+    'Tonal Float CSS missing');
+  assert.match(css, /width:\s*36px/);
+  assert.match(css, /height:\s*28px/);
+  assert.match(css, /bottom:/);
+  assert.match(css, /backdrop-filter:\s*blur/);
+  assert.match(css, /pointer-events:\s*none/);
+  assert.match(css, /user-select:\s*none/);
+  assert.doesNotMatch(bible, /\.app-sheet\.edge-top \.selection-(?:dots|indicator)[^{]*\{[^}]*order:/);
 });
 
 test('reduced motion page switching is immediate and retargets only after disconnect', () => {

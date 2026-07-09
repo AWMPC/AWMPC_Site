@@ -237,6 +237,12 @@
     transition-duration: 180ms, 180ms, 180ms, 180ms, 120ms;
     transition-timing-function: var(--motion-ease);
   }
+  .verse-btn {
+    -webkit-tap-highlight-color: transparent;
+    transition-property: background, border-color, box-shadow, color, transform;
+    transition-duration: 180ms, 180ms, 180ms, 180ms, 120ms;
+    transition-timing-function: var(--motion-ease);
+  }
   button,
   input,
   select,
@@ -254,6 +260,7 @@
   .chapter-btn:focus-visible {
     transition-duration: 220ms;
   }
+  .verse-btn:hover, .verse-btn:focus-visible { transition-duration: 220ms; }
   html.theme-transitioning,
   html.theme-transitioning body,
   html.theme-transitioning .bottom-chrome,
@@ -268,6 +275,11 @@
   html.theme-transitioning .chapter-btn,
   html.theme-transitioning .verse,
   html.theme-transitioning .search-result {
+    transition-property: background, background-color, border-color, box-shadow, color, opacity, transform;
+    transition-duration: 200ms;
+    transition-timing-function: var(--motion-ease);
+  }
+  html.theme-transitioning .verse-btn {
     transition-property: background, background-color, border-color, box-shadow, color, opacity, transform;
     transition-duration: 200ms;
     transition-timing-function: var(--motion-ease);
@@ -318,6 +330,7 @@
     transform: scale(.975);
     transition-duration: 80ms;
   }
+  .verse-btn:active { transform: scale(.975); transition-duration: 80ms; }
   button:disabled {
     transform: none;
   }
@@ -835,7 +848,8 @@
   .chapter-grid {
     display: grid; grid-template-columns: repeat(var(--selection-grid-columns), minmax(0, 1fr)); gap: var(--ui-grid-gap);
   }
-  .chapter-btn {
+  .chapter-btn,
+  .verse-btn {
     display: flex; align-items: center; justify-content: center;
     background: var(--selection-fill); border: var(--card-border); border-radius: var(--radius-sm);
     min-height: var(--display-control-height); padding: var(--display-control-pad-y) var(--display-control-pad-x); font-size: var(--display-control-font-size); font-family: inherit; color: var(--fg);
@@ -845,8 +859,8 @@
     transition-timing-function: var(--motion-ease);
     box-shadow: var(--shadow);
   }
-  .chapter-btn:hover { background: var(--hover-bg); border-color: var(--accent); }
-  .chapter-btn.active { background: var(--accent); color: var(--accent-fg); border-color: var(--accent); }
+  .verse-btn:hover, .chapter-btn:hover { background: var(--hover-bg); border-color: var(--accent); }
+  .verse-btn.active, .chapter-btn.active { background: var(--accent); color: var(--accent-fg); border-color: var(--accent); }
   .verse-grid {
     display: grid; grid-template-columns: repeat(var(--selection-grid-columns), minmax(0, 1fr)); gap: var(--ui-grid-gap);
   }
@@ -1095,23 +1109,22 @@
     touch-action: pan-y;
   }
   .app-sheet.snap-fullscreen .selection-pager { height: 100%; }
-  .selection-dots {
-    order: 0; display: flex; justify-content: center; align-items: center; gap: 8px;
-    min-height: 32px; padding: 6px var(--display-panel-padding);
+  .selection-indicator {
+    position: absolute; left: 50%; bottom: max(8px, env(safe-area-inset-bottom)); z-index: 3;
+    width: 36px; height: 28px; display: flex; align-items: center; justify-content: center; gap: 4px;
+    transform: translateX(-50%); border-radius: 10px;
+    background: color-mix(in srgb, var(--surface) 76%, transparent);
+    -webkit-backdrop-filter: blur(12px); backdrop-filter: blur(12px);
+    box-shadow: 0 3px 12px color-mix(in srgb, var(--fg) 14%, transparent);
+    pointer-events: none; user-select: none; -webkit-user-select: none;
   }
-  .selection-dot {
-    width: 44px; min-height: 44px; padding: 0; border: 0; border-radius: var(--radius-pill);
-    background: transparent; cursor: pointer;
-  }
-  .selection-dot:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
-  .selection-dot::before {
-    content: ''; display: block; width: 8px; height: 8px; margin: auto;
-    border-radius: 50%; background: var(--fg4);
+  .selection-indicator-dot {
+    width: 4px; height: 4px; border-radius: 50%; background: var(--fg4);
     transition-property: transform, background;
-    transition-duration: 180ms, 180ms;
+    transition-duration: 160ms, 160ms;
     transition-timing-function: var(--motion-ease);
   }
-  .selection-dot[aria-selected="true"]::before { background: var(--accent); transform: scale(1.45); }
+  .selection-indicator-dot.is-active { background: var(--accent); transform: scale(1.35); }
   .selection-viewport { order: 1; flex: 1; min-height: 0; overflow: hidden; }
   .selection-track {
     display: flex; width: 100%; height: 100%;
@@ -1127,7 +1140,6 @@
   }
   .selection-panel .testaments { padding-top: 0; }
   .selection-empty { color: var(--fg3); padding: 24px 12px; text-align: center; white-space: normal; }
-  .app-sheet.edge-top .selection-dots { order: 2; padding-bottom: max(6px, env(safe-area-inset-bottom)); }
   .app-sheet.edge-top .selection-viewport { order: 1; }
   .app-sheet.edge-top .app-sheet-content-frame { order: 0; }
   .app-sheet.edge-top .app-sheet-handle { order: 3; }
@@ -3033,6 +3045,7 @@
       lastY: e.clientY, lastTime: e.timeStamp || Date.now(), lastMoveTime: null,
       velocity: 0, axis: null, fromHandle: fromHandle,
       captureTarget: fromHandle ? appSheetHandle : appSheetBody, captured: false,
+      touchAdapter: e.isTouchAdapter === true,
       generation: appSheetState.generation,
       scrollTop: appSheetBody.scrollTop, clientHeight: appSheetBody.clientHeight,
       scrollHeight: appSheetBody.scrollHeight,
@@ -3057,10 +3070,12 @@
       if (!candidate.fromHandle) appSheetState.candidate = null;
       return false;
     }
-    try {
-      candidate.captureTarget.setPointerCapture(candidate.id);
-      candidate.captured = true;
-    } catch (captureError) { return false; }
+    if (!candidate.touchAdapter) {
+      try {
+        candidate.captureTarget.setPointerCapture(candidate.id);
+        candidate.captured = true;
+      } catch (captureError) { return false; }
+    }
     appSheetState.candidate = null;
     appSheetState.pointer = candidate;
     appSheetState.gesture = {
@@ -3332,13 +3347,20 @@
   var selectionTrack = null;
   var selectionPanels = null;
   var selectionDots = null;
+  var selectionLive = null;
   var selectionGrids = null;
   var selectionPointer = null;
+  var selectionPointerFrame = null;
+  var selectionClickGuard = null;
+  var selectionClickGuardTimer = null;
+  var selectionTouchIdentifiers = new Map();
   var selectionRetargetFrame = null;
   var selectionRetargetTimer = null;
   var selectionMediaQuery = null;
   var selectionMediaListener = null;
   var SELECTION_POINTER_RECENCY_MS = 80;
+  var SELECTION_CLICK_GUARD_MS = 500;
+  var SELECTION_TOUCH_TIMEOUT_MS = 1200;
 
   function currentSelectionReaderReference() {
     var verse = activeVerse || recalledChapterVerse(navBook, navChapter) || '1';
@@ -3403,21 +3425,46 @@
     if (typeof retargetAppSheetMeasurement === 'function') retargetAppSheetMeasurement();
   }
 
-  function updateSelectionPageSemantics() {
-    if (!selectionPanels || !selectionDots) return;
-    for (var i = 0; i < selectionPages.length; i++) {
-      var active = selectionPages[i] === selectionSheetPage;
-      selectionPanels[i].setAttribute('aria-hidden', active ? 'false' : 'true');
-      if ('inert' in selectionPanels[i]) selectionPanels[i].inert = !active;
-      selectionDots[i].setAttribute('aria-selected', active ? 'true' : 'false');
-      if (active) selectionDots[i].setAttribute('aria-current', 'page');
-      else selectionDots[i].removeAttribute('aria-current');
-      selectionDots[i].tabIndex = active ? 0 : -1;
+  function focusSelectionPanel(panel, mode) {
+    if (!panel) return;
+    if (mode === 'keyboard') {
+      var control = panel.querySelector && panel.querySelector('button:not([disabled])');
+      if (control) control.focus({ preventScroll: true });
+      return;
+    }
+    if (mode === 'pointer') {
+      panel.setAttribute('tabindex', '-1');
+      panel.focus({ preventScroll: true });
+      panel.addEventListener('blur', function clearTemporaryPanelTabIndex() {
+        panel.removeAttribute('tabindex');
+        panel.removeEventListener('blur', clearTemporaryPanelTabIndex);
+      });
     }
   }
 
-  function setSelectionPage(page, replaceHistory) {
+  function updateSelectionPageSemantics(focusMode, oldPanel) {
+    if (!selectionPanels || !selectionDots) return;
+    var activeFocusWasInOldPanel = !!(oldPanel && document.activeElement && oldPanel.contains(document.activeElement));
+    var activePanel = null;
+    for (var i = 0; i < selectionPages.length; i++) {
+      var active = selectionPages[i] === selectionSheetPage;
+      if (active) activePanel = selectionPanels[i];
+      if (!active && selectionPanels[i] === oldPanel && activeFocusWasInOldPanel) continue;
+      selectionPanels[i].setAttribute('aria-hidden', active ? 'false' : 'true');
+      if ('inert' in selectionPanels[i]) selectionPanels[i].inert = !active;
+      selectionDots[i].classList.toggle('is-active', active);
+    }
+    if (focusMode) focusSelectionPanel(activePanel, focusMode);
+    if (oldPanel && activeFocusWasInOldPanel) {
+      oldPanel.setAttribute('aria-hidden', 'true');
+      if ('inert' in oldPanel) oldPanel.inert = true;
+    }
+  }
+
+  function setSelectionPage(page, replaceHistory, focusMode) {
     if (!isValidSelectionPage(page) || !selectionTrack) return false;
+    var oldPanel = typeof selectionPanels !== 'undefined' && selectionPanels ?
+      selectionPanels[selectionPages.indexOf(selectionSheetPage)] : null;
     selectionSheetPage = page;
     appSheetState.page = page;
     disconnectSelectionGridLayout();
@@ -3427,7 +3474,9 @@
     selectionRetargetTimer = null;
     selectionTrack.classList.toggle('no-motion', shouldReduceVerseMotion());
     selectionTrack.style.transform = 'translateX(' + (-100 * selectionPages.indexOf(page)) + '%)';
-    updateSelectionPageSemantics();
+    updateSelectionPageSemantics(focusMode, oldPanel);
+    if (typeof selectionLive !== 'undefined' && selectionLive && focusMode === 'keyboard') selectionLive.textContent = selectionPages[
+      selectionPages.indexOf(page)].replace(/^./, function (letter) { return letter.toUpperCase(); });
     if (shouldReduceVerseMotion() && typeof retargetAppSheetMeasurement === 'function') {
       retargetAppSheetMeasurement();
     }
@@ -3561,7 +3610,7 @@
     for (var i = 0; i < verses.length; i++) {
       var button = document.createElement('button');
       button.type = 'button';
-      button.className = 'chapter-btn';
+      button.className = 'verse-btn';
       button.textContent = verses[i];
       button.addEventListener('click', (function (verse) {
         return function () { commitSelectionVerse(verse); };
@@ -3615,7 +3664,45 @@
       if (selection && !selection.isCollapsed) return false;
     } catch (selectionError) {}
     if (!target || typeof target.closest !== 'function') return false;
-    return !target.closest('button,a,input,select,textarea,label,p,pre,code,[role="button"],[contenteditable="true"]');
+    if (target.closest('a,input,select,textarea,label,[contenteditable="true"]')) return false;
+    return !!target.closest('.book-btn,.chapter-btn,.verse-btn');
+  }
+
+  function selectionCellTarget(target) {
+    return target && typeof target.closest === 'function' ?
+      target.closest('.book-btn,.chapter-btn,.verse-btn') : null;
+  }
+
+  function clearSelectionClickGuard() {
+    if (selectionClickGuardTimer !== null) window.clearTimeout(selectionClickGuardTimer);
+    selectionClickGuardTimer = null;
+    selectionClickGuard = null;
+  }
+
+  function armSelectionClickGuard(target) {
+    clearSelectionClickGuard();
+    selectionClickGuard = { target: target, generation: appSheetState.generation };
+    selectionClickGuardTimer = window.setTimeout(clearSelectionClickGuard, SELECTION_CLICK_GUARD_MS);
+  }
+
+  function guardSelectionClick(e) {
+    if (!selectionClickGuard || e.detail === 0 ||
+        selectionClickGuard.generation !== appSheetState.generation) return false;
+    if (selectionCellTarget(e.target) !== selectionClickGuard.target) return false;
+    e.preventDefault();
+    e.stopPropagation();
+    clearSelectionClickGuard();
+    return true;
+  }
+
+  function renderSelectionPointerFrame(pointer) {
+    selectionPointerFrame = null;
+    if (!selectionPointer || selectionPointer !== pointer || pointer.axis !== 'x' || !selectionTrack) return;
+    var index = selectionPages.indexOf(selectionSheetPage);
+    var dx = pointer.pendingX;
+    if ((index === 0 && dx > 0) || (index === selectionPages.length - 1 && dx < 0)) dx *= .28;
+    selectionTrack.classList.add('no-motion');
+    selectionTrack.style.transform = 'translateX(calc(' + (-100 * index) + '% + ' + dx + 'px))';
   }
 
   function releaseSelectionPointer() {
@@ -3628,11 +3715,13 @@
   }
 
   function onSelectionPointerDown(e) {
-    if (!e.isPrimary || e.button !== 0 || !selectionPointerTargetAllowsSwipe(e.target)) return;
+    if (!e.isPrimary || e.button !== 0 || (selectionTouchIdentifiers.size && e.adapter !== 'touch') ||
+        !selectionPointerTargetAllowsSwipe(e.target)) return;
     releaseSelectionPointer();
     selectionPointer = {
       id: e.pointerId, startX: e.clientX, startY: e.clientY, lastX: e.clientX,
-      lastTime: e.timeStamp || Date.now(), lastMoveTime: null, velocity: 0, axis: null, captured: false
+      lastTime: e.timeStamp || Date.now(), lastMoveTime: null, velocity: 0, axis: null, captured: false,
+      target: selectionCellTarget(e.target), pendingX: 0, adapter: e.adapter || 'pointer'
     };
   }
 
@@ -3654,11 +3743,18 @@
     pointer.lastTime = now;
     pointer.lastMoveTime = now;
     if (!pointer.captured) {
-      try {
-        selectionPager.setPointerCapture(pointer.id);
-        pointer.captured = true;
-      } catch (captureError) { return; }
+      if (pointer.adapter === 'touch') pointer.captured = true;
+      else {
+        try {
+          selectionPager.setPointerCapture(pointer.id);
+          pointer.captured = true;
+        } catch (captureError) { return; }
+      }
     }
+    pointer.pendingX = dx;
+    if (selectionPointerFrame === null) selectionPointerFrame = requestAnimationFrame(function () {
+      renderSelectionPointerFrame(pointer);
+    });
     e.preventDefault();
     e.stopPropagation();
   }
@@ -3670,8 +3766,15 @@
     var endTime = e.timeStamp || Date.now();
     var velocity = pointer.lastMoveTime !== null && endTime - pointer.lastMoveTime <= SELECTION_POINTER_RECENCY_MS ? pointer.velocity : 0;
     var next = cancelled ? selectionSheetPage : selectionSwipePage(selectionSheetPage, dx, velocity, pointer.axis);
+    var claimed = pointer.axis === 'x' && pointer.captured;
+    var target = pointer.target;
+    if (selectionPointerFrame !== null) cancelAnimationFrame(selectionPointerFrame);
+    selectionPointerFrame = null;
     releaseSelectionPointer();
-    if (!cancelled && next !== selectionSheetPage) setSelectionPage(next, true);
+    if (claimed) armSelectionClickGuard(target);
+    if (!cancelled && next !== selectionSheetPage) setSelectionPage(next, true, 'pointer');
+    else if (selectionTrack) selectionTrack.style.transform = 'translateX(' +
+      (-100 * selectionPages.indexOf(selectionSheetPage)) + '%)';
   }
 
   function onSelectionPointerUp(e) { settleSelectionPointer(e, false); }
@@ -3680,19 +3783,111 @@
     if (selectionPointer && selectionPointer.id === e.pointerId) settleSelectionPointer(e, true);
   }
 
-  function onSelectionDotKeyDown(e) {
-    var index = selectionDots ? selectionDots.indexOf(e.currentTarget) : -1;
-    if (index < 0) return;
-    var next = index;
-    if (e.key === 'ArrowLeft') next = Math.max(0, index - 1);
-    else if (e.key === 'ArrowRight') next = Math.min(selectionPages.length - 1, index + 1);
-    else if (e.key === 'Home') next = 0;
-    else if (e.key === 'End') next = selectionPages.length - 1;
-    else return;
+  function onSelectionPagerKeyDown(e) {
+    if (!e.altKey || (e.key !== 'ArrowLeft' && e.key !== 'ArrowRight')) return;
+    var index = selectionPages.indexOf(selectionSheetPage);
+    var next = Math.max(0, Math.min(selectionPages.length - 1,
+      index + (e.key === 'ArrowRight' ? 1 : -1)));
     e.preventDefault();
-    setSelectionPage(selectionPages[next], true);
-    selectionDots[next].focus();
+    if (next !== index) setSelectionPage(selectionPages[next], true, 'keyboard');
+    else if (selectionLive) selectionLive.textContent = selectionPages[index].replace(/^./,
+      function (letter) { return letter.toUpperCase(); });
   }
+
+  function selectionTouchByIdentifier(list, identifier) {
+    for (var i = 0; list && i < list.length; i++) if (list[i].identifier === identifier) return list[i];
+    return null;
+  }
+
+  function clearSelectionTouch(identifier) {
+    var entry = selectionTouchIdentifiers.get(identifier);
+    if (!entry) return;
+    if (entry.timer !== null) window.clearTimeout(entry.timer);
+    if (selectionPointer && selectionPointer.id === entry.pointerId) {
+      if (selectionPointerFrame !== null) cancelAnimationFrame(selectionPointerFrame);
+      selectionPointerFrame = null;
+      releaseSelectionPointer();
+      if (selectionTrack) selectionTrack.style.transform = 'translateX(' +
+        (-100 * selectionPages.indexOf(selectionSheetPage)) + '%)';
+    }
+    if ((appSheetState.pointer && appSheetState.pointer.id === entry.pointerId) ||
+        (appSheetState.candidate && appSheetState.candidate.id === entry.pointerId)) {
+      cancelAppSheetGesture({ pointerId: entry.pointerId });
+    }
+    selectionTouchIdentifiers.delete(identifier);
+  }
+
+  function selectionTouchInput(entry, touch, event) {
+    return {
+      pointerId: entry.pointerId, clientX: touch.clientX, clientY: touch.clientY,
+      timeStamp: event.timeStamp || Date.now(), target: entry.target,
+      currentTarget: appSheetBody, isPrimary: true, button: 0, adapter: 'touch', isTouchAdapter: true,
+      preventDefault: function () { event.preventDefault(); }, stopPropagation: function () { event.stopPropagation(); }
+    };
+  }
+
+  function onSelectionTouchStart(e) {
+    if (selectionTouchIdentifiers.size || !e.changedTouches || !e.changedTouches.length ||
+        !selectionPointerTargetAllowsSwipe(e.target)) return;
+    var touch = e.changedTouches[0];
+    var identifier = touch.identifier;
+    var entry = { identifier: identifier, pointerId: -(identifier + 1), target: selectionCellTarget(e.target),
+      generation: appSheetState.generation, timer: null };
+    entry.timer = window.setTimeout(function () { clearSelectionTouch(identifier); }, SELECTION_TOUCH_TIMEOUT_MS);
+    selectionTouchIdentifiers.set(identifier, entry);
+    var input = selectionTouchInput(entry, touch, e);
+    selectionPointer = null;
+    onSelectionPointerDown(input);
+    beginAppSheetGesture(Object.assign({}, input, { target: appSheetBody }));
+    var scroller = e.target && typeof e.target.closest === 'function' ?
+      e.target.closest('.selection-panel') : null;
+    if (!scroller) scroller = appSheetBody;
+    if (appSheetState.candidate && appSheetState.candidate.id === entry.pointerId) {
+      appSheetState.candidate.scrollTop = typeof scroller.scrollTop === 'number' && isFinite(scroller.scrollTop) ?
+        scroller.scrollTop : 0;
+      appSheetState.candidate.clientHeight = typeof scroller.clientHeight === 'number' && isFinite(scroller.clientHeight) ?
+        scroller.clientHeight : 0;
+      appSheetState.candidate.scrollHeight = typeof scroller.scrollHeight === 'number' && isFinite(scroller.scrollHeight) ?
+        scroller.scrollHeight : 0;
+    }
+  }
+
+  function onSelectionTouchMove(e) {
+    if (!selectionTouchIdentifiers.size) return;
+    var iterator = selectionTouchIdentifiers.values().next();
+    var entry = iterator.value;
+    if (!entry || entry.generation !== appSheetState.generation) {
+      if (entry) clearSelectionTouch(entry.identifier);
+      return;
+    }
+    var touch = selectionTouchByIdentifier(e.changedTouches, entry.identifier);
+    if (!touch) return;
+    var input = selectionTouchInput(entry, touch, e);
+    onSelectionPointerMove(input);
+    if (selectionPointer && selectionPointer.axis === 'x') {
+      cancelAppSheetGesture(input);
+      e.preventDefault();
+      return;
+    }
+    updateAppSheetGesture(input);
+    if (appSheetState.pointer && appSheetState.pointer.id === entry.pointerId) e.preventDefault();
+  }
+
+  function settleSelectionTouch(e, cancelled) {
+    if (!selectionTouchIdentifiers.size) return;
+    var entry = selectionTouchIdentifiers.values().next().value;
+    var touch = selectionTouchByIdentifier(e.changedTouches, entry.identifier);
+    if (!touch) return;
+    var input = selectionTouchInput(entry, touch, e);
+    if (selectionPointer && selectionPointer.id === entry.pointerId) settleSelectionPointer(input, cancelled);
+    if (appSheetState.pointer && appSheetState.pointer.id === entry.pointerId) {
+      if (cancelled) cancelAppSheetGesture(input); else finishAppSheetGesture(input);
+    } else if (appSheetState.candidate && appSheetState.candidate.id === entry.pointerId) cancelAppSheetGesture(input);
+    clearSelectionTouch(entry.identifier);
+  }
+
+  function onSelectionTouchEnd(e) { settleSelectionTouch(e, false); }
+  function onSelectionTouchCancel(e) { settleSelectionTouch(e, true); }
 
   function applySelectionSheetEdge() {
     if (!selectionMediaQuery || appSheetState.kind !== 'selection') return;
@@ -3712,6 +3907,10 @@
   function cleanupSelectionSheet() {
     disconnectSelectionGridLayout();
     releaseSelectionPointer();
+    if (selectionPointerFrame !== null) cancelAnimationFrame(selectionPointerFrame);
+    selectionPointerFrame = null;
+    clearSelectionClickGuard();
+    selectionTouchIdentifiers.forEach(function (entry, identifier) { clearSelectionTouch(identifier); });
     if (selectionRetargetFrame !== null) cancelAnimationFrame(selectionRetargetFrame);
     if (selectionRetargetTimer !== null) window.clearTimeout(selectionRetargetTimer);
     selectionRetargetFrame = null;
@@ -3725,6 +3924,12 @@
       selectionPager.removeEventListener('pointerup', onSelectionPointerUp);
       selectionPager.removeEventListener('pointercancel', onSelectionPointerCancel);
       selectionPager.removeEventListener('lostpointercapture', onSelectionLostPointerCapture);
+      selectionPager.removeEventListener('touchstart', onSelectionTouchStart);
+      selectionPager.removeEventListener('touchmove', onSelectionTouchMove);
+      selectionPager.removeEventListener('touchend', onSelectionTouchEnd);
+      selectionPager.removeEventListener('touchcancel', onSelectionTouchCancel);
+      selectionPager.removeEventListener('click', guardSelectionClick, true);
+      selectionPager.removeEventListener('keydown', onSelectionPagerKeyDown);
     }
     if (selectionTrack) selectionTrack.removeEventListener('transitionend', finishSelectionPageSettle);
     if (appSheetBody) appSheetBody.classList.remove('selection-sheet-host');
@@ -3733,6 +3938,7 @@
     selectionTrack = null;
     selectionPanels = null;
     selectionDots = null;
+    selectionLive = null;
     selectionGrids = null;
     selectionContext = null;
     selectionMediaQuery = null;
@@ -3743,9 +3949,8 @@
     var panel = document.createElement('section');
     panel.className = 'selection-panel selection-panel-' + page;
     panel.id = 'selection-panel-' + page;
-    panel.setAttribute('role', 'tabpanel');
+    panel.setAttribute('role', 'region');
     panel.setAttribute('aria-label', label);
-    panel.setAttribute('aria-labelledby', 'selection-dot-' + page);
     return panel;
   }
 
@@ -3759,28 +3964,20 @@
     selectionPager = document.createElement('section');
     selectionPager.className = 'selection-pager';
     selectionPager.setAttribute('aria-label', 'Bible selection');
-    var dots = document.createElement('div');
-    dots.className = 'selection-dots';
-    dots.setAttribute('role', 'tablist');
-    dots.setAttribute('aria-label', 'Selection pages');
+    var indicator = document.createElement('div');
+    indicator.className = 'selection-indicator';
+    indicator.setAttribute('aria-hidden', 'true');
     selectionDots = [];
-    var labels = ['Books', 'Chapters', 'Verses'];
     for (var i = 0; i < selectionPages.length; i++) {
-      var dot = document.createElement('button');
-      dot.type = 'button';
-      dot.className = 'selection-dot';
-      dot.id = 'selection-dot-' + selectionPages[i];
-      dot.setAttribute('role', 'tab');
-      dot.setAttribute('aria-label', labels[i]);
-      dot.setAttribute('aria-selected', 'false');
-      dot.setAttribute('aria-controls', 'selection-panel-' + selectionPages[i]);
-      dot.addEventListener('click', (function (page) {
-        return function () { setSelectionPage(page, true); };
-      })(selectionPages[i]));
-      dot.addEventListener('keydown', onSelectionDotKeyDown);
+      var dot = document.createElement('span');
+      dot.className = 'selection-indicator-dot';
       selectionDots.push(dot);
-      dots.appendChild(dot);
+      indicator.appendChild(dot);
     }
+    selectionLive = document.createElement('div');
+    selectionLive.className = 'sr-only';
+    selectionLive.setAttribute('aria-live', 'polite');
+    selectionLive.setAttribute('aria-atomic', 'true');
     var viewport = document.createElement('div');
     viewport.className = 'selection-viewport';
     selectionTrack = document.createElement('div');
@@ -3792,8 +3989,9 @@
     ];
     for (i = 0; i < selectionPanels.length; i++) selectionTrack.appendChild(selectionPanels[i]);
     viewport.appendChild(selectionTrack);
-    selectionPager.appendChild(dots);
     selectionPager.appendChild(viewport);
+    selectionPager.appendChild(indicator);
+    selectionPager.appendChild(selectionLive);
     target.appendChild(selectionPager);
     renderSelectionBooks(selectionPanels[0]);
     renderSelectionChapters();
@@ -3803,6 +4001,12 @@
     selectionPager.addEventListener('pointerup', onSelectionPointerUp);
     selectionPager.addEventListener('pointercancel', onSelectionPointerCancel);
     selectionPager.addEventListener('lostpointercapture', onSelectionLostPointerCapture);
+    selectionPager.addEventListener('touchstart', onSelectionTouchStart, { passive: false });
+    selectionPager.addEventListener('touchmove', onSelectionTouchMove, { passive: false });
+    selectionPager.addEventListener('touchend', onSelectionTouchEnd, { passive: false });
+    selectionPager.addEventListener('touchcancel', onSelectionTouchCancel, { passive: false });
+    selectionPager.addEventListener('click', guardSelectionClick, true);
+    selectionPager.addEventListener('keydown', onSelectionPagerKeyDown);
     selectionTrack.addEventListener('transitionend', finishSelectionPageSettle);
     installSelectionEdgeListener();
     setSelectionPage(selectionSheetPage, false);
@@ -6507,7 +6711,7 @@
   document.addEventListener('pointerdown', function (e) {
     clearSuppressReaderClick();
     if (!e.isPrimary || e.button !== 0) return;
-    var host = e.target.closest && e.target.closest('button,.dd-item,.book-btn,.chapter-btn,.search-result,.search-hist-item,.verse');
+    var host = e.target.closest && e.target.closest('button,.dd-item,.book-btn,.chapter-btn,.verse-btn,.search-result,.search-hist-item,.verse');
     if (!host || host.matches(':disabled,[aria-disabled="true"]')) return;
     var rect = host.getBoundingClientRect();
     if (!rect.width || !rect.height) return;
