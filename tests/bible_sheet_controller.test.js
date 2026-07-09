@@ -2029,6 +2029,41 @@ if (dialog.open) {
   api.close('motion-test-setup');
 }
 reduceMotion = false;
+controllerContext.window.innerWidth = 640;
+for (const latchPoint of ['before-first-frame', 'between-opening-frames']) {
+  assert.equal(api.open('search', { opener, edge: 'bottom' }), true);
+  const ownedFirstFrame = api.state.openFrame;
+  if (latchPoint === 'between-opening-frames') {
+    frames.get(ownedFirstFrame)();
+    frames.delete(ownedFirstFrame);
+  }
+  const ownedOpeningFrame = latchPoint === 'before-first-frame' ? ownedFirstFrame : api.state.openFrame2;
+  assert.equal(api.latchSearch(api.state.generation), true, `${latchPoint} Search focus latches fullscreen`);
+  assert.equal(api.state.phase, 'opening', `${latchPoint} latch preserves opening phase ownership`);
+  assert.equal(latchPoint === 'before-first-frame' ? api.state.openFrame : api.state.openFrame2, ownedOpeningFrame,
+    `${latchPoint} latch preserves the owned opening RAF`);
+  if (latchPoint === 'before-first-frame') {
+    frames.get(ownedFirstFrame)();
+    frames.delete(ownedFirstFrame);
+  }
+  const ownedSecondFrame = api.state.openFrame2;
+  frames.get(ownedSecondFrame)();
+  frames.delete(ownedSecondFrame);
+  const focusOpeningTimer = api.state.settleTimer;
+  timers.get(focusOpeningTimer)();
+  timers.delete(focusOpeningTimer);
+  assert.equal(api.state.phase, 'idle');
+  assert.equal(api.state.snap, 'fullscreen');
+  assert.equal(dialog.classList.contains('is-preparing'), false);
+  assert.equal(dialog.classList.contains('is-opening'), false);
+  assert.equal(dialog.style.getPropertyValue('--sheet-backdrop-opacity'), '');
+  api.state.historyOwned = false;
+  api.close('focus-opening-reset');
+  const focusResetTimer = api.state.settleTimer;
+  timers.get(focusResetTimer)();
+  timers.delete(focusResetTimer);
+}
+controllerContext.window.innerWidth = 1200;
 const motionClassSnapshot = () => [
   'is-preparing', 'is-opening', 'is-closing', 'no-motion', 'edge-top', 'edge-bottom',
   'inline-left', 'inline-right', 'snap-determined', 'snap-fullscreen'
@@ -2373,6 +2408,18 @@ controllerContext.window.visualViewport.offsetTop = Infinity;
 api.updateSearchViewport(mobileSearchGeneration);
 assert.equal(dialog.style.getPropertyValue('--sheet-viewport-height'), '390px');
 assert.equal(dialog.style.getPropertyValue('--sheet-viewport-top'), '0px', 'nonfinite offsets are sanitized');
+controllerContext.window.visualViewport.height = Number.MAX_VALUE;
+controllerContext.window.visualViewport.offsetTop = Number.MAX_VALUE;
+api.updateSearchViewport(mobileSearchGeneration);
+assert.equal(dialog.style.getPropertyValue('--sheet-viewport-height'), '777px',
+  'huge finite visual viewport height clamps to the layout viewport');
+assert.equal(dialog.style.getPropertyValue('--sheet-viewport-top'), '0px');
+controllerContext.window.visualViewport.height = 390;
+controllerContext.window.visualViewport.offsetTop = Number.MAX_VALUE;
+api.updateSearchViewport(mobileSearchGeneration);
+assert.equal(dialog.style.getPropertyValue('--sheet-viewport-height'), '390px');
+assert.equal(dialog.style.getPropertyValue('--sheet-viewport-top'), '387px',
+  'huge finite offsets clamp to the remaining layout viewport range');
 
 viewportListeners.resize.at(-1)();
 const staleViewportFrame = api.state.viewportFrame;

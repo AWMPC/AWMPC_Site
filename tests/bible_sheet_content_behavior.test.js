@@ -86,6 +86,33 @@ assert.match(searchRendererSource,
   assert.equal(body.textContent, 'owner-b-search');
 }
 
+{
+  const observedDrafts = [];
+  let snapshotCalls = 0;
+  const context = {
+    appSheet: { open: true },
+    appSheetState: { kind: 'search' },
+    searchSheetFocusRestore: null,
+    currentSearchSheetFocusSnapshot() {
+      snapshotCalls += 1;
+      return { generation: 7, query: 'private draft', start: 0, end: 7, direction: 'none' };
+    },
+    resolveAppSheetDescriptor() { return {}; },
+    renderAppSheetContent() {
+      observedDrafts.push(context.searchSheetFocusRestore && context.searchSheetFocusRestore.query);
+    },
+    finishCloseAppSheet() {}
+  };
+  vm.runInNewContext(`${functionSource('refreshOwnerScopedAppSheet')}\nthis.refresh = refreshOwnerScopedAppSheet;`, context);
+  assert.equal(context.refresh(), true);
+  assert.equal(snapshotCalls, 0, 'owner-boundary refresh never snapshots the prior Search draft');
+  assert.equal(observedDrafts[0], null, 'owner-boundary refresh carries no query into replacement content');
+  assert.equal(context.refresh({ preserveSearchFocus: true }), true);
+  assert.equal(snapshotCalls, 1, 'same-owner refresh explicitly opts into one focus snapshot');
+  assert.equal(observedDrafts[1], 'private draft');
+  assert.equal(context.searchSheetFocusRestore, null, 'same-owner draft is consumed only for the synchronous rerender');
+}
+
 const authSource = sourceBetween("  auth.onAuthStateChanged(function (user) {", "\n\n  window.addEventListener('online'");
 assert.match(authSource, /_syncedLocalStateQuarantined = !signoutStorageCleared;[\s\S]*refreshOwnerScopedAppSheet\(\);/,
   'sign-out refreshes owner-scoped sheet after State isolation');
@@ -95,8 +122,11 @@ assert.match(authSource, /_syncedLocalStateQuarantined = true;[\s\S]*refreshOwne
   'failed owner switch quarantine refreshes before returning');
 assert.match(authSource, /_setLocalOwnerUid\(authUid\);[\s\S]*refreshOwnerScopedAppSheet\(\);/,
   'successful A-to-B isolation refreshes before hydration');
-assert.match(sourceBetween('    applyCloudData: function (data, skippedFields) {', '\n    }\n  };'), /refreshOwnerScopedAppSheet\(\);/,
-  'cloud hydration refreshes visible owner-scoped content');
+assert.match(sourceBetween('    applyCloudData: function (data, skippedFields, preserveSearchFocus) {', '\n    }\n  };'),
+  /refreshOwnerScopedAppSheet\(\{ preserveSearchFocus: preserveSearchFocus === true \}\);/,
+  'cloud hydration explicitly controls same-owner Search focus preservation');
+assert.match(authSource, /var preserveSameOwnerSearchFocus = !isFirstOwner && !isOwnerSwitch;/,
+  'anonymous sign-in and A-to-B owner boundaries cannot carry a private Search draft');
 
 function makeStorage(initial = {}) {
   const values = new Map(Object.entries(initial));
@@ -230,7 +260,7 @@ function fakeElement(tag = 'div') {
   let text = '';
   const element = {
     tag, children: [], parentNode: null, value: '', style: {}, isConnected: true,
-    className: '', type: '', maxLength: 0,
+    className: '', type: '', maxLength: 0, selectionStart: 0, selectionEnd: 0, selectionDirection: 'none',
     classList: {
       add(...names) { names.forEach(name => classes.add(name)); },
       remove(...names) { names.forEach(name => classes.delete(name)); },
@@ -254,7 +284,10 @@ function fakeElement(tag = 'div') {
     },
     dispatch(type, event = {}) { (listeners[type] || []).forEach(handler => handler({ target: this, ...event })); },
     click() { this.dispatch('click', { stopPropagation() {} }); },
-    focus() { this.focused = true; }
+    focus() { this.focused = true; },
+    setSelectionRange(start, end, direction) {
+      this.selectionStart = start; this.selectionEnd = end; this.selectionDirection = direction;
+    }
   };
   Object.defineProperty(element, 'textContent', {
     get() { return text; },
@@ -321,6 +354,8 @@ function fakeElement(tag = 'div') {
   const runQueries = [];
   const created = [];
   const focusOrder = [];
+  const frames = new Map();
+  let nextFrame = 1;
   let viewportCleanupCalls = 0;
   const context = {
     searchSheetGeneration: 0,
@@ -332,12 +367,15 @@ function fakeElement(tag = 'div') {
       return true;
     },
     cleanupAppSheetViewportOwnership() { viewportCleanupCalls += 1; },
-    document: { createElement(tag) { const node = fakeElement(tag); created.push(node); return node; } },
+    searchSheetFocusRestore: null,
+    document: { activeElement: null, createElement(tag) { const node = fakeElement(tag); created.push(node); return node; } },
     window: {
       setTimeout(handler) { const id = nextTimer++; timers.set(id, handler); return id; },
       clearTimeout(id) { timers.delete(id); }
     },
     clearTimeout(id) { timers.delete(id); },
+    requestAnimationFrame(handler) { const id = nextFrame++; frames.set(id, handler); return id; },
+    cancelAnimationFrame(id) { frames.delete(id); },
     boundedSearchQuery(value) { return String(value == null ? '' : value).trim().slice(0, 160); },
     State: { pushSearchHistory() {} },
     renderSearchHistory() {},
@@ -368,11 +406,60 @@ function fakeElement(tag = 'div') {
 
   context.appSheetState.searchFullscreenLatched = true;
   context.appSheetState.viewportOwnerGeneration = 41;
+  input.value = 'restored truth';
+  input.selectionStart = 2;
+  input.selectionEnd = 8;
+  input.selectionDirection = 'forward';
+  context.document.activeElement = input;
+  const latchCallsBeforeCleanup = focusOrder.filter(entry => entry[0] === 'latch').length;
+  cleanup();
+  input.isConnected = false;
+  context.searchSheetFocusRestore = {
+    generation: 41, query: 'restored truth', start: 2, end: 8, direction: 'forward'
+  };
+  input.dispatch('focus');
+  assert.equal(focusOrder.filter(entry => entry[0] === 'latch').length, latchCallsBeforeCleanup,
+    'Search cleanup removes its input focus listener');
   const refreshTarget = fakeElement();
   const cleanupRefresh = context.render(refreshTarget);
+  const refreshInput = created.filter(node => node.tag === 'input').at(-1);
+  const refreshFocuses = [];
+  refreshInput.focus = options => { refreshFocuses.push(options); context.document.activeElement = refreshInput; };
+  assert.equal(refreshInput.value, 'restored truth', 'focused same-generation refresh preserves the bounded query');
   assert.equal(timers.size, 0, 'same-generation latched refresh schedules no second autofocus timer');
+  assert.equal(frames.size, 1, 'focused refresh owns one generation-guarded focus handoff RAF');
+  const refreshFrame = [...frames.entries()][0];
+  frames.delete(refreshFrame[0]);
+  refreshFrame[1]();
+  assert.equal(JSON.stringify(refreshFocuses), JSON.stringify([{ preventScroll: true }]));
+  assert.equal(refreshInput.selectionStart, 2);
+  assert.equal(refreshInput.selectionEnd, 8);
+  assert.equal(refreshInput.selectionDirection, 'forward');
+  assert.equal(focusOrder.filter(entry => entry[0] === 'latch').length, latchCallsBeforeCleanup,
+    'focus handoff reuses the existing viewport owner without relatching');
+  context.document.activeElement = null;
   cleanupRefresh();
   assert.equal(viewportCleanupCalls, 0, 'Search content cleanup cannot release controller viewport ownership');
+  const unfocusedTarget = fakeElement();
+  const cleanupUnfocused = context.render(unfocusedTarget);
+  assert.equal(frames.size, 0, 'unfocused same-generation refresh does not steal focus');
+  assert.equal(timers.size, 0);
+  cleanupUnfocused();
+
+  context.searchSheetFocusRestore = {
+    generation: 41, query: 'stale focus', start: 0, end: 5, direction: 'none'
+  };
+  const staleFocusTarget = fakeElement();
+  const cleanupStaleFocus = context.render(staleFocusTarget);
+  const staleFocusInput = created.filter(node => node.tag === 'input').at(-1);
+  let staleFocusCalls = 0;
+  staleFocusInput.focus = () => { staleFocusCalls += 1; };
+  const staleFocusFrame = [...frames.entries()][0];
+  cleanupStaleFocus();
+  staleFocusTarget.isConnected = false;
+  staleFocusFrame[1]();
+  assert.equal(staleFocusCalls, 0, 'cleaned Search focus handoff RAF cannot refocus stale content');
+  assert.equal(frames.size, 0, 'Search cleanup cancels its exact focus handoff RAF');
   context.appSheetState.searchFullscreenLatched = false;
   context.appSheetState.viewportOwnerGeneration = null;
 
@@ -385,7 +472,8 @@ function fakeElement(tag = 'div') {
   cleanupDetached();
   detachedTarget.isConnected = false;
   lateCallbacks.forEach(callback => callback());
-  assert.deepEqual(runQueries, ['pending truth'], 'closed generations cannot rerun detached search work');
+  assert.deepEqual(runQueries, ['pending truth', 'restored truth', 'stale focus'],
+    'closed generations cannot rerun detached search work');
   assert.equal(focusOrder.filter(entry => entry[0] === 'focus').length, 1,
     'detached Search generations cannot receive stale autofocus');
   context.appSheetState.generation += 1;
@@ -393,12 +481,6 @@ function fakeElement(tag = 'div') {
   lateCallbacks.forEach(callback => callback());
   assert.equal(focusOrder.filter(entry => entry[0] === 'focus').length, 1,
     'autofocus verifies the current app sheet generation and kind');
-  const latchCallsBeforeCleanup = focusOrder.filter(entry => entry[0] === 'latch').length;
-  cleanup();
-  input.dispatch('focus');
-  assert.equal(focusOrder.filter(entry => entry[0] === 'latch').length, latchCallsBeforeCleanup,
-    'Search cleanup removes its input focus listener');
-
   context.appSheetState.generation = 55;
   context.appSheetState.kind = 'search';
   context.appSheetState.phase = 'closing';

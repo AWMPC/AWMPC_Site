@@ -2206,7 +2206,7 @@
     clearSearchHistory: function () { this._set('bible_search_hist', []); },
     clearHistory: function () { this._set('bible_history', []); },
 
-    applyCloudData: function (data, skippedFields) {
+    applyCloudData: function (data, skippedFields, preserveSearchFocus) {
       if (!data) return;
       skippedFields = skippedFields || [];
       if (skippedFields.indexOf('themeMode') === -1 && (data.themeMode === 'light' || data.themeMode === 'dark' || data.themeMode === 'auto')) {
@@ -2229,7 +2229,7 @@
       if (skippedFields.indexOf('searchHistory') === -1 && Array.isArray(data.searchHistory)) {
         try { localStorage.setItem('bible_search_hist', JSON.stringify(normalizeSearchHistory(data.searchHistory))); } catch(e) {}
       }
-      refreshOwnerScopedAppSheet();
+      refreshOwnerScopedAppSheet({ preserveSearchFocus: preserveSearchFocus === true });
     }
   };
 
@@ -2789,6 +2789,12 @@
     return isFiniteAppSheetNumber(clientHeight) && clientHeight > 0 ? clientHeight : null;
   }
 
+  function appSheetLayoutViewportHeight() {
+    if (isFiniteAppSheetNumber(window.innerHeight) && window.innerHeight > 0) return window.innerHeight;
+    var clientHeight = document.documentElement && document.documentElement.clientHeight;
+    return isFiniteAppSheetNumber(clientHeight) && clientHeight > 0 ? clientHeight : null;
+  }
+
   function cleanupAppSheetViewportOwnership(ownerGeneration) {
     if (ownerGeneration != null && ownerGeneration !== appSheetState.viewportOwnerGeneration) return false;
     if (appSheetState.viewportFrame !== null) cancelAnimationFrame(appSheetState.viewportFrame);
@@ -2811,11 +2817,15 @@
     if (!isCurrentAppSheetGeneration(generation) || appSheetState.kind !== 'search' ||
         !appSheetState.searchFullscreenLatched || appSheetState.viewportOwnerGeneration !== generation) return false;
     var viewport = window.visualViewport;
+    var layoutHeight = appSheetLayoutViewportHeight();
     var height = viewport && viewport.height;
-    if (!isFiniteAppSheetNumber(height) || height <= 0) height = appSheetViewportHeight();
+    if (!isFiniteAppSheetNumber(height) || height <= 0) height = layoutHeight || appSheetViewportHeight();
+    else if (layoutHeight !== null) height = Math.min(height, layoutHeight);
     if (!isFiniteAppSheetNumber(height) || height <= 0) return false;
     var offsetTop = viewport && viewport.offsetTop;
     if (!isFiniteAppSheetNumber(offsetTop) || offsetTop < 0) offsetTop = 0;
+    var maxOffset = layoutHeight === null ? 0 : Math.max(0, layoutHeight - height);
+    offsetTop = Math.min(offsetTop, maxOffset);
     appSheet.style.setProperty('--sheet-viewport-height', height + 'px');
     appSheet.style.setProperty('--sheet-viewport-top', offsetTop + 'px');
     return true;
@@ -3292,7 +3302,7 @@
     syncAppSheetAccessibleState();
     scheduleAppSheetOverflowFades(generation);
     if (synchronous) {
-      appSheetState.phase = appSheet.open ? 'idle' : appSheetState.phase;
+      if (appSheetState.phase !== 'opening') appSheetState.phase = appSheet.open ? 'idle' : appSheetState.phase;
       if (snap === 'determined') scheduleAppSheetMeasurement(generation);
     } else {
       appSheetState.phase = 'settling';
@@ -3417,14 +3427,35 @@
     installAppSheetOverflowFades(currentAppSheetOverflowScroller());
   }
 
-  function refreshOwnerScopedAppSheet() {
+  function currentSearchSheetFocusSnapshot() {
+    if (appSheetState.kind !== 'search' || !appSheetMeasure ||
+        typeof appSheetMeasure.querySelector !== 'function') return null;
+    var input = appSheetMeasure.querySelector('.search-input');
+    if (!input || document.activeElement !== input) return null;
+    var query = boundedSearchQuery(input.value);
+    var start = Number.isInteger(input.selectionStart) ? input.selectionStart : query.length;
+    var end = Number.isInteger(input.selectionEnd) ? input.selectionEnd : start;
+    start = Math.max(0, Math.min(query.length, start));
+    end = Math.max(start, Math.min(query.length, end));
+    var direction = input.selectionDirection;
+    if (direction !== 'forward' && direction !== 'backward') direction = 'none';
+    return { generation: appSheetState.generation, query: query, start: start, end: end, direction: direction };
+  }
+
+  function refreshOwnerScopedAppSheet(options) {
+    options = options || {};
     if (!appSheet.open || (appSheetState.kind !== 'history' && appSheetState.kind !== 'search')) return false;
     var descriptor = resolveAppSheetDescriptor(appSheetState.kind);
     if (!descriptor) {
       finishCloseAppSheet();
       return false;
     }
-    renderAppSheetContent(descriptor);
+    searchSheetFocusRestore = options.preserveSearchFocus === true ? currentSearchSheetFocusSnapshot() : null;
+    try {
+      renderAppSheetContent(descriptor);
+    } finally {
+      searchSheetFocusRestore = null;
+    }
     return true;
   }
 
@@ -3872,6 +3903,7 @@
   var searchIndexBuildGeneration = 0;
   var searchIndexChunkHandle = null;
   var searchSheetGeneration = 0;
+  var searchSheetFocusRestore = null;
   var SEARCH_INDEX_CHUNK_SIZE = 120;
   var verseActionTarget = null;
   var verseActionGeneration = 0;
@@ -5174,6 +5206,7 @@
       var previousOwnerUid = _localOwnerUid();
       var isFirstOwner = !previousOwnerUid;
       var isOwnerSwitch = !!previousOwnerUid && previousOwnerUid !== authUid;
+      var preserveSameOwnerSearchFocus = !isFirstOwner && !isOwnerSwitch;
 
       if (isOwnerSwitch) {
         if (!_clearSyncedLocalState()) {
@@ -5252,7 +5285,7 @@
         if (!hydrationOffline) {
           var dirtyFields = dirtyFieldsAtResolution;
           _clearSyncedFieldsExcept(dirtyFields);
-          if (cloud) State.applyCloudData(cloud, dirtyFields);
+          if (cloud) State.applyCloudData(cloud, dirtyFields, preserveSameOwnerSearchFocus);
           applyThemeMode(State.getThemeMode(), false);
           renderSeason(State.getSeason());
           applyTextScale(State.getTextScale(), false);
@@ -5271,7 +5304,7 @@
         }
 
         if (isOwnerSwitch) {
-          if (cloud) State.applyCloudData(cloud, dirtyFieldsAtResolution);
+          if (cloud) State.applyCloudData(cloud, dirtyFieldsAtResolution, preserveSameOwnerSearchFocus);
           applyThemeMode(State.getThemeMode(), false);
           renderSeason(State.getSeason());
           applyTextScale(State.getTextScale(), false);
@@ -5283,7 +5316,7 @@
 
         if (isAnonymousMigration) {
           if (dirtyFieldsAtResolution.indexOf('season') === -1 && !State.hasStoredSeason() && cloudHasSeason) {
-            State.applyCloudData({ season: cloud.season }, dirtyFieldsAtResolution);
+            State.applyCloudData({ season: cloud.season }, dirtyFieldsAtResolution, preserveSameOwnerSearchFocus);
             renderSeason(State.getSeason());
           }
           _scheduleSync();
@@ -5295,7 +5328,7 @@
 
         if (_dirtySyncUid() === authUid) {
           if (dirtyFieldsAtResolution.indexOf('season') === -1 && !State.hasStoredSeason() && cloudHasSeason) {
-            State.applyCloudData({ season: cloud.season }, dirtyFieldsAtResolution);
+            State.applyCloudData({ season: cloud.season }, dirtyFieldsAtResolution, preserveSameOwnerSearchFocus);
             renderSeason(State.getSeason());
           }
           _scheduleSync();
@@ -5306,18 +5339,18 @@
         }
 
         if (cloudHasHistory && !localHasHistory) {
-          State.applyCloudData(cloud, dirtyFieldsAtResolution);
+          State.applyCloudData(cloud, dirtyFieldsAtResolution, preserveSameOwnerSearchFocus);
           applyThemeMode(State.getThemeMode(), false);
           renderSeason(State.getSeason());
           applyTextScale(State.getTextScale(), false);
         } else {
           if (!localHasData && cloud) {
-            State.applyCloudData(cloud, dirtyFieldsAtResolution);
+            State.applyCloudData(cloud, dirtyFieldsAtResolution, preserveSameOwnerSearchFocus);
             applyThemeMode(State.getThemeMode(), false);
             renderSeason(State.getSeason());
             applyTextScale(State.getTextScale(), false);
           } else if (dirtyFieldsAtResolution.indexOf('season') === -1 && !State.hasStoredSeason() && cloudHasSeason) {
-            State.applyCloudData({ season: cloud.season }, dirtyFieldsAtResolution);
+            State.applyCloudData({ season: cloud.season }, dirtyFieldsAtResolution, preserveSameOwnerSearchFocus);
             renderSeason(State.getSeason());
           }
           if (localHasData) {
@@ -7337,8 +7370,12 @@
     searchSheetGeneration++;
     var generation = searchSheetGeneration;
     var sheetGeneration = appSheetState.generation;
+    var focusRestore = searchSheetFocusRestore && searchSheetFocusRestore.generation === sheetGeneration ?
+      searchSheetFocusRestore : null;
+    searchSheetFocusRestore = null;
     var debounce = null;
     var focusTimer = null;
+    var focusFrame = null;
     var readyTimer = null;
     var lastCommitted = '';
     var bar = document.createElement('div');
@@ -7350,6 +7387,7 @@
     input.maxLength = 160;
     input.setAttribute('autocomplete', 'off');
     input.setAttribute('aria-label', 'Search the Bible');
+    if (focusRestore) input.value = boundedSearchQuery(focusRestore.query);
     bar.appendChild(input);
     target.appendChild(bar);
     var countEl = document.createElement('div');
@@ -7419,7 +7457,26 @@
     input.addEventListener('blur', commitQuery);
     input.addEventListener('focus', onSearchFocus);
     if (!searchIndexReady) waitUntilReady();
-    if (!appSheetState.searchFullscreenLatched || appSheetState.viewportOwnerGeneration !== sheetGeneration) {
+    else if (focusRestore && input.value.length >= 2) {
+      histEl.style.display = 'none';
+      runSearch(input.value, countEl, resultsEl);
+    }
+    if (focusRestore) {
+      var restoreFrame = requestAnimationFrame(function () {
+        if (focusFrame !== restoreFrame) return;
+        focusFrame = null;
+        if (generation !== searchSheetGeneration || !target.isConnected || !input.isConnected || !appSheet.open ||
+            appSheetState.generation !== sheetGeneration || appSheetState.kind !== 'search' ||
+            appSheetState.phase === 'closing' || appSheetState.phase === 'closed') return;
+        var active = document.activeElement;
+        if (active && active !== input && active !== document.body && active.isConnected) return;
+        input.focus({ preventScroll: true });
+        if (typeof input.setSelectionRange === 'function') {
+          try { input.setSelectionRange(focusRestore.start, focusRestore.end, focusRestore.direction); } catch (selectionError) {}
+        }
+      });
+      focusFrame = restoreFrame;
+    } else if (!appSheetState.searchFullscreenLatched || appSheetState.viewportOwnerGeneration !== sheetGeneration) {
       focusTimer = window.setTimeout(function () {
         focusTimer = null;
         if (generation !== searchSheetGeneration || !target.isConnected || !appSheet.open ||
@@ -7434,9 +7491,11 @@
       if (debounce !== null) clearTimeout(debounce);
       if (focusTimer !== null) clearTimeout(focusTimer);
       if (readyTimer !== null) clearTimeout(readyTimer);
+      if (focusFrame !== null) cancelAnimationFrame(focusFrame);
       debounce = null;
       focusTimer = null;
       readyTimer = null;
+      focusFrame = null;
       input.removeEventListener('focus', onSearchFocus);
     };
   }
