@@ -1040,6 +1040,8 @@
   }
   .app-sheet.snap-determined { height: var(--sheet-height, min(70dvh, 720px)); }
   .app-sheet.snap-fullscreen { height: 100dvh; border-radius: 0; }
+  .app-sheet.is-dragging { height: var(--sheet-live-height); transition: none; }
+  .app-sheet.is-dragging::backdrop { transition: none; }
   .app-sheet.edge-top {
     margin: 0 0 auto;
     border-width: 0 0 1px;
@@ -2346,6 +2348,25 @@
     if (edge === 'top' && direction < 0) return scrollTop + clientHeight >= scrollHeight - 1;
     return true;
   }
+  function appSheetGestureVisual(edge, snap, determinedHeight, viewportHeight, displacement) {
+    if (!isValidAppSheetEdge(edge) || !isValidAppSheetSnap(snap) ||
+        !isFiniteAppSheetNumber(determinedHeight) || determinedHeight <= 0 ||
+        !isFiniteAppSheetNumber(viewportHeight) || viewportHeight <= determinedHeight ||
+        !isFiniteAppSheetNumber(displacement)) return null;
+    var inward = edge === 'bottom' ? -displacement : displacement;
+    var outward = Math.min(determinedHeight, Math.max(0, -inward));
+    if (snap === 'fullscreen') {
+      return { height: Math.max(determinedHeight, viewportHeight - outward), offset: 0, backdrop: 1 };
+    }
+    if (inward > 0) {
+      return { height: Math.min(viewportHeight, determinedHeight + inward), offset: 0, backdrop: 1 };
+    }
+    return {
+      height: determinedHeight,
+      offset: edge === 'bottom' ? outward : -outward,
+      backdrop: Math.max(0, 1 - outward / determinedHeight)
+    };
+  }
   function validatedAppSheetHistoryState(state) {
     if (!state || state.view !== 'verses' || typeof state.book !== 'string' || !state.book ||
         !/^\d+$/.test(String(state.chapter)) || !/^\d+$/.test(String(state.verse)) ||
@@ -2410,7 +2431,8 @@
     historyReturnGeneration: null,
     historyOwned: false,
     pendingHistoryClose: false,
-    focusPolicy: 'none'
+    focusPolicy: 'none',
+    closeGeneration: null
   };
   var appSheetListenersInstalled = false;
   var appSheetDescriptors = Object.create(null);
@@ -2582,13 +2604,9 @@
   }
 
   function clearAppSheetMotion() {
-    if (appSheetState.frame !== null) cancelAnimationFrame(appSheetState.frame);
+    clearAppSheetGestureResources();
     if (appSheetState.settleTimer !== null) window.clearTimeout(appSheetState.settleTimer);
-    appSheetState.frame = null;
     appSheetState.settleTimer = null;
-    releaseAppSheetPointer();
-    appSheet.style.removeProperty('--sheet-drag-offset');
-    appSheet.style.removeProperty('--sheet-backdrop-opacity');
     appSheet.classList.remove('no-motion', 'is-closing');
   }
 
@@ -2600,15 +2618,47 @@
     appSheetMeasure.textContent = '';
   }
 
-  function restoreAppSheetFocus() {
-    var opener = appSheetState.opener;
-    if (!opener || !opener.isConnected || typeof opener.focus !== 'function') return;
-    try { opener.focus({ preventScroll: true }); } catch (e) { opener.focus(); }
+  function isValidAppSheetFocusPolicy(policy) {
+    return policy === 'restore-opener' || policy === 'none' || policy === 'reader' ||
+      policy === 'preserve-or-reader';
+  }
+
+  function focusAppSheetReader() {
+    if (!viewInner || !viewInner.isConnected || typeof viewInner.focus !== 'function') return;
+    var hadTabindex = typeof viewInner.getAttribute === 'function' && viewInner.getAttribute('tabindex') !== null;
+    if (!hadTabindex) viewInner.setAttribute('tabindex', '-1');
+    try { viewInner.focus({ preventScroll: true }); } catch (e) { viewInner.focus(); }
+    if (!hadTabindex && typeof viewInner.removeAttribute === 'function') viewInner.removeAttribute('tabindex');
+  }
+
+  function applyAppSheetFocusPolicy(policy, opener) {
+    if (policy === 'none') return;
+    if (policy === 'restore-opener') {
+      if (!opener || !opener.isConnected || typeof opener.focus !== 'function') return;
+      try { opener.focus({ preventScroll: true }); } catch (e) { opener.focus(); }
+      return;
+    }
+    if (policy === 'preserve-or-reader') {
+      var active = document.activeElement;
+      var external = active && active.isConnected &&
+        (typeof appSheet.contains !== 'function' || !appSheet.contains(active));
+      if (external) return;
+    }
+    focusAppSheetReader();
+  }
+
+  function setAppSheetLauncherExpanded(launcher, expanded) {
+    var isLauncher = launcher && (launcher.tagName === 'BUTTON' ||
+      (typeof launcher.getAttribute === 'function' && launcher.getAttribute('role') === 'button'));
+    if (!isLauncher) return;
+    if (typeof launcher.setAttribute === 'function') launcher.setAttribute('aria-expanded', expanded ? 'true' : 'false');
+    if (launcher.classList) launcher.classList.toggle('active', expanded);
   }
 
   function syncAppSheetLauncherState() {
-    if (!fabMain) return;
-    fabMain.setAttribute('aria-expanded', appSheet.open && appSheetState.kind === 'settings' ? 'true' : 'false');
+    var expanded = appSheet.open && appSheetState.phase !== 'closing';
+    if (fabMain) fabMain.setAttribute('aria-expanded', expanded && appSheetState.kind === 'settings' ? 'true' : 'false');
+    setAppSheetLauncherExpanded(appSheetState.opener, expanded);
   }
 
   function syncAppSheetAccessibleState() {
@@ -2633,7 +2683,6 @@
     clearAppSheetMotion();
     syncAppSheetLauncherState();
     cleanupAppSheetContent();
-    restoreAppSheetFocus();
     appSheetState.kind = null;
     appSheetState.edge = 'bottom';
     appSheetState.snap = 'determined';
@@ -2648,6 +2697,7 @@
     appSheetState.candidate = null;
     appSheetState.gesture = null;
     appSheetState.focusPolicy = 'none';
+    appSheetState.closeGeneration = null;
     appSheet.style.removeProperty('--sheet-height');
     appSheet.classList.remove('edge-top', 'snap-fullscreen');
     appSheet.classList.add('edge-bottom', 'snap-determined');
@@ -2683,25 +2733,45 @@
   }
 
   function finishCloseAppSheet() {
+    var policy = appSheetState.focusPolicy;
+    var opener = appSheetState.opener;
     if (appSheet.open) appSheet.close();
     resetAppSheetState();
+    applyAppSheetFocusPolicy(policy, opener);
   }
 
-  function requestCloseAppSheet(source) {
-    if (!appSheet.open || appSheetState.phase === 'closing') return false;
-    if (appSheetState.historyOwned && source !== 'popstate') {
-      if (appSheetState.pendingHistoryClose) return true;
-      appSheetState.pendingHistoryClose = true;
-      history.back();
+  function requestCloseAppSheet(source, focusPolicy) {
+    if (!appSheet.open) return false;
+    if (appSheetState.phase === 'closing') {
+      if (source === 'popstate' && appSheetState.closeGeneration === appSheetState.generation) finishCloseAppSheet();
       return true;
     }
+    if (!isValidAppSheetFocusPolicy(focusPolicy)) {
+      focusPolicy = source === 'cancel' || source === 'keyboard-handle' ? 'restore-opener' :
+        (source === 'drag' || source === 'backdrop' ? 'none' : 'preserve-or-reader');
+    }
     appSheetState.phase = 'closing';
+    appSheetState.closeGeneration = appSheetState.generation;
+    appSheetState.focusPolicy = focusPolicy;
     cleanupAppSheetMeasurement();
     var generation = appSheetState.generation;
-    if (shouldReduceVerseMotion()) {
+    syncAppSheetLauncherState();
+    appSheet.classList.add('is-closing');
+    appSheet.style.setProperty('--sheet-drag-offset', (appSheetState.edge === 'bottom' ? 1 : -1) *
+      (appSheetViewportHeight() || appSheetState.determinedHeight || 1) + 'px');
+    appSheet.style.setProperty('--sheet-backdrop-opacity', '0');
+    if (appSheetState.historyOwned && source !== 'popstate') {
+      if (!appSheetState.pendingHistoryClose) {
+        appSheetState.pendingHistoryClose = true;
+        history.back();
+      }
+      if (appSheetState.historyTimer !== null) window.clearTimeout(appSheetState.historyTimer);
+      appSheetState.historyTimer = window.setTimeout(function () {
+        if (isCurrentAppSheetGeneration(generation) && appSheetState.phase === 'closing') finishCloseAppSheet();
+      }, 260);
+    } else if (shouldReduceVerseMotion()) {
       finishCloseAppSheet();
     } else {
-      appSheet.classList.add('is-closing');
       if (appSheetState.settleTimer !== null) window.clearTimeout(appSheetState.settleTimer);
       appSheetState.settleTimer = window.setTimeout(function () {
         if (isCurrentAppSheetGeneration(generation) && appSheetState.phase === 'closing') finishCloseAppSheet();
@@ -2787,6 +2857,10 @@
     appSheetState.phase = 'idle';
     appSheetState.determinedHeight = 0;
     if (!wasOpen) appSheetState.opener = options.opener || document.activeElement;
+    else if (options.opener && options.opener !== appSheetState.opener) {
+      setAppSheetLauncherExpanded(appSheetState.opener, false);
+      appSheetState.opener = options.opener;
+    }
     appSheet.classList.toggle('edge-top', edge === 'top');
     appSheet.classList.toggle('edge-bottom', edge === 'bottom');
     setSheetSnap(snap, true);
@@ -2861,11 +2935,6 @@
     return false;
   }
 
-  function resetAppSheetPointer() {
-    clearAppSheetMotion();
-    setSheetSnap(appSheetState.snap, shouldReduceVerseMotion());
-  }
-
   function appSheetBodyTargetAllowsDrag(target) {
     if (!target) return false;
     try {
@@ -2884,89 +2953,130 @@
     return direction < 0 ? atEnd : atStart;
   }
 
-  function onAppSheetPointerDown(e) {
-    if (!appSheet.open || !e.isPrimary || e.button !== 0) return;
+  function beginAppSheetGesture(e) {
+    if (!appSheet.open || appSheetState.phase !== 'idle' || !e.isPrimary || e.button !== 0 ||
+        !isFiniteAppSheetNumber(e.pointerId) || !isFiniteAppSheetNumber(e.clientX) ||
+        !isFiniteAppSheetNumber(e.clientY)) return;
+    if (appSheetState.candidate || appSheetState.pointer) return;
     var fromHandle = e.currentTarget === appSheetHandle;
     if (!fromHandle && !appSheetBodyTargetAllowsDrag(e.target)) return;
-    clearAppSheetMotion();
-    appSheetState.pointer = {
+    appSheetState.candidate = {
       id: e.pointerId, startX: e.clientX, startY: e.clientY,
       lastY: e.clientY, lastTime: e.timeStamp || Date.now(), lastMoveTime: null,
       velocity: 0, axis: null, fromHandle: fromHandle,
-      captureTarget: fromHandle ? appSheetHandle : appSheetBody, captured: false
+      captureTarget: fromHandle ? appSheetHandle : appSheetBody, captured: false,
+      generation: appSheetState.generation,
+      scrollTop: appSheetBody.scrollTop, clientHeight: appSheetBody.clientHeight,
+      scrollHeight: appSheetBody.scrollHeight,
+      determinedHeight: appSheetState.determinedHeight,
+      viewportHeight: appSheetViewportHeight(), startSnap: appSheetState.snap
     };
-    if (fromHandle) {
-      try {
-        appSheetHandle.setPointerCapture(e.pointerId);
-        appSheetState.pointer.captured = true;
-      } catch (captureError) {}
-    }
   }
 
-  function onAppSheetPointerMove(e) {
-    var pointer = appSheetState.pointer;
-    if (!pointer || pointer.id !== e.pointerId) return;
+  function claimAppSheetGesture(candidate, e, dy) {
+    var direction = dy === 0 ? 0 : (dy > 0 ? 1 : -1);
+    var boundaryAllows = candidate.fromHandle ?
+      appSheetBoundaryAllowsDrag(appSheetState.edge, direction, candidate.scrollTop,
+        candidate.clientHeight, candidate.scrollHeight) :
+      appSheetBodyBoundaryAllowsDrag(appSheetState.edge, direction, candidate.scrollTop,
+        candidate.clientHeight, candidate.scrollHeight);
+    if (!boundaryAllows || !isCurrentAppSheetGeneration(candidate.generation) ||
+        !isFiniteAppSheetNumber(candidate.determinedHeight) || candidate.determinedHeight <= 0 ||
+        !isFiniteAppSheetNumber(candidate.viewportHeight) || candidate.viewportHeight <= candidate.determinedHeight) {
+      if (!candidate.fromHandle) appSheetState.candidate = null;
+      return false;
+    }
+    try {
+      candidate.captureTarget.setPointerCapture(candidate.id);
+      candidate.captured = true;
+    } catch (captureError) { return false; }
+    appSheetState.candidate = null;
+    appSheetState.pointer = candidate;
+    appSheetState.gesture = {
+      generation: candidate.generation, edge: appSheetState.edge,
+      determinedHeight: candidate.determinedHeight, viewportHeight: candidate.viewportHeight,
+      startSnap: candidate.startSnap
+    };
+    appSheetState.phase = 'dragging';
+    appSheet.classList.add('is-dragging');
+    return true;
+  }
+
+  function renderAppSheetGestureFrame(pointer) {
+    appSheetState.frame = null;
+    if (!appSheetState.pointer || appSheetState.pointer !== pointer || !pointer.pendingVisual ||
+        !appSheetState.gesture || !isCurrentAppSheetGeneration(appSheetState.gesture.generation)) return;
+    appSheet.style.setProperty('--sheet-live-height', pointer.pendingVisual.height + 'px');
+    appSheet.style.setProperty('--sheet-drag-offset', pointer.pendingVisual.offset + 'px');
+    appSheet.style.setProperty('--sheet-backdrop-opacity', String(pointer.pendingVisual.backdrop));
+  }
+
+  function updateAppSheetGesture(e) {
+    var pointer = appSheetState.pointer || appSheetState.candidate;
+    if (!pointer || pointer.id !== e.pointerId || !isFiniteAppSheetNumber(e.clientX) ||
+        !isFiniteAppSheetNumber(e.clientY)) return;
     var dx = e.clientX - pointer.startX;
     var dy = e.clientY - pointer.startY;
     if (!pointer.axis) pointer.axis = appSheetAxis(dx, dy);
-    if (pointer.axis === 'x' && !pointer.fromHandle) {
-      releaseAppSheetPointer();
+    if (pointer.axis === 'x') {
+      appSheetState.candidate = null;
       return;
     }
     if (pointer.axis !== 'y') return;
+    if (!appSheetState.pointer && !claimAppSheetGesture(pointer, e, dy)) return;
     var now = e.timeStamp || Date.now();
     var elapsed = now - pointer.lastTime;
-    if (elapsed > 0) pointer.velocity = (e.clientY - pointer.lastY) / elapsed;
+    if (elapsed > 0) pointer.velocity = Math.max(-APP_SHEET_MAX_VELOCITY,
+      Math.min(APP_SHEET_MAX_VELOCITY, (e.clientY - pointer.lastY) / elapsed));
     pointer.lastY = e.clientY;
     pointer.lastTime = now;
     pointer.lastMoveTime = now;
-    var direction = dy === 0 ? 0 : (dy > 0 ? 1 : -1);
-    var boundaryAllows = pointer.fromHandle ?
-      appSheetBoundaryAllowsDrag(appSheetState.edge, direction, appSheetBody.scrollTop,
-        appSheetBody.clientHeight, appSheetBody.scrollHeight) :
-      appSheetBodyBoundaryAllowsDrag(appSheetState.edge, direction, appSheetBody.scrollTop,
-        appSheetBody.clientHeight, appSheetBody.scrollHeight);
-    if (!boundaryAllows) {
-      if (!pointer.fromHandle) resetAppSheetPointer();
-      return;
-    }
-    if (!pointer.captured) {
-      try {
-        pointer.captureTarget.setPointerCapture(pointer.id);
-        pointer.captured = true;
-      } catch (captureError) { return; }
-    }
-    appSheetState.phase = 'dragging';
     e.preventDefault();
-    var offset = appSheetState.edge === 'bottom' ? Math.max(-160, dy) : Math.min(160, dy);
-    var progress = Math.max(0, 1 - Math.abs(offset) / Math.max(appSheet.offsetHeight, 1));
-    pointer.pendingOffset = offset;
-    pointer.pendingProgress = progress;
+    pointer.pendingVisual = appSheetGestureVisual(appSheetState.gesture.edge, appSheetState.gesture.startSnap,
+      appSheetState.gesture.determinedHeight, appSheetState.gesture.viewportHeight, dy);
     if (appSheetState.frame !== null) return;
-    appSheetState.frame = requestAnimationFrame(function () {
-      appSheetState.frame = null;
-      if (!appSheetState.pointer || appSheetState.pointer !== pointer) return;
-      appSheet.style.setProperty('--sheet-drag-offset', pointer.pendingOffset + 'px');
-      appSheet.style.setProperty('--sheet-backdrop-opacity', String(pointer.pendingProgress));
-    });
+    appSheetState.frame = requestAnimationFrame(function () { renderAppSheetGestureFrame(pointer); });
   }
 
-  function settleAppSheetPointer(e, cancelled) {
-    var pointer = appSheetState.pointer;
+  function clearAppSheetGestureResources() {
+    if (appSheetState.frame !== null) cancelAnimationFrame(appSheetState.frame);
+    appSheetState.frame = null;
+    releaseAppSheetPointer();
+    appSheetState.candidate = null;
+    appSheetState.gesture = null;
+    appSheet.classList.remove('is-dragging');
+    appSheet.style.removeProperty('--sheet-live-height');
+    appSheet.style.removeProperty('--sheet-drag-offset');
+    appSheet.style.removeProperty('--sheet-backdrop-opacity');
+    if (appSheetState.phase === 'dragging') appSheetState.phase = 'idle';
+  }
+
+  function finishAppSheetGesture(e) {
+    var pointer = appSheetState.pointer || appSheetState.candidate;
     if (!pointer || pointer.id !== e.pointerId) return;
+    if (!appSheetState.pointer || !appSheetState.gesture) {
+      appSheetState.candidate = null;
+      return;
+    }
     var displacement = e.clientY == null ? pointer.lastY - pointer.startY : e.clientY - pointer.startY;
     var endTime = e.timeStamp || Date.now();
     var velocityAge = pointer.lastMoveTime === null ? APP_SHEET_VELOCITY_RECENCY_MS + 1 :
       Math.max(0, endTime - pointer.lastMoveTime);
-    var viewportHeight = window.innerHeight;
-    var determinedHeight = Math.min(appSheet.offsetHeight, Math.floor(viewportHeight * .7));
-    var outcome = cancelled || pointer.axis !== 'y' ? appSheetState.snap :
-      appSheetReleaseOutcome(appSheetState.edge, appSheetState.snap, displacement, pointer.velocity,
-        determinedHeight, viewportHeight, velocityAge);
-    clearAppSheetMotion();
+    var gesture = appSheetState.gesture;
+    var outcome = appSheetReleaseOutcome(gesture.edge, gesture.startSnap, displacement, pointer.velocity,
+      gesture.determinedHeight, gesture.viewportHeight, velocityAge);
+    clearAppSheetGestureResources();
     if (outcome === null) setSheetSnap(appSheetState.snap, shouldReduceVerseMotion());
-    else if (outcome === 'closed') requestCloseAppSheet('drag');
+    else if (outcome === 'closed') requestCloseAppSheet('drag', 'none');
     else setSheetSnap(outcome, shouldReduceVerseMotion());
+  }
+
+  function cancelAppSheetGesture(e) {
+    var pointer = appSheetState.pointer || appSheetState.candidate;
+    if (!pointer || pointer.id !== e.pointerId) return;
+    var snap = appSheetState.gesture ? appSheetState.gesture.startSnap : appSheetState.snap;
+    clearAppSheetGestureResources();
+    setSheetSnap(snap, shouldReduceVerseMotion());
   }
 
   function onAppSheetHandleKeyDown(e) {
@@ -2996,20 +3106,20 @@
     appSheetListenersInstalled = true;
     appSheet.addEventListener('cancel', function (e) { e.preventDefault(); requestCloseAppSheet('cancel'); });
     appSheet.addEventListener('click', function (e) { if (e.target === appSheet) requestCloseAppSheet('backdrop'); });
-    appSheetHandle.addEventListener('pointerdown', onAppSheetPointerDown);
+    appSheetHandle.addEventListener('pointerdown', beginAppSheetGesture);
     appSheetHandle.addEventListener('keydown', onAppSheetHandleKeyDown);
-    appSheetHandle.addEventListener('pointermove', onAppSheetPointerMove);
-    appSheetHandle.addEventListener('pointerup', function (e) { settleAppSheetPointer(e, false); });
-    appSheetHandle.addEventListener('pointercancel', function (e) { settleAppSheetPointer(e, true); });
+    appSheetHandle.addEventListener('pointermove', updateAppSheetGesture);
+    appSheetHandle.addEventListener('pointerup', finishAppSheetGesture);
+    appSheetHandle.addEventListener('pointercancel', cancelAppSheetGesture);
     appSheetHandle.addEventListener('lostpointercapture', function (e) {
-      if (appSheetState.pointer && appSheetState.pointer.id === e.pointerId) resetAppSheetPointer();
+      if (appSheetState.pointer && appSheetState.pointer.id === e.pointerId) cancelAppSheetGesture(e);
     });
-    appSheetBody.addEventListener('pointerdown', onAppSheetPointerDown);
-    appSheetBody.addEventListener('pointermove', onAppSheetPointerMove);
-    appSheetBody.addEventListener('pointerup', function (e) { settleAppSheetPointer(e, false); });
-    appSheetBody.addEventListener('pointercancel', function (e) { settleAppSheetPointer(e, true); });
+    appSheetBody.addEventListener('pointerdown', beginAppSheetGesture);
+    appSheetBody.addEventListener('pointermove', updateAppSheetGesture);
+    appSheetBody.addEventListener('pointerup', finishAppSheetGesture);
+    appSheetBody.addEventListener('pointercancel', cancelAppSheetGesture);
     appSheetBody.addEventListener('lostpointercapture', function (e) {
-      if (appSheetState.pointer && appSheetState.pointer.id === e.pointerId) resetAppSheetPointer();
+      if (appSheetState.pointer && appSheetState.pointer.id === e.pointerId) cancelAppSheetGesture(e);
     });
     window.addEventListener(['resize'][0], function () {
       scheduleAppSheetMeasurement(appSheetState.generation);
@@ -4709,7 +4819,7 @@
       return;
     }
     if (immediate) finishCloseAppSheet();
-    else requestCloseAppSheet('verse-action');
+    else requestCloseAppSheet('verse-action', 'reader');
   }
 
   function openVerseActions(verseEl) {
@@ -4736,7 +4846,7 @@
   function finishVerseAction(token, message, shouldClose) {
     if (!currentVerseAction(token)) return;
     verseActionInFlight = false;
-    if (shouldClose) requestCloseAppSheet('action');
+    if (shouldClose) requestCloseAppSheet('action', 'reader');
     if (message) announceStatus(message);
   }
 

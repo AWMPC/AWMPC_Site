@@ -31,6 +31,10 @@ assert.match(bible, /\.app-sheet-shell\s*\{[^}]*grid-template-rows:\s*auto\s+min
 assert.match(bible,
   /\.app-sheet\.edge-top \.app-sheet-shell\s*\{[^}]*grid-template-rows:\s*minmax\(0,\s*1fr\)\s+auto\s*;/,
   'top-edge sheet swaps the flexible content and intrinsic handle row tracks');
+assert.match(bible, /\.app-sheet\.is-dragging\s*\{[^}]*height:\s*var\(--sheet-live-height\)[^}]*transition:\s*none/s,
+  'dragging consumes RAF-authored live height without transitions');
+assert.match(bible, /\.app-sheet\.is-dragging::backdrop\s*\{[^}]*transition:\s*none/s,
+  'dragging backdrop has no transition latency');
 
 function controllerFunction(name) {
   const match = bible.match(new RegExp('  function ' + name + '\\([^\\n]*\\) \\{[\\s\\S]*?\\n  \\}'));
@@ -152,6 +156,7 @@ const pureSource = bible.slice(pureStart, pureEnd) + '\nthis.hooks = {' +
   'validKind: isValidAppSheetKind, validEdge: isValidAppSheetEdge, validSnap: isValidAppSheetSnap,' +
   'finite: isFiniteAppSheetNumber, determinedHeight: appSheetDeterminedHeight,' +
   'effectiveDistance: appSheetEffectiveSnapDistance, outcome: appSheetReleaseOutcome,' +
+  'visual: appSheetGestureVisual,' +
   'axis: appSheetAxis, boundary: appSheetBoundaryAllowsDrag, phases: APP_SHEET_PHASES,' +
   'constants: [APP_SHEET_AXIS_LOCK_PX, APP_SHEET_SNAP_PX, APP_SHEET_SNAP_VELOCITY,' +
   'APP_SHEET_VELOCITY_RECENCY_MS, APP_SHEET_MAX_VELOCITY, APP_SHEET_CLICK_GUARD_MS],' +
@@ -204,6 +209,23 @@ assert.equal(h.boundary('bottom', 1, 0, 100, 500), true, 'bottom close drag star
 assert.equal(h.boundary('bottom', 1, 12, 100, 500), false, 'nested scroll consumes bottom close drag');
 assert.equal(h.boundary('top', -1, 400, 100, 500), true, 'top close drag starts at scroll bottom');
 assert.equal(h.boundary('top', -1, 350, 100, 500), false);
+
+assert.deepEqual(JSON.parse(JSON.stringify(h.visual('bottom', 'determined', 200, 600, -40))),
+  { height: 240, offset: 0, backdrop: 1 }, 'bottom inward drag grows determined sheet in place');
+assert.deepEqual(JSON.parse(JSON.stringify(h.visual('bottom', 'determined', 200, 600, 40))),
+  { height: 200, offset: 40, backdrop: .8 }, 'bottom outward drag keeps height frozen and follows the finger');
+assert.deepEqual(JSON.parse(JSON.stringify(h.visual('top', 'determined', 200, 600, -40))),
+  { height: 200, offset: -40, backdrop: .8 }, 'top outward drag uses the edge-signed offset');
+assert.deepEqual(JSON.parse(JSON.stringify(h.visual('bottom', 'fullscreen', 200, 600, 40))),
+  { height: 560, offset: 0, backdrop: 1 }, 'fullscreen only shrinks toward its adjacent determined state');
+assert.deepEqual(JSON.parse(JSON.stringify(h.visual('bottom', 'fullscreen', 200, 600, -40))),
+  { height: 600, offset: 0, backdrop: 1 }, 'fullscreen cannot drag into a nonexistent inward state');
+for (const args of [
+  ['side', 'determined', 200, 600, 10], ['bottom', 'compact', 200, 600, 10],
+  ['bottom', 'determined', '200', 600, 10], ['bottom', 'determined', 200, '600', 10],
+  ['bottom', 'determined', 200, 600, '10'], ['bottom', 'determined', Infinity, 600, 10],
+  ['bottom', 'determined', 0, 600, 10], ['bottom', 'determined', 600, 600, 10]
+]) assert.equal(h.visual(...args), null, `invalid visual geometry: ${String(args)}`);
 
 const release = (edge, snap, displacement, velocity, determinedHeight = 224, viewportHeight = 800,
   velocityAge = 0) => h.outcome(edge, snap, displacement, velocity, determinedHeight, viewportHeight, velocityAge);
@@ -306,7 +328,7 @@ assert.match(bible, /function finishSelectionPageSettle\([\s\S]*retargetAppSheet
 assert.match(bible, /pendingHistoryClose: false/);
 assert.match(bible, /function installAppSheetListeners\(\)[\s\S]*if \(appSheetListenersInstalled\) return;[\s\S]*appSheetHandle\.addEventListener\('pointerdown'/);
 assert.equal((bible.match(/installAppSheetListeners\(\);/g) || []).length, 1, 'listener installation has one startup call');
-assert.match(bible, /setPointerCapture\(e\.pointerId\)/);
+assert.match(bible, /setPointerCapture\(candidate\.id\)/);
 assert.match(bible, /'pointercancel'/);
 assert.match(bible, /'lostpointercapture'/);
 assert.match(bible, /cancelAnimationFrame\(appSheetState\.frame\)/);
@@ -315,8 +337,18 @@ assert.match(bible, /shouldReduceVerseMotion\(\)[\s\S]*setSheetSnap/);
 assert.match(bible, /function openAppSheet\(kind, options\)/);
 assert.match(bible, /function setSheetSnap\(snap, immediate\)/);
 assert.doesNotMatch(controllerFunction('setSheetSnap'), /offsetHeight/, 'snap changes avoid forced synchronous layout');
-assert.match(bible, /function requestCloseAppSheet\(source\)/);
+assert.match(bible, /function requestCloseAppSheet\(source, focusPolicy\)/);
 assert.match(bible, /function finishCloseAppSheet\(\)/);
+for (const name of ['beginAppSheetGesture', 'claimAppSheetGesture', 'updateAppSheetGesture',
+  'renderAppSheetGestureFrame', 'clearAppSheetGestureResources', 'finishAppSheetGesture',
+  'cancelAppSheetGesture']) assert.match(bible, new RegExp('function ' + name + '\\('), `${name} is shared and named`);
+const updateGestureSource = bible.slice(bible.indexOf('  function updateAppSheetGesture('),
+  bible.indexOf('  function clearAppSheetGestureResources('));
+const renderGestureSource = bible.slice(bible.indexOf('  function renderAppSheetGestureFrame('),
+  bible.indexOf('  function updateAppSheetGesture('));
+assert.doesNotMatch(updateGestureSource + renderGestureSource,
+  /offsetHeight|getBoundingClientRect|scrollTop|scrollHeight|clientHeight/,
+  'claimed gesture update and render paths perform no synchronous layout reads');
 assert.match(bible, /history\.pushState\(historyState, '', window\.location\.href\)/);
 assert.match(bible, /history\.replaceState\(historyState, '', window\.location\.href\)/);
 assert.match(bible, /if \(appSheetState\.historyOwned && source !== 'popstate'\)[\s\S]*history\.back\(\)/);
@@ -369,7 +401,9 @@ function fakeElement() {
       (listeners[type] || (listeners[type] = [])).push(fn);
     },
     setAttribute(name, value) { attributes[name] = String(value); },
+    removeAttribute(name) { delete attributes[name]; },
     getAttribute(name) { return Object.prototype.hasOwnProperty.call(attributes, name) ? attributes[name] : null; },
+    contains() { return false; },
     dispatch(type, event = {}) {
       event.target = event.target || this;
       event.currentTarget = this;
@@ -405,6 +439,10 @@ const selectionTrackForHistory = fakeElement();
 const fadeTop = fakeElement();
 const fadeBottom = fakeElement();
 const opener = fakeElement();
+opener.tagName = 'BUTTON';
+const replacementOpener = fakeElement();
+replacementOpener.tagName = 'BUTTON';
+const viewInner = fakeElement();
 const fabMain = fakeElement();
 fabMain.setAttribute('aria-expanded', 'false');
 const historyCalls = { push: [], replace: [], back: 0 };
@@ -446,6 +484,7 @@ const controllerContext = {
   appSheetMeasure: measure,
   appSheetFadeTop: fadeTop,
   appSheetFadeBottom: fadeBottom,
+  viewInner,
   fabMain,
   document: { activeElement: opener, documentElement: { clientHeight: 780 } },
   ResizeObserver: FakeResizeObserver,
@@ -548,6 +587,8 @@ assert.equal(api.open('history', { opener, page: 'recent', render() { throw new 
 assert.equal(staticHistoryRenderCount, 1, 'trusted static History renderer runs exactly once');
 assert.equal(fabMain.getAttribute('aria-expanded'), 'false', 'History does not expand the Settings launcher');
 assert.equal(dialog.open, true);
+assert.equal(opener.getAttribute('aria-expanded'), 'true', 'the concrete launcher reflects the open sheet');
+assert.equal(opener.classList.contains('active'), true);
 assert.equal(dialog.getAttribute('aria-label'), 'History — Bible panel');
 assert.equal(handle.getAttribute('aria-label'), 'Expand History panel');
 assert.equal(measure.textContent, 'history:recent');
@@ -676,9 +717,14 @@ assert.notEqual(measure.textContent, '', 'default descriptors render determinist
 assert.equal(api.close('button'), true);
 assert.equal(historyCalls.back, 1, 'dismissal traverses back from an owned entry');
 assert.equal(dialog.open, true, 'dialog waits for popstate before closing');
+assert.equal(api.state.phase, 'closing', 'history-backed dismissal enters closing immediately');
+assert.equal(dialog.classList.contains('is-closing'), true, 'visual close starts before popstate');
+assert.equal(fabMain.getAttribute('aria-expanded'), 'false', 'launcher state collapses immediately');
+assert.equal(opener.getAttribute('aria-expanded'), 'false');
+assert.equal(opener.classList.contains('active'), false, 'launcher highlight clears before popstate');
 assert.equal(api.pop(currentReturnPopState()), true);
 assert.equal(dialog.open, false);
-assert.equal(opener.focusCount, 1, 'connected opener receives focus after close');
+assert.equal(opener.focusCount, 0, 'programmatic/history close preserves valid external focus');
 assert.equal(fabMain.getAttribute('aria-expanded'), 'false', 'close keeps Settings launcher collapsed');
 
 assert.equal(api.open('settings', { opener }), true);
@@ -713,11 +759,27 @@ assert.equal(dialog.classList.contains('edge-top'), false);
 api.open('history', { opener, edge: 'top' });
 assert.equal(api.state.edge, 'top');
 assert.equal(dialog.classList.contains('edge-top'), true, 'top edge state and class move together');
+const topMeasureFrame = [...frames.keys()][0];
+frames.get(topMeasureFrame)();
+frames.delete(topMeasureFrame);
 
 handle.dispatch('pointerdown', {
   isPrimary: true, button: 0, pointerId: 7, clientX: 10, clientY: 10, timeStamp: 1
 });
-assert.equal(api.state.pointer.id, 7);
+assert.equal(api.state.candidate.id, 7, 'pointerdown creates only an unclaimed candidate');
+assert.equal(api.state.pointer, null);
+assert.equal(api.state.phase, 'idle');
+assert.equal(dialog.classList.contains('is-dragging'), false);
+assert.equal(handle.hasPointerCapture(7), false);
+handle.dispatch('pointerdown', {
+  isPrimary: true, button: 0, pointerId: 77, clientX: 10, clientY: 10, timeStamp: 2
+});
+assert.equal(api.state.candidate.id, 7, 'a second pointer cannot replace the active candidate');
+handle.dispatch('pointermove', {
+  pointerId: 7, clientX: 11, clientY: 17, timeStamp: 7, preventDefault() { throw new Error('pre-lock move claimed'); }
+});
+assert.equal(api.state.phase, 'idle', 'motion below the exact 8px axis lock stays a candidate');
+assert.equal(api.state.frame, null);
 handle.dispatch('pointermove', {
   pointerId: 7, clientX: 11, clientY: 110, timeStamp: 101, preventDefault() {}
 });
@@ -731,8 +793,9 @@ handle.dispatch('pointermove', {
 assert.equal(api.state.frame, firstDragFrame, 'multiple drag moves coalesce into one RAF');
 frames.get(firstDragFrame)();
 frames.delete(firstDragFrame);
-assert.equal(dialog.style.getPropertyValue('--sheet-drag-offset'), '110px');
-assert.equal(dialog.style.getPropertyValue('--sheet-backdrop-opacity'), '0.78', 'backdrop progress is proportional');
+assert.equal(dialog.style.getPropertyValue('--sheet-live-height'), '334px');
+assert.equal(dialog.style.getPropertyValue('--sheet-drag-offset'), '0px');
+assert.equal(dialog.style.getPropertyValue('--sheet-backdrop-opacity'), '1', 'inward expansion keeps backdrop stable');
 
 handle.dispatch('pointermove', {
   pointerId: 7, clientX: 11, clientY: 130, timeStamp: 121, preventDefault() {}
@@ -757,18 +820,51 @@ assert.ok(cancelledFrames.includes(lostFrame), 'lost capture cancels pending RAF
 
 let cancelPrevented = 0;
 const backsBeforeCancel = historyCalls.back;
+const focusBeforeCancel = opener.focusCount;
 dialog.dispatch('cancel', { preventDefault() { cancelPrevented += 1; } });
 assert.equal(cancelPrevented, 1, 'native Escape/cancel is prevented for the unified close path');
 assert.equal(historyCalls.back, backsBeforeCancel + 1, 'Escape/cancel requests history dismissal');
 api.pop(currentReturnPopState());
+assert.equal(opener.focusCount, focusBeforeCancel + 1, 'Escape restores the immutable opener exactly once');
 assert.equal(dialog.classList.contains('edge-top'), false, 'close resets top-edge presentation state');
 assert.equal(dialog.classList.contains('edge-bottom'), true);
 
 api.pop({ view: 'verses', book: 'John', chapter: '3', verse: '16', sheet: { kind: 'history' } });
 const backsBeforeBackdrop = historyCalls.back;
+const focusBeforeBackdrop = opener.focusCount;
 dialog.dispatch('click', { target: dialog });
 assert.equal(historyCalls.back, backsBeforeBackdrop + 1, 'backdrop click uses the unified history close path');
 api.pop({ view: 'verses', book: 'John', chapter: '3', verse: '16' });
+assert.equal(opener.focusCount, focusBeforeBackdrop, 'pointer backdrop close never programmatically focuses');
+
+api.pop({ view: 'verses', book: 'John', chapter: '3', verse: '16', sheet: { kind: 'history' } });
+api.open('search', { opener: replacementOpener });
+assert.equal(opener.classList.contains('active'), false, 'owner replacement clears the prior launcher');
+assert.equal(replacementOpener.classList.contains('active'), true, 'owner replacement highlights only the new launcher');
+api.close('owner-replacement');
+api.pop(currentReturnPopState());
+assert.equal(replacementOpener.classList.contains('active'), false);
+
+api.pop({ view: 'verses', book: 'John', chapter: '3', verse: '16', sheet: { kind: 'history' } });
+const readerFocusBefore = viewInner.focusCount;
+assert.equal(api.close('selection-complete', 'reader'), true);
+assert.equal(api.close('late-policy-change', 'none'), true, 'repeat close is idempotent');
+api.pop(currentReturnPopState());
+assert.equal(viewInner.focusCount, readerFocusBefore + 1, 'completion returns focus to the reader');
+assert.equal(viewInner.getAttribute('tabindex'), null, 'temporary reader tabindex is removed after focus');
+api.pop(currentReturnPopState());
+assert.equal(viewInner.focusCount, readerFocusBefore + 1, 'late close callbacks never focus twice');
+
+api.pop({ view: 'verses', book: 'John', chapter: '3', verse: '16', sheet: { kind: 'history' } });
+controllerContext.document.activeElement = body;
+dialog.contains = node => node === body;
+const fallbackReaderFocus = viewInner.focusCount;
+api.close('owner-change');
+api.pop(currentReturnPopState());
+assert.equal(viewInner.focusCount, fallbackReaderFocus + 1,
+  'preserve-or-reader falls back when focus is trapped in the closing sheet');
+controllerContext.document.activeElement = opener;
+dialog.contains = () => false;
 
 api.pop({ view: 'verses', book: 'John', chapter: '3', verse: '16', sheet: { kind: 'history' } });
 reduceMotion = false;
@@ -923,6 +1019,9 @@ api.pop({
   view: 'verses', book: 'John', chapter: '3', verse: '16',
   sheet: { kind: 'history', generation: 778 }
 });
+const pointerUpMeasureFrame = [...frames.keys()][0];
+frames.get(pointerUpMeasureFrame)();
+frames.delete(pointerUpMeasureFrame);
 
 api.snap('determined', true);
 const releasesBeforePointerUp = handle.releaseCount;
@@ -952,6 +1051,20 @@ api.pop(currentReturnPopState());
 assert.equal(dialog.open, false);
 assert.equal(api.state.pendingHistoryClose, false, 'popstate clears pending close state');
 
+api.open('history', { opener, page: 'stale-close-timer' });
+api.close('history-timer');
+const staleHistoryTimer = api.state.historyTimer;
+const staleHistoryCallback = timers.get(staleHistoryTimer);
+api.pop(currentReturnPopState());
+api.open('search', { opener, page: 'new-generation' });
+const generationAfterStaleClose = api.state.generation;
+staleHistoryCallback();
+assert.equal(api.state.generation, generationAfterStaleClose);
+assert.equal(dialog.open, true, 'stale history fallback cannot close a reopened generation');
+assert.equal(api.state.kind, 'search');
+api.close('stale-history-cleanup');
+api.pop(currentReturnPopState());
+
 controllerContext.history.state = {
   view: 'verses', book: 'John', chapter: '3', verse: '16', popup: 'menu'
 };
@@ -970,6 +1083,9 @@ api.close('popup-normalized');
 api.pop(currentReturnPopState());
 
 api.pop({ view: 'verses', book: 'John', chapter: '3', verse: '16', sheet: { kind: 'history' } });
+const bodyMeasureFrame = [...frames.keys()][0];
+frames.get(bodyMeasureFrame)();
+frames.delete(bodyMeasureFrame);
 body.scrollTop = 40;
 body.scrollHeight = 800;
 body.clientHeight = 400;
@@ -1013,13 +1129,13 @@ assert.equal(body.hasPointerCapture(40), true);
 body.dispatch('pointermove', {
   pointerId: 40, clientX: 11, clientY: 0, timeStamp: 140, preventDefault() {}
 });
-assert.equal(api.state.pointer, null, 'boundary reversal clears an applied body drag');
-assert.equal(body.hasPointerCapture(40), false);
-assert.equal(dialog.style.getPropertyValue('--sheet-drag-offset'), '');
-assert.equal(dialog.style.getPropertyValue('--sheet-backdrop-opacity'), '');
-assert.equal(api.state.snap, 'determined');
-assert.equal(dialog.classList.contains('snap-determined'), true);
-assert.equal(dialog.classList.contains('no-motion'), false, 'boundary reset restores stable transitions');
+assert.equal(api.state.pointer.id, 40, 'claimed gesture keeps its frozen geometry through direction reversal');
+assert.equal(body.hasPointerCapture(40), true);
+const reversedBodyFrame = api.state.frame;
+frames.get(reversedBodyFrame)();
+frames.delete(reversedBodyFrame);
+assert.equal(dialog.style.getPropertyValue('--sheet-live-height'), (api.state.determinedHeight + 10) + 'px');
+body.dispatch('pointercancel', { pointerId: 40, clientY: 0, timeStamp: 141 });
 
 body.dispatch('pointerdown', {
   isPrimary: true, button: 0, pointerId: 41, clientX: 10, clientY: 10, timeStamp: 200
@@ -1032,13 +1148,11 @@ assert.ok(pendingBodyFrame);
 body.dispatch('pointermove', {
   pointerId: 41, clientX: 11, clientY: 0, timeStamp: 240, preventDefault() {}
 });
-assert.equal(api.state.pointer, null, 'boundary reversal clears a pending body drag');
-assert.equal(api.state.frame, null);
-assert.ok(cancelledFrames.includes(pendingBodyFrame), 'boundary reversal cancels pending body RAF');
-assert.equal(body.hasPointerCapture(41), false);
-assert.equal(dialog.style.getPropertyValue('--sheet-drag-offset'), '');
-assert.equal(dialog.style.getPropertyValue('--sheet-backdrop-opacity'), '');
-assert.equal(api.state.snap, 'determined');
+assert.equal(api.state.pointer.id, 41, 'pending frame is reused through direction reversal');
+assert.equal(api.state.frame, pendingBodyFrame);
+assert.equal(body.hasPointerCapture(41), true);
+body.dispatch('pointercancel', { pointerId: 41, clientY: 0, timeStamp: 241 });
+assert.ok(cancelledFrames.includes(pendingBodyFrame));
 
 const interactiveTarget = { closest() { return this; } };
 body.dispatch('pointerdown', {
@@ -1132,5 +1246,31 @@ assert.equal(api.state.kind, 'selection');
 assert.equal(api.state.page, 'verses');
 api.pop(selectorReturnState);
 assert.equal(dialog.open, false, 'selector replacement survives recorded Back/Forward/Back');
+
+for (let cycle = 0; cycle < 3; cycle += 1) {
+  assert.equal(api.open('history', { opener, page: 'lifecycle-' + cycle }), true);
+  for (const [id, callback] of [...frames]) { callback(); frames.delete(id); }
+  handle.dispatch('pointerdown', {
+    isPrimary: true, button: 0, pointerId: 200 + cycle, clientX: 0, clientY: 0, timeStamp: 1
+  });
+  handle.dispatch('pointermove', {
+    pointerId: 200 + cycle, clientX: 0, clientY: 20, timeStamp: 20, preventDefault() {}
+  });
+  handle.dispatch('pointercancel', { pointerId: 200 + cycle, clientY: 20, timeStamp: 21 });
+  assert.equal(api.close('lifecycle'), true);
+  api.pop(currentReturnPopState());
+  assert.equal(dialog.open, false);
+  for (const field of ['candidate', 'pointer', 'gesture', 'frame', 'measureFrame', 'settleTimer',
+    'historyTimer', 'resizeObserver', 'contentCleanup', 'closeGeneration']) {
+    assert.equal(api.state[field], null, `cycle ${cycle} releases ${field}`);
+  }
+  assert.equal(measure.textContent, '', `cycle ${cycle} releases rendered nodes`);
+  assert.equal(handle.hasPointerCapture(200 + cycle), false, `cycle ${cycle} releases capture`);
+  assert.equal(dialog.classList.contains('is-dragging'), false);
+  assert.equal(dialog.classList.contains('is-closing'), false);
+  assert.equal(dialog.listenerCount + handle.listenerCount + body.listenerCount, installedListenerCount,
+    `cycle ${cycle} does not retain listeners`);
+  assert.equal(resizeObserverInstances.at(-1).disconnected, true, `cycle ${cycle} disconnects observer`);
+}
 
 console.log('bible sheet controller tests passed');
