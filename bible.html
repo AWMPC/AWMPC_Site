@@ -1107,13 +1107,11 @@
   .settings-sheet-content > .app-version { width: 100%; }
   .search-sheet-skeleton { margin-top: var(--display-panel-gap); }
   .app-sheet-body.selection-sheet-host { overflow: hidden; padding: 0; }
-  .app-sheet-body.selection-sheet-host .app-sheet-measure { height: auto; }
-  .app-sheet.snap-fullscreen .app-sheet-body.selection-sheet-host .app-sheet-measure { height: 100%; }
+  .app-sheet-body.selection-sheet-host .app-sheet-measure { height: 100%; min-height: 0; }
   .selection-pager {
-    display: flex; flex-direction: column; min-height: 0; height: auto; overflow: hidden;
+    display: flex; flex-direction: column; min-height: 0; height: 100%; overflow: hidden;
     touch-action: pan-y;
   }
-  .app-sheet.snap-fullscreen .selection-pager { height: 100%; }
   .selection-indicator {
     position: absolute; left: 50%; bottom: max(8px, env(safe-area-inset-bottom)); z-index: 3;
     width: 36px; height: 28px; display: flex; align-items: center; justify-content: center; gap: 4px;
@@ -2591,7 +2589,7 @@
   function currentAppSheetMeasurementSource() {
     if (appSheetState.kind === 'selection' && typeof appSheetMeasure.querySelector === 'function') {
       var active = appSheetMeasure.querySelector('.selection-panel[aria-hidden="false"]');
-      if (active) return active;
+      if (active) return active.firstElementChild || active;
     }
     return appSheetMeasure;
   }
@@ -2609,6 +2607,14 @@
     }
     var chromeHeight = values[1] + values[2] + values[3];
     if (appSheetState.kind === 'selection' && typeof appSheetMeasure.querySelector === 'function') {
+      var activePanel = appSheetMeasure.querySelector('.selection-panel[aria-hidden="false"]');
+      if (activePanel && source !== activePanel) {
+        var panelStyle = getComputedStyle(activePanel);
+        var panelStart = appSheetPixelValue(panelStyle.paddingBlockStart);
+        var panelEnd = appSheetPixelValue(panelStyle.paddingBlockEnd);
+        if (panelStart === null || panelEnd === null) return null;
+        chromeHeight += panelStart + panelEnd;
+      }
       var dotsHeight = appSheetOuterBlockSize(appSheetMeasure.querySelector('.selection-indicator'));
       if (dotsHeight === null) return null;
       chromeHeight += dotsHeight;
@@ -3019,12 +3025,14 @@
     if (kind === 'selection') page = historyState.sheet.page;
     if (!options.fromPop) normalizePopupHistoryBeforeSheetOpen();
     var wasOpen = appSheet.open;
+    var previousKind = appSheetState.kind;
     var previousReturnGeneration = appSheetState.historyReturnGeneration;
     clearAppSheetMotion();
     if (typeof cleanupAppSheetMeasurement === 'function') cleanupAppSheetMeasurement();
     appSheetState.generation = typeof appSheetState.generation === 'number' && Number.isFinite(appSheetState.generation) ?
       appSheetState.generation + 1 : 1;
     appSheetState.kind = kind;
+    if (!wasOpen || previousKind !== kind) appSheetBody.scrollTop = 0;
     syncAppSheetLauncherState();
     appSheetState.edge = edge;
     appSheetState.page = page;

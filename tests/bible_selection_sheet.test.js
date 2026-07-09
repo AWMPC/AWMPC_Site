@@ -70,6 +70,34 @@ test('selection renderer owns one persistent three-panel track and decorative in
   assert.match(css, /\.selection-indicator[\s\S]*?bottom:/);
 });
 
+test('selection layout constrains the active panel as the sole vertical scroller', () => {
+  const host = extract(/\.app-sheet-body\.selection-sheet-host\s*\{[^}]*\}/,
+    'selection host CSS missing');
+  const measure = extract(/\.app-sheet-body\.selection-sheet-host \.app-sheet-measure\s*\{[^}]*\}/,
+    'selection measurement frame CSS missing');
+  const pager = extract(/\.selection-pager\s*\{[^}]*\}/, 'selection pager CSS missing');
+  const viewport = extract(/\.selection-viewport\s*\{[^}]*\}/, 'selection viewport CSS missing');
+  const track = extract(/\.selection-track\s*\{[^}]*\}/, 'selection track CSS missing');
+  const panel = extract(/\.selection-panel\s*\{[^}]*\}/, 'selection panel CSS missing');
+
+  assert.match(host, /overflow:\s*hidden/);
+  assert.match(measure, /height:\s*100%/,
+    'the measured intrinsic panel must also be constrained by the visible sheet frame');
+  assert.match(measure, /min-height:\s*0/);
+  assert.match(pager, /height:\s*100%/);
+  assert.match(pager, /min-height:\s*0/);
+  assert.match(pager, /overflow:\s*hidden/);
+  assert.match(viewport, /flex:\s*1/);
+  assert.match(viewport, /min-height:\s*0/);
+  assert.match(viewport, /overflow:\s*hidden/);
+  assert.match(track, /height:\s*100%/);
+  assert.match(panel, /height:\s*100%/);
+  assert.match(panel, /overflow:\s*auto/,
+    'the active panel, rather than the generic sheet body, owns vertical scrolling');
+  assert.match(functionSource('currentAppSheetMeasurementSource'), /active\.firstElementChild \|\| active/,
+    'natural determined height reads intrinsic content instead of the constrained scrolling panel');
+});
+
 function pixelDeclaration(rule, property) {
   const match = rule.match(new RegExp(`${property}:\\s*(\\d+(?:\\.\\d+)?)px`));
   assert.ok(match, `${property} pixel declaration missing`);
@@ -278,6 +306,7 @@ function runOpenWithHistory(historyState, source = bible) {
     var history = { pushState: function () {}, replaceState: function () {} };
     var window = { location: { href: '/bible' } };
     var appSheetTitle = { textContent: '' };
+    var appSheetBody = { scrollTop: 500 };
     function isValidAppSheetKind(value) { return value === 'selection'; }
     function isValidAppSheetEdge(value) { return value === 'top' || value === 'bottom'; }
     function isValidAppSheetSnap(value) { return value === 'determined' || value === 'fullscreen'; }

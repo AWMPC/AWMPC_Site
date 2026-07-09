@@ -191,6 +191,15 @@ test('overflow lifecycle observes one scroller, coalesces work, retargets, and r
   h.observers[1].fire([{ target: h.firstPanelContent }]);
   assert.equal(h.frames.size, 1, 'active selector content-only mutation schedules one RAF');
   h.flush();
+  assert.equal(h.fadeTop.classList.contains('is-visible'), false,
+    'fresh active selector panel starts without a top fade');
+  assert.equal(h.fadeBottom.classList.contains('is-visible'), true,
+    'fresh active selector panel exposes the bottom overflow fade');
+  h.firstPanel.scrollTop = 40;
+  h.firstPanel.fire('scroll');
+  h.flush();
+  assert.equal(h.fadeTop.classList.contains('is-visible'), true,
+    'scrolling the active selector panel exposes its top fade');
   h.setActivePanel(h.secondPanel);
   h.api.retarget();
   assert.equal(h.firstPanel.listenerCount(), 0);

@@ -738,6 +738,12 @@ assert.equal(cleanupCount, 1, 'old content cleanup runs before replacement');
 assert.equal(dialog.getAttribute('aria-label'), 'Search — Bible panel');
 assert.notEqual(measure.textContent, '', 'default descriptors render deterministic content');
 
+body.scrollTop = 500;
+assert.equal(api.open('selection', { page: 'books' }), true);
+assert.equal(body.scrollTop, 0,
+  'Search scroll position is cleared before a Selection kind takes ownership of the sheet body');
+assert.equal(api.state.kind, 'selection');
+
 assert.equal(api.close('button'), true);
 assert.equal(historyCalls.back, 1, 'dismissal traverses back from an owned entry');
 assert.equal(dialog.open, true, 'dialog waits for popstate before closing');
