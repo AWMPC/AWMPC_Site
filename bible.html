@@ -3047,6 +3047,7 @@
       velocity: 0, axis: null, fromHandle: fromHandle,
       captureTarget: fromHandle ? appSheetHandle : appSheetBody, captured: false,
       touchAdapter: e.isTouchAdapter === true,
+      pointerType: e.pointerType || '', originTarget: e.target,
       generation: appSheetState.generation,
       scrollTop: appSheetBody.scrollTop, clientHeight: appSheetBody.clientHeight,
       scrollHeight: appSheetBody.scrollHeight,
@@ -3683,7 +3684,7 @@
       if (selection && !selection.isCollapsed) return false;
     } catch (selectionError) {}
     if (!target || typeof target.closest !== 'function') return target === appSheetBody;
-    return !target.closest('a,input,select,textarea,label,[role="button"],[contenteditable="true"]');
+    return !target.closest('button,a,input,select,textarea,label,[role="button"],[contenteditable="true"]');
   }
 
   function selectionCellTarget(target) {
@@ -3927,12 +3928,15 @@
     }
     var activeSheetPointer = appSheetState.pointer || appSheetState.candidate;
     if (activeSheetPointer && !activeSheetPointer.touchAdapter) {
+      var matchingTouchCandidate = activeSheetPointer === appSheetState.candidate &&
+        activeSheetPointer.pointerType === 'touch' &&
+        activeSheetPointer.generation === appSheetState.generation && activeSheetPointer.originTarget === e.target;
       cancelAppSheetGesture({ pointerId: activeSheetPointer.id });
-      return;
+      if (!matchingTouchCandidate) return;
     }
     if (!e.changedTouches || !e.changedTouches.length) return;
     var horizontalAllowed = appSheetState.kind === 'selection' && selectionPointerTargetAllowsSwipe(e.target);
-    var verticalAllowed = horizontalAllowed || appSheetTouchTargetAllowsVertical(e.target);
+    var verticalAllowed = appSheetTouchTargetAllowsVertical(e.target);
     if (!horizontalAllowed && !verticalAllowed) return;
     var touch = e.changedTouches[0];
     var identifier = touch.identifier;

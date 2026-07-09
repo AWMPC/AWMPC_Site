@@ -705,7 +705,22 @@ function gridTarget(kind = '.chapter-btn') {
     closest(selector) {
       if (selector === '.book-btn,.chapter-btn,.verse-btn') return this;
       if (selector === '.selection-panel') return this.panel;
+      if (selector.split(',').map(value => value.trim()).includes('button')) return this;
       return selector.split(',').map(value => value.trim()).includes(kind) ? this : null;
+    }
+  };
+}
+
+function blankTouchTarget(panel = null) {
+  return { closest(selector) { return selector === '.selection-panel' ? panel : null; } };
+}
+
+function nestedButtonTarget(panel = null) {
+  const button = {};
+  return {
+    closest(selector) {
+      if (selector === '.selection-panel') return panel;
+      return selector.split(',').map(value => value.trim()).includes('button') ? button : null;
     }
   };
 }
@@ -952,7 +967,10 @@ function runTouchAdapter() {
     var appSheetState = { generation: 7, kind: 'selection', edge: 'bottom', candidate: null, pointer: null };
     function requestAnimationFrame(fn) { frames.push(fn); return frames.length; }
     function cancelAnimationFrame() { selectionPointerFrame = null; }
-    function beginAppSheetGesture(e) { appSheetState.candidate = { id: e.pointerId, startY: e.clientY }; }
+    function beginAppSheetGesture(e) { appSheetState.candidate = {
+      id: e.pointerId, startY: e.clientY, pointerType: e.pointerType || '', originTarget: e.target,
+      touchAdapter: e.isTouchAdapter === true, generation: appSheetState.generation
+    }; }
     function cancelAppSheetGesture(e) {
       if (appSheetState.candidate && appSheetState.candidate.id === e.pointerId) appSheetState.candidate = null;
       if (appSheetState.pointer && appSheetState.pointer.id === e.pointerId) appSheetState.pointer = null;
@@ -974,6 +992,7 @@ function runTouchAdapter() {
     return {
       start: onSelectionTouchStart, move: onSelectionTouchMove, end: onSelectionTouchEnd,
       cancel: onSelectionTouchCancel, pointerDown: onSelectionPointerDown, pointerMove: onSelectionPointerMove,
+      bodyPointerDown: beginAppSheetGesture,
       page: function () { return selectionSheetPage; }, pointer: function () { return selectionPointer; },
       count: function () { return selectionTouchIdentifiers.size; },
       boundary: function () { return appSheetState.candidate && {
@@ -1018,8 +1037,7 @@ test('touch adapter pages once, deduplicates compatibility pointers, and clears 
   target.panel = { scrollTop: 120, clientHeight: 240, scrollHeight: 720 };
   h.start(touchEvent(2, 180, 40, 1, target));
   assert.equal(h.count(), 1);
-  assert.deepEqual(h.boundary(), { scrollTop: 120, clientHeight: 240, scrollHeight: 720 },
-    'vertical ownership snapshots the nested scroller at touch start');
+  assert.equal(h.boundary(), null, 'grid-cell touch starts horizontal paging only');
   h.start(touchEvent(9, 160, 40, 2, target));
   assert.equal(h.count(), 0, 'a different second touch cancels ownership without adopting either touch');
   assert.equal(h.pointer(), null);
@@ -1101,7 +1119,7 @@ test('touch pointer compatibility is rejected before registration and briefly af
   assert.equal(h.compatibilityArmed(), false);
 });
 
-test('touch vertical motion stays native mid-scroll and only boundary-origin motion claims the sheet', () => {
+test('grid-button vertical motion stays native even at a boundary', () => {
   const mid = runTouchAdapter();
   const midTarget = gridTarget('.book-btn');
   midTarget.panel = { scrollTop: 80, clientHeight: 200, scrollHeight: 600 };
@@ -1118,26 +1136,23 @@ test('touch vertical motion stays native mid-scroll and only boundary-origin mot
   edge.start(touchEvent(11, 100, 40, 1, edgeTarget));
   const edgeMove = touchEvent(11, 102, 90, 20, edgeTarget);
   edge.move(edgeMove);
-  assert.equal(edge.sheetPointer().id, -12);
-  assert.ok(edgeMove.prevented > 0, 'unconsumable boundary-origin movement claims the sheet');
+  assert.equal(edge.sheetPointer(), null);
+  assert.equal(edgeMove.prevented, 0, 'grid vertical movement remains native for horizontal-only cells');
   edge.cancel(touchEvent(11, 102, 90, 21, edgeTarget));
   assert.equal(edge.count(), 0);
 });
 
 test('sheet-body touch adapter owns generic and selector blank-region boundary drags', () => {
   const verticalGuard = functionSource('appSheetTouchTargetAllowsVertical');
-  assert.match(verticalGuard, /a,input,select,textarea,label/);
+  assert.match(verticalGuard, /button,a,input,select,textarea,label/);
   assert.doesNotMatch(verticalGuard, /\bp,span,li\b/);
   assert.match(bible, /appSheetBody\.addEventListener\('touchstart', onSelectionTouchStart, \{ passive: false \}\)/);
   assert.match(bible, /appSheetBody\.addEventListener\('touchmove', onSelectionTouchMove, \{ passive: false \}\)/);
   assert.doesNotMatch(bible, /selectionPager\.addEventListener\('touchstart'/);
 
-  function blankTarget(panel) {
-    return { closest(selector) { return selector === '.selection-panel' ? panel : null; } };
-  }
   const generic = runTouchAdapter();
   generic.kind('history');
-  const genericTarget = blankTarget(null);
+  const genericTarget = blankTouchTarget(null);
   generic.start(touchEvent(30, 100, 40, 1, genericTarget));
   const genericMove = touchEvent(30, 102, 90, 20, genericTarget);
   generic.move(genericMove);
@@ -1148,7 +1163,7 @@ test('sheet-body touch adapter owns generic and selector blank-region boundary d
 
   const selector = runTouchAdapter();
   const panel = { scrollTop: 0, clientHeight: 200, scrollHeight: 600 };
-  const selectorTarget = blankTarget(panel);
+  const selectorTarget = blankTouchTarget(panel);
   selector.start(touchEvent(31, 100, 40, 1, selectorTarget));
   assert.equal(selector.pointer(), null, 'blank selector content does not start horizontal paging');
   const selectorMove = touchEvent(31, 102, 90, 20, selectorTarget);
@@ -1156,6 +1171,52 @@ test('sheet-body touch adapter owns generic and selector blank-region boundary d
   assert.equal(selector.sheetPointer().id, -32);
   assert.ok(selectorMove.prevented > 0);
   selector.cancel(touchEvent(31, 102, 90, 21, selectorTarget));
+});
+
+test('touch compatibility pointer candidate is replaced by Touch ownership on blank content', () => {
+  for (const scenario of [
+    { kind: 'history', target: blankTouchTarget(null), id: 40 },
+    { kind: 'selection', target: blankTouchTarget({ scrollTop: 0, clientHeight: 200, scrollHeight: 600 }), id: 41 }
+  ]) {
+    const h = runTouchAdapter();
+    h.kind(scenario.kind);
+    h.bodyPointerDown({ ...pointerEvent(200 + scenario.id, 100, 40, 1, scenario.target),
+      pointerType: 'touch', currentTarget: {}, isTouchAdapter: false });
+    assert.ok(h.boundary(), 'touch-origin PointerEvent creates the pre-Touch candidate');
+    h.start(touchEvent(scenario.id, 100, 40, 2, scenario.target));
+    assert.equal(h.count(), 1, 'TouchEvent safely replaces the compatibility candidate');
+    const move = touchEvent(scenario.id, 102, 90, 20, scenario.target);
+    h.move(move);
+    assert.equal(h.sheetPointer().id, -(scenario.id + 1));
+    assert.ok(move.prevented > 0);
+    h.cancel(touchEvent(scenario.id, 102, 90, 21, scenario.target));
+    assert.equal(h.count(), 0);
+  }
+
+  for (const pointerType of ['mouse', 'pen']) {
+    const h = runTouchAdapter();
+    const target = blankTouchTarget(null);
+    h.kind('history');
+    h.bodyPointerDown({ ...pointerEvent(300, 100, 40, 1, target), pointerType, currentTarget: {} });
+    h.start(touchEvent(42, 100, 40, 2, target));
+    assert.equal(h.count(), 0);
+    assert.equal(h.sheetPointer(), null, `genuine ${pointerType} collision adopts neither input`);
+  }
+});
+
+test('generic and action buttons cannot originate vertical touch dragging', () => {
+  for (const kind of ['history', 'settings', 'search', 'verse-actions']) {
+    const h = runTouchAdapter();
+    h.kind(kind);
+    const target = nestedButtonTarget();
+    h.start(touchEvent(50, 100, 40, 1, target));
+    const move = touchEvent(50, 102, 90, 20, target);
+    h.move(move);
+    assert.equal(h.count(), 0, `${kind} button touch is never adopted`);
+    assert.equal(h.boundary(), null);
+    assert.equal(h.sheetPointer(), null);
+    assert.equal(move.prevented, 0);
+  }
 });
 
 test('touch arriving during mouse or pen paging cancels without reverse-hybrid adoption', () => {
