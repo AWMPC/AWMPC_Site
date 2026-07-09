@@ -4426,7 +4426,9 @@
     bibleWheelBurst.consumed = true;
     var index = selectionPages.indexOf(selectionSheetPage);
     var next = Math.max(0, Math.min(selectionPages.length - 1, index + direction));
-    if (next !== index) setSelectionPage(selectionPages[next], true, 'pointer');
+    var oldPanel = selectionPanels && selectionPanels[index];
+    var focusMode = oldPanel && document.activeElement && oldPanel.contains(document.activeElement) ? 'pointer' : undefined;
+    if (next !== index) setSelectionPage(selectionPages[next], true, focusMode);
   }
 
   function installSelectionEdgeListener() {

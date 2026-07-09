@@ -57,6 +57,13 @@ function functionSource(name) {
 function wheelHarness(page = 'chapters') {
   const timers = [];
   const pages = [];
+  const selectionPanels = [0, 1, 2].map(panel => ({
+    contains(element) { return element && element.panel === panel; }
+  }));
+  const documentObject = {
+    documentElement: { clientWidth: 600 },
+    activeElement: { panel: ['books', 'chapters', 'verses'].indexOf(page) }
+  };
   const pager = {
     clientWidth: 640,
     contains(target) { return target && target.inside === true; }
@@ -68,7 +75,7 @@ function wheelHarness(page = 'chapters') {
     setTimeout(fn, ms) { const timer = { fn, ms, cleared: false }; timers.push(timer); return timer; },
     clearTimeout(timer) { if (timer) timer.cleared = true; }
   };
-  const api = Function('window', 'document', 'selectionPager', 'pages', 'timers', `
+  const api = Function('window', 'document', 'selectionPager', 'selectionPanels', 'pages', 'timers', `
     var BIBLE_WHEEL_AXIS_RATIO = 1.25;
     var BIBLE_WHEEL_ACTIVATION_PX = 48;
     var BIBLE_WHEEL_IDLE_MS = 160;
@@ -90,6 +97,7 @@ function wheelHarness(page = 'chapters') {
     function setSelectionPage(next, replace, mode) {
       selectionSheetPage = next;
       pages.push([next, replace, mode]);
+      if (mode) document.activeElement = { panel: selectionPages.indexOf(next) };
     }
     return {
       wheel: onSelectionWheel,
@@ -97,12 +105,20 @@ function wheelHarness(page = 'chapters') {
       burst: function () { return bibleWheelBurst; },
       page: function () { return selectionSheetPage; },
       phase: function (value) { appSheetState.phase = value; },
-      pointer: function (value) { appSheetState.pointer = value; selectionPointer = value; },
+      pointer: function (value) { appSheetState.pointer = value; },
+      selectionPointer: function (value) { selectionPointer = value; },
+      candidate: function (value) { appSheetState.candidate = value; },
+      sheet: function (open, kind) { appSheet.open = open; appSheetState.kind = kind; },
+      focus: function (value) { document.activeElement = value; },
       selection: function (value) { window.getSelection = function () { return value; }; },
+      selectionError: function () { window.getSelection = function () { throw new Error('selection unavailable'); }; },
+      viewport: function (visual, inner, fallback) {
+        window.visualViewport = visual; window.innerWidth = inner; document.documentElement.clientWidth = fallback;
+      },
       expire: function (index) { var timer = timers[index == null ? timers.length - 1 : index]; if (timer) timer.fn(); }
     };
-  `)(windowObject, { documentElement: { clientWidth: 600 } }, pager, pages, timers);
-  return { api, pages, timers, pager, windowObject };
+  `)(windowObject, documentObject, pager, selectionPanels, pages, timers);
+  return { api, pages, timers, pager, windowObject, documentObject };
 }
 
 function wheelEvent(dx, dy = 0, options = {}) {
@@ -118,7 +134,9 @@ test('selector wheel accumulates one claimed page per idle-delimited burst', () 
   const first = wheelEvent(24);
   const second = wheelEvent(24);
   api.wheel(first);
+  assert.equal(timers[0].cleared, false);
   api.wheel(second);
+  assert.equal(timers[0].cleared, true, 'rearming clears the previous idle timer');
   assert.equal(first.prevented, false);
   assert.equal(second.prevented, true);
   assert.deepEqual(pages, [['verses', true, 'pointer']]);
@@ -139,6 +157,21 @@ test('selector wheel accumulates one claimed page per idle-delimited burst', () 
   api.wheel(fresh);
   assert.equal(fresh.prevented, true);
   assert.deepEqual(pages.at(-1), ['chapters', true, 'pointer']);
+});
+
+test('selector wheel relocates focus only when the old panel owns it', () => {
+  const focused = wheelHarness('chapters');
+  focused.api.wheel(wheelEvent(48));
+  assert.deepEqual(focused.pages, [['verses', true, 'pointer']]);
+  assert.equal(focused.documentObject.activeElement.panel, 2, 'focused old panel moves safely before inerting');
+
+  for (const externalFocus of [{ role: 'sheet-handle' }, { role: 'external-control' }]) {
+    const external = wheelHarness('chapters');
+    external.api.focus(externalFocus);
+    external.api.wheel(wheelEvent(48));
+    assert.deepEqual(external.pages, [['verses', true, undefined]]);
+    assert.equal(external.documentObject.activeElement, externalFocus, 'trackpad paging preserves external focus');
+  }
 });
 
 test('wheel direction locks only after a claim, normalization is integrated, and vertical gestures stay native', () => {
@@ -190,6 +223,36 @@ test('wheel target and sheet state guards preserve browser, zoom, editing, and d
   assert.equal(pages.length, 0);
 });
 
+test('wheel guards independently block candidates, pointers, editable targets, selection errors, and wrong sheets', () => {
+  for (const configure of [
+    api => api.candidate({ id: 1 }), api => api.pointer({ id: 1 }), api => api.selectionPointer({ id: 1 }),
+    api => api.selectionError(), api => api.sheet(false, 'selection'), api => api.sheet(true, 'history')
+  ]) {
+    const { api, pages } = wheelHarness();
+    configure(api);
+    const event = wheelEvent(120);
+    api.wheel(event);
+    assert.equal(event.prevented, false);
+    assert.equal(pages.length, 0);
+  }
+  const editable = wheelHarness();
+  const event = wheelEvent(120, 0, {
+    target: { inside: true, isContentEditable: true, closest() { return null; } }
+  });
+  editable.api.wheel(event);
+  assert.equal(event.prevented, false);
+  assert.equal(editable.pages.length, 0);
+});
+
+test('wheel page-mode normalization falls back to the document viewport width', () => {
+  const { api, pages } = wheelHarness();
+  api.viewport({ width: NaN }, NaN, 600);
+  const event = wheelEvent(.08, 0, { deltaMode: 2 });
+  api.wheel(event);
+  assert.equal(event.prevented, true);
+  assert.deepEqual(pages, [['verses', true, 'pointer']]);
+});
+
 test('selector claims endpoints and stale idle callbacks cannot reset a newer burst', () => {
   const { api, pages, timers } = wheelHarness('verses');
   const endpoint = wheelEvent(120);
@@ -198,6 +261,7 @@ test('selector claims endpoints and stale idle callbacks cannot reset a newer bu
   assert.equal(pages.length, 0);
   const stale = timers.at(-1);
   api.reset();
+  assert.equal(stale.cleared, true, 'reset and selector cleanup clear the active timer');
   api.wheel(wheelEvent(-24));
   stale.fn();
   api.wheel(wheelEvent(-24));
