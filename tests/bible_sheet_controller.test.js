@@ -18,7 +18,7 @@ assert.match(bible, /class="app-sheet-fade app-sheet-fade-bottom" aria-hidden="t
 assert.doesNotMatch(bible, /aria-labelledby="app-sheet-title"|id="app-sheet-title"|id="app-sheet-close"/);
 assert.doesNotMatch(bible, /var appSheetTitle|var appSheetClose|appSheetClose\.addEventListener/);
 assert.match(bible, /\.app-sheet\.edge-top/);
-assert.match(bible, /\.app-sheet\.snap-determined[\s\S]*70dvh/);
+assert.match(bible, /\.app-sheet\.snap-determined[\s\S]*var\(--sheet-height, min\(70dvh,\s*720px\)\)/);
 assert.match(bible, /\.app-sheet\.snap-fullscreen[\s\S]*100dvh/);
 assert.match(bible, /\.app-sheet::backdrop[\s\S]*backdrop-filter: blur\(3px\)/);
 assert.match(bible, /env\(safe-area-inset-bottom/);
@@ -37,6 +37,9 @@ function controllerFunction(name) {
   assert.ok(match, name + ' controller function is present');
   return match[0];
 }
+
+assert.doesNotMatch(controllerFunction('openAppSheet'), /options\.(?:render|content)/,
+  'openAppSheet cannot accept executable renderer callbacks');
 
 function runHandleKeys(options) {
   const appSheet = fakeElement();
@@ -265,7 +268,18 @@ assert.equal(h.state({ view: 'verses', book: 'John', chapter: '3', verse: '16', 
 assert.equal(h.state({ view: 'verses', book: 'John', chapter: '3', verse: '16', sheet: { kind: 'history', page: {} } }), null);
 assert.equal(h.state({ view: 'verses', book: 'John', chapter: '3', verse: '16', sheet: { kind: 'history', page: '<script>' } }), null);
 
-assert.match(bible, /var appSheetState = \{[\s\S]*pointer: null,[\s\S]*settleTimer: null,[\s\S]*contentCleanup: null/);
+for (const field of ['kind', 'edge', 'snap', 'phase', 'generation', 'determinedHeight', 'candidate', 'gesture',
+  'pointer', 'frame', 'measureFrame', 'settleTimer', 'historyTimer', 'resizeObserver', 'contentCleanup',
+  'historyState', 'historyOwned', 'pendingHistoryClose', 'opener', 'focusPolicy']) {
+  assert.match(bible, new RegExp('var appSheetState = \\{[\\s\\S]*' + field + ':'), `state explicitly owns ${field}`);
+}
+assert.doesNotMatch(controllerFunction('openAppSheet'), /options\.(?:render|content)/);
+assert.doesNotMatch(bible, /appSheetState\.closing/);
+assert.match(bible, /function isCurrentAppSheetGeneration\(generation\)/);
+assert.match(bible, /function applyTextScale\([\s\S]*scheduleAppSheetMeasurement\(appSheetState\.generation\)/,
+  'text scale changes remeasure an open determined sheet');
+assert.match(bible, /function finishSelectionPageSettle\([\s\S]*installAppSheetMeasurement\(appSheetState\.generation\)/,
+  'settled selection pages retarget intrinsic measurement');
 assert.match(bible, /pendingHistoryClose: false/);
 assert.match(bible, /function installAppSheetListeners\(\)[\s\S]*if \(appSheetListenersInstalled\) return;[\s\S]*appSheetHandle\.addEventListener\('pointerdown'/);
 assert.equal((bible.match(/installAppSheetListeners\(\);/g) || []).length, 1, 'listener installation has one startup call');
@@ -277,6 +291,7 @@ assert.match(bible, /appSheetState\.pointer = null/);
 assert.match(bible, /shouldReduceVerseMotion\(\)[\s\S]*setSheetSnap/);
 assert.match(bible, /function openAppSheet\(kind, options\)/);
 assert.match(bible, /function setSheetSnap\(snap, immediate\)/);
+assert.doesNotMatch(controllerFunction('setSheetSnap'), /offsetHeight/, 'snap changes avoid forced synchronous layout');
 assert.match(bible, /function requestCloseAppSheet\(source\)/);
 assert.match(bible, /function finishCloseAppSheet\(\)/);
 assert.match(bible, /history\.pushState\(historyState, '', window\.location\.href\)/);
@@ -295,6 +310,7 @@ function fakeElement() {
   const listeners = Object.create(null);
   const classes = new Set();
   const properties = Object.create(null);
+  const writes = Object.create(null);
   const captures = new Set();
   const attributes = Object.create(null);
   return {
@@ -304,6 +320,8 @@ function fakeElement() {
     scrollTop: 0,
     clientHeight: 400,
     scrollHeight: 400,
+    rectHeight: 0,
+    get styleWriteCount() { return writes['--sheet-height'] || 0; },
     textContent: '',
     listenerCount: 0,
     focusCount: 0,
@@ -319,7 +337,7 @@ function fakeElement() {
       contains(name) { return classes.has(name); }
     },
     style: {
-      setProperty(name, value) { properties[name] = value; },
+      setProperty(name, value) { properties[name] = value; writes[name] = (writes[name] || 0) + 1; },
       removeProperty(name) { delete properties[name]; },
       getPropertyValue(name) { return properties[name] || ''; }
     },
@@ -351,6 +369,7 @@ const dialog = fakeElement();
 const handle = fakeElement();
 const body = fakeElement();
 const measure = fakeElement();
+measure.scrollHeight = 180;
 const fadeTop = fakeElement();
 const fadeBottom = fakeElement();
 const opener = fakeElement();
@@ -366,6 +385,25 @@ const timers = new Map();
 const cancelledTimers = [];
 let popupCloseCalls = 0;
 let textSelectionActive = false;
+let staticHistoryRenderCount = 0;
+let bodyPaddingStart = 0;
+let bodyPaddingEnd = 0;
+const resizeObserverInstances = [];
+const windowListeners = Object.create(null);
+const viewportListeners = Object.create(null);
+class FakeResizeObserver {
+  constructor(callback) {
+    this.callback = callback;
+    this.targets = [];
+    this.disconnected = false;
+    resizeObserverInstances.push(this);
+  }
+  observe(target) { this.targets.push(target); }
+  disconnect() { this.disconnected = true; this.targets = []; }
+  fire() { this.callback([]); }
+}
+handle.rectHeight = 44;
+handle.getBoundingClientRect = () => ({ height: handle.rectHeight });
 const controllerContext = {
   Math,
   Date,
@@ -376,9 +414,33 @@ const controllerContext = {
   appSheetFadeTop: fadeTop,
   appSheetFadeBottom: fadeBottom,
   fabMain,
-  document: { activeElement: opener },
+  document: { activeElement: opener, documentElement: { clientHeight: 780 } },
+  ResizeObserver: FakeResizeObserver,
+  getComputedStyle(element) {
+    if (element === handle) return { marginBlockStart: '0px', marginBlockEnd: '0px' };
+    if (element === body) return {
+      paddingBlockStart: bodyPaddingStart + 'px', paddingBlockEnd: bodyPaddingEnd + 'px'
+    };
+    return {};
+  },
+  renderHistorySheet(target, sheet) {
+    staticHistoryRenderCount += 1;
+    historyRenderExpansion.push(fabMain.getAttribute('aria-expanded'));
+    target.textContent = 'history:' + (sheet.page || 'root');
+    return () => { cleanupCount += 1; };
+  },
+  renderSettingsSheet() {
+    return () => { settingsCleanupExpansion.push(fabMain.getAttribute('aria-expanded')); };
+  },
   window: {
     innerHeight: 800,
+    visualViewport: {
+      height: 800,
+      addEventListener(type, fn) { (viewportListeners[type] || (viewportListeners[type] = [])).push(fn); },
+      removeEventListener() {}
+    },
+    addEventListener(type, fn) { (windowListeners[type] || (windowListeners[type] = [])).push(fn); },
+    removeEventListener() {},
     clearTimeout(id) { cancelledTimers.push(id); timers.delete(id); },
     setTimeout(fn) { const id = nextTimer++; timers.set(id, fn); return id; },
     getSelection() { return { isCollapsed: !textSelectionActive }; },
@@ -413,30 +475,97 @@ assert.equal(dialog.listenerCount + handle.listenerCount + body.listenerCount, i
 let cleanupCount = 0;
 const historyRenderExpansion = [];
 const settingsCleanupExpansion = [];
-assert.equal(api.register('history', {
-  title: 'Registered History',
-  render(target, sheet) {
-    historyRenderExpansion.push(fabMain.getAttribute('aria-expanded'));
-    target.textContent = 'history:' + (sheet.page || 'root');
-    return () => { cleanupCount += 1; };
-  }
-}), true);
-assert.equal(api.register('settings', {
-  title: 'Registered Settings',
-  render() {
-    return () => { settingsCleanupExpansion.push(fabMain.getAttribute('aria-expanded')); };
-  }
-}), true);
-assert.equal(api.open('history', { opener, page: 'recent' }), true);
+assert.equal(api.open('history', { opener, page: 'recent', render() { throw new Error('hostile renderer ran'); } }), true);
+assert.equal(staticHistoryRenderCount, 1, 'trusted static History renderer runs exactly once');
 assert.equal(fabMain.getAttribute('aria-expanded'), 'false', 'History does not expand the Settings launcher');
 assert.equal(dialog.open, true);
 assert.equal(dialog.getAttribute('aria-label'), 'History — Bible panel');
 assert.equal(handle.getAttribute('aria-label'), 'Expand History panel');
 assert.equal(measure.textContent, 'history:recent');
+assert.equal(frames.size, 1, 'opening schedules one measurement frame');
+const initialMeasureFrame = [...frames.keys()][0];
+frames.get(initialMeasureFrame)();
+frames.delete(initialMeasureFrame);
+assert.equal(dialog.style.getPropertyValue('--sheet-height'), '224px',
+  'short content uses intrinsic height plus fixed chrome');
+assert.equal(api.state.determinedHeight, 224);
+assert.equal(resizeObserverInstances.length, 1);
+
+measure.scrollHeight = 900;
+resizeObserverInstances[0].fire();
+resizeObserverInstances[0].fire();
+assert.equal(frames.size, 1, 'repeated observer callbacks coalesce into one measurement RAF');
+const longMeasureFrame = [...frames.keys()][0];
+frames.get(longMeasureFrame)();
+frames.delete(longMeasureFrame);
+assert.equal(dialog.style.getPropertyValue('--sheet-height'), '560px', 'long content caps at 70 percent of viewport');
+const heightWrites = dialog.styleWriteCount;
+resizeObserverInstances[0].fire();
+const unchangedFrame = [...frames.keys()][0];
+frames.get(unchangedFrame)();
+frames.delete(unchangedFrame);
+assert.equal(dialog.styleWriteCount, heightWrites, 'unchanged rounded measurements do not write or loop');
+
+measure.scrollHeight = 120;
+handle.dispatch('pointerdown', {
+  isPrimary: true, button: 0, pointerId: 71, clientX: 10, clientY: 10, timeStamp: 1
+});
+handle.dispatch('pointermove', {
+  pointerId: 71, clientX: 10, clientY: 30, timeStamp: 2, preventDefault() {}
+});
+assert.equal(api.state.phase, 'dragging');
+resizeObserverInstances[0].fire();
+for (const [id, callback] of [...frames]) { callback(); frames.delete(id); }
+assert.equal(dialog.style.getPropertyValue('--sheet-height'), '560px', 'measurement freezes during an active pointer');
+handle.dispatch('pointercancel', { pointerId: 71, clientY: 30, timeStamp: 3 });
+const resumedFrame = [...frames.keys()][0];
+frames.get(resumedFrame)();
+frames.delete(resumedFrame);
+assert.equal(dialog.style.getPropertyValue('--sheet-height'), '164px', 'measurement resumes after pointer cancellation');
+
+measure.scrollHeight = 500;
+controllerContext.window.visualViewport.height = 600;
+viewportListeners.resize[0]();
+const viewportFrame = [...frames.keys()][0];
+frames.get(viewportFrame)();
+frames.delete(viewportFrame);
+assert.equal(dialog.style.getPropertyValue('--sheet-height'), '420px', 'visual viewport changes recalculate the cap');
+api.snap('fullscreen', true);
+measure.scrollHeight = 180;
+viewportListeners.resize[0]();
+assert.equal(frames.size, 0, 'fullscreen sheets ignore determined-height remeasurement');
+api.snap('determined', true);
+const restoreDeterminedFrame = [...frames.keys()][0];
+frames.get(restoreDeterminedFrame)();
+frames.delete(restoreDeterminedFrame);
+assert.equal(dialog.style.getPropertyValue('--sheet-height'), '224px');
+
+bodyPaddingStart = 10;
+bodyPaddingEnd = 6;
+measure.scrollHeight = 100;
+resizeObserverInstances[0].fire();
+const paddedFrame = [...frames.keys()][0];
+frames.get(paddedFrame)();
+frames.delete(paddedFrame);
+assert.equal(dialog.style.getPropertyValue('--sheet-height'), '160px',
+  'body padding and safe-area contribution are added exactly once');
+bodyPaddingStart = 0;
+bodyPaddingEnd = 0;
+
+measure.scrollHeight = Infinity;
+resizeObserverInstances[0].fire();
+const invalidGeometryFrame = [...frames.keys()][0];
+frames.get(invalidGeometryFrame)();
+frames.delete(invalidGeometryFrame);
+assert.equal(dialog.style.getPropertyValue('--sheet-height'), '160px', 'invalid geometry preserves the bounded safe height');
+assert.equal(dialog.styleWriteCount, heightWrites + 4, 'invalid geometry does not produce an unbounded style write');
+measure.scrollHeight = 180;
+const firstGenerationObserver = resizeObserverInstances[0];
 assert.equal(historyCalls.push.length, 1, 'first open pushes one sheet entry');
 assert.equal(historyCalls.replace.length, 0);
 
 assert.equal(api.open('search', { page: 'results' }), true);
+assert.ok(firstGenerationObserver.disconnected, 'content replacement disconnects the previous observer');
 assert.equal(fabMain.getAttribute('aria-expanded'), 'false', 'kind switch away from Settings remains collapsed');
 assert.equal(historyCalls.push.length, 1, 'switching an open sheet never pushes again');
 assert.equal(historyCalls.replace.length, 1, 'switching kind/page replaces the owned sheet entry');
@@ -492,6 +621,7 @@ assert.equal(api.state.pointer.id, 7);
 handle.dispatch('pointermove', {
   pointerId: 7, clientX: 11, clientY: 110, timeStamp: 101, preventDefault() {}
 });
+assert.equal(api.state.phase, 'dragging');
 const firstDragFrame = api.state.frame;
 assert.ok(firstDragFrame, 'drag DOM writes are scheduled through RAF');
 assert.equal(dialog.style.getPropertyValue('--sheet-drag-offset'), '');
@@ -511,7 +641,7 @@ const cancelledDragFrame = api.state.frame;
 handle.dispatch('pointercancel', { pointerId: 7, clientY: 30 });
 assert.equal(api.state.pointer, null, 'pointercancel resets pointer state');
 assert.ok(cancelledFrames.includes(cancelledDragFrame), 'pointercancel cancels pending RAF');
-assert.equal(handle.releaseCount, 1, 'pointercancel explicitly releases held pointer capture');
+assert.equal(handle.releaseCount, 2, 'pointercancel explicitly releases held pointer capture');
 
 handle.dispatch('pointerdown', {
   isPrimary: true, button: 0, pointerId: 8, clientX: 10, clientY: 10, timeStamp: 1
@@ -543,11 +673,32 @@ api.pop({ view: 'verses', book: 'John', chapter: '3', verse: '16' });
 api.pop({ view: 'verses', book: 'John', chapter: '3', verse: '16', sheet: { kind: 'history' } });
 reduceMotion = false;
 api.state.historyOwned = false;
+const oldGeneration = api.state.generation;
+const oldObserver = resizeObserverInstances.at(-1);
+measure.scrollHeight = 260;
+oldObserver.fire();
+const oldMeasureFrameId = [...frames.keys()][0];
+const oldMeasureFrameCallback = frames.get(oldMeasureFrameId);
 api.close('test-timer');
 const pendingSettleTimer = api.state.settleTimer;
+const oldSettleCallback = timers.get(pendingSettleTimer);
 assert.ok(pendingSettleTimer, 'animated close stores its settle timer');
 api.pop({ view: 'verses', book: 'John', chapter: '3', verse: '16', sheet: { kind: 'history' } });
 assert.ok(cancelledTimers.includes(pendingSettleTimer), 'reopen cancels the pending settle timer');
+assert.ok(oldObserver.disconnected, 'reopen disconnects the previous generation observer');
+assert.ok(cancelledFrames.includes(oldMeasureFrameId), 'reopen cancels the previous generation measure RAF');
+assert.notEqual(api.state.generation, oldGeneration);
+const reopened = {
+  height: dialog.style.getPropertyValue('--sheet-height'), phase: api.state.phase,
+  kind: api.state.kind, content: measure.textContent, focus: opener.focusCount
+};
+oldObserver.fire();
+oldMeasureFrameCallback();
+oldSettleCallback();
+assert.deepEqual({
+  height: dialog.style.getPropertyValue('--sheet-height'), phase: api.state.phase,
+  kind: api.state.kind, content: measure.textContent, focus: opener.focusCount
+}, reopened, 'stale observer, RAF, and timer callbacks cannot mutate the reopened generation');
 reduceMotion = true;
 
 api.snap('determined', true);

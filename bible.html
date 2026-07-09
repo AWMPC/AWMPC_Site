@@ -1022,7 +1022,7 @@
     --sheet-backdrop-opacity: 1;
     width: 100%;
     max-width: none;
-    height: min(70dvh, 720px);
+    height: var(--sheet-height, min(70dvh, 720px));
     max-height: 100dvh;
     margin: auto 0 0;
     padding: 0;
@@ -1038,7 +1038,7 @@
     transition-duration: 240ms, 240ms, 190ms;
     transition-timing-function: var(--motion-ease);
   }
-  .app-sheet.snap-determined { height: min(70dvh, 720px); }
+  .app-sheet.snap-determined { height: var(--sheet-height, min(70dvh, 720px)); }
   .app-sheet.snap-fullscreen { height: 100dvh; border-radius: 0; }
   .app-sheet.edge-top {
     margin: 0 0 auto;
@@ -1070,7 +1070,7 @@
     height: 100%; min-height: 0; overflow: auto; overscroll-behavior: contain;
     padding: 0 var(--display-panel-padding) max(var(--display-panel-padding), env(safe-area-inset-bottom));
   }
-  .app-sheet-measure { min-height: 100%; }
+  .app-sheet-measure { min-height: 0; }
   .app-sheet-measure > .verse-actions {
     width: 100%; max-width: none; margin: 0; border: 0; box-shadow: none;
     opacity: 1; transform: none; background: transparent;
@@ -1086,11 +1086,13 @@
   .settings-sheet-content > .app-version { width: 100%; }
   .search-sheet-skeleton { margin-top: var(--display-panel-gap); }
   .app-sheet-body.selection-sheet-host { overflow: hidden; padding: 0; }
-  .app-sheet-body.selection-sheet-host .app-sheet-measure { height: 100%; }
+  .app-sheet-body.selection-sheet-host .app-sheet-measure { height: auto; }
+  .app-sheet.snap-fullscreen .app-sheet-body.selection-sheet-host .app-sheet-measure { height: 100%; }
   .selection-pager {
-    display: flex; flex-direction: column; min-height: 0; height: 100%; overflow: hidden;
+    display: flex; flex-direction: column; min-height: 0; height: auto; overflow: hidden;
     touch-action: pan-y;
   }
+  .app-sheet.snap-fullscreen .selection-pager { height: 100%; }
   .selection-dots {
     order: 0; display: flex; justify-content: center; align-items: center; gap: 8px;
     min-height: 32px; padding: 6px var(--display-panel-padding);
@@ -2382,16 +2384,24 @@
     kind: null,
     edge: 'bottom',
     snap: 'determined',
+    phase: 'closed',
+    generation: 0,
+    determinedHeight: 0,
+    candidate: null,
+    gesture: null,
     page: null,
     opener: null,
     pointer: null,
     settleTimer: null,
+    historyTimer: null,
     frame: null,
+    measureFrame: null,
+    resizeObserver: null,
     contentCleanup: null,
     historyState: null,
     historyOwned: false,
     pendingHistoryClose: false,
-    closing: false
+    focusPolicy: 'none'
   };
   var appSheetListenersInstalled = false;
   var appSheetDescriptors = Object.create(null);
@@ -2445,6 +2455,95 @@
     appSheetState.pointer = null;
   }
 
+  function isCurrentAppSheetGeneration(generation) {
+    return isFiniteAppSheetNumber(generation) && generation === appSheetState.generation;
+  }
+
+  function appSheetViewportHeight() {
+    var visualHeight = window.visualViewport && window.visualViewport.height;
+    if (isFiniteAppSheetNumber(visualHeight) && visualHeight > 0) return visualHeight;
+    if (isFiniteAppSheetNumber(window.innerHeight) && window.innerHeight > 0) return window.innerHeight;
+    var clientHeight = document.documentElement && document.documentElement.clientHeight;
+    return isFiniteAppSheetNumber(clientHeight) && clientHeight > 0 ? clientHeight : null;
+  }
+
+  function appSheetPixelValue(value) {
+    var parsed = typeof value === 'string' ? parseFloat(value) : value;
+    return isFiniteAppSheetNumber(parsed) && parsed >= 0 ? parsed : null;
+  }
+
+  function appSheetOuterBlockSize(element) {
+    if (!element || typeof element.getBoundingClientRect !== 'function') return null;
+    var rect = element.getBoundingClientRect();
+    var style = getComputedStyle(element);
+    var start = appSheetPixelValue(style.marginBlockStart);
+    var end = appSheetPixelValue(style.marginBlockEnd);
+    if (!rect || !isFiniteAppSheetNumber(rect.height) || rect.height < 0 || start === null || end === null) return null;
+    return rect.height + start + end;
+  }
+
+  function currentAppSheetMeasurementSource() {
+    if (appSheetState.kind === 'selection' && typeof appSheetMeasure.querySelector === 'function') {
+      var active = appSheetMeasure.querySelector('.selection-panel[aria-hidden="false"]');
+      if (active) return active;
+    }
+    return appSheetMeasure;
+  }
+
+  function measureAppSheetContent(generation) {
+    if (!isCurrentAppSheetGeneration(generation) || appSheetState.phase !== 'idle' ||
+        appSheetState.snap !== 'determined' || appSheetState.pointer) return null;
+    var source = currentAppSheetMeasurementSource();
+    var contentHeight = source && source.scrollHeight;
+    var bodyStyle = getComputedStyle(appSheetBody);
+    var values = [contentHeight, appSheetOuterBlockSize(appSheetHandle),
+      appSheetPixelValue(bodyStyle.paddingBlockStart), appSheetPixelValue(bodyStyle.paddingBlockEnd)];
+    for (var i = 0; i < values.length; i++) {
+      if (!isFiniteAppSheetNumber(values[i]) || values[i] < 0) return null;
+    }
+    var chromeHeight = values[1] + values[2] + values[3];
+    if (appSheetState.kind === 'selection' && typeof appSheetMeasure.querySelector === 'function') {
+      var dotsHeight = appSheetOuterBlockSize(appSheetMeasure.querySelector('.selection-dots'));
+      if (dotsHeight === null) return null;
+      chromeHeight += dotsHeight;
+    }
+    return appSheetDeterminedHeight(contentHeight, chromeHeight, appSheetViewportHeight());
+  }
+
+  function scheduleAppSheetMeasurement(generation) {
+    generation = generation == null ? appSheetState.generation : generation;
+    if (!isCurrentAppSheetGeneration(generation) || appSheetState.phase === 'closed' ||
+        appSheetState.snap !== 'determined' || appSheetState.measureFrame !== null) return false;
+    appSheetState.measureFrame = requestAnimationFrame(function () {
+      if (!isCurrentAppSheetGeneration(generation)) return;
+      appSheetState.measureFrame = null;
+      var height = measureAppSheetContent(generation);
+      if (height === null || height === appSheetState.determinedHeight) return;
+      appSheetState.determinedHeight = height;
+      appSheet.style.setProperty('--sheet-height', height + 'px');
+    });
+    return true;
+  }
+
+  function cleanupAppSheetMeasurement() {
+    if (appSheetState.measureFrame !== null) cancelAnimationFrame(appSheetState.measureFrame);
+    appSheetState.measureFrame = null;
+    if (appSheetState.resizeObserver) appSheetState.resizeObserver.disconnect();
+    appSheetState.resizeObserver = null;
+  }
+
+  function installAppSheetMeasurement(generation) {
+    cleanupAppSheetMeasurement();
+    if (!isCurrentAppSheetGeneration(generation)) return;
+    if (typeof ResizeObserver === 'function') {
+      appSheetState.resizeObserver = new ResizeObserver(function () {
+        if (isCurrentAppSheetGeneration(generation)) scheduleAppSheetMeasurement(generation);
+      });
+      appSheetState.resizeObserver.observe(currentAppSheetMeasurementSource());
+    }
+    scheduleAppSheetMeasurement(generation);
+  }
+
   function clearAppSheetMotion() {
     if (appSheetState.frame !== null) cancelAnimationFrame(appSheetState.frame);
     if (appSheetState.settleTimer !== null) window.clearTimeout(appSheetState.settleTimer);
@@ -2490,6 +2589,10 @@
   }
 
   function resetAppSheetState() {
+    appSheetState.generation += 1;
+    cleanupAppSheetMeasurement();
+    if (appSheetState.historyTimer !== null) window.clearTimeout(appSheetState.historyTimer);
+    appSheetState.historyTimer = null;
     clearAppSheetMotion();
     syncAppSheetLauncherState();
     cleanupAppSheetContent();
@@ -2502,7 +2605,12 @@
     appSheetState.opener = null;
     appSheetState.historyOwned = false;
     appSheetState.pendingHistoryClose = false;
-    appSheetState.closing = false;
+    appSheetState.phase = 'closed';
+    appSheetState.determinedHeight = 0;
+    appSheetState.candidate = null;
+    appSheetState.gesture = null;
+    appSheetState.focusPolicy = 'none';
+    appSheet.style.removeProperty('--sheet-height');
     appSheet.classList.remove('edge-top', 'snap-fullscreen');
     appSheet.classList.add('edge-bottom', 'snap-determined');
     syncAppSheetAccessibleState();
@@ -2511,13 +2619,28 @@
 
   function setSheetSnap(snap, immediate) {
     if (!isValidAppSheetSnap(snap)) return false;
+    var generation = appSheetState.generation;
+    if (appSheetState.settleTimer !== null) window.clearTimeout(appSheetState.settleTimer);
+    appSheetState.settleTimer = null;
     appSheetState.snap = snap;
-    if (immediate || shouldReduceVerseMotion()) appSheet.classList.add('no-motion');
+    var synchronous = immediate || shouldReduceVerseMotion();
+    if (synchronous) appSheet.classList.add('no-motion');
     appSheet.classList.toggle('snap-determined', snap === 'determined');
     appSheet.classList.toggle('snap-fullscreen', snap === 'fullscreen');
-    appSheet.offsetHeight;
     appSheet.classList.remove('no-motion');
     syncAppSheetAccessibleState();
+    if (synchronous) {
+      appSheetState.phase = appSheet.open ? 'idle' : appSheetState.phase;
+      if (snap === 'determined') scheduleAppSheetMeasurement(generation);
+    } else {
+      appSheetState.phase = 'settling';
+      appSheetState.settleTimer = window.setTimeout(function () {
+        if (!isCurrentAppSheetGeneration(generation) || appSheetState.phase !== 'settling') return;
+        appSheetState.settleTimer = null;
+        appSheetState.phase = 'idle';
+        if (appSheetState.snap === 'determined') scheduleAppSheetMeasurement(generation);
+      }, 260);
+    }
     return true;
   }
 
@@ -2527,19 +2650,24 @@
   }
 
   function requestCloseAppSheet(source) {
-    if (!appSheet.open || appSheetState.closing) return false;
+    if (!appSheet.open || appSheetState.phase === 'closing') return false;
     if (appSheetState.historyOwned && source !== 'popstate') {
       if (appSheetState.pendingHistoryClose) return true;
       appSheetState.pendingHistoryClose = true;
       history.back();
       return true;
     }
-    appSheetState.closing = true;
+    appSheetState.phase = 'closing';
+    cleanupAppSheetMeasurement();
+    var generation = appSheetState.generation;
     if (shouldReduceVerseMotion()) {
       finishCloseAppSheet();
     } else {
       appSheet.classList.add('is-closing');
-      appSheetState.settleTimer = window.setTimeout(finishCloseAppSheet, 200);
+      if (appSheetState.settleTimer !== null) window.clearTimeout(appSheetState.settleTimer);
+      appSheetState.settleTimer = window.setTimeout(function () {
+        if (isCurrentAppSheetGeneration(generation) && appSheetState.phase === 'closing') finishCloseAppSheet();
+      }, 200);
     }
     return true;
   }
@@ -2574,6 +2702,7 @@
     } catch (renderError) {
       appSheetMeasure.textContent = 'This panel is unavailable.';
     }
+    installAppSheetMeasurement(appSheetState.generation);
   }
 
   function refreshOwnerScopedAppSheet() {
@@ -2595,17 +2724,6 @@
     var snap = options.snap == null ? 'determined' : options.snap;
     var page = options.page == null ? null : options.page;
     if (!isValidAppSheetEdge(edge) || !isValidAppSheetSnap(snap) || (page != null && typeof page !== 'string')) return false;
-    if (typeof options.render === 'function') {
-      registerAppSheetDescriptor(kind, {
-        title: typeof options.title === 'string' && options.title ? options.title : kind,
-        render: options.render
-      });
-    } else if (typeof options.content === 'function') {
-      registerAppSheetDescriptor(kind, {
-        title: typeof options.title === 'string' && options.title ? options.title : kind,
-        render: options.content
-      });
-    }
     var descriptor = resolveAppSheetDescriptor(kind);
     if (!descriptor) return false;
     var historyState = validatedAppSheetHistoryState(options.historyState || sheetHistoryState(kind, page));
@@ -2614,12 +2732,16 @@
     if (!options.fromPop) normalizePopupHistoryBeforeSheetOpen();
     var wasOpen = appSheet.open;
     clearAppSheetMotion();
+    if (typeof cleanupAppSheetMeasurement === 'function') cleanupAppSheetMeasurement();
+    appSheetState.generation = typeof appSheetState.generation === 'number' && Number.isFinite(appSheetState.generation) ?
+      appSheetState.generation + 1 : 1;
     appSheetState.kind = kind;
     syncAppSheetLauncherState();
     appSheetState.edge = edge;
     appSheetState.page = page;
     appSheetState.historyState = historyState;
-    appSheetState.closing = false;
+    appSheetState.phase = 'idle';
+    appSheetState.determinedHeight = 0;
     if (!wasOpen) appSheetState.opener = options.opener || document.activeElement;
     appSheet.classList.toggle('edge-top', edge === 'top');
     appSheet.classList.toggle('edge-bottom', edge === 'bottom');
@@ -2628,6 +2750,8 @@
     if (!wasOpen) {
       try { appSheet.showModal(); } catch (e) { resetAppSheetState(); return false; }
     }
+    appSheetState.phase = 'idle';
+    if (typeof scheduleAppSheetMeasurement === 'function') scheduleAppSheetMeasurement(appSheetState.generation);
     if (!options.fromPop) {
       if (wasOpen && appSheetState.historyOwned) history.replaceState(historyState, '', window.location.href);
       else {
@@ -2756,6 +2880,7 @@
         pointer.captured = true;
       } catch (captureError) { return; }
     }
+    appSheetState.phase = 'dragging';
     e.preventDefault();
     var offset = appSheetState.edge === 'bottom' ? Math.max(-160, dy) : Math.min(160, dy);
     var progress = Math.max(0, 1 - Math.abs(offset) / Math.max(appSheet.offsetHeight, 1));
@@ -2829,6 +2954,12 @@
     appSheetBody.addEventListener('pointercancel', function (e) { settleAppSheetPointer(e, true); });
     appSheetBody.addEventListener('lostpointercapture', function (e) {
       if (appSheetState.pointer && appSheetState.pointer.id === e.pointerId) resetAppSheetPointer();
+    });
+    window.addEventListener(['resize'][0], function () {
+      scheduleAppSheetMeasurement(appSheetState.generation);
+    });
+    if (window.visualViewport) window.visualViewport.addEventListener(['resize'][0], function () {
+      scheduleAppSheetMeasurement(appSheetState.generation);
     });
   }
   /* APP SHEET CONTROLLER END */
@@ -3031,6 +3162,7 @@
     if (selectionRetargetTimer !== null) window.clearTimeout(selectionRetargetTimer);
     selectionRetargetTimer = null;
     scheduleSelectionGridRetarget();
+    if (typeof installAppSheetMeasurement === 'function') installAppSheetMeasurement(appSheetState.generation);
   }
 
   function updateSelectionPageSemantics() {
@@ -3058,6 +3190,9 @@
     selectionTrack.classList.toggle('no-motion', shouldReduceVerseMotion());
     selectionTrack.style.transform = 'translateX(' + (-100 * selectionPages.indexOf(page)) + '%)';
     updateSelectionPageSemantics();
+    if (shouldReduceVerseMotion() && typeof installAppSheetMeasurement === 'function') {
+      installAppSheetMeasurement(appSheetState.generation);
+    }
     if (shouldReduceVerseMotion()) scheduleSelectionGridRetarget();
     else selectionRetargetTimer = window.setTimeout(finishSelectionPageSettle, 240);
     if (replaceHistory && appSheet.open && appSheetState.kind === 'selection' && appSheetState.historyOwned) {
@@ -3740,6 +3875,7 @@
     scheduleBottomChromeClearanceUpdate();
     scheduleMarqueeMeasure();
     scheduleSelectionGridLayout();
+    if (typeof scheduleAppSheetMeasurement === 'function') scheduleAppSheetMeasurement(appSheetState.generation);
   }
   applyTextScale(State.getTextScale(), false);
   if (textScaleSelect) {
