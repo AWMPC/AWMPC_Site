@@ -306,7 +306,8 @@ assert.equal(h.state({ view: 'verses', book: 'John', chapter: '3', verse: '16', 
 
 for (const field of ['kind', 'edge', 'snap', 'phase', 'generation', 'determinedHeight', 'candidate', 'gesture',
   'pointer', 'frame', 'measureFrame', 'settleTimer', 'historyTimer', 'resizeObserver', 'contentCleanup',
-  'historyState', 'historyReturnGeneration', 'historyOwned', 'pendingHistoryClose', 'opener', 'focusPolicy']) {
+  'historyState', 'historyReturnGeneration', 'historyOwned', 'pendingHistoryClose', 'pendingPostCloseState',
+  'opener', 'focusPolicy']) {
   assert.match(bible, new RegExp('var appSheetState = \\{[\\s\\S]*' + field + ':'), `state explicitly owns ${field}`);
 }
 assert.doesNotMatch(controllerFunction('openAppSheet'), /options\.(?:render|content)/);
@@ -381,6 +382,7 @@ function fakeElement() {
     listenerCount: 0,
     focusCount: 0,
     focusOptions: [],
+    blurCount: 0,
     releaseCount: 0,
     classList: {
       add(...names) { names.forEach(name => classes.add(name)); },
@@ -420,8 +422,12 @@ function fakeElement() {
     releasePointerCapture(id) { captures.delete(id); this.releaseCount += 1; },
     losePointerCapture(id) { captures.delete(id); },
     showModal() { this.open = true; },
-    close() { this.open = false; },
-    focus(options) { this.focusCount += 1; this.focusOptions.push(options); }
+    close() { this.open = false; if (typeof this.onClose === 'function') this.onClose(); },
+    focus(options) {
+      this.focusCount += 1; this.focusOptions.push(options);
+      if (typeof this.onFocus === 'function') this.onFocus();
+    },
+    blur() { this.blurCount += 1; if (typeof this.onBlur === 'function') this.onBlur(); }
   };
 }
 
@@ -892,21 +898,39 @@ assert.ok(cancelledFrames.includes(lostFrame), 'lost capture cancels pending RAF
 let cancelPrevented = 0;
 const backsBeforeCancel = historyCalls.back;
 const focusBeforeCancel = opener.focusCount;
+let nativeRestoreCount = 0;
+controllerContext.document.activeElement = body;
+dialog.onClose = () => { nativeRestoreCount += 1; controllerContext.document.activeElement = opener; };
 dialog.dispatch('cancel', { preventDefault() { cancelPrevented += 1; } });
 assert.equal(cancelPrevented, 1, 'native Escape/cancel is prevented for the unified close path');
 assert.equal(historyCalls.back, backsBeforeCancel + 1, 'Escape/cancel requests history dismissal');
 api.pop(currentReturnPopState());
-assert.equal(opener.focusCount, focusBeforeCancel + 1, 'Escape restores the immutable opener exactly once');
+assert.equal(nativeRestoreCount, 1, 'native close restores the opener exactly once');
+assert.equal(controllerContext.document.activeElement, opener);
+assert.equal(opener.focusCount, focusBeforeCancel, 'restore-opener does not double-focus a native-restored opener');
+dialog.onClose = null;
+controllerContext.document.activeElement = opener;
 assert.equal(dialog.classList.contains('edge-top'), false, 'close resets top-edge presentation state');
 assert.equal(dialog.classList.contains('edge-bottom'), true);
 
 api.pop({ view: 'verses', book: 'John', chapter: '3', verse: '16', sheet: { kind: 'history' } });
 const backsBeforeBackdrop = historyCalls.back;
 const focusBeforeBackdrop = opener.focusCount;
+const blurBeforeBackdrop = opener.blurCount;
+controllerContext.document.activeElement = body;
+dialog.contains = node => node === body;
+dialog.onClose = () => { controllerContext.document.activeElement = opener; };
+opener.onBlur = () => { controllerContext.document.activeElement = null; };
 dialog.dispatch('click', { target: dialog });
 assert.equal(historyCalls.back, backsBeforeBackdrop + 1, 'backdrop click uses the unified history close path');
 api.pop({ view: 'verses', book: 'John', chapter: '3', verse: '16' });
 assert.equal(opener.focusCount, focusBeforeBackdrop, 'pointer backdrop close never programmatically focuses');
+assert.equal(opener.blurCount, blurBeforeBackdrop + 1, 'pointer none policy clears native-restored launcher focus by blurring');
+assert.notEqual(controllerContext.document.activeElement, opener);
+dialog.onClose = null;
+opener.onBlur = null;
+dialog.contains = () => false;
+controllerContext.document.activeElement = opener;
 
 api.pop({ view: 'verses', book: 'John', chapter: '3', verse: '16', sheet: { kind: 'history' } });
 api.open('search', { opener: replacementOpener });
@@ -954,6 +978,7 @@ assert.equal(viewInner.listenerCount, readerListenerBaseline, 'focus-leave clean
 api.pop({ view: 'verses', book: 'John', chapter: '3', verse: '16', sheet: { kind: 'history' } });
 controllerContext.document.activeElement = body;
 dialog.contains = node => node === body;
+dialog.onClose = () => { controllerContext.document.activeElement = opener; };
 const fallbackReaderFocus = viewInner.focusCount;
 api.close('owner-change');
 api.pop(currentReturnPopState());
@@ -963,6 +988,7 @@ assert.equal(viewInner.getAttribute('tabindex'), '-1');
 viewInner.dispatch('focusout');
 assert.equal(viewInner.getAttribute('tabindex'), null);
 assert.equal(viewInner.listenerCount, readerListenerBaseline);
+dialog.onClose = null;
 controllerContext.document.activeElement = opener;
 dialog.contains = () => false;
 
@@ -996,9 +1022,8 @@ assert.equal(api.state.phase, 'closing', 'Forward cannot replace a generation wh
 assert.ok(oldObserver.disconnected, 'reopen disconnects the previous generation observer');
 assert.ok(cancelledFrames.includes(oldMeasureFrameId), 'close cancels the previous generation measure RAF');
 oldSettleCallback();
-assert.equal(dialog.open, false, 'the original generation completes its close');
-api.pop(terminalReopenState);
-assert.notEqual(api.state.generation, oldGeneration, 'Forward can reopen only after terminal close finishes');
+assert.equal(dialog.open, true, 'terminal finish applies the queued Forward state exactly once');
+assert.notEqual(api.state.generation, oldGeneration, 'queued Forward opens only after terminal close finishes');
 const reopened = {
   height: dialog.style.getPropertyValue('--sheet-height'), phase: api.state.phase,
   kind: api.state.kind, content: measure.textContent, focus: opener.focusCount
@@ -1165,6 +1190,41 @@ assert.equal(dialog.open, true);
 api.pop(currentReturnPopState());
 assert.equal(dialog.open, false);
 assert.equal(api.state.pendingHistoryClose, false, 'popstate clears pending close state');
+
+api.open('history', { opener, page: 'queue-origin' });
+const queuedGeneration = api.state.generation;
+const queuedReturnGeneration = api.state.historyReturnGeneration;
+const queuedFocusBaseline = opener.focusCount + viewInner.focusCount;
+api.close('queue-post-close', 'none');
+const queuedFinishCallback = timers.get(api.state.historyTimer);
+const queuedSearchState = {
+  view: 'verses', book: 'John', chapter: '3', verse: '16',
+  sheet: { kind: 'search', page: 'queued-search', generation: queuedGeneration,
+    returnGeneration: queuedReturnGeneration }
+};
+const queuedSettingsState = {
+  view: 'verses', book: 'John', chapter: '3', verse: '16',
+  sheet: { kind: 'settings', page: 'queued-settings', generation: queuedGeneration,
+    returnGeneration: queuedReturnGeneration }
+};
+api.pop(queuedSearchState);
+assert.equal(api.state.phase, 'closing');
+assert.equal(api.state.pendingPostCloseState.sheet.kind, 'search', 'valid desired state queues during terminal close');
+api.pop({
+  ...queuedSettingsState,
+  sheet: { ...queuedSettingsState.sheet, returnGeneration: queuedReturnGeneration + 999 }
+});
+assert.equal(api.state.pendingPostCloseState.sheet.kind, 'search', 'cross-chain state cannot replace queued destination');
+api.pop(queuedSettingsState);
+assert.equal(api.state.pendingPostCloseState.sheet.kind, 'settings', 'latest valid same-chain destination wins');
+queuedFinishCallback();
+assert.equal(dialog.open, true, 'terminal finish applies queued sheet without browser replay');
+assert.equal(api.state.kind, 'settings');
+assert.equal(api.state.page, 'queued-settings');
+assert.equal(api.state.pendingPostCloseState, null);
+assert.equal(opener.focusCount + viewInner.focusCount, queuedFocusBaseline, 'queued reopen cannot replace or double-run none focus');
+api.state.historyOwned = false;
+api.close('queued-state-cleanup', 'none');
 
 api.open('history', { opener, page: 'stale-close-timer' });
 api.close('history-timer');
@@ -1396,7 +1456,7 @@ for (let cycle = 0; cycle < 3; cycle += 1) {
   api.pop(currentReturnPopState());
   assert.equal(dialog.open, false);
   for (const field of ['candidate', 'pointer', 'gesture', 'frame', 'measureFrame', 'settleTimer',
-    'historyTimer', 'resizeObserver', 'contentCleanup', 'closeGeneration']) {
+    'historyTimer', 'resizeObserver', 'contentCleanup', 'closeGeneration', 'pendingPostCloseState']) {
     assert.equal(api.state[field], null, `cycle ${cycle} releases ${field}`);
   }
   assert.equal(measure.textContent, '', `cycle ${cycle} releases rendered nodes`);
