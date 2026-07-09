@@ -111,6 +111,17 @@ test('mobile puts navigation at top and full-width actions at bottom with opposi
   assert.match(mobile[1], /\.bottom-chrome\.scroll-hidden \.action-chrome\s*\{[^}]*translateY\(calc\(100% \+ 18px \+ env\(safe-area-inset-bottom, 0px\)\)\)/);
 });
 
+test('desktop sheets use measured half-viewport-bounded widths and immutable side origins', () => {
+  assert.match(bible, /@media \(min-width: 641px\) \{[\s\S]*?\.app-sheet\.snap-determined\s*\{[^}]*width:\s*var\(--sheet-width,\s*50vw\);[^}]*max-width:\s*50vw;/);
+  assert.match(bible, /@media \(min-width: 641px\) \{[\s\S]*?\.app-sheet\.inline-left[^}]*margin-left:\s*12px;[^}]*margin-right:\s*auto;/);
+  assert.match(bible, /@media \(min-width: 641px\) \{[\s\S]*?\.app-sheet\.inline-right[^}]*margin-left:\s*auto;[^}]*margin-right:\s*12px;/);
+  assert.match(bible, /@media \(min-width: 641px\) \{[\s\S]*?\.app-sheet\.snap-fullscreen\s*\{[^}]*width:\s*calc\(100vw\);[^}]*max-width:\s*none;/);
+});
+
+test('mobile sheet width remains fluid despite determined measurements and text scaling', () => {
+  assert.match(bible, /@media \(max-width: 640px\) \{[\s\S]*?\.app-sheet\s*\{[^}]*width:\s*100%;[^}]*max-width:\s*none;[^}]*margin-left:\s*0;[^}]*margin-right:\s*0;/);
+});
+
 test('top and bottom clearance independently track both responsive surfaces', () => {
   assert.match(bible, /--top-chrome-clearance:\s*0px;/);
   assert.match(bible, /--bottom-chrome-clearance:/);

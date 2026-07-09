@@ -152,6 +152,13 @@ test('major reader, selection, search, history, settings, verse, and footnote su
   assert.doesNotMatch(bible, /\.view-inner \{[^}]*max-width:\s*320px/);
 });
 
+test('Text Scale reflow cannot replace responsive sheet width contracts', () => {
+  const application = extract(/function applyTextScale\(value, persist\) \{[\s\S]*?\n  \}/, 'Text Scale application missing');
+  assert.doesNotMatch(application, /--sheet-width|\.style\.width/,
+    'text scaling may schedule a fresh measurement but may not impose a fixed sheet width');
+  assert.match(bible, /@media \(max-width: 640px\) \{[\s\S]*?\.app-sheet\s*\{[^}]*width:\s*100%;[^}]*max-width:\s*none;/);
+});
+
 test('320px reflow explicitly wraps every major surface and search control', () => {
   const media = extract(/@media \(max-width: 320px\) \{[\s\S]*?\n  \}/, '320px reflow rules missing');
   for (const selector of ['.view-inner', '.selection-card', '.search-bar', '.search-result', '.bottom-history-menu', '.fab-panel', '.verse', '.footnote-body']) {

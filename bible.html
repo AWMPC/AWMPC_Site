@@ -1152,6 +1152,19 @@
   }
   .app-sheet.snap-fullscreen .app-sheet-shell { padding-top: env(safe-area-inset-top); }
 
+  @media (min-width: 641px) {
+    .app-sheet.snap-determined { width: var(--sheet-width, 50vw); max-width: 50vw; }
+    .app-sheet.inline-left { margin-left: 12px; margin-right: auto; }
+    .app-sheet.inline-right { margin-left: auto; margin-right: 12px; }
+    .app-sheet.snap-fullscreen {
+      width: calc(100vw); max-width: none; margin-left: 0; margin-right: 0;
+    }
+  }
+
+  @media (max-width: 640px) {
+    .app-sheet { width: 100%; max-width: none; margin-left: 0; margin-right: 0; }
+  }
+
   @media (prefers-reduced-motion: reduce) {
     .app-sheet, .app-sheet::backdrop { transition-duration: 0s; }
     .app-sheet-fade, .selection-indicator-dot, .selection-track { transition-duration: 0s; }
@@ -2493,9 +2506,11 @@
     kind: null,
     edge: 'bottom',
     snap: 'determined',
+    anchor: 'right',
     phase: 'closed',
     generation: 0,
     determinedHeight: 0,
+    determinedWidth: 0,
     candidate: null,
     gesture: null,
     page: null,
@@ -2533,7 +2548,9 @@
     var label = typeof descriptor.label === 'string' && descriptor.label ? descriptor.label :
       existing && existing.label;
     if (!label) return false;
-    appSheetDescriptors[kind] = { label: label, title: descriptor.title, render: descriptor.render };
+    appSheetDescriptors[kind] = {
+      label: label, title: descriptor.title, fillsPanel: descriptor.fillsPanel === true, render: descriptor.render
+    };
     return true;
   }
 
@@ -2559,7 +2576,7 @@
   } });
   registerAppSheetDescriptor('selection', { label: 'Selection', title: 'Selection', render: function (target, sheet) {
     return renderSelectionSheet(target, sheet);
-  } });
+  }, fillsPanel: true });
   registerAppSheetDescriptor('verse-actions', { label: 'Verse Actions', title: 'Verse Actions', render: function (target, sheet) {
     if (typeof renderVerseActionsSheet === 'function') return renderVerseActionsSheet(target, sheet);
     target.textContent = 'Verse actions will appear here.';
@@ -2636,13 +2653,18 @@
         appSheetState.snap !== 'determined' || appSheetState.pointer) return null;
     var source = currentAppSheetMeasurementSource();
     var contentHeight = source && source.scrollHeight;
+    var contentWidth = source && source.scrollWidth;
     var bodyStyle = getComputedStyle(appSheetBody);
-    var values = [contentHeight, appSheetOuterBlockSize(appSheetHandle),
-      appSheetPixelValue(bodyStyle.paddingBlockStart), appSheetPixelValue(bodyStyle.paddingBlockEnd)];
+    var sheetStyle = getComputedStyle(appSheet);
+    var values = [contentHeight, contentWidth, appSheetOuterBlockSize(appSheetHandle),
+      appSheetPixelValue(bodyStyle.paddingBlockStart), appSheetPixelValue(bodyStyle.paddingBlockEnd),
+      appSheetPixelValue(bodyStyle.paddingInlineStart), appSheetPixelValue(bodyStyle.paddingInlineEnd),
+      appSheetPixelValue(sheetStyle.borderInlineStartWidth), appSheetPixelValue(sheetStyle.borderInlineEndWidth)];
     for (var i = 0; i < values.length; i++) {
       if (!isFiniteAppSheetNumber(values[i]) || values[i] < 0) return null;
     }
-    var chromeHeight = values[1] + values[2] + values[3];
+    var chromeHeight = values[2] + values[3] + values[4];
+    var chromeWidth = values[5] + values[6] + values[7] + values[8];
     if (appSheetState.kind === 'selection' && typeof appSheetMeasure.querySelector === 'function') {
       var activePanel = appSheetMeasure.querySelector('.selection-panel[aria-hidden="false"]');
       if (activePanel && source !== activePanel) {
@@ -2656,7 +2678,12 @@
       if (dotsHeight === null) return null;
       chromeHeight += dotsHeight;
     }
-    return appSheetDeterminedHeight(contentHeight, chromeHeight, appSheetViewportHeight());
+    var descriptor = resolveAppSheetDescriptor(appSheetState.kind);
+    if (!descriptor) return null;
+    var height = appSheetDeterminedHeight(contentHeight, chromeHeight, appSheetViewportHeight());
+    var width = appSheetDeterminedWidth(contentWidth, chromeWidth, window.innerWidth, 220, 24,
+      descriptor.fillsPanel);
+    return height === null || width === null ? null : { height: height, width: width };
   }
 
   function scheduleAppSheetMeasurement(generation) {
@@ -2666,10 +2693,16 @@
     appSheetState.measureFrame = requestAnimationFrame(function () {
       if (!isCurrentAppSheetGeneration(generation)) return;
       appSheetState.measureFrame = null;
-      var height = measureAppSheetContent(generation);
-      if (height === null || height === appSheetState.determinedHeight) return;
-      appSheetState.determinedHeight = height;
-      appSheet.style.setProperty('--sheet-height', height + 'px');
+      var dimensions = measureAppSheetContent(generation);
+      if (dimensions === null) return;
+      if (dimensions.height !== appSheetState.determinedHeight) {
+        appSheetState.determinedHeight = dimensions.height;
+        appSheet.style.setProperty('--sheet-height', dimensions.height + 'px');
+      }
+      if (dimensions.width !== appSheetState.determinedWidth) {
+        appSheetState.determinedWidth = dimensions.width;
+        appSheet.style.setProperty('--sheet-width', dimensions.width + 'px');
+      }
     });
     return true;
   }
@@ -2887,6 +2920,7 @@
     appSheetState.kind = null;
     appSheetState.edge = 'bottom';
     appSheetState.snap = 'determined';
+    appSheetState.anchor = 'right';
     appSheetState.page = null;
     appSheetState.historyState = null;
     appSheetState.historyReturnGeneration = null;
@@ -2898,12 +2932,14 @@
     appSheetState.nativeOpener = null;
     appSheetState.phase = 'closed';
     appSheetState.determinedHeight = 0;
+    appSheetState.determinedWidth = 0;
     appSheetState.candidate = null;
     appSheetState.gesture = null;
     appSheetState.focusPolicy = 'none';
     appSheetState.closeGeneration = null;
     appSheet.style.removeProperty('--sheet-height');
-    appSheet.classList.remove('edge-top', 'snap-fullscreen');
+    appSheet.style.removeProperty('--sheet-width');
+    appSheet.classList.remove('edge-top', 'snap-fullscreen', 'inline-left', 'inline-right');
     appSheet.classList.add('edge-bottom', 'snap-determined');
     syncAppSheetAccessibleState();
     syncAppSheetLauncherState();
@@ -3081,11 +3117,27 @@
     appSheetState.historyState = historyState;
     appSheetState.phase = 'idle';
     appSheetState.determinedHeight = 0;
+    appSheetState.determinedWidth = 0;
     if (!wasOpen) appSheetState.opener = options.opener || document.activeElement;
     else if (options.opener && options.opener !== appSheetState.opener) {
       setAppSheetLauncherExpanded(appSheetState.opener, false);
       appSheetState.opener = options.opener;
     }
+    var openerRect = null;
+    try {
+      if (appSheetState.opener && typeof appSheetState.opener.getBoundingClientRect === 'function') {
+        openerRect = appSheetState.opener.getBoundingClientRect();
+      }
+    } catch (openerGeometryError) {}
+    var anchor = null;
+    try {
+      if (openerRect && typeof appSheetHorizontalAnchor === 'function') {
+        anchor = appSheetHorizontalAnchor(openerRect.left, openerRect.width, window.innerWidth);
+      }
+    } catch (anchorGeometryError) {}
+    appSheetState.anchor = anchor === 'left' || anchor === 'right' ? anchor : 'right';
+    appSheet.classList.toggle('inline-left', appSheetState.anchor === 'left');
+    appSheet.classList.toggle('inline-right', appSheetState.anchor === 'right');
     appSheet.classList.toggle('edge-top', edge === 'top');
     appSheet.classList.toggle('edge-bottom', edge === 'bottom');
     setSheetSnap(snap, true);

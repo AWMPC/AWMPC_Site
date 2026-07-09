@@ -309,3 +309,11 @@ test('view replacement cleans selection layout first and new grids attach before
   assert.match(resizePath, /scheduleSelectionGridLayout\(\);/, 'no-ResizeObserver fallback uses the existing resize path');
   assert.equal((bible.match(/addEventListener\('resize'/g) || []).length, 1, 'no per-view resize listener accumulates');
 });
+
+test('selection pager keeps one stable full panel width across all modulo-three grids', () => {
+  assert.match(bible, /registerAppSheetDescriptor\('selection',\s*\{[\s\S]*?fillsPanel:\s*true\s*\}\);/);
+  assert.match(bible, /\.selection-track\s*\{[^}]*width:\s*100%;/);
+  assert.match(bible, /\.selection-panel\s*\{[^}]*flex:\s*0 0 100%;[^}]*min-width:\s*0;/);
+  assert.match(bible, /function selectionGridColumnCount[\s\S]*Math\.floor\(raw\s*\/\s*3\)\s*\*\s*3/,
+    'full-width paging must preserve modulo-three column quantization');
+});

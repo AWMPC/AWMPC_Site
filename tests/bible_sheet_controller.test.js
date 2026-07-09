@@ -402,7 +402,7 @@ assert.equal(h.state({ view: 'verses', book: 'John', chapter: '3', verse: '16', 
 assert.equal(h.state({ view: 'verses', book: 'John', chapter: '3', verse: '16', sheet: { kind: 'history', page: {} } }), null);
 assert.equal(h.state({ view: 'verses', book: 'John', chapter: '3', verse: '16', sheet: { kind: 'history', page: '<script>' } }), null);
 
-for (const field of ['kind', 'edge', 'snap', 'phase', 'generation', 'determinedHeight', 'candidate', 'gesture',
+for (const field of ['kind', 'edge', 'snap', 'anchor', 'phase', 'generation', 'determinedHeight', 'determinedWidth', 'candidate', 'gesture',
   'pointer', 'frame', 'measureFrame', 'settleTimer', 'historyTimer', 'resizeObserver', 'contentCleanup',
   'historyState', 'historyReturnGeneration', 'historyOwned', 'pendingHistoryClose', 'pendingPostCloseState',
   'pendingPostCloseDestination',
@@ -410,6 +410,18 @@ for (const field of ['kind', 'edge', 'snap', 'phase', 'generation', 'determinedH
   assert.match(bible, new RegExp('var appSheetState = \\{[\\s\\S]*' + field + ':'), `state explicitly owns ${field}`);
 }
 assert.doesNotMatch(controllerFunction('openAppSheet'), /options\.(?:render|content)/);
+assert.doesNotMatch(controllerFunction('openAppSheet'), /options\.fillsPanel/,
+  'callers cannot control the trusted panel-filling width policy');
+assert.match(controllerFunction('registerAppSheetDescriptor'),
+  /fillsPanel:\s*descriptor\.fillsPanel === true/,
+  'descriptor registration reduces the trusted fill flag to an exact boolean');
+assert.match(bible,
+  /registerAppSheetDescriptor\('selection',\s*\{[\s\S]*?render:[\s\S]*?fillsPanel:\s*true\s*\}\);/,
+  'only the static Selection descriptor fills the desktop panel');
+for (const kind of ['history', 'settings', 'search', 'verse-actions']) {
+  assert.doesNotMatch(bible, new RegExp("registerAppSheetDescriptor\\('" + kind + "',[^;]*fillsPanel"),
+    `${kind} descriptor remains intrinsic-width`);
+}
 assert.doesNotMatch(bible, /appSheetState\.closing/);
 assert.match(bible, /function isCurrentAppSheetGeneration\(generation\)/);
 assert.match(controllerFunction('handleAppSheetPopState'),
@@ -475,8 +487,10 @@ function fakeElement() {
     scrollTop: 0,
     clientHeight: 400,
     scrollHeight: 400,
+    scrollWidth: 400,
     rectHeight: 0,
     get styleWriteCount() { return writes['--sheet-height'] || 0; },
+    get widthStyleWriteCount() { return writes['--sheet-width'] || 0; },
     textContent: '',
     listenerCount: 0,
     focusCount: 0,
@@ -540,6 +554,7 @@ const handle = fakeElement();
 const body = fakeElement();
 const measure = fakeElement();
 measure.scrollHeight = 180;
+measure.scrollWidth = 180;
 let activeMeasurementPanel = null;
 const selectionIndicator = fakeElement();
 selectionIndicator.rectHeight = 28;
@@ -570,6 +585,8 @@ let staticHistoryRenderCount = 0;
 let legacySelectionOpenCalls = 0;
 let bodyPaddingStart = 0;
 let bodyPaddingEnd = 0;
+let bodyPaddingInlineStart = 0;
+let bodyPaddingInlineEnd = 0;
 let selectionCleanupCount = 0;
 let trackSelectionResources = false;
 const selectionMediaListeners = new Set();
@@ -589,6 +606,8 @@ class FakeResizeObserver {
 }
 handle.rectHeight = 44;
 handle.getBoundingClientRect = () => ({ height: handle.rectHeight });
+opener.getBoundingClientRect = () => ({ left: 900, width: 40 });
+replacementOpener.getBoundingClientRect = () => ({ left: 20, width: 40 });
 const controllerContext = {
   Math,
   Date,
@@ -609,8 +628,10 @@ const controllerContext = {
   getComputedStyle(element) {
     if (element === handle || element === selectionIndicator) return { marginBlockStart: '0px', marginBlockEnd: '0px' };
     if (element === body) return {
-      paddingBlockStart: bodyPaddingStart + 'px', paddingBlockEnd: bodyPaddingEnd + 'px'
+      paddingBlockStart: bodyPaddingStart + 'px', paddingBlockEnd: bodyPaddingEnd + 'px',
+      paddingInlineStart: bodyPaddingInlineStart + 'px', paddingInlineEnd: bodyPaddingInlineEnd + 'px'
     };
+    if (element === dialog) return { borderInlineStartWidth: '1px', borderInlineEndWidth: '1px' };
     return {};
   },
   renderHistorySheet(target, sheet) {
@@ -669,6 +690,7 @@ const controllerContext = {
   openSelectionSheet() { legacySelectionOpenCalls += 1; },
   window: {
     innerHeight: 800,
+    innerWidth: 1200,
     visualViewport: {
       height: 800,
       addEventListener(type, fn) { (viewportListeners[type] || (viewportListeners[type] = [])).push(fn); },
@@ -731,7 +753,13 @@ assert.equal(frames.size, 2, 'opening schedules one measurement frame and one co
 for (const [id, callback] of [...frames]) { callback(); frames.delete(id); }
 assert.equal(dialog.style.getPropertyValue('--sheet-height'), '224px',
   'short content uses intrinsic height plus fixed chrome');
+assert.equal(dialog.style.getPropertyValue('--sheet-width'), '220px',
+  'short intrinsic content uses the project desktop minimum');
 assert.equal(api.state.determinedHeight, 224);
+assert.equal(api.state.determinedWidth, 220);
+assert.equal(api.state.anchor, 'right', 'opener center on the midpoint or right side anchors right');
+assert.equal(dialog.classList.contains('inline-right'), true);
+assert.equal(dialog.classList.contains('inline-left'), false);
 assert.equal(resizeObserverInstances.length, 2, 'measurement and overflow each own one scoped observer');
 
 measure.scrollHeight = 900;
@@ -748,6 +776,12 @@ const unchangedFrame = [...frames.keys()][0];
 frames.get(unchangedFrame)();
 frames.delete(unchangedFrame);
 assert.equal(dialog.styleWriteCount, heightWrites, 'unchanged rounded measurements do not write or loop');
+const widthWrites = dialog.widthStyleWriteCount;
+resizeObserverInstances[0].fire();
+const unchangedWidthFrame = [...frames.keys()][0];
+frames.get(unchangedWidthFrame)();
+frames.delete(unchangedWidthFrame);
+assert.equal(dialog.widthStyleWriteCount, widthWrites, 'unchanged rounded widths do not write or loop');
 
 measure.scrollHeight = 120;
 handle.dispatch('pointerdown', {
@@ -801,6 +835,29 @@ for (const [id, callback] of [...frames]) { callback(); frames.delete(id); }
 api.snap('determined', true);
 for (const [id, callback] of [...frames]) { callback(); frames.delete(id); }
 assert.equal(dialog.style.getPropertyValue('--sheet-height'), '224px');
+assert.equal(dialog.classList.contains('inline-right'), true,
+  'determined to fullscreen to determined retains the immutable opening anchor');
+
+measure.scrollWidth = 900;
+resizeObserverInstances[0].fire();
+const wideFrame = [...frames.keys()][0];
+frames.get(wideFrame)();
+frames.delete(wideFrame);
+assert.equal(dialog.style.getPropertyValue('--sheet-width'), '600px', 'desktop width is capped at 50vw');
+measure.scrollWidth = 180;
+
+bodyPaddingInlineStart = 10;
+bodyPaddingInlineEnd = 6;
+measure.scrollWidth = 300;
+resizeObserverInstances[0].fire();
+const inlineChromeFrame = [...frames.keys()][0];
+frames.get(inlineChromeFrame)();
+frames.delete(inlineChromeFrame);
+assert.equal(dialog.style.getPropertyValue('--sheet-width'), '318px',
+  'body inline padding and sheet inline borders are added exactly once');
+bodyPaddingInlineStart = 0;
+bodyPaddingInlineEnd = 0;
+measure.scrollWidth = 180;
 
 bodyPaddingStart = 10;
 bodyPaddingEnd = 6;
@@ -823,6 +880,15 @@ frames.delete(invalidGeometryFrame);
 assert.equal(dialog.style.getPropertyValue('--sheet-height'), '160px', 'invalid geometry preserves the bounded safe height');
 assert.equal(dialog.styleWriteCount, writesBeforeInvalidGeometry, 'invalid geometry does not produce an unbounded style write');
 measure.scrollHeight = 180;
+measure.scrollWidth = Infinity;
+const widthBeforeInvalidGeometry = dialog.style.getPropertyValue('--sheet-width');
+resizeObserverInstances[0].fire();
+const invalidWidthFrame = [...frames.keys()][0];
+frames.get(invalidWidthFrame)();
+frames.delete(invalidWidthFrame);
+assert.equal(dialog.style.getPropertyValue('--sheet-width'), widthBeforeInvalidGeometry,
+  'invalid inline geometry preserves the last safe width');
+measure.scrollWidth = 180;
 const firstGenerationObserver = resizeObserverInstances[0];
 assert.equal(historyCalls.push.length, 1, 'first open pushes one sheet entry');
 assert.equal(historyCalls.replace.length, 1, 'first open tags the underlying reader entry for generation-safe Back');
@@ -835,9 +901,21 @@ assert.equal(historyCalls.replace.length, 2, 'switching kind/page replaces the o
 assert.equal(cleanupCount, 1, 'old content cleanup runs before replacement');
 assert.equal(dialog.getAttribute('aria-label'), 'Search — Bible panel');
 assert.notEqual(measure.textContent, '', 'default descriptors render deterministic content');
+assert.equal(api.state.anchor, 'right', 'replacement without a new opener retains its opener anchor');
+
+assert.equal(api.open('history', { opener: replacementOpener, fillsPanel: true }), true);
+for (const [id, callback] of [...frames]) { callback(); frames.delete(id); }
+assert.equal(api.state.anchor, 'left', 'an explicit replacement opener establishes the new generation anchor');
+assert.equal(dialog.classList.contains('inline-left'), true);
+assert.equal(dialog.classList.contains('inline-right'), false);
+assert.equal(dialog.style.getPropertyValue('--sheet-width'), '220px',
+  'caller-controlled fillsPanel cannot expand an intrinsic descriptor');
 
 body.scrollTop = 500;
 assert.equal(api.open('selection', { page: 'books' }), true);
+for (const [id, callback] of [...frames]) { callback(); frames.delete(id); }
+assert.equal(dialog.style.getPropertyValue('--sheet-width'), '600px',
+  'the trusted Selection descriptor alone fills the stable desktop half viewport');
 assert.equal(body.scrollTop, 0,
   'Search scroll position is cleared before a Selection kind takes ownership of the sheet body');
 assert.equal(api.state.kind, 'selection');
@@ -852,6 +930,11 @@ assert.equal(opener.getAttribute('aria-expanded'), 'false');
 assert.equal(opener.classList.contains('active'), false, 'launcher highlight clears before popstate');
 assert.equal(api.pop(currentReturnPopState()), true);
 assert.equal(dialog.open, false);
+assert.equal(api.state.anchor, 'right');
+assert.equal(api.state.determinedWidth, 0);
+assert.equal(dialog.style.getPropertyValue('--sheet-width'), '');
+assert.equal(dialog.classList.contains('inline-left'), false);
+assert.equal(dialog.classList.contains('inline-right'), false);
 assert.equal(opener.focusCount, 0, 'programmatic/history close preserves valid external focus');
 assert.equal(fabMain.getAttribute('aria-expanded'), 'false', 'close keeps Settings launcher collapsed');
 
