@@ -308,7 +308,7 @@ assert.match(bible, /--verse-num: #0b63ce;/);
 assert.match(bible, /--verse-num: #8bb9ff;/);
 
 assert.match(bible, /document\.addEventListener\('keydown', handleBibleKeyboardNavigation\);/);
-assert.match(bible, /viewEl\.addEventListener\('wheel', releaseVerseChaseForFreeScroll, \{ passive: true \}\);/);
+assert.match(bible, /viewEl\.addEventListener\('wheel', onBibleReaderWheel, \{ passive: false \}\);/);
 assert.match(bible, /viewEl\.addEventListener\('touchstart', releaseVerseChaseForFreeScroll, \{ passive: true \}\);/);
 assert.match(bible, /function handleBibleKeyboardNavigation\(e\)/);
 assert.match(bible, /function shouldIgnoreBibleShortcut\(e\)/);

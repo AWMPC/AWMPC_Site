@@ -2587,7 +2587,7 @@
   }
 
   function bibleWheelTargetBlocked(event) {
-    if (!event || event.ctrlKey || event.metaKey || event.shiftKey) return true;
+    if (!event || event.ctrlKey || event.metaKey || event.altKey || event.shiftKey) return true;
     if (appSheetState.phase === 'dragging' || appSheetState.phase === 'settling' ||
         appSheetState.phase === 'opening' || appSheetState.phase === 'closing' ||
         appSheetState.pointer || appSheetState.candidate ||
@@ -3283,6 +3283,7 @@
     if (!descriptor) return false;
     var historyState = validatedAppSheetHistoryState(options.historyState || sheetHistoryState(kind, page));
     if (!historyState || historyState.sheet.kind !== kind) return false;
+    if (typeof resetBibleWheelBurst === 'function') resetBibleWheelBurst();
     if (kind === 'selection') page = historyState.sheet.page;
     if (!options.fromPop) normalizePopupHistoryBeforeSheetOpen();
     var wasOpen = appSheet.open;
@@ -3690,6 +3691,7 @@
   var programmaticVerseScroll = false;
   var CHAPTER_CROSSFADE_MS = 200;
   var chapterCrossfadeTimer = null;
+  var chapterCrossfadeGeneration = 0;
   var preservingChapterCrossfade = false;
   var readerPointerState = null;
   var pendingReaderVerseAction = null;
@@ -3697,6 +3699,7 @@
   var READER_MOUSE_DOUBLE_ACTIVATE_MS = 500;
   var suppressReaderClick = null;
   var suppressReaderClickTimer = null;
+  var bibleReaderWheelAction = false;
   var lastViewScrollTop = 0;
   var bottomChromeScrollFrame = null;
   var uiView = 'books';
@@ -5918,6 +5921,28 @@
     else endProgrammaticVerseScroll();
   }
 
+  function onBibleReaderWheel(event) {
+    if (!event || (appSheet && appSheet.open) || uiView !== 'verses' ||
+        !event.target || !viewEl.contains(event.target)) {
+      releaseVerseChaseForFreeScroll();
+      return;
+    }
+    var direction = accumulateBibleWheel(event);
+    if (!direction) {
+      releaseVerseChaseForFreeScroll();
+      return;
+    }
+    event.preventDefault();
+    if (bibleWheelBurst.consumed) return;
+    bibleWheelBurst.consumed = true;
+    bibleReaderWheelAction = true;
+    try {
+      showAdjacentChapter(direction);
+    } finally {
+      bibleReaderWheelAction = false;
+    }
+  }
+
   function setVerseChaseTarget(target) {
     if (!target) return;
     beginProgrammaticVerseScroll();
@@ -6012,6 +6037,7 @@
   }
 
   function clearChapterCrossfadeTimer() {
+    chapterCrossfadeGeneration++;
     if (!chapterCrossfadeTimer) return;
     window.clearTimeout(chapterCrossfadeTimer);
     chapterCrossfadeTimer = null;
@@ -6074,7 +6100,9 @@
       });
     });
 
+    var viewTransitionGeneration = chapterCrossfadeGeneration;
     chapterCrossfadeTimer = window.setTimeout(function () {
+      if (chapterCrossfadeGeneration !== viewTransitionGeneration) return;
       retiring.remove();
       viewInner.classList.remove('chapter-transition-ready', 'chapter-transition-in');
       chapterCrossfadeTimer = null;
@@ -6082,18 +6110,22 @@
   }
 
   function showBooksViewWithTransition() {
+    resetBibleWheelBurst();
     showViewWithTransition(function () { showBooksView(); });
   }
 
   function showChaptersViewWithTransition(bookName) {
+    resetBibleWheelBurst();
     showViewWithTransition(function () { showChaptersView(bookName); });
   }
 
   function showVersePickerViewWithTransition(bookName, chapterNum) {
+    resetBibleWheelBurst();
     showViewWithTransition(function () { showVersePickerView(bookName, chapterNum); });
   }
 
   function showSelectedVerseWithTransition(bookName, chapterNum, verse) {
+    resetBibleWheelBurst();
     showViewWithTransition(function () { showVersesView(bookName, chapterNum, verse); });
   }
 
@@ -6131,10 +6163,16 @@
       });
     });
 
+    var readerTransitionGeneration = chapterCrossfadeGeneration;
     chapterCrossfadeTimer = window.setTimeout(function () {
+      if (chapterCrossfadeGeneration !== readerTransitionGeneration) return;
       retiring.remove();
       viewInner.classList.remove('chapter-transition-ready', 'chapter-transition-in');
       chapterCrossfadeTimer = null;
+      var wheelConsumed = bibleWheelBurst.consumed;
+      var wheelDirection = bibleWheelBurst.direction;
+      resetBibleWheelBurst();
+      restoreBibleWheelConsumedLock(wheelConsumed, wheelDirection);
     }, CHAPTER_CROSSFADE_MS);
   }
 
@@ -6282,6 +6320,7 @@
   }
 
   function showAdjacentChapter(direction) {
+    if (!bibleReaderWheelAction) resetBibleWheelBurst();
     if (!bibleData || navBook == null || navChapter == null) return false;
     var next = direction < 0 ? prevChapterNav(navBook, navChapter) : nextChapterNav(navBook, navChapter);
     if (!next) return false;
@@ -7414,7 +7453,7 @@
     scheduleBottomChromeScrollUpdate();
     requestAnimationFrame(updateActiveVerseFromViewport);
   }, { passive: true });
-  viewEl.addEventListener('wheel', releaseVerseChaseForFreeScroll, { passive: true });
+  viewEl.addEventListener('wheel', onBibleReaderWheel, { passive: false });
   viewEl.addEventListener('touchstart', releaseVerseChaseForFreeScroll, { passive: true });
   document.addEventListener('keydown', handleBibleKeyboardNavigation);
   document.getElementById('btn-history').addEventListener('click', function (e) {

@@ -203,7 +203,8 @@ test('wheel target and sheet state guards preserve browser, zoom, editing, and d
   const editable = { inside: true, closest() { return this; } };
   const blocked = [
     wheelEvent(120, 0, { ctrlKey: true }), wheelEvent(120, 0, { metaKey: true }),
-    wheelEvent(120, 0, { shiftKey: true }), wheelEvent(120, 0, { target: editable }),
+    wheelEvent(120, 0, { altKey: true }), wheelEvent(120, 0, { shiftKey: true }),
+    wheelEvent(120, 0, { target: editable }),
     wheelEvent(120, 0, { target: { inside: false, closest() { return null; } } })
   ];
   api.selection({ isCollapsed: false });
@@ -327,4 +328,162 @@ test('selector claims endpoints and stale idle callbacks cannot reset a newer bu
   stale.fn();
   api.wheel(wheelEvent(-24));
   assert.deepEqual(pages, [['chapters', true, 'pointer']], 'stale timer leaves the newer burst intact');
+});
+
+function readerWheelHarness(options = {}) {
+  const timers = [];
+  const chapters = [];
+  const stats = { releases: 0 };
+  const viewEl = {
+    contains(target) { return target && target.inside === true; }
+  };
+  const documentObject = {
+    documentElement: { clientWidth: 600 },
+    hidden: false,
+    activeElement: null
+  };
+  const windowObject = {
+    innerWidth: 800,
+    visualViewport: { width: 700 },
+    getSelection() { return { isCollapsed: true }; },
+    setTimeout(fn, ms) { const timer = { fn, ms, cleared: false }; timers.push(timer); return timer; },
+    clearTimeout(timer) { if (timer) timer.cleared = true; }
+  };
+  const api = Function('window', 'document', 'viewEl', 'chapters', 'timers', 'stats', `
+    var BIBLE_WHEEL_AXIS_RATIO = 1.25;
+    var BIBLE_WHEEL_ACTIVATION_PX = 48;
+    var BIBLE_WHEEL_IDLE_MS = 160;
+    var BIBLE_WHEEL_LINE_PX = 16;
+    var BIBLE_WHEEL_MAX_EVENT_PX = 120;
+    var uiView = ${JSON.stringify(options.uiView || 'verses')};
+    var appSheet = { open: ${options.sheetOpen === true} };
+    var appSheetState = { phase: 'idle', pointer: null, candidate: null };
+    var selectionPointer = null;
+    var bibleReaderWheelAction = false;
+    var bibleWheelBurst = { x: 0, y: 0, consumed: false, direction: 0, timer: null, generation: 0 };
+    function isFiniteAppSheetNumber(value) { return typeof value === 'number' && Number.isFinite(value); }
+    function releaseVerseChaseForFreeScroll() { stats.releases++; }
+    function showAdjacentChapter(direction) { chapters.push(direction); return ${options.endpoint === true ? 'false' : 'true'}; }
+    ${functionSource('normalizeBibleWheelDelta')}
+    ${functionSource('bibleWheelClaimDirection')}
+    ${functionSource('resetBibleWheelBurst')}
+    ${functionSource('restoreBibleWheelConsumedLock')}
+    ${functionSource('bibleWheelTargetBlocked')}
+    ${functionSource('accumulateBibleWheel')}
+    ${functionSource('onBibleReaderWheel')}
+    return {
+      wheel: onBibleReaderWheel,
+      reset: resetBibleWheelBurst,
+      burst: function () { return bibleWheelBurst; },
+      releases: function () { return stats.releases; },
+      expire: function () { var timer = timers[timers.length - 1]; if (timer) timer.fn(); },
+      sheet: function (open) { appSheet.open = open; },
+      view: function (next) { uiView = next; },
+      selection: function (value) { window.getSelection = function () { return value; }; }
+    };
+  `)(windowObject, documentObject, viewEl, chapters, timers, stats);
+  return { api, chapters, timers };
+}
+
+test('reader wheel claims exactly one chapter through the existing adjacent chapter action', () => {
+  const { api, chapters } = readerWheelHarness();
+  const partial = wheelEvent(24);
+  api.wheel(partial);
+  assert.equal(partial.prevented, false);
+  assert.equal(api.releases(), 1, 'unclaimed movement releases chase for native scrolling');
+  const claim = wheelEvent(24);
+  api.wheel(claim);
+  assert.equal(claim.prevented, true);
+  assert.deepEqual(chapters, [1]);
+  assert.equal(api.releases(), 1, 'claimed navigation preserves destination chase ownership');
+
+  for (const delta of [120, -120, 80]) {
+    const momentum = wheelEvent(delta);
+    api.wheel(momentum);
+    assert.equal(momentum.prevented, true, 'all residual momentum remains owned');
+  }
+  assert.deepEqual(chapters, [1], 'a render cannot unlock the active burst');
+  assert.equal(api.releases(), 1, 'consumed momentum cannot cancel programmatic destination positioning');
+
+  api.expire();
+  const backward = wheelEvent(-48);
+  api.wheel(backward);
+  assert.equal(backward.prevented, true);
+  assert.deepEqual(chapters, [1, -1]);
+});
+
+test('reader wheel leaves vertical and guarded interactions native and the selector exclusive', () => {
+  for (const configure of [
+    () => readerWheelHarness({ sheetOpen: true }),
+    () => readerWheelHarness({ uiView: 'chapters' })
+  ]) {
+    const { api, chapters } = configure();
+    const event = wheelEvent(120);
+    api.wheel(event);
+    assert.equal(event.prevented, false);
+    assert.deepEqual(chapters, []);
+    assert.equal(api.releases(), 1);
+  }
+  const { api, chapters } = readerWheelHarness();
+  const guarded = [
+    wheelEvent(120, 120), wheelEvent(50, 41),
+    wheelEvent(120, 0, { ctrlKey: true }),
+    wheelEvent(120, 0, { altKey: true }),
+    wheelEvent(120, 0, { target: { inside: false, closest() { return null; } } }),
+    wheelEvent(120, 0, { target: { inside: true, isContentEditable: true, closest() { return null; } } })
+  ];
+  api.selection({ isCollapsed: false });
+  guarded.push(wheelEvent(120));
+  for (const event of guarded) {
+    api.wheel(event);
+    assert.equal(event.prevented, false);
+  }
+  assert.deepEqual(chapters, []);
+  assert.equal(api.releases(), guarded.length);
+});
+
+test('reader claims canonical endpoints to prevent browser history for the entire burst', () => {
+  const { api, chapters } = readerWheelHarness({ endpoint: true });
+  for (const delta of [48, 120, -120]) {
+    const event = wheelEvent(delta);
+    api.wheel(event);
+    assert.equal(event.prevented, true);
+  }
+  assert.deepEqual(chapters, [1], 'endpoint action is attempted only once per burst');
+  assert.equal(api.burst().consumed, true);
+});
+
+test('reader listener is unique and nonpassive while touch release remains passive', () => {
+  assert.equal((bible.match(/viewEl\.addEventListener\('wheel'/g) || []).length, 1);
+  assert.match(bible, /viewEl\.addEventListener\('wheel', onBibleReaderWheel, \{ passive: false \}\);/);
+  assert.match(bible, /viewEl\.addEventListener\('touchstart', releaseVerseChaseForFreeScroll, \{ passive: true \}\);/);
+});
+
+test('chapter navigation follows trusted dataset insertion order and numeric chapter order', () => {
+  const source = [functionSource('sortedChapterKeys'), functionSource('prevChapterNav'), functionSource('nextChapterNav')].join('\n');
+  const navigate = Function('bibleData', `${source}; return { prevChapterNav, nextChapterNav };`);
+  const data = {
+    Genesis: { '2': {}, '1': {} },
+    Exodus: { '3': {}, '1': {}, '2': {} },
+    Revelation: { '22': {}, '1': {} }
+  };
+  const nav = navigate(data);
+  assert.deepEqual(nav.nextChapterNav('Genesis', 1), { book: 'Genesis', chapter: 2 });
+  assert.deepEqual(nav.nextChapterNav('Genesis', 2), { book: 'Exodus', chapter: 1 });
+  assert.deepEqual(nav.prevChapterNav('Exodus', 1), { book: 'Genesis', chapter: 2 });
+  assert.deepEqual(nav.prevChapterNav('Revelation', 1), { book: 'Exodus', chapter: 3 });
+  assert.equal(nav.prevChapterNav('Genesis', 1), null);
+  assert.equal(nav.nextChapterNav('Revelation', 22), null);
+  assert.doesNotMatch(source, /Object\.keys\(bibleData\)\.sort/);
+});
+
+test('adjacent chapter action retains recalled verse fallback and the established transition path', () => {
+  const adjacent = functionSource('showAdjacentChapter');
+  assert.match(adjacent, /recalledChapterVerse\(next\.book, next\.chapter\) \|\| '1'/);
+  assert.match(adjacent, /showVersesViewWithTransition\(next\.book, next\.chapter,/);
+  assert.doesNotMatch(adjacent, /history\.|State\.|pushNav|replaceState|pushState/);
+  const transition = bible.slice(bible.indexOf('  function showVersesViewWithTransition('),
+    bible.indexOf('  function shouldIgnoreBibleShortcut('));
+  assert.match(transition, /if \(chapterCrossfadeGeneration !== readerTransitionGeneration\) return;/,
+    'stale transition callbacks cannot unlock a newer wheel burst');
 });
