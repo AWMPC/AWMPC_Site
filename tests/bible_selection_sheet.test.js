@@ -300,6 +300,7 @@ function runOpenWithHistory(historyState, source = bible) {
     function normalizePopupHistoryBeforeSheetOpen() {}
     function clearAppSheetMotion() {}
     function syncAppSheetLauncherState() {}
+    function tagAppSheetHistoryStateForCurrentLifecycle(state) { return state; }
     function setSheetSnap() {}
     function resetAppSheetState() {}
     function renderAppSheetContent() { rendered.push(appSheetState.historyState); }

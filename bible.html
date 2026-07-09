@@ -2468,6 +2468,18 @@
     return isFiniteAppSheetNumber(generation) && generation === appSheetState.generation;
   }
 
+  function tagAppSheetHistoryStateForCurrentLifecycle(state) {
+    if (!state || !state.sheet || state.sheet.kind !== appSheetState.kind) return null;
+    if (appSheetState.historyReturnGeneration !== null) {
+      state.sheet.generation = appSheetState.generation;
+      state.sheet.returnGeneration = appSheetState.historyReturnGeneration;
+    } else {
+      delete state.sheet.generation;
+      delete state.sheet.returnGeneration;
+    }
+    return state;
+  }
+
   function appSheetViewportHeight() {
     var visualHeight = window.visualViewport && window.visualViewport.height;
     if (isFiniteAppSheetNumber(visualHeight) && visualHeight > 0) return visualHeight;
@@ -2761,13 +2773,7 @@
     var incomingReturnGeneration = historyState.sheet.returnGeneration || incomingHistoryGeneration;
     appSheetState.historyReturnGeneration = options.fromPop ? (incomingReturnGeneration || null) :
       (wasOpen ? previousReturnGeneration : appSheetState.generation);
-    if (appSheetState.historyReturnGeneration !== null) {
-      historyState.sheet.generation = appSheetState.generation;
-      historyState.sheet.returnGeneration = appSheetState.historyReturnGeneration;
-    } else {
-      delete historyState.sheet.generation;
-      delete historyState.sheet.returnGeneration;
-    }
+    historyState = tagAppSheetHistoryStateForCurrentLifecycle(historyState);
     appSheetState.historyState = historyState;
     appSheetState.phase = 'idle';
     appSheetState.determinedHeight = 0;
@@ -3242,6 +3248,7 @@
     else selectionRetargetTimer = window.setTimeout(finishSelectionPageSettle, 240);
     if (replaceHistory && appSheet.open && appSheetState.kind === 'selection' && appSheetState.historyOwned) {
       var state = selectionHistoryState(currentSelectionReaderReference(), page, selectionContext);
+      state = tagAppSheetHistoryStateForCurrentLifecycle(state);
       if (state) {
         appSheetState.historyState = state;
         history.replaceState(state, '', window.location.href);

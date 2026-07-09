@@ -385,6 +385,8 @@ function fakeElement() {
 const controllerStart = bible.indexOf('/* APP SHEET CONTROLLER START */');
 const controllerEnd = bible.indexOf('/* APP SHEET CONTROLLER END */');
 assert.ok(controllerStart >= 0 && controllerEnd > controllerStart);
+const selectionHistorySource = bible.match(/  function selectionHistoryState\([^\n]*\) \{[\s\S]*?\n  \}/)[0];
+const selectionPageSource = bible.match(/  function setSelectionPage\([^\n]*\) \{[\s\S]*?\n  \}/)[0];
 const dialog = fakeElement();
 const handle = fakeElement();
 const body = fakeElement();
@@ -396,6 +398,7 @@ selectionDots.rectHeight = 32;
 selectionDots.getBoundingClientRect = () => ({ height: selectionDots.rectHeight });
 measure.querySelector = selector => selector === '.selection-panel[aria-hidden="false"]' ? activeMeasurementPanel :
   (selector === '.selection-dots' ? selectionDots : null);
+const selectionTrackForHistory = fakeElement();
 const fadeTop = fakeElement();
 const fadeBottom = fakeElement();
 const opener = fakeElement();
@@ -461,7 +464,20 @@ const controllerContext = {
   },
   renderSelectionSheet(target) { target.textContent = 'selection'; },
   normalizedSelectionPage(page) { return ['books', 'chapters', 'verses'].includes(page) ? page : 'books'; },
-  sanitizedSelectionDataContext() { return null; },
+  sanitizedSelectionDataContext() { return { book: 'John', chapter: 3 }; },
+  bibleData: { John: { 3: { 16: 'verse' } } },
+  selectionPages: ['books', 'chapters', 'verses'],
+  selectionSheetPage: 'books',
+  selectionTrack: selectionTrackForHistory,
+  selectionRetargetFrame: null,
+  selectionRetargetTimer: null,
+  selectionContext: { book: 'John', chapter: 3 },
+  isValidSelectionPage(page) { return ['books', 'chapters', 'verses'].includes(page); },
+  selectionSheetEdge() { return 'bottom'; },
+  disconnectSelectionGridLayout() {},
+  updateSelectionPageSemantics() {},
+  scheduleSelectionGridRetarget() {},
+  currentSelectionReaderReference() { return { book: 'John', chapter: 3, verse: 16 }; },
   normalizeVerseReference(book, chapter, verse) {
     return book && chapter && verse ? { book, chapter: Number(chapter), verse: Number(verse) } : null;
   },
@@ -502,10 +518,10 @@ const controllerContext = {
   cancelAnimationFrame(id) { cancelledFrames.push(id); frames.delete(id); }
 };
 const controllerSource = bible.slice(pureStart, pureEnd) + '\n' +
-  bible.slice(controllerStart, controllerEnd) + '\nthis.api = {' +
+  bible.slice(controllerStart, controllerEnd) + '\n' + selectionHistorySource + '\n' + selectionPageSource + '\nthis.api = {' +
   'install: installAppSheetListeners, open: openAppSheet, close: requestCloseAppSheet,' +
   'pop: handleAppSheetPopState, snap: setSheetSnap, register: registerAppSheetDescriptor,' +
-  'retarget: retargetAppSheetMeasurement, state: appSheetState};';
+  'retarget: retargetAppSheetMeasurement, selectPage: setSelectionPage, state: appSheetState};';
 vm.runInNewContext(controllerSource, controllerContext);
 const api = controllerContext.api;
 function currentReturnPopState() {
@@ -1052,6 +1068,8 @@ const hiddenPanel = fakeElement();
 hiddenPanel.scrollHeight = 900;
 measure.scrollHeight = hiddenPanel.scrollHeight;
 activeMeasurementPanel = activePanelA;
+api.state.historyOwned = false;
+api.close('selector-history-chain-setup');
 api.open('selection', { page: 'books' });
 assert.equal(resizeObserverInstances.at(-1).targets[0], activePanelA,
   'selection measurement observes only the active panel, not a taller hidden panel');
@@ -1069,5 +1087,28 @@ frames.get(selectionMeasureFrame)();
 frames.delete(selectionMeasureFrame);
 assert.equal(dialog.style.getPropertyValue('--sheet-height'), '296px',
   'active page changes recompute without hidden persistent panel inflation');
+
+const selectorReturnState = historyCalls.replace.map(call => call[0]).findLast(state =>
+  state && state.sheetReturnGeneration === api.state.historyReturnGeneration);
+assert.ok(selectorReturnState, 'recorded selector chain has its adjacent reader return entry');
+assert.equal(api.selectPage('chapters', true), true);
+const selectorChapterState = historyCalls.replace.at(-1)[0];
+assert.equal(selectorChapterState.sheet.generation, api.state.generation,
+  'selector replacement preserves current runtime generation');
+assert.equal(selectorChapterState.sheet.returnGeneration, api.state.historyReturnGeneration,
+  'selector replacement preserves immutable return generation');
+assert.equal(api.selectPage('verses', true), true);
+const selectorReplacementState = historyCalls.replace.at(-1)[0];
+assert.equal(selectorReplacementState.sheet.generation, selectorChapterState.sheet.generation);
+assert.equal(selectorReplacementState.sheet.returnGeneration, selectorChapterState.sheet.returnGeneration,
+  'book/chapter page advances retain both lifecycle tokens');
+api.pop(selectorReturnState);
+assert.equal(dialog.open, false);
+api.pop(selectorReplacementState);
+assert.equal(dialog.open, true);
+assert.equal(api.state.kind, 'selection');
+assert.equal(api.state.page, 'verses');
+api.pop(selectorReturnState);
+assert.equal(dialog.open, false, 'selector replacement survives recorded Back/Forward/Back');
 
 console.log('bible sheet controller tests passed');
