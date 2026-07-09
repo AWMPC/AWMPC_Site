@@ -231,9 +231,19 @@ test('owner isolation always resets the reader canonically even when a private s
   assert.equal(reset.calls.replace.length, 1);
 
   const retained = startupHarness({ uiView: 'verses', currentBook: 'John', currentChapter: 3, activeVerse: '16' });
+  retained.context.appSheet.open = true;
+  retained.context.appSheetState.historyOwned = true;
+  retained.context.appSheetState.historyState = {
+    view: 'verses', book: 'John', chapter: '3', verse: '16', sheet: { kind: 'history' }
+  };
   assert.equal(retained.api.resetReaderForOwnerIsolation(true), true);
   assert.deepEqual(retained.calls.show[0], { book: 'Genesis', chapter: 1, verse: '1', navFromPop: true });
   assert.equal(retained.calls.replace.length, 1, 'the prior owner route is replaced beneath the retained sheet');
+  assert.equal(retained.context.appSheetState.historyOwned, false,
+    'closing the retained sheet must not traverse back to the prior owner route');
+  assert.deepEqual(clone(retained.context.appSheetState.historyState), {
+    view: 'verses', book: 'Genesis', chapter: 1, verse: '1'
+  }, 'sheet history state is rebased to the safe reader route');
 });
 
 test('integration wires route tracking, pagehide flush, auth resets, and prevents late auth startup jumps', () => {

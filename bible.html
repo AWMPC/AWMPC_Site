@@ -6332,7 +6332,13 @@
   function resetReaderForOwnerIsolation(retainedOwnerSheet) {
     clearPendingReadingRoute();
     if (!bibleData) return false;
-    return showCanonicalReadingReference(defaultStartupReadingReference());
+    var reset = showCanonicalReadingReference(defaultStartupReadingReference());
+    if (reset && appSheet.open) {
+      appSheetState.historyOwned = false;
+      appSheetState.pendingHistoryClose = false;
+      appSheetState.historyState = history.state;
+    }
+    return reset;
   }
   /* STARTUP READING LOCATION END */
 
