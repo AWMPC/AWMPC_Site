@@ -2809,6 +2809,9 @@
       return true;
     }
     if (state && state.sheet && state.sheet.kind === 'selection') {
+      if (appSheet.open &&
+          ((appSheetState.historyReturnGeneration !== null && state.sheet.generation == null) ||
+           (state.sheet.generation != null && state.sheet.generation !== appSheetState.generation))) return true;
       var reader = normalizeVerseReference(state.book, state.chapter, state.verse);
       if (reader) {
         var context = normalizedSelectionContext(state.sheet.book, state.sheet.chapter, reader);

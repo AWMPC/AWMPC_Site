@@ -407,6 +407,7 @@ const cancelledTimers = [];
 let popupCloseCalls = 0;
 let textSelectionActive = false;
 let staticHistoryRenderCount = 0;
+let legacySelectionOpenCalls = 0;
 let bodyPaddingStart = 0;
 let bodyPaddingEnd = 0;
 const resizeObserverInstances = [];
@@ -456,6 +457,18 @@ const controllerContext = {
   renderSelectionSheet(target) { target.textContent = 'selection'; },
   normalizedSelectionPage(page) { return ['books', 'chapters', 'verses'].includes(page) ? page : 'books'; },
   sanitizedSelectionDataContext() { return null; },
+  normalizeVerseReference(book, chapter, verse) {
+    return book && chapter && verse ? { book, chapter: Number(chapter), verse: Number(verse) } : null;
+  },
+  normalizedSelectionContext(book, chapter) { return { book, chapter }; },
+  selectionHistoryState(reader, page) {
+    return {
+      view: 'verses', book: reader.book, chapter: String(reader.chapter), verse: String(reader.verse),
+      sheet: { kind: 'selection', page }
+    };
+  },
+  canonicalVerseUrl() { return '/bible'; },
+  openSelectionSheet() { legacySelectionOpenCalls += 1; },
   window: {
     innerHeight: 800,
     visualViewport: {
@@ -780,6 +793,10 @@ const untaggedStaleSheetPop = {
   view: 'verses', book: 'John', chapter: '3', verse: '16', sheet: { kind: 'search', page: 'untagged-old' }
 };
 const untaggedStaleClosePop = { view: 'verses', book: 'John', chapter: '3', verse: '16' };
+const untaggedInvalidSelectionFallback = {
+  view: 'books', book: 'John', chapter: '3', verse: '16',
+  sheet: { kind: 'selection', page: 'books' }
+};
 api.state.historyOwned = false;
 api.close('invalidate-old-history-generation');
 api.open('history', { page: 'new' });
@@ -793,10 +810,12 @@ assert.equal(api.pop(staleSheetPop), true);
 assert.equal(api.pop(staleClosePop), true);
 assert.equal(api.pop(untaggedStaleSheetPop), true);
 assert.equal(api.pop(untaggedStaleClosePop), true);
+assert.equal(api.pop(untaggedInvalidSelectionFallback), true);
 assert.deepEqual({
   generation: api.state.generation, kind: api.state.kind, content: measure.textContent,
-  phase: api.state.phase, focus: opener.focusCount
-}, currentAfterReopen, 'tagged and untagged stale sheet/close callbacks cannot mutate a reopened sheet');
+  phase: api.state.phase, focus: opener.focusCount, legacySelectionOpenCalls
+}, { ...currentAfterReopen, legacySelectionOpenCalls: 0 },
+  'tagged and untagged stale sheet/close/legacy-selection callbacks cannot mutate a reopened sheet');
 
 api.state.historyOwned = false;
 api.close('prepare-forward-contract');
@@ -811,6 +830,9 @@ assert.equal(api.pop({
   view: 'verses', book: 'John', chapter: '3', verse: '16', sheetReturnGeneration: forwardToken
 }), true);
 assert.equal(dialog.open, false, 'matching adjacent return token preserves user Back close semantics');
+assert.equal(api.pop(untaggedInvalidSelectionFallback), true);
+assert.equal(legacySelectionOpenCalls, 1,
+  'tokenless legacy selection recovery remains available when no tagged lifecycle is active');
 api.pop({
   view: 'verses', book: 'John', chapter: '3', verse: '16',
   sheet: { kind: 'history', generation: 778 }
