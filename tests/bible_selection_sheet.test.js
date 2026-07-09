@@ -497,7 +497,7 @@ test('B to C to V executes validated context while only verse commit mutates rea
   assert.equal(events.at(-1)[0], 'close');
 });
 
-function runGestureProgram(source = bible) {
+function runGestureProgram(source = bible, selectionCollapsed = true) {
   const helpers = extractFrom(source,
     /\/\* SELECTION SHEET PURE HELPERS START \*\/[\s\S]*?\/\* SELECTION SHEET PURE HELPERS END \*\//,
     'selection pure helpers missing');
@@ -529,7 +529,7 @@ function runGestureProgram(source = bible) {
       cancel: onSelectionPointerCancel, lost: onSelectionLostPointerCapture,
       page: function () { return selectionSheetPage; }, pointer: function () { return selectionPointer; }
     };
-  `)({ getSelection: () => ({ isCollapsed: true }) }, pager, pages);
+  `)({ getSelection: () => ({ isCollapsed: selectionCollapsed }) }, pager, pages);
   return { api, pages, captures };
 }
 
@@ -541,6 +541,66 @@ function pointerEvent(id, x, y, time, target = { closest: () => null }) {
     stopPropagation() { this.stopped = true; }
   };
 }
+
+function interactiveTarget(kind) {
+  return {
+    closest(selector) {
+      return selector.split(',').map(value => value.trim()).includes(kind) ? this : null;
+    }
+  };
+}
+
+test('controls and selected text never let the horizontal pager claim pointer ownership', () => {
+  for (const kind of ['button', 'input', 'a']) {
+    const h = runGestureProgram();
+    const down = pointerEvent(20, 100, 0, 1, interactiveTarget(kind));
+    const move = pointerEvent(20, 0, 1, 10, interactiveTarget(kind));
+    h.api.down(down);
+    h.api.move(move);
+    assert.equal(h.api.pointer(), null, `${kind} never starts a pager pointer`);
+    assert.deepEqual(h.captures, [], `${kind} is not captured`);
+    assert.equal(down.prevented, false);
+    assert.equal(move.prevented, false, `${kind} keeps native/control handling`);
+    assert.equal(move.stopped, false, `${kind} still bubbles to vertical sheet ownership`);
+    assert.equal(h.api.page(), 'chapters');
+  }
+
+  const selected = runGestureProgram(bible, false);
+  const selectedDown = pointerEvent(21, 100, 0, 1);
+  const selectedMove = pointerEvent(21, 0, 1, 10);
+  selected.api.down(selectedDown);
+  selected.api.move(selectedMove);
+  assert.equal(selected.api.pointer(), null, 'non-collapsed text selection blocks pager ownership');
+  assert.deepEqual(selected.captures, []);
+  assert.equal(selectedMove.prevented, false);
+  assert.equal(selectedMove.stopped, false);
+  assert.equal(selected.api.page(), 'chapters');
+
+  const pointerGuard = functionSource('selectionPointerTargetAllowsSwipe');
+  const selectionGuardMutant = bible.replace(pointerGuard, pointerGuard.replace(
+    'if (selection && !selection.isCollapsed) return false;',
+    'if (selection && false) return false;'
+  ));
+  const selectedMutation = runGestureProgram(selectionGuardMutant, false);
+  const mutationDown = pointerEvent(22, 100, 0, 1);
+  const mutationMove = pointerEvent(22, 0, 1, 10);
+  selectedMutation.api.down(mutationDown);
+  selectedMutation.api.move(mutationMove);
+  assert.notDeepEqual(selectedMutation.captures, [], 'selected-text guard mutation is observable');
+  assert.equal(mutationMove.prevented, true);
+
+  const buttonGuardMutant = bible.replace(
+    "return !target.closest('button,a,input,select,textarea,label,p,pre,code,[role=\"button\"],[contenteditable=\"true\"]');",
+    "return !target.closest('a,input,select,textarea,label,p,pre,code,[role=\"button\"],[contenteditable=\"true\"]');"
+  );
+  const buttonMutation = runGestureProgram(buttonGuardMutant);
+  const buttonDown = pointerEvent(23, 100, 0, 1, interactiveTarget('button'));
+  const buttonMove = pointerEvent(23, 0, 1, 10, interactiveTarget('button'));
+  buttonMutation.api.down(buttonDown);
+  buttonMutation.api.move(buttonMove);
+  assert.notDeepEqual(buttonMutation.captures, [], 'button exclusion mutation is observable');
+  assert.equal(buttonMove.prevented, true);
+});
 
 test('horizontal gestures execute one page both ways while vertical, cancel, and lost capture do not page', () => {
   const h = runGestureProgram();
