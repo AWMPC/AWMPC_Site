@@ -125,8 +125,28 @@ assert.match(authSource, /_setLocalOwnerUid\(authUid\);[\s\S]*refreshOwnerScoped
 assert.match(sourceBetween('    applyCloudData: function (data, skippedFields, preserveSearchFocus) {', '\n    }\n  };'),
   /refreshOwnerScopedAppSheet\(\{ preserveSearchFocus: preserveSearchFocus === true \}\);/,
   'cloud hydration explicitly controls same-owner Search focus preservation');
-assert.match(authSource, /var preserveSameOwnerSearchFocus = !isFirstOwner && !isOwnerSwitch;/,
-  'anonymous sign-in and A-to-B owner boundaries cannot carry a private Search draft');
+assert.match(authSource,
+  /var preserveSameOwnerSearchFocus = shouldPreserveOwnerSearchFocus\(wasAuthenticated,[\s\S]*authenticatedOwnerAtResolution,[\s\S]*authUid,[\s\S]*previousOwnerUid,[\s\S]*_syncedLocalStateQuarantined\);/,
+  'Search focus preservation is derived from live authenticated continuity, not persisted-owner coincidence');
+
+{
+  const context = {};
+  const continuitySource = sourceBetween('  function shouldPreserveOwnerSearchFocus(',
+    '\n\n  auth.onAuthStateChanged(function (user) {');
+  vm.runInNewContext(`${continuitySource}\nthis.preserve = shouldPreserveOwnerSearchFocus;`, context);
+  const transitions = [
+    ['same authenticated owner', [true, 'owner-a', 'owner-a', 'owner-a', false], true],
+    ['anonymous to authenticated with stale matching storage', [false, null, 'owner-a', 'owner-a', false], false],
+    ['first sign-in', [false, null, 'owner-a', null, false], false],
+    ['sign-out', [true, 'owner-a', null, 'owner-a', false], false],
+    ['authenticated A to B', [true, 'owner-a', 'owner-b', 'owner-a', false], false],
+    ['persisted owner mismatch', [true, 'owner-a', 'owner-a', 'owner-b', false], false],
+    ['quarantined same owner', [true, 'owner-a', 'owner-a', 'owner-a', true], false]
+  ];
+  for (const [label, args, expected] of transitions) {
+    assert.equal(context.preserve(...args), expected, `${label} Search draft boundary`);
+  }
+}
 
 function makeStorage(initial = {}) {
   const values = new Map(Object.entries(initial));
@@ -424,7 +444,11 @@ function fakeElement(tag = 'div') {
   const cleanupRefresh = context.render(refreshTarget);
   const refreshInput = created.filter(node => node.tag === 'input').at(-1);
   const refreshFocuses = [];
-  refreshInput.focus = options => { refreshFocuses.push(options); context.document.activeElement = refreshInput; };
+  refreshInput.focus = options => {
+    refreshFocuses.push(options);
+    context.document.activeElement = refreshInput;
+    refreshInput.dispatch('focus');
+  };
   assert.equal(refreshInput.value, 'restored truth', 'focused same-generation refresh preserves the bounded query');
   assert.equal(timers.size, 0, 'same-generation latched refresh schedules no second autofocus timer');
   assert.equal(frames.size, 1, 'focused refresh owns one generation-guarded focus handoff RAF');
@@ -435,8 +459,8 @@ function fakeElement(tag = 'div') {
   assert.equal(refreshInput.selectionStart, 2);
   assert.equal(refreshInput.selectionEnd, 8);
   assert.equal(refreshInput.selectionDirection, 'forward');
-  assert.equal(focusOrder.filter(entry => entry[0] === 'latch').length, latchCallsBeforeCleanup,
-    'focus handoff reuses the existing viewport owner without relatching');
+  assert.equal(focusOrder.filter(entry => entry[0] === 'latch').length, latchCallsBeforeCleanup + 1,
+    'synchronous focus handoff exercises the idempotent viewport relatch listener path');
   context.document.activeElement = null;
   cleanupRefresh();
   assert.equal(viewportCleanupCalls, 0, 'Search content cleanup cannot release controller viewport ownership');

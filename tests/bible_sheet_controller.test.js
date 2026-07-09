@@ -306,7 +306,9 @@ assert.equal(h.determinedHeight(0, 559.1, 800), 560, 'fixed chrome is rounded up
 assert.equal(h.determinedHeight(0, 0, 800), null, 'a determined sheet must have positive height');
 for (const args of [
   [-1, 48, 800], [176, -1, 800], [176, 48, 0], [176, 48, -1],
-  [Infinity, 48, 800], [176, Infinity, 800], [176, 48, Infinity], ['176', 48, 800]
+  [Infinity, 48, 800], [-Infinity, 48, 800], [NaN, 48, 800], [176, Infinity, 800],
+  [176, 48, Infinity], ['176', 48, 800], [new Number(176), 48, 800],
+  [{ valueOf() { return 176; } }, 48, 800], [[176], 48, 800]
 ]) assert.equal(h.determinedHeight(...args), null, `invalid determined height input: ${String(args)}`);
 
 assert.equal(h.effectiveDistance(40), 40);
@@ -417,6 +419,17 @@ assert.equal(h.state({ view: 'verses', book: '', chapter: '3', verse: '16', shee
 assert.equal(h.state({ view: 'verses', book: 'John', chapter: '3', verse: '16', sheet: { kind: 'evil' } }), null);
 assert.equal(h.state({ view: 'verses', book: 'John', chapter: '3', verse: '16', sheet: { kind: 'history', page: {} } }), null);
 assert.equal(h.state({ view: 'verses', book: 'John', chapter: '3', verse: '16', sheet: { kind: 'history', page: '<script>' } }), null);
+for (const hostileState of [null, 1, 'state', [], Object.create({
+  view: 'verses', book: 'John', chapter: '3', verse: '16', sheet: { kind: 'history' }
+})]) {
+  assert.equal(h.state(hostileState), null, 'hostile or inherited history state is rejected');
+}
+const throwingHistoryState = {};
+Object.defineProperty(throwingHistoryState, 'view', { get() { throw new Error('hostile history getter'); } });
+assert.doesNotThrow(() => h.state(throwingHistoryState), 'throwing history properties fail closed');
+assert.equal(h.state(throwingHistoryState), null);
+assert.doesNotMatch(bible, /console\.(?:log|debug|info)\([^)]*(?:search|query|clientX|clientY|pointer|reading)/i,
+  'production diagnostics never emit private search, reading, or pointer-coordinate data');
 
 for (const field of ['kind', 'edge', 'snap', 'anchor', 'phase', 'generation', 'determinedHeight', 'determinedWidth', 'candidate', 'gesture',
   'pointer', 'frame', 'measureFrame', 'settleTimer', 'historyTimer', 'resizeObserver', 'contentCleanup',
@@ -676,7 +689,7 @@ const controllerContext = {
   onSelectionTouchCancel() {},
   document: {
     activeElement: opener,
-    documentElement: { clientHeight: 780 },
+    documentElement: { clientHeight: 800 },
     createElement(tagName) { const element = fakeElement(); element.tagName = String(tagName).toUpperCase(); return element; },
     createTextNode(value) { return { nodeType: 3, textContent: String(value) }; }
   },
@@ -1990,9 +2003,34 @@ assert.equal(api.state.page, 'verses');
 api.pop(selectorReturnState);
 assert.equal(dialog.open, false, 'selector replacement survives recorded Back/Forward/Back');
 
-for (let cycle = 0; cycle < 3; cycle += 1) {
-  assert.equal(api.open('history', { opener, page: 'lifecycle-' + cycle }), true);
+const lifecycleKinds = ['history', 'settings', 'search', 'selection', 'verse-actions'];
+const lifecycleFrameBaseline = frames.size;
+const lifecycleTimerBaseline = timers.size;
+for (let cycle = 0; cycle < 100; cycle += 1) {
+  const kind = lifecycleKinds[cycle % lifecycleKinds.length];
+  const replacementKind = lifecycleKinds[(cycle + 1) % lifecycleKinds.length];
+  assert.equal(api.open(kind, { opener, page: 'lifecycle-' + cycle }), true);
   const cycleViewportListener = viewportListeners.resize.at(-1);
+  for (const [id, callback] of [...frames]) { callback(); frames.delete(id); }
+  assert.equal(api.snap('fullscreen', true), true, `cycle ${cycle} maximizes`);
+  assert.equal(api.snap('determined', true), true, `cycle ${cycle} restores`);
+  for (const [id, callback] of [...frames]) { callback(); frames.delete(id); }
+  if (kind === 'search') {
+    const savedWidth = controllerContext.window.innerWidth;
+    controllerContext.window.innerWidth = 640;
+    assert.equal(api.latchSearch(api.state.generation), true, `cycle ${cycle} latches mobile Search`);
+    controllerContext.window.innerWidth = savedWidth;
+  }
+  cycleViewportListener();
+  const staleViewportFrame = api.state.viewportFrame;
+  const staleViewportCallback = frames.get(staleViewportFrame);
+  if (kind === 'history' || kind === 'search') assert.equal(api.refresh(), true, `cycle ${cycle} refreshes content`);
+  assert.equal(api.open(replacementKind, { opener: replacementOpener, page: 'replacement-' + cycle }), true,
+    `cycle ${cycle} replaces content ownership`);
+  if (staleViewportCallback) staleViewportCallback();
+  cycleViewportListener();
+  assert.notEqual(api.state.viewportFrame, staleViewportFrame,
+    `cycle ${cycle} stale viewport work cannot adopt the replacement generation`);
   for (const [id, callback] of [...frames]) { callback(); frames.delete(id); }
   handle.dispatch('pointerdown', {
     isPrimary: true, button: 0, pointerId: 200 + cycle, clientX: 0, clientY: 0, timeStamp: 1
@@ -2019,9 +2057,23 @@ for (let cycle = 0; cycle < 3; cycle += 1) {
   assert.equal(handle.hasPointerCapture(200 + cycle), false, `cycle ${cycle} releases capture`);
   assert.equal(dialog.classList.contains('is-dragging'), false);
   assert.equal(dialog.classList.contains('is-closing'), false);
+  for (const transientClass of ['is-preparing', 'is-opening', 'is-settling', 'search-viewport-fullscreen']) {
+    assert.equal(dialog.classList.contains(transientClass), false, `cycle ${cycle} clears ${transientClass}`);
+  }
+  for (const property of ['--sheet-drag-offset', '--sheet-live-height', '--sheet-backdrop-opacity',
+    '--sheet-viewport-height', '--sheet-viewport-top']) {
+    assert.equal(dialog.style.getPropertyValue(property), '', `cycle ${cycle} clears ${property}`);
+  }
+  assert.equal(opener.getAttribute('aria-expanded'), 'false', `cycle ${cycle} resets original launcher`);
+  assert.equal(replacementOpener.getAttribute('aria-expanded'), 'false', `cycle ${cycle} resets replacement launcher`);
+  assert.equal(fabMain.getAttribute('aria-expanded'), 'false', `cycle ${cycle} resets Settings launcher`);
   assert.equal(dialog.listenerCount + handle.listenerCount + body.listenerCount, installedListenerCount,
     `cycle ${cycle} does not retain listeners`);
   assert.equal(resizeObserverInstances.at(-1).disconnected, true, `cycle ${cycle} disconnects observer`);
+  assert.equal(resizeObserverInstances.filter(observer => !observer.disconnected).length, 0,
+    `cycle ${cycle} leaves no active ResizeObserver`);
+  assert.equal(frames.size, lifecycleFrameBaseline, `cycle ${cycle} returns RAFs to baseline`);
+  assert.equal(timers.size, lifecycleTimerBaseline, `cycle ${cycle} returns timers to baseline`);
 }
 
 if (dialog.open) {
@@ -2414,6 +2466,18 @@ api.updateSearchViewport(mobileSearchGeneration);
 assert.equal(dialog.style.getPropertyValue('--sheet-viewport-height'), '777px',
   'huge finite visual viewport height clamps to the layout viewport');
 assert.equal(dialog.style.getPropertyValue('--sheet-viewport-top'), '0px');
+controllerContext.window.innerHeight = Number.MAX_VALUE;
+controllerContext.document.documentElement.clientHeight = 610;
+api.updateSearchViewport(mobileSearchGeneration);
+assert.equal(dialog.style.getPropertyValue('--sheet-viewport-height'), '610px',
+  'credible layout height uses the smaller positive finite DOM and window measurements');
+controllerContext.window.innerHeight = Number.MAX_VALUE;
+controllerContext.document.documentElement.clientHeight = -1;
+api.updateSearchViewport(mobileSearchGeneration);
+assert.equal(dialog.style.getPropertyValue('--sheet-viewport-height'), '100000px',
+  'a lone absurd finite layout height is defensively capped');
+controllerContext.window.innerHeight = 777;
+controllerContext.document.documentElement.clientHeight = 780;
 controllerContext.window.visualViewport.height = 390;
 controllerContext.window.visualViewport.offsetTop = Number.MAX_VALUE;
 api.updateSearchViewport(mobileSearchGeneration);

@@ -2503,43 +2503,55 @@
     };
   }
   function validatedAppSheetHistoryState(state) {
-    if (!state || state.view !== 'verses' || typeof state.book !== 'string' || !state.book ||
-        !/^\d+$/.test(String(state.chapter)) || !/^\d+$/.test(String(state.verse)) ||
-        !state.sheet || !isValidAppSheetKind(state.sheet.kind)) return null;
-    if (state.sheet.kind !== 'selection' && state.sheet.page != null && (typeof state.sheet.page !== 'string' ||
-        state.sheet.page.length > 128 || !/^[A-Za-z0-9._~-]*$/.test(state.sheet.page))) return null;
-    var sheet = { kind: state.sheet.kind };
-    if (state.sheet.generation != null) {
-      if (!Number.isSafeInteger(state.sheet.generation) || state.sheet.generation <= 0) return null;
-      sheet.generation = state.sheet.generation;
-    }
-    if (state.sheet.returnGeneration != null) {
-      if (!Number.isSafeInteger(state.sheet.returnGeneration) || state.sheet.returnGeneration <= 0) return null;
-      sheet.returnGeneration = state.sheet.returnGeneration;
-    }
-    if (state.sheet.kind === 'selection') {
-      sheet.page = normalizedSelectionPage(state.sheet.page);
-      var data = typeof bibleData === 'undefined' ? null : bibleData;
-      var fallbackBook = typeof navBook === 'string' ? navBook : null;
-      var fallbackChapter = typeof navChapter === 'number' || typeof navChapter === 'string' ? navChapter : null;
-      var context = sanitizedSelectionDataContext(
-        data, state.sheet.book, state.sheet.chapter, fallbackBook, fallbackChapter
-      );
-      if (context) {
-        sheet.book = context.book;
-        sheet.chapter = String(context.chapter);
-      } else {
-        sheet.page = 'books';
+    try {
+      if (!state || typeof state !== 'object' || Array.isArray(state) ||
+          !Object.prototype.hasOwnProperty.call(state, 'view') ||
+          !Object.prototype.hasOwnProperty.call(state, 'book') ||
+          !Object.prototype.hasOwnProperty.call(state, 'chapter') ||
+          !Object.prototype.hasOwnProperty.call(state, 'verse') ||
+          !Object.prototype.hasOwnProperty.call(state, 'sheet') ||
+          state.view !== 'verses' || typeof state.book !== 'string' || !state.book ||
+          !/^\d+$/.test(String(state.chapter)) || !/^\d+$/.test(String(state.verse)) ||
+          !state.sheet || typeof state.sheet !== 'object' || Array.isArray(state.sheet) ||
+          !Object.prototype.hasOwnProperty.call(state.sheet, 'kind') ||
+          !isValidAppSheetKind(state.sheet.kind)) return null;
+      if (state.sheet.kind !== 'selection' && state.sheet.page != null && (typeof state.sheet.page !== 'string' ||
+          state.sheet.page.length > 128 || !/^[A-Za-z0-9._~-]*$/.test(state.sheet.page))) return null;
+      var sheet = { kind: state.sheet.kind };
+      if (state.sheet.generation != null) {
+        if (!Number.isSafeInteger(state.sheet.generation) || state.sheet.generation <= 0) return null;
+        sheet.generation = state.sheet.generation;
       }
-      if (data && typeof normalizeVerseReference === 'function') {
-        var reader = normalizeVerseReference(state.book, state.chapter, state.verse);
-        if (!reader && typeof currentSelectionReaderReference === 'function') reader = currentSelectionReaderReference();
-        if (!reader) return null;
-        state = { book: reader.book, chapter: String(reader.chapter), verse: String(reader.verse) };
+      if (state.sheet.returnGeneration != null) {
+        if (!Number.isSafeInteger(state.sheet.returnGeneration) || state.sheet.returnGeneration <= 0) return null;
+        sheet.returnGeneration = state.sheet.returnGeneration;
       }
-    } else if (state.sheet.page) sheet.page = state.sheet.page;
-    return { view: 'verses', book: state.book, chapter: String(state.chapter), verse: String(state.verse),
-      readerRouteScope: typeof readerRouteScope === 'number' ? readerRouteScope : 0, sheet: sheet };
+      if (state.sheet.kind === 'selection') {
+        sheet.page = normalizedSelectionPage(state.sheet.page);
+        var data = typeof bibleData === 'undefined' ? null : bibleData;
+        var fallbackBook = typeof navBook === 'string' ? navBook : null;
+        var fallbackChapter = typeof navChapter === 'number' || typeof navChapter === 'string' ? navChapter : null;
+        var context = sanitizedSelectionDataContext(
+          data, state.sheet.book, state.sheet.chapter, fallbackBook, fallbackChapter
+        );
+        if (context) {
+          sheet.book = context.book;
+          sheet.chapter = String(context.chapter);
+        } else {
+          sheet.page = 'books';
+        }
+        if (data && typeof normalizeVerseReference === 'function') {
+          var reader = normalizeVerseReference(state.book, state.chapter, state.verse);
+          if (!reader && typeof currentSelectionReaderReference === 'function') reader = currentSelectionReaderReference();
+          if (!reader) return null;
+          state = { book: reader.book, chapter: String(reader.chapter), verse: String(reader.verse) };
+        }
+      } else if (state.sheet.page) sheet.page = state.sheet.page;
+      return { view: 'verses', book: state.book, chapter: String(state.chapter), verse: String(state.verse),
+        readerRouteScope: typeof readerRouteScope === 'number' ? readerRouteScope : 0, sheet: sheet };
+    } catch (historyStateError) {
+      return null;
+    }
   }
   /* APP SHEET PURE HELPERS END */
 
@@ -2783,16 +2795,22 @@
 
   function appSheetViewportHeight() {
     var visualHeight = window.visualViewport && window.visualViewport.height;
-    if (isFiniteAppSheetNumber(visualHeight) && visualHeight > 0) return visualHeight;
-    if (isFiniteAppSheetNumber(window.innerHeight) && window.innerHeight > 0) return window.innerHeight;
-    var clientHeight = document.documentElement && document.documentElement.clientHeight;
-    return isFiniteAppSheetNumber(clientHeight) && clientHeight > 0 ? clientHeight : null;
+    var layoutHeight = appSheetLayoutViewportHeight();
+    if (isFiniteAppSheetNumber(visualHeight) && visualHeight > 0) {
+      return layoutHeight === null ? Math.min(visualHeight, 100000) : Math.min(visualHeight, layoutHeight);
+    }
+    return layoutHeight;
   }
 
   function appSheetLayoutViewportHeight() {
-    if (isFiniteAppSheetNumber(window.innerHeight) && window.innerHeight > 0) return window.innerHeight;
+    var innerHeight = window.innerHeight;
     var clientHeight = document.documentElement && document.documentElement.clientHeight;
-    return isFiniteAppSheetNumber(clientHeight) && clientHeight > 0 ? clientHeight : null;
+    var hasInner = isFiniteAppSheetNumber(innerHeight) && innerHeight > 0;
+    var hasClient = isFiniteAppSheetNumber(clientHeight) && clientHeight > 0;
+    if (hasInner && hasClient) return Math.min(innerHeight, clientHeight);
+    if (hasInner) return Math.min(innerHeight, 100000);
+    if (hasClient) return Math.min(clientHeight, 100000);
+    return null;
   }
 
   function cleanupAppSheetViewportOwnership(ownerGeneration) {
@@ -5146,9 +5164,16 @@
     }
   }
 
+  function shouldPreserveOwnerSearchFocus(wasAuthenticated, priorUid, nextUid, storedUid, quarantined) {
+    return wasAuthenticated === true && quarantined === false &&
+      typeof priorUid === 'string' && priorUid.length > 0 &&
+      typeof nextUid === 'string' && nextUid === priorUid && storedUid === priorUid;
+  }
+
   auth.onAuthStateChanged(function (user) {
     var ownerAtAuthResolution = _localOwnerUid();
-    var wasAuthenticated = authHasResolved && !!priorAuthenticatedUid;
+    var authenticatedOwnerAtResolution = priorAuthenticatedUid;
+    var wasAuthenticated = authHasResolved && !!authenticatedOwnerAtResolution;
     _resetSyncForUser(user ? user.uid : null);
     var authGeneration = _syncGeneration;
     var authUid = _currentUid;
@@ -5206,7 +5231,8 @@
       var previousOwnerUid = _localOwnerUid();
       var isFirstOwner = !previousOwnerUid;
       var isOwnerSwitch = !!previousOwnerUid && previousOwnerUid !== authUid;
-      var preserveSameOwnerSearchFocus = !isFirstOwner && !isOwnerSwitch;
+      var preserveSameOwnerSearchFocus = shouldPreserveOwnerSearchFocus(wasAuthenticated,
+        authenticatedOwnerAtResolution, authUid, previousOwnerUid, _syncedLocalStateQuarantined);
 
       if (isOwnerSwitch) {
         if (!_clearSyncedLocalState()) {

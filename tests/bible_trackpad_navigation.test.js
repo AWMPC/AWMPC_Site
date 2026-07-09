@@ -32,7 +32,11 @@ test('wheel deltas normalize pixel, line, and page modes with a per-event cap', 
 test('wheel delta normalization rejects invalid geometry and modes', () => {
   for (const args of [
     [Infinity, 0, 800], [1, Infinity, 800], [1, 3, 800], [1, -1, 800],
-    [1, .5, 800], [1, 0, Infinity], [1, 0, 0], ['1', 0, 800]
+    [1, .5, 800], [1, 0, Infinity], [1, 0, 0], ['1', 0, 800],
+    [NaN, 0, 800], [-Infinity, 0, 800], [new Number(1), 0, 800],
+    [{ valueOf() { return 1; } }, 0, 800], [[1], 0, 800],
+    [1, '0', 800], [1, new Number(0), 800], [1, [], 800],
+    [1, 0, '800'], [1, 0, new Number(800)], [1, 0, [800]]
   ]) assert.equal(h.normalize(...args), null, `invalid normalized delta input: ${String(args)}`);
 });
 
@@ -46,6 +50,10 @@ test('wheel claiming requires activation and horizontal axis dominance at inclus
   assert.equal(h.claim(Infinity, 0), 0, 'invalid horizontal input is ignored');
   assert.equal(h.claim(48, Infinity), 0, 'invalid vertical input is ignored');
   assert.equal(h.claim('48', 0), 0, 'numeric strings are ignored');
+  for (const hostile of [NaN, -Infinity, new Number(48), { valueOf() { return 48; } }, [48]]) {
+    assert.equal(h.claim(hostile, 0), 0, 'hostile horizontal geometry is ignored');
+    assert.equal(h.claim(48, hostile), 0, 'hostile vertical geometry is ignored');
+  }
 });
 
 function functionSource(name) {
@@ -617,4 +625,79 @@ test('reader transition owns the consumed lock across idle expiry and starts qui
   staleTransition.fn();
   api.finish(staleGeneration);
   assert.equal(api.lock().active, false, 'stale completion cannot restore or release a newer owner');
+});
+
+test('reduced-motion reader render skips crossfade timing but preserves a fresh consumed quiet lock', () => {
+  const timers = [];
+  const chapters = [];
+  const classList = { add() {}, remove() {} };
+  const viewInner = { classList, children: [{}] };
+  const viewEl = {
+    contains(target) { return target && target.inside === true; },
+    querySelectorAll() { return []; }
+  };
+  const documentObject = { documentElement: { clientWidth: 600 } };
+  const windowObject = {
+    innerWidth: 800,
+    visualViewport: { width: 700 },
+    getSelection() { return { isCollapsed: true }; },
+    setTimeout(fn, ms) { const timer = { fn, ms, cleared: false }; timers.push(timer); return timer; },
+    clearTimeout(timer) { if (timer) timer.cleared = true; }
+  };
+  const source = [
+    'normalizeBibleWheelDelta', 'bibleWheelClaimDirection', 'clearBibleReaderWheelTransitionLock',
+    'bibleWheelEventHorizontalDirection', 'resetBibleWheelBurst', 'restoreBibleWheelConsumedLock',
+    'holdBibleReaderWheelTransitionLock', 'finishBibleReaderWheelTransitionLock',
+    'bibleWheelTargetBlocked', 'accumulateBibleWheel', 'onBibleReaderWheel',
+    'showVersesViewWithTransition'
+  ].map(functionSource).join('\n');
+  const api = Function('window', 'document', 'viewEl', 'viewInner', 'timers', 'chapters', `
+    var BIBLE_WHEEL_AXIS_RATIO = 1.25;
+    var BIBLE_WHEEL_ACTIVATION_PX = 48;
+    var BIBLE_WHEEL_IDLE_MS = 160;
+    var BIBLE_WHEEL_LINE_PX = 16;
+    var BIBLE_WHEEL_MAX_EVENT_PX = 120;
+    var CHAPTER_CROSSFADE_MS = 200;
+    var uiView = 'verses';
+    var appSheet = { open: false };
+    var appSheetState = { phase: 'idle', pointer: null, candidate: null };
+    var selectionPointer = null;
+    var bibleReaderWheelAction = false;
+    var bibleWheelBurst = { x: 0, y: 0, consumed: false, direction: 0, timer: null, generation: 0 };
+    var bibleReaderWheelTransitionLock = { active: false, direction: 0, generation: 0 };
+    var chapterCrossfadeTimer = null;
+    var chapterCrossfadeGeneration = 0;
+    function isFiniteAppSheetNumber(value) { return typeof value === 'number' && Number.isFinite(value); }
+    function releaseVerseChaseForFreeScroll() {}
+    function closeVerseActions() {}
+    function clearReaderPointerState() {}
+    function shouldReduceChapterMotion() { return true; }
+    function clearChapterCrossfadeTimer() {
+      chapterCrossfadeGeneration++;
+      if (chapterCrossfadeTimer) window.clearTimeout(chapterCrossfadeTimer);
+      chapterCrossfadeTimer = null;
+    }
+    function clearRetiringChapterViews() {}
+    function showVersesView() {}
+    function showAdjacentChapter(direction) {
+      chapters.push(direction);
+      holdBibleReaderWheelTransitionLock(direction);
+      showVersesViewWithTransition('Genesis', chapters.length + 1, '1');
+      return true;
+    }
+    ${source}
+    return { wheel: onBibleReaderWheel, burst: function () { return bibleWheelBurst; } };
+  `)(windowObject, documentObject, viewEl, viewInner, timers, chapters);
+
+  api.wheel(wheelEvent(48));
+  assert.deepEqual(chapters, [1], 'the synchronous reduced-motion render performs one chapter action');
+  assert.equal(timers.some(timer => timer.ms === 200), false, 'reduced motion owns no crossfade timer');
+  const quiet = timers.filter(timer => timer.ms === 160 && !timer.cleared).at(-1);
+  assert.ok(quiet, 'synchronous completion establishes a fresh 160ms consumed quiet lock');
+  api.wheel(wheelEvent(120));
+  api.wheel(wheelEvent(-120));
+  assert.deepEqual(chapters, [1], 'residual momentum in either direction cannot perform a second action');
+  timers.filter(timer => timer.ms === 160 && !timer.cleared).at(-1).fn();
+  api.wheel(wheelEvent(-48));
+  assert.deepEqual(chapters, [1, -1], 'a new action is accepted after the reduced-motion quiet period');
 });

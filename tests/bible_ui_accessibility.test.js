@@ -358,6 +358,14 @@ assert.match(bible, /\.view-inner\.chapter-transition-ready \{ opacity: 0; trans
 assert.match(bible, /\.view-inner\.chapter-transition-ready\.chapter-transition-in \{[\s\S]*opacity: 1;[\s\S]*transition-property: opacity;[\s\S]*transition-duration: 200ms;[\s\S]*transition-timing-function: var\(--motion-ease\);/);
 assert.match(bible, /transition-property: opacity;[\s\S]*transition-duration: 200ms;[\s\S]*transition-timing-function: var\(--motion-ease\);/);
 assert.match(bible, /@media \(prefers-reduced-motion: reduce\) \{[\s\S]*?\.view-inner \{[\s\S]*?transition: none;/);
+for (const safeArea of [7, 8, 9]) {
+  const indicatorBottom = Math.max(8, safeArea);
+  const finalReservation = Math.max(52, 44 + safeArea);
+  assert.equal(indicatorBottom, safeArea < 8 ? 8 : safeArea,
+    `indicator bottom follows the threshold at ${safeArea}px`);
+  assert.ok(finalReservation >= indicatorBottom + 36,
+    `final panel reservation clears the 28px indicator and its 8px breathing room at ${safeArea}px`);
+}
 assert.match(bible, /function clearChapterCrossfadeTimer\(\)/);
 assert.match(bible, /window\.clearTimeout\(chapterCrossfadeTimer\);/);
 assert.match(bible, /function clearRetiringChapterViews\(\)/);
