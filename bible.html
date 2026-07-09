@@ -3161,6 +3161,16 @@
     return direction < 0 ? atEnd : atStart;
   }
 
+  function appSheetGestureScrollerGeometry(scroller) {
+    if (!scroller) return null;
+    var scrollTop = scroller.scrollTop;
+    var clientHeight = scroller.clientHeight;
+    var scrollHeight = scroller.scrollHeight;
+    if (!isFiniteAppSheetNumber(scrollTop) || !isFiniteAppSheetNumber(clientHeight) || clientHeight < 0 ||
+        !isFiniteAppSheetNumber(scrollHeight) || scrollHeight < 0) return null;
+    return { scrollTop: scrollTop, clientHeight: clientHeight, scrollHeight: scrollHeight };
+  }
+
   function beginAppSheetGesture(e) {
     if (!appSheet.open || e.button !== 0 ||
         !isFiniteAppSheetNumber(e.pointerId) || !isFiniteAppSheetNumber(e.clientX) ||
@@ -3174,6 +3184,9 @@
     if (appSheetState.phase !== 'idle') return;
     var fromHandle = e.currentTarget === appSheetHandle;
     if (!fromHandle && !appSheetBodyTargetAllowsDrag(e.target)) return;
+    var geometry = appSheetGestureScrollerGeometry(fromHandle ? appSheetBody : currentAppSheetOverflowScroller());
+    if (!fromHandle && !geometry) return;
+    if (!geometry) geometry = { scrollTop: 0, clientHeight: 0, scrollHeight: 0 };
     appSheetState.candidate = {
       id: e.pointerId, startX: e.clientX, startY: e.clientY,
       lastY: e.clientY, lastTime: e.timeStamp || Date.now(), lastMoveTime: null,
@@ -3182,8 +3195,8 @@
       touchAdapter: e.isTouchAdapter === true,
       pointerType: e.pointerType || '', originTarget: e.target,
       generation: appSheetState.generation,
-      scrollTop: appSheetBody.scrollTop, clientHeight: appSheetBody.clientHeight,
-      scrollHeight: appSheetBody.scrollHeight,
+      scrollTop: geometry.scrollTop, clientHeight: geometry.clientHeight,
+      scrollHeight: geometry.scrollHeight,
       determinedHeight: appSheetState.determinedHeight,
       viewportHeight: appSheetViewportHeight(), startSnap: appSheetState.snap
     };
@@ -4086,17 +4099,6 @@
     var input = selectionTouchInput(entry, touch, e);
     if (horizontalAllowed) onSelectionPointerDown(input);
     if (verticalAllowed) beginAppSheetGesture(Object.assign({}, input, { target: appSheetBody }));
-    var scroller = e.target && typeof e.target.closest === 'function' ?
-      e.target.closest('.selection-panel') : null;
-    if (!scroller) scroller = appSheetBody;
-    if (appSheetState.candidate && appSheetState.candidate.id === entry.pointerId) {
-      appSheetState.candidate.scrollTop = typeof scroller.scrollTop === 'number' && isFinite(scroller.scrollTop) ?
-        scroller.scrollTop : 0;
-      appSheetState.candidate.clientHeight = typeof scroller.clientHeight === 'number' && isFinite(scroller.clientHeight) ?
-        scroller.clientHeight : 0;
-      appSheetState.candidate.scrollHeight = typeof scroller.scrollHeight === 'number' && isFinite(scroller.scrollHeight) ?
-        scroller.scrollHeight : 0;
-    }
   }
 
   function onSelectionTouchMove(e) {

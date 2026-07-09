@@ -1038,13 +1038,18 @@ function runTouchAdapter() {
     var SELECTION_TOUCH_TIMEOUT_MS = 1200;
     var SELECTION_ENDPOINT_RESISTANCE_PX = 32;
     var appSheetBody = { scrollTop: 0, clientHeight: 200, scrollHeight: 500 };
+    var activeGestureScroller = appSheetBody;
     var appSheetState = { generation: 7, kind: 'selection', edge: 'bottom', candidate: null, pointer: null };
     function requestAnimationFrame(fn) { frames.push(fn); return frames.length; }
     function cancelAnimationFrame() { selectionPointerFrame = null; }
-    function beginAppSheetGesture(e) { appSheetState.candidate = {
-      id: e.pointerId, startY: e.clientY, pointerType: e.pointerType || '', originTarget: e.target,
-      touchAdapter: e.isTouchAdapter === true, generation: appSheetState.generation
-    }; }
+    function beginAppSheetGesture(e) {
+      var scroller = appSheetState.kind === 'selection' ? activeGestureScroller : appSheetBody;
+      appSheetState.candidate = {
+        id: e.pointerId, startY: e.clientY, pointerType: e.pointerType || '', originTarget: e.target,
+        touchAdapter: e.isTouchAdapter === true, generation: appSheetState.generation,
+        scrollTop: scroller.scrollTop, clientHeight: scroller.clientHeight, scrollHeight: scroller.scrollHeight
+      };
+    }
     function cancelAppSheetGesture(e) {
       if (appSheetState.candidate && appSheetState.candidate.id === e.pointerId) appSheetState.candidate = null;
       if (appSheetState.pointer && appSheetState.pointer.id === e.pointerId) appSheetState.pointer = null;
@@ -1064,9 +1069,15 @@ function runTouchAdapter() {
     function setSelectionPage(page) { selectionSheetPage = page; }
     ${source}
     return {
-      start: onSelectionTouchStart, move: onSelectionTouchMove, end: onSelectionTouchEnd,
+      start: function (event) {
+        activeGestureScroller = event.target.panel || appSheetBody;
+        onSelectionTouchStart(event);
+      }, move: onSelectionTouchMove, end: onSelectionTouchEnd,
       cancel: onSelectionTouchCancel, pointerDown: onSelectionPointerDown, pointerMove: onSelectionPointerMove,
-      bodyPointerDown: beginAppSheetGesture,
+      bodyPointerDown: function (event) {
+        activeGestureScroller = event.target.panel || appSheetBody;
+        beginAppSheetGesture(event);
+      },
       page: function () { return selectionSheetPage; }, pointer: function () { return selectionPointer; },
       count: function () { return selectionTouchIdentifiers.size; },
       boundary: function () { return appSheetState.candidate && {

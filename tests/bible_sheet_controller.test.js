@@ -1428,6 +1428,74 @@ assert.equal(bodyPrevented, 1);
 body.dispatch('pointercancel', { pointerId: 21, clientY: 35 });
 assert.equal(body.hasPointerCapture(21), false);
 
+const selectorScroller = fakeElement();
+selectorScroller.clientHeight = 200;
+selectorScroller.scrollHeight = 600;
+const selectorBlank = fakeElement();
+selectorBlank.closest = () => null;
+api.state.kind = 'selection';
+activeMeasurementPanel = selectorScroller;
+body.scrollTop = 0;
+body.clientHeight = 400;
+body.scrollHeight = 400;
+for (const [pointerType, pointerId] of [['mouse', 22], ['pen', 23]]) {
+  selectorScroller.scrollTop = 80;
+  body.dispatch('pointerdown', {
+    isPrimary: true, button: 0, pointerId, pointerType, target: selectorBlank,
+    clientX: 10, clientY: 10, timeStamp: 1
+  });
+  selectorScroller.scrollTop = 0;
+  let prevented = 0;
+  body.dispatch('pointermove', {
+    pointerId, pointerType, target: selectorBlank, clientX: 11, clientY: 35, timeStamp: 20,
+    preventDefault() { prevented += 1; }
+  });
+  assert.equal(api.state.pointer, null, `${pointerType} uses the active selector's frozen mid-scroll geometry`);
+  assert.equal(api.state.candidate, null);
+  assert.equal(prevented, 0, `${pointerType} mid-scroll motion remains native`);
+  assert.equal(body.hasPointerCapture(pointerId), false);
+}
+
+for (const [pointerType, pointerId] of [['mouse', 24], ['pen', 25]]) {
+  selectorScroller.scrollTop = 0;
+  body.dispatch('pointerdown', {
+    isPrimary: true, button: 0, pointerId, pointerType, target: selectorBlank,
+    clientX: 10, clientY: 10, timeStamp: 30
+  });
+  selectorScroller.scrollTop = 80;
+  let prevented = 0;
+  body.dispatch('pointermove', {
+    pointerId, pointerType, target: selectorBlank, clientX: 11, clientY: 35, timeStamp: 50,
+    preventDefault() { prevented += 1; }
+  });
+  assert.equal(api.state.pointer.id, pointerId, `${pointerType} can claim from the frozen selector boundary`);
+  assert.equal(prevented, 1);
+  assert.equal(body.hasPointerCapture(pointerId), true);
+  body.dispatch('pointercancel', { pointerId, clientY: 35 });
+}
+
+const selectorGridCell = fakeElement();
+selectorGridCell.tagName = 'BUTTON';
+selectorGridCell.closest = selector => selector.includes('button') ? selectorGridCell : null;
+for (const [pointerType, pointerId] of [['mouse', 26], ['pen', 27]]) {
+  selectorScroller.scrollTop = 0;
+  body.dispatch('pointerdown', {
+    isPrimary: true, button: 0, pointerId, pointerType, target: selectorGridCell,
+    clientX: 10, clientY: 10, timeStamp: 60
+  });
+  assert.equal(api.state.candidate, null, `${pointerType} grid cells remain horizontal-only`);
+  assert.equal(api.state.pointer, null);
+}
+
+selectorScroller.scrollTop = Infinity;
+body.dispatch('pointerdown', {
+  isPrimary: true, button: 0, pointerId: 28, pointerType: 'pen', target: selectorBlank,
+  clientX: 10, clientY: 10, timeStamp: 70
+});
+assert.equal(api.state.candidate, null, 'nonfinite active-scroller geometry is rejected before ownership');
+activeMeasurementPanel = null;
+api.state.kind = 'history';
+
 api.snap('determined', true);
 body.scrollTop = 0;
 body.dispatch('pointerdown', {
