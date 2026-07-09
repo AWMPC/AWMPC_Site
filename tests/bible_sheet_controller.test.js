@@ -53,7 +53,10 @@ function runHandleKeys(options) {
   const context = {
     appSheet,
     appSheetHandle,
-    appSheetState: { edge: options.edge, snap: options.snap, kind: options.kind, phase: options.phase || 'idle' },
+    appSheetState: {
+      edge: options.edge, snap: options.snap, kind: options.kind, phase: options.phase || 'idle',
+      searchFullscreenLatched: options.searchFullscreenLatched === true
+    },
     resolveAppSheetDescriptor(kind) {
       const labels = { history: 'History', settings: 'Settings', search: 'Search', selection: 'Selection',
         'verse-actions': 'Verse Actions' };
@@ -127,6 +130,32 @@ function runHandleKeys(options) {
   assert.equal(harness.dispatch('ArrowDown').prevented, true);
   assert.equal(harness.snap(), 'fullscreen');
 
+  for (const edge of ['bottom', 'top']) {
+    const outwardKey = edge === 'bottom' ? 'ArrowDown' : 'ArrowUp';
+    for (const key of ['Enter', ' ', outwardKey]) {
+      harness = runHandleKeys({
+        edge, snap: 'fullscreen', kind: 'search', searchFullscreenLatched: true
+      });
+      assert.equal(harness.handleLabel(), 'Close Search panel',
+        `latched ${edge} Search exposes a truthful close action`);
+      event = harness.dispatch(key);
+      assert.equal(event.prevented, true, `latched ${edge} Search handles ${key}`);
+      assert.deepEqual(harness.closeCalls(), [['keyboard-handle', 'restore-opener']],
+        `latched ${edge} Search ${key} closes through the controller`);
+      assert.deepEqual(harness.snapCalls(), [],
+        `latched ${edge} Search ${key} never attempts the rejected determined restore`);
+    }
+  }
+
+  harness = runHandleKeys({
+    edge: 'bottom', snap: 'fullscreen', kind: 'search', phase: 'opening', searchFullscreenLatched: true
+  });
+  event = harness.dispatch('Enter');
+  assert.equal(event.prevented, true, 'latched Search can close during opening ownership');
+  assert.deepEqual(harness.closeCalls(), [['keyboard-handle', 'restore-opener']]);
+  assert.deepEqual(harness.snapCalls(), []);
+
+  harness = runHandleKeys({ edge: 'top', snap: 'fullscreen', kind: 'settings' });
   event = harness.dispatch('Escape');
   assert.equal(event.prevented, true);
   assert.deepEqual(harness.closeCalls(), [['keyboard-handle', 'restore-opener']]);

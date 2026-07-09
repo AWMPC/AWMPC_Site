@@ -3294,8 +3294,9 @@
       return;
     }
     var label = descriptor.label;
+    var latchedSearch = appSheetState.kind === 'search' && appSheetState.searchFullscreenLatched;
     appSheet.setAttribute('aria-label', label + ' — Bible panel');
-    appSheetHandle.setAttribute('aria-label',
+    appSheetHandle.setAttribute('aria-label', latchedSearch ? 'Close Search panel' :
       (appSheetState.snap === 'fullscreen' ? 'Restore ' : 'Expand ') + label + ' panel' +
       (appSheetState.snap === 'fullscreen' ? ' size' : ''));
   }
@@ -3848,15 +3849,17 @@
   function onAppSheetHandleKeyDown(e) {
     if (appSheetState.phase === 'closing') return;
     if (e.repeat) return;
-    if (appSheetState.phase === 'opening' && e.key !== 'Escape') return;
     var toggle = e.key === 'Enter' || e.key === ' ';
     var inward = (appSheetState.edge === 'bottom' && e.key === 'ArrowUp') ||
       (appSheetState.edge === 'top' && e.key === 'ArrowDown');
     var outward = (appSheetState.edge === 'bottom' && e.key === 'ArrowDown') ||
       (appSheetState.edge === 'top' && e.key === 'ArrowUp');
+    var closesLatchedSearch = appSheetState.kind === 'search' && appSheetState.searchFullscreenLatched &&
+      (toggle || outward);
+    if (appSheetState.phase === 'opening' && e.key !== 'Escape' && !closesLatchedSearch) return;
     if (!toggle && !inward && !outward && e.key !== 'Escape') return;
     e.preventDefault();
-    if (e.key === 'Escape') {
+    if (e.key === 'Escape' || closesLatchedSearch) {
       requestCloseAppSheet('keyboard-handle', 'restore-opener');
     } else if (toggle) {
       setSheetSnap(appSheetState.snap === 'determined' ? 'fullscreen' : 'determined', false);
