@@ -154,6 +154,7 @@ const pureEnd = bible.indexOf('/* APP SHEET PURE HELPERS END */');
 assert.ok(pureStart >= 0 && pureEnd > pureStart, 'pure sheet decisions are testable');
 const pureSource = bible.slice(pureStart, pureEnd) + '\nthis.hooks = {' +
   'validKind: isValidAppSheetKind, validEdge: isValidAppSheetEdge, validSnap: isValidAppSheetSnap,' +
+  'validAnchor: isValidAppSheetAnchor,' +
   'finite: isFiniteAppSheetNumber, determinedHeight: appSheetDeterminedHeight,' +
   'width: appSheetDeterminedWidth, anchor: appSheetHorizontalAnchor,' +
   'effectiveDistance: appSheetEffectiveSnapDistance, outcome: appSheetReleaseOutcome,' +
@@ -175,6 +176,11 @@ assert.equal(h.validSnap('fullscreen'), true);
 assert.equal(h.validSnap('determined'), true);
 assert.equal(h.validSnap('compact'), false);
 assert.equal(h.validSnap('half'), false);
+assert.equal(h.validAnchor('left'), true);
+assert.equal(h.validAnchor('right'), true);
+assert.equal(h.validAnchor('center'), false);
+assert.equal(h.validAnchor('__proto__'), false, 'anchor enum rejects inherited/property attacks');
+assert.equal(h.validAnchor(0), false, 'anchor enum rejects non-string values');
 assert.deepEqual(Array.from(h.phases), ['closed', 'idle', 'dragging', 'settling', 'closing']);
 assert.deepEqual(Array.from(h.constants), [8, 80, .4, 80, 3, 500]);
 
@@ -188,19 +194,94 @@ assert.equal(h.finite(new Number(1)), false);
 
 assert.equal(h.width(180, 40, 1200, 220, 24, false), 220,
   'desktop sheet width respects its minimum');
+assert.equal(h.width(179, 40, 1200, 220, 24, false), 220,
+  'intrinsic width below the minimum is raised to the minimum');
 assert.equal(h.width(420, 40, 1200, 220, 24, false), 460,
   'desktop sheet width includes fixed chrome');
 assert.equal(h.width(900, 40, 1200, 220, 24, false), 600,
   'desktop sheet width caps at half the viewport');
 assert.equal(h.width(120, 40, 1200, 220, 24, true), 600,
   'panel-filling desktop sheets use the available maximum');
-assert.equal(h.width(Infinity, 40, 1200, 220, 24, false), null,
-  'invalid content width is rejected');
+assert.equal(h.width(300, 40, 500, 100, 300, false), 200,
+  'viewport-minus-gutter can be the limiting width');
+assert.equal(h.width(900, 40, 1001, 220, 24, false), 500,
+  'fractional maximum width is floored');
+assert.equal(h.width(180.2, 40.1, 1200, 220, 24, false), 221,
+  'fractional intrinsic width is rounded up');
+assert.equal(h.width(180, 40, 300, 220, 24, false), 150,
+  'a positive viewport maximum below the minimum remains usable');
+assert.equal(h.width(0, 0, 100, 220, 100, false), null,
+  'a nonpositive viewport maximum below the minimum is unusable');
+
+const invalidWidthInputs = [
+  ['negative content', [-1, 40, 1200, 220, 24, false]],
+  ['infinite content', [Infinity, 40, 1200, 220, 24, false]],
+  ['negative infinite content', [-Infinity, 40, 1200, 220, 24, false]],
+  ['NaN content', [NaN, 40, 1200, 220, 24, false]],
+  ['string content', ['180', 40, 1200, 220, 24, false]],
+  ['boxed content', [new Number(180), 40, 1200, 220, 24, false]],
+  ['negative chrome', [180, -1, 1200, 220, 24, false]],
+  ['infinite chrome', [180, Infinity, 1200, 220, 24, false]],
+  ['negative infinite chrome', [180, -Infinity, 1200, 220, 24, false]],
+  ['NaN chrome', [180, NaN, 1200, 220, 24, false]],
+  ['string chrome', [180, '40', 1200, 220, 24, false]],
+  ['boxed chrome', [180, new Number(40), 1200, 220, 24, false]],
+  ['zero viewport', [180, 40, 0, 220, 24, false]],
+  ['negative viewport', [180, 40, -1, 220, 24, false]],
+  ['infinite viewport', [180, 40, Infinity, 220, 24, false]],
+  ['negative infinite viewport', [180, 40, -Infinity, 220, 24, false]],
+  ['NaN viewport', [180, 40, NaN, 220, 24, false]],
+  ['string viewport', [180, 40, '1200', 220, 24, false]],
+  ['boxed viewport', [180, 40, new Number(1200), 220, 24, false]],
+  ['zero minimum', [180, 40, 1200, 0, 24, false]],
+  ['negative minimum', [180, 40, 1200, -1, 24, false]],
+  ['infinite minimum', [180, 40, 1200, Infinity, 24, false]],
+  ['negative infinite minimum', [180, 40, 1200, -Infinity, 24, false]],
+  ['NaN minimum', [180, 40, 1200, NaN, 24, false]],
+  ['string minimum', [180, 40, 1200, '220', 24, false]],
+  ['boxed minimum', [180, 40, 1200, new Number(220), 24, false]],
+  ['negative gutter', [180, 40, 1200, 220, -1, false]],
+  ['infinite gutter', [180, 40, 1200, 220, Infinity, false]],
+  ['negative infinite gutter', [180, 40, 1200, 220, -Infinity, false]],
+  ['NaN gutter', [180, 40, 1200, 220, NaN, false]],
+  ['string gutter', [180, 40, 1200, 220, '24', false]],
+  ['boxed gutter', [180, 40, 1200, 220, new Number(24), false]],
+  ['numeric fillsPanel', [180, 40, 1200, 220, 24, 0]],
+  ['string fillsPanel', [180, 40, 1200, 220, 24, 'false']],
+  ['null fillsPanel', [180, 40, 1200, 220, 24, null]],
+  ['undefined fillsPanel', [180, 40, 1200, 220, 24, undefined]],
+  ['boxed fillsPanel', [180, 40, 1200, 220, 24, new Boolean(false)]]
+];
+for (const [label, args] of invalidWidthInputs) {
+  assert.equal(h.width(...args), null, `invalid determined width input: ${label}`);
+}
 
 assert.equal(h.anchor(0, 80, 1200), 'left');
 assert.equal(h.anchor(560, 80, 1200), 'right', 'midpoint ties anchor right');
 assert.equal(h.anchor(900, 80, 1200), 'right');
-assert.equal(h.anchor(0, 80, 0), null, 'a zero viewport cannot determine an anchor');
+const invalidAnchorInputs = [
+  ['infinite opener left', [Infinity, 80, 1200]],
+  ['negative infinite opener left', [-Infinity, 80, 1200]],
+  ['NaN opener left', [NaN, 80, 1200]],
+  ['string opener left', ['0', 80, 1200]],
+  ['boxed opener left', [new Number(0), 80, 1200]],
+  ['negative opener width', [0, -1, 1200]],
+  ['infinite opener width', [0, Infinity, 1200]],
+  ['negative infinite opener width', [0, -Infinity, 1200]],
+  ['NaN opener width', [0, NaN, 1200]],
+  ['string opener width', [0, '80', 1200]],
+  ['boxed opener width', [0, new Number(80), 1200]],
+  ['zero viewport', [0, 80, 0]],
+  ['negative viewport', [0, 80, -1]],
+  ['infinite viewport', [0, 80, Infinity]],
+  ['negative infinite viewport', [0, 80, -Infinity]],
+  ['NaN viewport', [0, 80, NaN]],
+  ['string viewport', [0, 80, '1200']],
+  ['boxed viewport', [0, 80, new Number(1200)]]
+];
+for (const [label, args] of invalidAnchorInputs) {
+  assert.equal(h.anchor(...args), null, `invalid horizontal anchor input: ${label}`);
+}
 
 assert.equal(h.determinedHeight(176, 48, 800), 224, 'short content keeps its natural height');
 assert.equal(h.determinedHeight(900, 48, 800), 560, 'long content caps at floor(70dvh)');
