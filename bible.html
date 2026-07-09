@@ -2634,6 +2634,8 @@
   var appSheetListenersInstalled = false;
   var appSheetDescriptors = Object.create(null);
   var appSheetReaderFocusCleanup = null;
+  var appSheetHandleClickGuardTimer = null;
+  var suppressAppSheetHandleClick = false;
   var bibleWheelBurst = { x: 0, y: 0, consumed: false, direction: 0, timer: null, generation: 0 };
   var bibleReaderWheelTransitionLock = { active: false, direction: 0, generation: 0 };
 
@@ -3303,6 +3305,7 @@
 
   function resetAppSheetState() {
     appSheetState.generation += 1;
+    clearAppSheetHandleClickGuard();
     if (typeof cleanupAppSheetViewportOwnership === 'function') cleanupAppSheetViewportOwnership();
     cleanupAppSheetMeasurement();
     cleanupAppSheetOverflowFades();
@@ -3818,6 +3821,18 @@
     if (appSheetState.phase === 'dragging') appSheetState.phase = 'idle';
   }
 
+  function clearAppSheetHandleClickGuard() {
+    if (appSheetHandleClickGuardTimer !== null) window.clearTimeout(appSheetHandleClickGuardTimer);
+    appSheetHandleClickGuardTimer = null;
+    suppressAppSheetHandleClick = false;
+  }
+
+  function armAppSheetHandleClickGuard() {
+    clearAppSheetHandleClickGuard();
+    suppressAppSheetHandleClick = true;
+    appSheetHandleClickGuardTimer = window.setTimeout(clearAppSheetHandleClickGuard, APP_SHEET_CLICK_GUARD_MS);
+  }
+
   function finishAppSheetGesture(e) {
     var pointer = appSheetState.pointer || appSheetState.candidate;
     if (!pointer || pointer.id !== e.pointerId) return;
@@ -3830,6 +3845,7 @@
     var velocityAge = pointer.lastMoveTime === null ? APP_SHEET_VELOCITY_RECENCY_MS + 1 :
       Math.max(0, endTime - pointer.lastMoveTime);
     var gesture = appSheetState.gesture;
+    armAppSheetHandleClickGuard();
     var outcome = appSheetReleaseOutcome(gesture.edge, gesture.startSnap, displacement, pointer.velocity,
       gesture.determinedHeight, gesture.viewportHeight, velocityAge);
     clearAppSheetGestureResources();
@@ -3854,8 +3870,9 @@
       (appSheetState.edge === 'top' && e.key === 'ArrowDown');
     var outward = (appSheetState.edge === 'bottom' && e.key === 'ArrowDown') ||
       (appSheetState.edge === 'top' && e.key === 'ArrowUp');
-    var closesLatchedSearch = appSheetState.kind === 'search' && appSheetState.searchFullscreenLatched &&
-      (toggle || outward);
+    var latchedSearch = appSheetState.kind === 'search' && appSheetState.searchFullscreenLatched;
+    var closesLatchedSearch = latchedSearch && outward;
+    if (latchedSearch && toggle) return;
     if (appSheetState.phase === 'opening' && e.key !== 'Escape' && !closesLatchedSearch) return;
     if (!toggle && !inward && !outward && e.key !== 'Escape') return;
     e.preventDefault();
@@ -3872,12 +3889,25 @@
     }
   }
 
+  function onAppSheetHandleClick(e) {
+    if (suppressAppSheetHandleClick) {
+      clearAppSheetHandleClickGuard();
+      e.preventDefault();
+      return;
+    }
+    if (appSheetState.phase === 'closing' || appSheetState.kind !== 'search' ||
+        !appSheetState.searchFullscreenLatched || appSheetState.snap !== 'fullscreen') return;
+    e.preventDefault();
+    requestCloseAppSheet('keyboard-handle', 'restore-opener');
+  }
+
   function installAppSheetListeners() {
     if (appSheetListenersInstalled) return;
     appSheetListenersInstalled = true;
     appSheet.addEventListener('cancel', function (e) { e.preventDefault(); requestCloseAppSheet('cancel'); });
     appSheet.addEventListener('click', function (e) { if (e.target === appSheet) requestCloseAppSheet('backdrop'); });
     appSheetHandle.addEventListener('pointerdown', beginAppSheetGesture);
+    appSheetHandle.addEventListener('click', onAppSheetHandleClick);
     appSheetHandle.addEventListener('keydown', onAppSheetHandleKeyDown);
     appSheetHandle.addEventListener('pointermove', updateAppSheetGesture);
     appSheetHandle.addEventListener('pointerup', finishAppSheetGesture);

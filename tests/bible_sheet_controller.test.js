@@ -57,6 +57,9 @@ function runHandleKeys(options) {
       edge: options.edge, snap: options.snap, kind: options.kind, phase: options.phase || 'idle',
       searchFullscreenLatched: options.searchFullscreenLatched === true
     },
+    appSheetHandleClickGuardTimer: null,
+    suppressAppSheetHandleClick: false,
+    window: { clearTimeout() {} },
     resolveAppSheetDescriptor(kind) {
       const labels = { history: 'History', settings: 'Settings', search: 'Search', selection: 'Selection',
         'verse-actions': 'Verse Actions' };
@@ -71,14 +74,23 @@ function runHandleKeys(options) {
     requestCloseAppSheet(...args) { closeCalls.push(args); return true; }
   };
   vm.runInNewContext(controllerFunction('syncAppSheetAccessibleState') + '\n' +
+    controllerFunction('clearAppSheetHandleClickGuard') + '\n' +
+    controllerFunction('onAppSheetHandleClick') + '\n' +
     controllerFunction('onAppSheetHandleKeyDown') +
     '\nthis.syncAppSheetAccessibleState = syncAppSheetAccessibleState;' +
+    '\nthis.onAppSheetHandleClick = onAppSheetHandleClick;' +
     '\nthis.onAppSheetHandleKeyDown = onAppSheetHandleKeyDown;', context);
   context.syncAppSheetAccessibleState();
   return {
     dispatch(key, repeat = false) {
       const event = { key, repeat, prevented: false, preventDefault() { this.prevented = true; } };
       context.onAppSheetHandleKeyDown(event);
+      return event;
+    },
+    click(suppressed = false) {
+      context.suppressAppSheetHandleClick = suppressed;
+      const event = { prevented: false, preventDefault() { this.prevented = true; } };
+      context.onAppSheetHandleClick(event);
       return event;
     },
     snap: () => context.appSheetState.snap,
@@ -88,6 +100,12 @@ function runHandleKeys(options) {
     closeCalls: () => closeCalls
   };
 }
+
+assert.match(controllerFunction('finishAppSheetGesture'), /armAppSheetHandleClickGuard\(\)/,
+  'a claimed handle drag guards its trailing click');
+assert.match(controllerFunction('installAppSheetListeners'),
+  /appSheetHandle\.addEventListener\('click', onAppSheetHandleClick\)/,
+  'the native handle button owns one production click activation path');
 
 {
   let harness = runHandleKeys({ edge: 'bottom', snap: 'determined', kind: 'history' });
@@ -132,28 +150,48 @@ function runHandleKeys(options) {
 
   for (const edge of ['bottom', 'top']) {
     const outwardKey = edge === 'bottom' ? 'ArrowDown' : 'ArrowUp';
-    for (const key of ['Enter', ' ', outwardKey]) {
+    for (const key of ['Enter', ' ']) {
       harness = runHandleKeys({
         edge, snap: 'fullscreen', kind: 'search', searchFullscreenLatched: true
       });
       assert.equal(harness.handleLabel(), 'Close Search panel',
         `latched ${edge} Search exposes a truthful close action`);
       event = harness.dispatch(key);
-      assert.equal(event.prevented, true, `latched ${edge} Search handles ${key}`);
+      assert.equal(event.prevented, false, `latched ${edge} Search leaves native ${key} activation intact`);
+      assert.deepEqual(harness.closeCalls(), [], `latched ${edge} Search avoids keydown double-fire`);
+      const click = harness.click();
+      assert.equal(click.prevented, true, `latched ${edge} Search claims the synthesized click`);
       assert.deepEqual(harness.closeCalls(), [['keyboard-handle', 'restore-opener']],
-        `latched ${edge} Search ${key} closes through the controller`);
+        `latched ${edge} Search native ${key} click closes through the controller`);
       assert.deepEqual(harness.snapCalls(), [],
-        `latched ${edge} Search ${key} never attempts the rejected determined restore`);
+        `latched ${edge} Search native ${key} never attempts the rejected determined restore`);
     }
+
+    harness = runHandleKeys({ edge, snap: 'fullscreen', kind: 'search', searchFullscreenLatched: true });
+    event = harness.dispatch(outwardKey);
+    assert.equal(event.prevented, true, `latched ${edge} Search handles ${outwardKey}`);
+    assert.deepEqual(harness.closeCalls(), [['keyboard-handle', 'restore-opener']]);
+    assert.deepEqual(harness.snapCalls(), []);
   }
 
   harness = runHandleKeys({
     edge: 'bottom', snap: 'fullscreen', kind: 'search', phase: 'opening', searchFullscreenLatched: true
   });
   event = harness.dispatch('Enter');
-  assert.equal(event.prevented, true, 'latched Search can close during opening ownership');
+  assert.equal(event.prevented, false, 'opening latched Search preserves native Enter activation');
+  assert.deepEqual(harness.closeCalls(), []);
+  harness.click();
   assert.deepEqual(harness.closeCalls(), [['keyboard-handle', 'restore-opener']]);
   assert.deepEqual(harness.snapCalls(), []);
+
+  harness = runHandleKeys({ edge: 'bottom', snap: 'fullscreen', kind: 'history' });
+  assert.equal(harness.click().prevented, false, 'ordinary handle click remains inert');
+  assert.deepEqual(harness.closeCalls(), []);
+  harness = runHandleKeys({ edge: 'bottom', snap: 'fullscreen', kind: 'search', searchFullscreenLatched: true });
+  assert.equal(harness.click(true).prevented, true, 'the trailing click from a claimed drag is discarded');
+  assert.deepEqual(harness.closeCalls(), []);
+  assert.equal(harness.click().prevented, true, 'the drag guard is one-shot');
+  assert.deepEqual(harness.closeCalls(), [['keyboard-handle', 'restore-opener']]);
 
   harness = runHandleKeys({ edge: 'top', snap: 'fullscreen', kind: 'settings' });
   event = harness.dispatch('Escape');
