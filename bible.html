@@ -205,6 +205,9 @@
     --pill-bg: rgba(105,185,232,.12);
   }
   * { margin: 0; padding: 0; box-sizing: border-box; }
+  .bottom-history-menu[hidden],
+  .fab-panel[hidden],
+  .verse-actions[hidden] { display: none !important; }
   html, body { height: 100%; max-width: 100%; overflow-x: hidden; overflow-y: hidden; }
   .sr-only {
     position: absolute;
@@ -1075,6 +1078,14 @@
     min-height: 0; overflow: auto; overscroll-behavior: contain;
     padding: 0 var(--display-panel-padding) max(var(--display-panel-padding), env(safe-area-inset-bottom));
   }
+  .app-sheet-body > .verse-actions {
+    width: 100%; max-width: none; margin: 0; border: 0; box-shadow: none;
+    opacity: 1; transform: none; background: transparent;
+  }
+  .settings-sheet-content { display: grid; gap: var(--display-panel-gap); }
+  .settings-sheet-content > .fab-card,
+  .settings-sheet-content > .app-version { width: 100%; }
+  .search-sheet-skeleton { margin-top: var(--display-panel-gap); }
   .app-sheet.edge-top .app-sheet-shell { padding-top: env(safe-area-inset-top); }
   .app-sheet.snap-fullscreen .app-sheet-shell { padding-top: env(safe-area-inset-top); }
 
@@ -1287,12 +1298,12 @@
   <button class="bottom-action-button" id="btn-search" type="button">Search</button>
 </div>
 <div class="fab-root">
-    <button type="button" id="fab-main" class="fab-main" aria-label="Menu" aria-expanded="false" aria-controls="fab-panel">☰</button>
+    <button type="button" id="fab-main" class="fab-main" aria-label="Settings" aria-expanded="false" aria-controls="app-sheet">☰</button>
 </div>
 </div>
 </div>
-<div id="history-menu" class="bottom-history-menu" aria-label="Reading history"></div>
-<div id="fab-panel" class="fab-panel">
+<div id="history-menu" class="bottom-history-menu" aria-label="Reading history" hidden inert></div>
+<div id="fab-panel" class="fab-panel" hidden inert>
       <div id="auth-area" class="fab-card profile-card"></div>
       <div class="fab-card setting-control-wrap">
         <label class="fab-card-title" for="theme-mode-select">Appearance</label>
@@ -1350,7 +1361,7 @@
   </div>
 </dialog>
 
-<dialog id="verse-actions" class="verse-actions" aria-labelledby="verse-actions-title">
+<dialog id="verse-actions" class="verse-actions" aria-labelledby="verse-actions-title" hidden inert>
   <form method="dialog">
     <h2 id="verse-actions-title">Verse Actions</h2>
     <button type="button" id="copy-verse" value="copy-text"><span class="setting-emoji" aria-hidden="true">📋</span><span>Copy Verse Text</span></button>
@@ -2229,11 +2240,23 @@
     return function (target) { target.textContent = label + ' will appear here.'; };
   }
 
-  registerAppSheetDescriptor('history', { title: 'History', render: defaultAppSheetRenderer('Reading history') });
-  registerAppSheetDescriptor('settings', { title: 'Settings', render: defaultAppSheetRenderer('Settings') });
-  registerAppSheetDescriptor('search', { title: 'Search', render: defaultAppSheetRenderer('Search') });
+  registerAppSheetDescriptor('history', { title: 'History', render: function (target, sheet) {
+    if (typeof renderHistorySheet === 'function') return renderHistorySheet(target, sheet);
+    target.textContent = 'Reading history will appear here.';
+  } });
+  registerAppSheetDescriptor('settings', { title: 'Settings', render: function (target, sheet) {
+    if (typeof renderSettingsSheet === 'function') return renderSettingsSheet(target, sheet);
+    target.textContent = 'Settings will appear here.';
+  } });
+  registerAppSheetDescriptor('search', { title: 'Search', render: function (target, sheet) {
+    if (typeof renderSearchSheet === 'function') return renderSearchSheet(target, sheet);
+    target.textContent = 'Search will appear here.';
+  } });
   registerAppSheetDescriptor('selection', { title: 'Selection', render: defaultAppSheetRenderer('Selection tools') });
-  registerAppSheetDescriptor('verse-actions', { title: 'Verse Actions', render: defaultAppSheetRenderer('Verse actions') });
+  registerAppSheetDescriptor('verse-actions', { title: 'Verse Actions', render: function (target, sheet) {
+    if (typeof renderVerseActionsSheet === 'function') return renderVerseActionsSheet(target, sheet);
+    target.textContent = 'Verse actions will appear here.';
+  } });
 
   function releaseAppSheetPointer() {
     var pointer = appSheetState.pointer;
@@ -2591,6 +2614,11 @@
   }
   var booksHTML = null;
   var searchIndex = null;
+  var searchIndexReady = false;
+  var searchIndexBuildGeneration = 0;
+  var searchIndexChunkHandle = null;
+  var searchSheetGeneration = 0;
+  var SEARCH_INDEX_CHUNK_SIZE = 120;
   var verseActionTarget = null;
   var verseActionGeneration = 0;
   var verseActionInFlight = false;
@@ -2966,9 +2994,7 @@
   // ===================== FAB =====================
   fabMain.addEventListener('click', function (e) {
     e.stopPropagation();
-    var open = !fabPanel.classList.contains('open');
-    if (open) openFabPanel(true);
-    else closeMenus();
+    openAppSheet('settings', { opener: fabMain });
   });
   fabPanel.addEventListener('click', function (e) { e.stopPropagation(); });
 
@@ -3717,66 +3743,45 @@
 
   function finalizeVerseActionsClose() {
     resetVerseActionTransition();
-    if (verseActionsDialog && verseActionsDialog.open) verseActionsDialog.close();
+    if (appSheet.open && appSheetState.kind === 'verse-actions') finishCloseAppSheet();
     else if (verseActionTarget) clearVerseActionState();
   }
 
   function closeVerseActions(immediate) {
-    if (!verseActionsDialog || !verseActionsDialog.open) {
+    if (!appSheet.open || appSheetState.kind !== 'verse-actions') {
       resetVerseActionTransition();
       if (verseActionTarget) clearVerseActionState();
       return;
     }
-    if (immediate || shouldReduceVerseMotion()) return finalizeVerseActionsClose();
-    if (verseActionClosing) return;
-    verseActionClosing = true;
-    verseActionInFlight = true;
-    verseActionsDialog.classList.remove('is-open');
-    verseActionsDialog.classList.add('is-closing');
-    verseActionCloseTimer = window.setTimeout(finalizeVerseActionsClose, VERSE_ACTION_CLOSE_MS);
+    if (immediate) finishCloseAppSheet();
+    else requestCloseAppSheet('verse-action');
   }
 
   function openVerseActions(verseEl) {
     clearPendingReaderVerseAction();
     var payload = verseActionPayload(verseEl);
-    if (!payload || !verseActionsDialog || typeof verseActionsDialog.showModal !== 'function') return false;
-    if (verseActionsDialog.open) finalizeVerseActionsClose();
+    if (!payload) return false;
     verseActionTarget = verseEl;
     verseActionInFlight = false;
     verseActionGeneration++;
-    verseActionsTitle.textContent = payload.reference;
-    try {
-      verseActionsDialog.showModal();
-    } catch (e) {
-      resetVerseActionTransition();
+    if (!openAppSheet('verse-actions', { opener: verseEl })) {
       clearVerseActionState();
       announceStatus('Verse actions are unavailable.');
       return false;
-    }
-    var openingToken = verseActionGeneration;
-    resetVerseActionTransition();
-    if (shouldReduceVerseMotion()) {
-      verseActionsDialog.classList.add('is-open');
-    } else {
-      verseActionOpenFrame = requestAnimationFrame(function () {
-        verseActionOpenFrame = null;
-        if (openingToken !== verseActionGeneration || verseActionClosing || !verseActionsDialog.open) return;
-        verseActionsDialog.classList.add('is-open');
-      });
     }
     return true;
   }
 
   function currentVerseAction(token) {
     if (token !== verseActionGeneration || verseActionClosing ||
-        !verseActionsDialog || !verseActionsDialog.open) return null;
+        appSheetState.kind !== 'verse-actions') return null;
     return verseActionPayload(verseActionTarget);
   }
 
   function finishVerseAction(token, message, shouldClose) {
     if (!currentVerseAction(token)) return;
     verseActionInFlight = false;
-    if (shouldClose) closeVerseActions(false);
+    if (shouldClose) requestCloseAppSheet('action');
     if (message) announceStatus(message);
   }
 
@@ -4756,6 +4761,12 @@
     }
   }
 
+  /* SEARCH SHEET PURE HELPERS START */
+  function boundedSearchQuery(value) {
+    return String(value == null ? '' : value).trim().slice(0, 160);
+  }
+  /* SEARCH SHEET PURE HELPERS END */
+
   /** Map first normalized match of qn in raw (footnote-stripped) to [start,end) indices in that same string. */
   function findNormMatchInRaw(raw, qn) {
     var stripped = String(raw).replace(footnoteStripRe, '').replace(/  +/g, ' ');
@@ -4788,17 +4799,36 @@
     return null;
   }
 
-  function buildSearchIndex() {
-    if (searchIndex) return;
+  function scheduleSearchIndexChunk(callback) {
+    if (typeof window.requestIdleCallback === 'function') {
+      searchIndexChunkHandle = window.requestIdleCallback(callback, { timeout: 120 });
+    } else {
+      searchIndexChunkHandle = window.setTimeout(function () {
+        callback({ didTimeout: true, timeRemaining: function () { return 0; } });
+      }, 0);
+    }
+  }
+
+  function buildSearchIndexInChunks() {
+    if (!bibleData || searchIndexReady || searchIndexChunkHandle !== null) return;
+    searchIndexBuildGeneration++;
+    var generation = searchIndexBuildGeneration;
     searchIndex = [];
     var books = Object.keys(bibleData);
-    for (var b = 0; b < books.length; b++) {
-      var chs = bibleData[books[b]];
-      var chKeys = Object.keys(chs);
-      for (var c = 0; c < chKeys.length; c++) {
-        var vs = chs[chKeys[c]];
-        var vKeys = Object.keys(vs);
-        for (var v = 0; v < vKeys.length; v++) {
+    var b = 0;
+    var c = 0;
+    var v = 0;
+    var chKeys = books.length ? Object.keys(bibleData[books[0]]) : [];
+    var vKeys = chKeys.length ? Object.keys(bibleData[books[0]][chKeys[0]]) : [];
+
+    function buildChunk(deadline) {
+      searchIndexChunkHandle = null;
+      if (generation !== searchIndexBuildGeneration) return;
+      var processed = 0;
+      while (b < books.length && processed < SEARCH_INDEX_CHUNK_SIZE &&
+          (processed === 0 || deadline.didTimeout || deadline.timeRemaining() > 1)) {
+        var vs = bibleData[books[b]][chKeys[c]];
+        if (v < vKeys.length) {
           var txt = resolvedVerseSource(vs, vKeys[v]);
           searchIndex.push({
             book: books[b], ch: chKeys[c], v: vKeys[v],
@@ -4806,9 +4836,32 @@
             lower: txt.toLowerCase(),
             norm: normalizeSearchText(txt)
           });
+          v++;
+          processed++;
+          continue;
+        }
+        c++;
+        v = 0;
+        if (c < chKeys.length) {
+          vKeys = Object.keys(bibleData[books[b]][chKeys[c]]);
+          continue;
+        }
+        b++;
+        c = 0;
+        if (b < books.length) {
+          chKeys = Object.keys(bibleData[books[b]]);
+          vKeys = chKeys.length ? Object.keys(bibleData[books[b]][chKeys[0]]) : [];
         }
       }
+      if (b < books.length) scheduleSearchIndexChunk(buildChunk);
+      else searchIndexReady = true;
     }
+
+    scheduleSearchIndexChunk(buildChunk);
+  }
+
+  function buildSearchIndex() {
+    buildSearchIndexInChunks();
   }
 
   function renderSearchHistory(histEl, input, countEl, resultsEl) {
@@ -4828,7 +4881,9 @@
       var qSpan = document.createElement('button');
       qSpan.type = 'button';
       qSpan.className = 'sh-query';
-      qSpan.textContent = hist[i];
+      var boundedHistoryQuery = boundedSearchQuery(hist[i]);
+      if (!boundedHistoryQuery) continue;
+      qSpan.textContent = boundedHistoryQuery;
       row.appendChild(qSpan);
 
       var rm = document.createElement('button');
@@ -4841,7 +4896,7 @@
           State.removeSearchHistory(q);
           renderSearchHistory(histEl, input, countEl, resultsEl);
         };
-      })(hist[i]));
+      })(boundedHistoryQuery));
       row.appendChild(rm);
 
       qSpan.addEventListener('click', (function (q) {
@@ -4850,7 +4905,7 @@
           histEl.style.display = 'none';
           runSearch(q, countEl, resultsEl);
         };
-      })(hist[i]));
+      })(boundedHistoryQuery));
       histEl.appendChild(row);
     }
 
@@ -4939,8 +4994,13 @@
 
   function runSearch(query, countEl, resultsEl) {
     resultsEl.textContent = '';
-    var q = query.trim();
+    var q = boundedSearchQuery(query);
     if (q.length < 2) { countEl.textContent = ''; return; }
+    if (!searchIndexReady) {
+      countEl.textContent = 'Preparing search…';
+      renderSearchSkeleton(resultsEl);
+      return;
+    }
     var qn = normalizeSearchText(q);
     if (qn.length < 2) { countEl.textContent = ''; return; }
 
@@ -4996,10 +5056,260 @@
       div.appendChild(text);
 
       div.addEventListener('click', (function (book, ch, verse) {
-        return function () { showVersesView(book, parseInt(ch, 10), verse); };
+        return function () { commitSearchResult(book, ch, verse); };
       })(item.book, item.ch, item.v));
       resultsEl.appendChild(div);
     }
+  }
+
+  function renderSearchSkeleton(target) {
+    target.textContent = '';
+    var skeleton = document.createElement('div');
+    skeleton.className = 'loading-skeleton search-sheet-skeleton';
+    skeleton.setAttribute('role', 'status');
+    skeleton.setAttribute('aria-label', 'Preparing Bible search');
+    for (var i = 0; i < 4; i++) skeleton.appendChild(document.createElement('span'));
+    target.appendChild(skeleton);
+  }
+
+  function commitSearchResult(book, chapter, verse) {
+    var reference = normalizeVerseReference(book, chapter, verse);
+    if (!reference || !bibleData || !bibleData[reference.book]) return false;
+    var readerState = {
+      view: 'verses', book: reference.book,
+      chapter: reference.chapter, verse: reference.verse
+    };
+    history.replaceState(readerState, '', canonicalVerseUrl(reference.book, reference.chapter, reference.verse));
+    finishCloseAppSheet();
+    navFromPop = true;
+    try {
+      showVersesViewWithTransition(reference.book, reference.chapter, reference.verse);
+    } finally {
+      navFromPop = false;
+    }
+    return true;
+  }
+
+  function renderVerseActionsSheet(target) {
+    var token = verseActionGeneration;
+    var payload = currentVerseAction(token);
+    if (!payload) {
+      target.textContent = 'Select an active verse first.';
+      return function () { verseActionGeneration++; };
+    }
+    var root = document.createElement('div');
+    root.className = 'verse-actions is-open';
+    var form = document.createElement('form');
+    form.addEventListener('submit', function (event) { event.preventDefault(); });
+    var reference = document.createElement('h3');
+    reference.textContent = payload.reference;
+    form.appendChild(reference);
+
+    function actionButton(icon, label, action) {
+      var button = document.createElement('button');
+      button.type = 'button';
+      var symbol = document.createElement('span');
+      symbol.className = 'setting-emoji';
+      symbol.setAttribute('aria-hidden', 'true');
+      symbol.textContent = icon;
+      button.appendChild(symbol);
+      button.appendChild(document.createTextNode(label));
+      button.addEventListener('click', action);
+      form.appendChild(button);
+      return button;
+    }
+
+    actionButton('📋', 'Copy Verse Text', function () {
+      if (verseActionInFlight || !currentVerseAction(token)) return;
+      verseActionInFlight = true;
+      writeClipboardText(payload.copyText).then(function () {
+        finishVerseAction(token, 'Verse copied.', true);
+      }).catch(function () {
+        finishVerseAction(token, 'Unable to copy the verse. Try again.', false);
+      });
+    });
+    actionButton('🔗', 'Copy Verse Link', function () {
+      if (verseActionInFlight || !currentVerseAction(token)) return;
+      verseActionInFlight = true;
+      writeClipboardText(payload.copyLink).then(function () {
+        finishVerseAction(token, 'Verse link copied.', true);
+      }).catch(function () {
+        finishVerseAction(token, 'Unable to copy the verse link. Try again.', false);
+      });
+    });
+    actionButton('📤', 'Share Verse', function () {
+      if (verseActionInFlight || !currentVerseAction(token)) return;
+      verseActionInFlight = true;
+      if (typeof navigator.share === 'function') {
+        var sharePromise;
+        try {
+          sharePromise = navigator.share({ title: payload.reference, text: payload.copyText, url: payload.url });
+        } catch (error) {
+          finishVerseAction(token, 'Unable to share the verse. Try again.', false);
+          return;
+        }
+        Promise.resolve(sharePromise).then(function () {
+          finishVerseAction(token, 'Verse shared.', true);
+        }).catch(function (error) {
+          if (error && error.name === 'AbortError') finishVerseAction(token, '', true);
+          else finishVerseAction(token, 'Unable to share the verse. Try again.', false);
+        });
+        return;
+      }
+      writeClipboardText(payload.combined).then(function () {
+        finishVerseAction(token, 'Verse text and link copied.', true);
+      }).catch(function () {
+        finishVerseAction(token, 'Unable to copy the verse and link. Try again.', false);
+      });
+    });
+    var cancel = actionButton('', 'Cancel', function () { requestCloseAppSheet('action-cancel'); });
+    cancel.className = 'verse-actions-cancel';
+    root.appendChild(form);
+    target.appendChild(root);
+    return function () {
+      verseActionGeneration++;
+      verseActionInFlight = false;
+      verseActionClosing = false;
+      verseActionTarget = null;
+    };
+  }
+
+  function renderHistorySheet(target) {
+    var list = State.getHistory();
+    if (list.length === 0) {
+      var empty = document.createElement('div');
+      empty.className = 'dd-empty';
+      empty.textContent = 'No history yet';
+      target.appendChild(empty);
+      return;
+    }
+    for (var i = 0; i < list.length; i++) {
+      var item = State.normalizeHistoryEntry(list[i]);
+      var normalized = item && normalizeVerseReference(item.book, item.ch, item.verse);
+      if (!normalized) continue;
+      var button = document.createElement('button');
+      button.type = 'button';
+      button.className = 'dd-item';
+      var label = document.createElement('span');
+      label.className = 'dd-label';
+      var title = document.createElement('span');
+      title.className = 'dd-title';
+      setMarqueeText(title, normalized.book + ' ' + normalized.chapter + ':' + normalized.verse);
+      var meta = document.createElement('span');
+      meta.className = 'dd-meta';
+      setMarqueeText(meta, formatHistoryTimestamp(item.selectedAt));
+      label.appendChild(title);
+      label.appendChild(meta);
+      button.appendChild(label);
+      button.addEventListener('click', (function (reference) {
+        return function () {
+          var readerState = { view: 'verses', book: reference.book, chapter: reference.chapter, verse: reference.verse };
+          history.replaceState(readerState, '', canonicalVerseUrl(reference.book, reference.chapter, reference.verse));
+          finishCloseAppSheet();
+          navFromPop = true;
+          try {
+            showVersesViewWithTransition(reference.book, reference.chapter, reference.verse);
+          } finally {
+            navFromPop = false;
+          }
+        };
+      })(normalized));
+      target.appendChild(button);
+    }
+  }
+
+  function renderSettingsSheet(target) {
+    target.classList.add('settings-sheet-content');
+    while (fabPanel.firstChild) target.appendChild(fabPanel.firstChild);
+    return function () {
+      target.classList.remove('settings-sheet-content');
+      while (target.firstChild) fabPanel.appendChild(target.firstChild);
+    };
+  }
+
+  function renderSearchSheet(target) {
+    searchSheetGeneration++;
+    var generation = searchSheetGeneration;
+    var debounce = null;
+    var focusTimer = null;
+    var readyTimer = null;
+    var lastCommitted = '';
+    var bar = document.createElement('div');
+    bar.className = 'search-bar';
+    var input = document.createElement('input');
+    input.type = 'search';
+    input.className = 'search-input';
+    input.placeholder = 'Search the Bible…';
+    input.maxLength = 160;
+    input.setAttribute('autocomplete', 'off');
+    input.setAttribute('aria-label', 'Search the Bible');
+    bar.appendChild(input);
+    target.appendChild(bar);
+    var countEl = document.createElement('div');
+    countEl.className = 'search-count';
+    target.appendChild(countEl);
+    var resultsEl = document.createElement('div');
+    target.appendChild(resultsEl);
+    var histEl = document.createElement('div');
+    target.appendChild(histEl);
+    renderSearchHistory(histEl, input, countEl, resultsEl);
+
+    function commitQuery() {
+      var q = boundedSearchQuery(input.value);
+      if (q.length >= 2 && q !== lastCommitted) {
+        lastCommitted = q;
+        State.pushSearchHistory(q);
+      }
+    }
+    function waitUntilReady() {
+      if (generation !== searchSheetGeneration || !target.isConnected) return;
+      if (searchIndexReady) {
+        readyTimer = null;
+        countEl.textContent = '';
+        resultsEl.textContent = '';
+        return;
+      }
+      renderSearchSkeleton(resultsEl);
+      countEl.textContent = 'Preparing search…';
+      readyTimer = window.setTimeout(waitUntilReady, 80);
+    }
+    input.addEventListener('input', function () {
+      if (debounce !== null) clearTimeout(debounce);
+      var q = boundedSearchQuery(input.value);
+      if (input.value !== q) input.value = q;
+      if (q.length < 2) {
+        countEl.textContent = '';
+        resultsEl.textContent = '';
+        histEl.style.display = '';
+        renderSearchHistory(histEl, input, countEl, resultsEl);
+        return;
+      }
+      histEl.style.display = 'none';
+      debounce = window.setTimeout(function () {
+        debounce = null;
+        if (generation !== searchSheetGeneration || !target.isConnected) return;
+        runSearch(q, countEl, resultsEl);
+      }, 250);
+    });
+    input.addEventListener('keydown', function (event) {
+      if (event.key === 'Enter') commitQuery();
+    });
+    input.addEventListener('blur', commitQuery);
+    if (!searchIndexReady) waitUntilReady();
+    focusTimer = window.setTimeout(function () {
+      focusTimer = null;
+      if (generation !== searchSheetGeneration || !target.isConnected) return;
+      input.focus({ preventScroll: true });
+    }, 100);
+    return function () {
+      searchSheetGeneration++;
+      if (debounce !== null) clearTimeout(debounce);
+      if (focusTimer !== null) clearTimeout(focusTimer);
+      if (readyTimer !== null) clearTimeout(readyTimer);
+      debounce = null;
+      focusTimer = null;
+      readyTimer = null;
+    };
   }
 
 
@@ -5028,96 +5338,6 @@
     list.appendChild(li);
   }
   // ===================== NAV HANDLERS =====================
-  if (verseActionsDialog) {
-    verseActionsDialog.addEventListener('cancel', function (e) {
-      e.preventDefault();
-      closeVerseActions(false);
-    });
-    verseActionsDialog.addEventListener('close', function () {
-      if (verseActionsDialog.open) return;
-      resetVerseActionTransition();
-      clearVerseActionState();
-    });
-    verseActionsDialog.addEventListener('click', function (e) {
-      if (e.target === verseActionsDialog) closeVerseActions(false);
-    });
-  }
-  if (cancelVerseActionsButton) {
-    cancelVerseActionsButton.addEventListener('click', function () {
-      closeVerseActions(false);
-    });
-  }
-  if (copyVerseButton) {
-    copyVerseButton.addEventListener('click', function () {
-      if (verseActionInFlight || verseActionClosing) return;
-      var token = verseActionGeneration;
-      var payload = currentVerseAction(token);
-      if (!payload) {
-        announceStatus('Select an active verse first.');
-        return;
-      }
-      verseActionInFlight = true;
-      writeClipboardText(payload.copyText).then(function () {
-        finishVerseAction(token, 'Verse copied.', true);
-      }).catch(function () {
-        finishVerseAction(token, 'Unable to copy the verse. Try again.', false);
-      });
-    });
-  }
-  if (copyVerseLinkButton) {
-    copyVerseLinkButton.addEventListener('click', function () {
-      if (verseActionInFlight || verseActionClosing) return;
-      var token = verseActionGeneration;
-      var payload = currentVerseAction(token);
-      if (!payload) {
-        announceStatus('Select an active verse first.');
-        return;
-      }
-      verseActionInFlight = true;
-      writeClipboardText(payload.copyLink).then(function () {
-        finishVerseAction(token, 'Verse link copied.', true);
-      }).catch(function () {
-        finishVerseAction(token, 'Unable to copy the verse link. Try again.', false);
-      });
-    });
-  }
-  if (shareVerseButton) {
-    shareVerseButton.addEventListener('click', function () {
-      if (verseActionInFlight || verseActionClosing) return;
-      var token = verseActionGeneration;
-      var payload = currentVerseAction(token);
-      if (!payload) {
-        announceStatus('Select an active verse first.');
-        return;
-      }
-      verseActionInFlight = true;
-      if (typeof navigator.share === 'function') {
-        var sharePromise;
-        try {
-          sharePromise = navigator.share({
-            title: payload.reference,
-            text: payload.copyText,
-            url: payload.url
-          });
-        } catch (error) {
-          finishVerseAction(token, 'Unable to share the verse. Try again.', false);
-          return;
-        }
-        Promise.resolve(sharePromise).then(function () {
-          finishVerseAction(token, 'Verse shared.', true);
-        }).catch(function (error) {
-          if (error && error.name === 'AbortError') finishVerseAction(token, '', true);
-          else finishVerseAction(token, 'Unable to share the verse. Try again.', false);
-        });
-        return;
-      }
-      writeClipboardText(payload.combined).then(function () {
-        finishVerseAction(token, 'Verse text and link copied.', true);
-      }).catch(function () {
-        finishVerseAction(token, 'Unable to copy the verse and link. Try again.', false);
-      });
-    });
-  }
   fnPrev.addEventListener('click', function () {
     showAdjacentChapter(-1);
   });
@@ -5289,15 +5509,11 @@
   document.addEventListener('keydown', handleBibleKeyboardNavigation);
   document.getElementById('btn-history').addEventListener('click', function (e) {
     e.stopPropagation();
-    renderHistoryMenu();
-    toggleMenu(historyMenu, e);
+    openAppSheet('history', { opener: e.currentTarget });
   });
   document.getElementById('btn-search').addEventListener('click', function (e) {
     e.stopPropagation();
-    if (bibleData) {
-      closeMenus({ keepHistory: true });
-      showSearchViewWithTransition();
-    }
+    if (bibleData) openAppSheet('search', { opener: e.currentTarget });
   });
 
   // ===================== LOAD DATA =====================
@@ -5372,6 +5588,7 @@
       }
       loadingEl.style.display = 'none';
       bibleData = xhr.response;
+      buildSearchIndexInChunks();
       initNavAnchor();
       if (bibleStartupComplete) return;
       bibleStartupComplete = true;
