@@ -2755,6 +2755,7 @@
   var readingRouteReplaceTimer = null;
   var pendingReadingRoute = null;
   var readerRouteScope = 0;
+  var pendingReaderOwnerIsolation = false;
   var chapterPositions = State.getChapterPositions();
   var chapterPositionsDirty = false;
   var verseChaseFrame = null;
@@ -3775,7 +3776,7 @@
       applyThemeMode('light', false);
       renderSeason('auto');
       applyTextScale(DEFAULT_TEXT_SCALE, false);
-      if (bibleData) resetReaderForOwnerIsolation(retainedOwnerSheet);
+      resetReaderForOwnerIsolation(retainedOwnerSheet);
       return;
     }
 
@@ -6351,10 +6352,22 @@
     return true;
   }
 
+  function openInitialReaderAfterDataLoad() {
+    if (pendingReaderOwnerIsolation) {
+      pendingReaderOwnerIsolation = false;
+      return showCanonicalReadingReference(defaultStartupReadingReference());
+    }
+    return openInitialViewFromUrl();
+  }
+
   function resetReaderForOwnerIsolation(retainedOwnerSheet) {
     clearPendingReadingRoute();
-    if (!bibleData) return false;
     readerRouteScope += 1;
+    if (!bibleData) {
+      pendingReaderOwnerIsolation = true;
+      return false;
+    }
+    pendingReaderOwnerIsolation = false;
     var reset = showCanonicalReadingReference(defaultStartupReadingReference());
     if (reset && appSheet.open) {
       appSheetState.historyOwned = false;
@@ -6413,7 +6426,7 @@
       initNavAnchor();
       if (bibleStartupComplete) return;
       bibleStartupComplete = true;
-      openInitialViewFromUrl();
+      openInitialReaderAfterDataLoad();
     };
 
     xhr.onerror = function () {

@@ -35,13 +35,14 @@ function startupHarness(options = {}) {
   let timerId = 0;
   const timers = new Map();
   const context = {
-    bibleData: dataset,
+    bibleData: options.dataLoaded === false ? null : dataset,
     chapterPositions: positions,
     chapterPositionsDirty: false,
     readingRouteReplaceTimer: null,
     pendingReadingRoute: null,
     READING_ROUTE_REPLACE_MS: 120,
     readerRouteScope: options.readerRouteScope || 0,
+    pendingReaderOwnerIsolation: false,
     uiView: options.uiView || 'books',
     currentBook: options.currentBook || null,
     currentChapter: options.currentChapter || null,
@@ -123,6 +124,7 @@ function startupHarness(options = {}) {
     defaultStartupReadingReference,
     startupReadingReference,
     openInitialViewFromUrl,
+    openInitialReaderAfterDataLoad: typeof openInitialReaderAfterDataLoad === 'function' ? openInitialReaderAfterDataLoad : null,
     resetReaderForOwnerIsolation,
     replaceReadingRoute,
     scheduleReadingRouteReplace,
@@ -264,7 +266,7 @@ test('integration wires route tracking, pagehide flush, auth resets, and prevent
     'auth resolution never performs a late startup jump');
 
   const load = sourceBetween('  function loadBibleData() {', '\n\n  loadBibleData();');
-  assert.equal((load.match(/openInitialViewFromUrl\s*\(/g) || []).length, 1,
+  assert.equal((load.match(/openInitialReaderAfterDataLoad\s*\(/g) || []).length, 1,
     'data load initializes the reader exactly once');
 });
 
@@ -277,8 +279,8 @@ test('canonical route can be parsed on reload and routing guards reject executab
   assert.deepEqual(reload.calls.show[0], { book: 'John', chapter: 3, verse: '16', navFromPop: true });
 
   const retainedLeak = startupSource.replace(
-    'if (!bibleData) return false;',
-    'if (!bibleData || retainedOwnerSheet) return false;'
+    'readerRouteScope += 1;',
+    'if (retainedOwnerSheet) return false;\n    readerRouteScope += 1;'
   );
   assert.notEqual(retainedLeak, startupSource, 'retained-sheet privacy mutant must apply');
   const leaked = startupHarness({
@@ -380,4 +382,28 @@ test('empty, array, and structurally invalid Bible data have no startup referenc
     'the loader must validate that the response contains at least one usable verse');
   assert.match(loader, /showLoadError\(/,
     'invalid data must retain a retryable error surface');
+});
+
+test('owner isolation before data load scopes stale routes and forces the safe post-load default', () => {
+  const h = startupHarness({
+    dataLoaded: false,
+    search: '?book=John&chapter=3&verse=16',
+    uiView: 'verses', currentBook: 'John', currentChapter: 3, activeVerse: '16'
+  });
+  assert.equal(typeof h.api.openInitialReaderAfterDataLoad, 'function');
+  assert.equal(h.api.resetReaderForOwnerIsolation(false), false, 'reset waits for validated Bible data');
+  assert.equal(h.context.readerRouteScope, 1, 'scope invalidates prior owner history immediately');
+  assert.equal(h.context.pendingReaderOwnerIsolation, true);
+  assert.equal(h.api.isCurrentReaderRouteState({
+    view: 'verses', book: 'John', chapter: 3, verse: '16', readerRouteScope: 0
+  }), false);
+
+  h.context.bibleData = {
+    Genesis: { 1: { 1: 'Beginning' } },
+    John: { 3: { 16: 'Loved' } }
+  };
+  assert.equal(h.api.openInitialReaderAfterDataLoad(), true);
+  assert.equal(h.context.pendingReaderOwnerIsolation, false);
+  assert.deepEqual(h.calls.show[0], { book: 'Genesis', chapter: 1, verse: '1', navFromPop: true },
+    'the previous owner URL cannot win after delayed data load');
 });
