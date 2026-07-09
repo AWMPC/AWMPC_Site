@@ -82,8 +82,8 @@ function functionSource(name, endMarker = '\n  function ') {
 const authSource = sourceBetween("  auth.onAuthStateChanged(function (user) {", "\n\n  window.addEventListener('online'");
 assert.match(authSource, /_syncedLocalStateQuarantined = !signoutStorageCleared;[\s\S]*refreshOwnerScopedAppSheet\(\);/,
   'sign-out refreshes owner-scoped sheet after State isolation');
-assert.match(authSource, /var retainedOwnerSheet = refreshOwnerScopedAppSheet\(\);[\s\S]*if \(bibleData && !retainedOwnerSheet\) showBooksView\(\);/,
-  'sign-out never navigates behind a retained owner-scoped sheet');
+assert.match(authSource, /var retainedOwnerSheet = refreshOwnerScopedAppSheet\(\);[\s\S]*if \(bibleData\) resetReaderForOwnerIsolation\(retainedOwnerSheet\);/,
+  'sign-out delegates the safe reader reset while preserving a retained owner-scoped sheet');
 assert.match(authSource, /_syncedLocalStateQuarantined = true;[\s\S]*refreshOwnerScopedAppSheet\(\);[\s\S]*_setSyncStatus\('Sync unavailable'\)/,
   'failed owner switch quarantine refreshes before returning');
 assert.match(authSource, /_setLocalOwnerUid\(authUid\);[\s\S]*refreshOwnerScopedAppSheet\(\);/,

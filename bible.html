@@ -2747,8 +2747,11 @@
   var activeVerse = null;
   var HISTORY_SETTLE_MS = 7000;
   var POSITION_FLUSH_MS = 500;
+  var READING_ROUTE_REPLACE_MS = 120;
   var historySettleTimer = null;
   var chapterPositionFlushTimer = null;
+  var readingRouteReplaceTimer = null;
+  var pendingReadingRoute = null;
   var chapterPositions = State.getChapterPositions();
   var chapterPositionsDirty = false;
   var verseChaseFrame = null;
@@ -3767,7 +3770,7 @@
       applyThemeMode('light', false);
       renderSeason('auto');
       applyTextScale(DEFAULT_TEXT_SCALE, false);
-      if (bibleData && !retainedOwnerSheet) showBooksView();
+      if (bibleData) resetReaderForOwnerIsolation(retainedOwnerSheet);
       return;
     }
 
@@ -3787,7 +3790,8 @@
           renderSeason('auto');
           applyTextScale(DEFAULT_TEXT_SCALE, false);
           historyMenu.textContent = '';
-          refreshOwnerScopedAppSheet();
+          var retainedQuarantinedSheet = refreshOwnerScopedAppSheet();
+          resetReaderForOwnerIsolation(retainedQuarantinedSheet);
           _setSyncStatus('Sync unavailable');
           return;
         }
@@ -3797,7 +3801,8 @@
         chapterPositionsDirty = false;
         _setDirtySyncUid(null);
         _setLocalOwnerUid(authUid);
-        refreshOwnerScopedAppSheet();
+        var retainedSwitchedOwnerSheet = refreshOwnerScopedAppSheet();
+        resetReaderForOwnerIsolation(retainedSwitchedOwnerSheet);
         applyThemeMode(State.getThemeMode(), false);
         renderSeason(State.getSeason());
         applyTextScale(State.getTextScale(), false);
@@ -3999,6 +4004,7 @@
   });
   window.addEventListener('pagehide', function () {
     _clearSyncTimers();
+    flushReadingRouteReplace();
     if (uiView === 'verses') rememberCurrentChapterPosition();
     flushChapterPositions();
     cancelHistorySettle();
@@ -4593,6 +4599,7 @@
     closeVerseActions(true);
     clearReaderPointerState();
     clearPendingReaderVerseAction();
+    flushReadingRouteReplace();
     if (uiView === 'verses') rememberCurrentChapterPosition();
     flushChapterPositions();
     cancelHistorySettle();
@@ -4743,6 +4750,7 @@
     if (center) scrollVerseToCenter(target);
     updateNav();
     rememberCurrentChapterPosition();
+    scheduleReadingRouteReplace(currentBook, currentChapter, nextVerse);
     scheduleSettledHistory();
   }
 
@@ -6185,30 +6193,148 @@
   var bibleLoadGeneration = 0;
   var bibleStartupComplete = false;
 
-  function openInitialViewFromUrl() {
-    var hasReferenceQuery = window.location.search.length > 0;
-    var linkedReference = hasReferenceQuery ? parseVerseReferenceQuery(window.location.search) : null;
-    if (linkedReference) {
-      history.replaceState({
-        view: 'verses',
-        book: linkedReference.book,
-        chapter: linkedReference.chapter,
-        verse: linkedReference.verse
-      }, '', canonicalVerseUrl(linkedReference.book, linkedReference.chapter, linkedReference.verse));
-    } else if (hasReferenceQuery) {
-      history.replaceState({ view: 'books' }, '', cleanBibleUrl());
-    } else {
-      history.replaceState({ view: 'books' }, '');
+  /* STARTUP READING LOCATION START */
+  function firstDatasetVerseReference() {
+    if (!bibleData || typeof bibleData !== 'object') return null;
+    var books = Object.keys(bibleData);
+    for (var i = 0; i < books.length; i++) {
+      var chapters = bibleData[books[i]];
+      if (!chapters || typeof chapters !== 'object') continue;
+      var chapterKeys = Object.keys(chapters);
+      for (var c = 0; c < chapterKeys.length; c++) {
+        var verses = chapters[chapterKeys[c]];
+        if (!verses || typeof verses !== 'object') continue;
+        var verseKeys = Object.keys(verses);
+        for (var v = 0; v < verseKeys.length; v++) {
+          var reference = normalizeVerseReference(books[i], chapterKeys[c], verseKeys[v]);
+          if (reference) return reference;
+        }
+      }
     }
-    navFromPop = true;
-    if (linkedReference) {
-      showVersesView(linkedReference.book, linkedReference.chapter, linkedReference.verse);
-    } else {
-      showBooksView();
-    }
-    navFromPop = false;
-    if (hasReferenceQuery && !linkedReference) announceStatus('That Bible link is invalid. Showing books instead.');
+    return null;
   }
+
+  function newestValidChapterPosition() {
+    var validPositions = [];
+    var newest = null;
+    var changed = false;
+    for (var i = 0; i < chapterPositions.length; i++) {
+      var entry = chapterPositions[i];
+      var reference = entry && normalizeVerseReference(entry.book, entry.chapter, entry.verse);
+      if (!reference) {
+        changed = true;
+        continue;
+      }
+      var normalized = {
+        key: reference.book + '|' + String(reference.chapter),
+        book: reference.book,
+        chapter: String(reference.chapter),
+        verse: reference.verse
+      };
+      if (!entry || entry.key !== normalized.key || entry.book !== normalized.book ||
+          String(entry.chapter) !== normalized.chapter || String(entry.verse) !== normalized.verse) changed = true;
+      validPositions.push(normalized);
+      if (!newest) newest = reference;
+    }
+    if (changed || validPositions.length !== chapterPositions.length) {
+      chapterPositions = validPositions;
+      chapterPositionsDirty = true;
+      scheduleChapterPositionFlush();
+    }
+    return newest;
+  }
+
+  function defaultStartupReadingReference() {
+    return normalizeVerseReference('Genesis', 1, 1) || firstDatasetVerseReference();
+  }
+
+  function startupReadingReference(search) {
+    var rawSearch = search == null ? window.location.search : String(search);
+    var hasQuery = rawSearch.length > 0;
+    var linkedReference = hasQuery ? parseVerseReferenceQuery(rawSearch) : null;
+    return {
+      reference: linkedReference || newestValidChapterPosition() || defaultStartupReadingReference(),
+      invalidQuery: hasQuery && !linkedReference
+    };
+  }
+
+  function readingHistoryState(reference) {
+    var state = {
+      view: 'verses', book: reference.book, chapter: reference.chapter, verse: reference.verse
+    };
+    if (appSheet.open && appSheetState.historyOwned) {
+      var sheetState = validatedAppSheetHistoryState(appSheetState.historyState);
+      if (sheetState) state.sheet = sheetState.sheet;
+    }
+    return state;
+  }
+
+  function replaceReadingRoute(book, chapter, verse) {
+    var reference = normalizeVerseReference(book, chapter, verse);
+    if (!reference || !isCurrentVersesView(reference.book, reference.chapter) ||
+        activeVerse !== reference.verse) return false;
+    var state = readingHistoryState(reference);
+    history.replaceState(state, '', canonicalVerseUrl(reference.book, reference.chapter, reference.verse));
+    if (state.sheet) appSheetState.historyState = state;
+    return true;
+  }
+
+  function clearPendingReadingRoute() {
+    if (readingRouteReplaceTimer !== null) window.clearTimeout(readingRouteReplaceTimer);
+    readingRouteReplaceTimer = null;
+    pendingReadingRoute = null;
+  }
+
+  function scheduleReadingRouteReplace(book, chapter, verse) {
+    var reference = normalizeVerseReference(book, chapter, verse);
+    if (!reference || !isCurrentVersesView(reference.book, reference.chapter) ||
+        activeVerse !== reference.verse) return false;
+    if (readingRouteReplaceTimer !== null) window.clearTimeout(readingRouteReplaceTimer);
+    pendingReadingRoute = reference;
+    readingRouteReplaceTimer = window.setTimeout(function () {
+      readingRouteReplaceTimer = null;
+      var pending = pendingReadingRoute;
+      pendingReadingRoute = null;
+      if (pending) replaceReadingRoute(pending.book, pending.chapter, pending.verse);
+    }, READING_ROUTE_REPLACE_MS);
+    return true;
+  }
+
+  function flushReadingRouteReplace() {
+    if (readingRouteReplaceTimer !== null) window.clearTimeout(readingRouteReplaceTimer);
+    readingRouteReplaceTimer = null;
+    var pending = pendingReadingRoute;
+    pendingReadingRoute = null;
+    return pending ? replaceReadingRoute(pending.book, pending.chapter, pending.verse) : false;
+  }
+
+  function showCanonicalReadingReference(reference) {
+    if (!reference) return false;
+    history.replaceState({
+      view: 'verses', book: reference.book, chapter: reference.chapter, verse: reference.verse
+    }, '', canonicalVerseUrl(reference.book, reference.chapter, reference.verse));
+    navFromPop = true;
+    try {
+      showVersesView(reference.book, reference.chapter, reference.verse);
+    } finally {
+      navFromPop = false;
+    }
+    return true;
+  }
+
+  function openInitialViewFromUrl() {
+    var startup = startupReadingReference(window.location.search);
+    if (!showCanonicalReadingReference(startup.reference)) return false;
+    if (startup.invalidQuery) announceStatus('That Bible link is invalid. Resuming a safe reading position instead.');
+    return true;
+  }
+
+  function resetReaderForOwnerIsolation(retainedOwnerSheet) {
+    clearPendingReadingRoute();
+    if (!bibleData || retainedOwnerSheet) return false;
+    return showCanonicalReadingReference(defaultStartupReadingReference());
+  }
+  /* STARTUP READING LOCATION END */
 
   function showLoadError(message) {
     loadingEl.style.display = 'none';
