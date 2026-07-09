@@ -1087,6 +1087,7 @@
     padding: 0 var(--display-panel-padding) max(var(--display-panel-padding), env(safe-area-inset-bottom));
   }
   .app-sheet-measure { min-height: 0; }
+  .app-sheet-measure.is-measuring-intrinsic { width: max-content; max-width: none; }
   .app-sheet-measure > .verse-actions {
     width: 100%; max-width: none; margin: 0; border: 0; box-shadow: none;
     opacity: 1; transform: none; background: transparent;
@@ -2648,22 +2649,45 @@
     return appSheetMeasure;
   }
 
+  function appSheetIntrinsicWidth(source, generation) {
+    if (!source || !isCurrentAppSheetGeneration(generation) || !appSheetMeasure ||
+        !appSheetMeasure.classList) return null;
+    appSheetMeasure.classList.add('is-measuring-intrinsic');
+    try {
+      var width = source.scrollWidth;
+      return isCurrentAppSheetGeneration(generation) ? width : null;
+    } catch (intrinsicGeometryError) {
+      return null;
+    } finally {
+      appSheetMeasure.classList.remove('is-measuring-intrinsic');
+    }
+  }
+
   function measureAppSheetContent(generation) {
     if (!isCurrentAppSheetGeneration(generation) || appSheetState.phase !== 'idle' ||
         appSheetState.snap !== 'determined' || appSheetState.pointer) return null;
     var source = currentAppSheetMeasurementSource();
     var contentHeight = source && source.scrollHeight;
-    var contentWidth = source && source.scrollWidth;
+    var descriptor = resolveAppSheetDescriptor(appSheetState.kind);
+    if (!descriptor) return null;
+    var contentWidth = null;
+    try {
+      contentWidth = descriptor.fillsPanel ? source && source.scrollWidth :
+        appSheetIntrinsicWidth(source, generation);
+    } catch (contentWidthError) {
+      return null;
+    }
     var bodyStyle = getComputedStyle(appSheetBody);
     var sheetStyle = getComputedStyle(appSheet);
     var values = [contentHeight, contentWidth, appSheetOuterBlockSize(appSheetHandle),
       appSheetPixelValue(bodyStyle.paddingBlockStart), appSheetPixelValue(bodyStyle.paddingBlockEnd),
       appSheetPixelValue(bodyStyle.paddingInlineStart), appSheetPixelValue(bodyStyle.paddingInlineEnd),
-      appSheetPixelValue(sheetStyle.borderInlineStartWidth), appSheetPixelValue(sheetStyle.borderInlineEndWidth)];
+      appSheetPixelValue(sheetStyle.borderInlineStartWidth), appSheetPixelValue(sheetStyle.borderInlineEndWidth),
+      appSheetPixelValue(sheetStyle.borderBlockStartWidth), appSheetPixelValue(sheetStyle.borderBlockEndWidth)];
     for (var i = 0; i < values.length; i++) {
       if (!isFiniteAppSheetNumber(values[i]) || values[i] < 0) return null;
     }
-    var chromeHeight = values[2] + values[3] + values[4];
+    var chromeHeight = values[2] + values[3] + values[4] + values[9] + values[10];
     var chromeWidth = values[5] + values[6] + values[7] + values[8];
     if (appSheetState.kind === 'selection' && typeof appSheetMeasure.querySelector === 'function') {
       var activePanel = appSheetMeasure.querySelector('.selection-panel[aria-hidden="false"]');
@@ -2678,8 +2702,6 @@
       if (dotsHeight === null) return null;
       chromeHeight += dotsHeight;
     }
-    var descriptor = resolveAppSheetDescriptor(appSheetState.kind);
-    if (!descriptor) return null;
     var height = appSheetDeterminedHeight(contentHeight, chromeHeight, appSheetViewportHeight());
     var width = appSheetDeterminedWidth(contentWidth, chromeWidth, window.innerWidth, 220, 24,
       descriptor.fillsPanel);

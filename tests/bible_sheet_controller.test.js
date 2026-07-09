@@ -416,6 +416,12 @@ assert.match(controllerFunction('registerAppSheetDescriptor'),
   /fillsPanel:\s*descriptor\.fillsPanel === true/,
   'descriptor registration reduces the trusted fill flag to an exact boolean');
 assert.match(bible,
+  /\.app-sheet-measure\.is-measuring-intrinsic\s*\{[^}]*width:\s*max-content;[^}]*max-width:\s*none;/,
+  'intrinsic measurement state releases the ordinary block fill width');
+assert.match(controllerFunction('appSheetIntrinsicWidth'),
+  /classList\.add\('is-measuring-intrinsic'\)[\s\S]*try[\s\S]*source\.scrollWidth[\s\S]*finally[\s\S]*classList\.remove\('is-measuring-intrinsic'\)/,
+  'intrinsic width reads always restore their temporary live-content state');
+assert.match(bible,
   /registerAppSheetDescriptor\('selection',\s*\{[\s\S]*?render:[\s\S]*?fillsPanel:\s*true\s*\}\);/,
   'only the static Selection descriptor fills the desktop panel');
 for (const kind of ['history', 'settings', 'search', 'verse-actions']) {
@@ -554,7 +560,15 @@ const handle = fakeElement();
 const body = fakeElement();
 const measure = fakeElement();
 measure.scrollHeight = 180;
-measure.scrollWidth = 180;
+let measureIntrinsicWidth = 180;
+let measureIntrinsicThrows = false;
+Object.defineProperty(measure, 'scrollWidth', {
+  get() {
+    if (!measure.classList.contains('is-measuring-intrinsic')) return 600;
+    if (measureIntrinsicThrows) throw new Error('hostile intrinsic geometry');
+    return measureIntrinsicWidth;
+  }
+});
 let activeMeasurementPanel = null;
 const selectionIndicator = fakeElement();
 selectionIndicator.rectHeight = 28;
@@ -587,6 +601,8 @@ let bodyPaddingStart = 0;
 let bodyPaddingEnd = 0;
 let bodyPaddingInlineStart = 0;
 let bodyPaddingInlineEnd = 0;
+let sheetBorderBlockStart = 0;
+let sheetBorderBlockEnd = 0;
 let selectionCleanupCount = 0;
 let trackSelectionResources = false;
 const selectionMediaListeners = new Set();
@@ -632,7 +648,10 @@ const controllerContext = {
       paddingBlockStart: bodyPaddingStart + 'px', paddingBlockEnd: bodyPaddingEnd + 'px',
       paddingInlineStart: bodyPaddingInlineStart + 'px', paddingInlineEnd: bodyPaddingInlineEnd + 'px'
     };
-    if (element === dialog) return { borderInlineStartWidth: '1px', borderInlineEndWidth: '1px' };
+    if (element === dialog) return {
+      borderInlineStartWidth: '1px', borderInlineEndWidth: '1px',
+      borderBlockStartWidth: sheetBorderBlockStart + 'px', borderBlockEndWidth: sheetBorderBlockEnd + 'px'
+    };
     return {};
   },
   renderHistorySheet(target, sheet) {
@@ -755,7 +774,9 @@ for (const [id, callback] of [...frames]) { callback(); frames.delete(id); }
 assert.equal(dialog.style.getPropertyValue('--sheet-height'), '224px',
   'short content uses intrinsic height plus fixed chrome');
 assert.equal(dialog.style.getPropertyValue('--sheet-width'), '220px',
-  'short intrinsic content uses the project desktop minimum');
+  'normal fill-width blocks are measured at narrow max-content width and use the project desktop minimum');
+assert.equal(measure.classList.contains('is-measuring-intrinsic'), false,
+  'temporary intrinsic measurement state is restored after a successful read');
 assert.equal(api.state.determinedHeight, 224);
 assert.equal(api.state.determinedWidth, 220);
 assert.equal(api.state.anchor, 'right', 'opener center on the midpoint or right side anchors right');
@@ -839,17 +860,17 @@ assert.equal(dialog.style.getPropertyValue('--sheet-height'), '224px');
 assert.equal(dialog.classList.contains('inline-right'), true,
   'determined to fullscreen to determined retains the immutable opening anchor');
 
-measure.scrollWidth = 900;
+measureIntrinsicWidth = 900;
 resizeObserverInstances[0].fire();
 const wideFrame = [...frames.keys()][0];
 frames.get(wideFrame)();
 frames.delete(wideFrame);
 assert.equal(dialog.style.getPropertyValue('--sheet-width'), '600px', 'desktop width is capped at 50vw');
-measure.scrollWidth = 180;
+measureIntrinsicWidth = 180;
 
 bodyPaddingInlineStart = 10;
 bodyPaddingInlineEnd = 6;
-measure.scrollWidth = 300;
+measureIntrinsicWidth = 300;
 resizeObserverInstances[0].fire();
 const inlineChromeFrame = [...frames.keys()][0];
 frames.get(inlineChromeFrame)();
@@ -858,7 +879,52 @@ assert.equal(dialog.style.getPropertyValue('--sheet-width'), '318px',
   'body inline padding and sheet inline borders are added exactly once');
 bodyPaddingInlineStart = 0;
 bodyPaddingInlineEnd = 0;
-measure.scrollWidth = 180;
+measureIntrinsicWidth = 180;
+
+measure.scrollHeight = 100;
+sheetBorderBlockStart = 2;
+resizeObserverInstances[0].fire();
+const blockStartBorderFrame = [...frames.keys()][0];
+frames.get(blockStartBorderFrame)();
+frames.delete(blockStartBorderFrame);
+assert.equal(dialog.style.getPropertyValue('--sheet-height'), '146px',
+  'sheet block-start border is included in height chrome exactly once');
+sheetBorderBlockStart = 0;
+sheetBorderBlockEnd = 3;
+resizeObserverInstances[0].fire();
+const blockEndBorderFrame = [...frames.keys()][0];
+frames.get(blockEndBorderFrame)();
+frames.delete(blockEndBorderFrame);
+assert.equal(dialog.style.getPropertyValue('--sheet-height'), '147px',
+  'sheet block-end border is included in height chrome exactly once');
+const borderWrites = dialog.styleWriteCount;
+sheetBorderBlockStart = 'invalid';
+sheetBorderBlockEnd = 0;
+resizeObserverInstances[0].fire();
+const invalidBlockStartFrame = [...frames.keys()][0];
+frames.get(invalidBlockStartFrame)();
+frames.delete(invalidBlockStartFrame);
+assert.equal(dialog.styleWriteCount, borderWrites, 'invalid block-start border suppresses geometry writes');
+sheetBorderBlockStart = 0;
+sheetBorderBlockEnd = 'invalid';
+resizeObserverInstances[0].fire();
+const invalidBlockEndFrame = [...frames.keys()][0];
+frames.get(invalidBlockEndFrame)();
+frames.delete(invalidBlockEndFrame);
+assert.equal(dialog.styleWriteCount, borderWrites, 'invalid block-end border suppresses geometry writes');
+sheetBorderBlockEnd = 0;
+
+measureIntrinsicThrows = true;
+const widthWritesBeforeThrow = dialog.widthStyleWriteCount;
+resizeObserverInstances[0].fire();
+const throwingIntrinsicFrame = [...frames.keys()][0];
+frames.get(throwingIntrinsicFrame)();
+frames.delete(throwingIntrinsicFrame);
+assert.equal(dialog.widthStyleWriteCount, widthWritesBeforeThrow,
+  'throwing intrinsic geometry cannot produce a style write');
+assert.equal(measure.classList.contains('is-measuring-intrinsic'), false,
+  'temporary intrinsic measurement state is restored when geometry throws');
+measureIntrinsicThrows = false;
 
 bodyPaddingStart = 10;
 bodyPaddingEnd = 6;
@@ -881,7 +947,7 @@ frames.delete(invalidGeometryFrame);
 assert.equal(dialog.style.getPropertyValue('--sheet-height'), '160px', 'invalid geometry preserves the bounded safe height');
 assert.equal(dialog.styleWriteCount, writesBeforeInvalidGeometry, 'invalid geometry does not produce an unbounded style write');
 measure.scrollHeight = 180;
-measure.scrollWidth = Infinity;
+measureIntrinsicWidth = Infinity;
 const widthBeforeInvalidGeometry = dialog.style.getPropertyValue('--sheet-width');
 resizeObserverInstances[0].fire();
 const invalidWidthFrame = [...frames.keys()][0];
@@ -889,7 +955,7 @@ frames.get(invalidWidthFrame)();
 frames.delete(invalidWidthFrame);
 assert.equal(dialog.style.getPropertyValue('--sheet-width'), widthBeforeInvalidGeometry,
   'invalid inline geometry preserves the last safe width');
-measure.scrollWidth = 180;
+measureIntrinsicWidth = 180;
 const firstGenerationObserver = resizeObserverInstances[0];
 assert.equal(historyCalls.push.length, 1, 'first open pushes one sheet entry');
 assert.equal(historyCalls.replace.length, 1, 'first open tags the underlying reader entry for generation-safe Back');
