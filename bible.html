@@ -2793,8 +2793,9 @@
   function handleAppSheetPopState(state) {
     var validated = validatedAppSheetHistoryState(state);
     if (validated) {
-      if (appSheet.open && validated.sheet.generation != null &&
-          validated.sheet.generation !== appSheetState.generation) return true;
+      if (appSheet.open &&
+          ((appSheetState.historyReturnGeneration !== null && validated.sheet.generation == null) ||
+           (validated.sheet.generation != null && validated.sheet.generation !== appSheetState.generation))) return true;
       if (validated.sheet.kind === 'selection') {
         history.replaceState(validated, '', canonicalVerseUrl(validated.book, validated.chapter, validated.verse));
       }
@@ -2821,8 +2822,10 @@
       }
     }
     if (appSheet.open) {
-      if (state && state.sheetReturnGeneration != null &&
-          state.sheetReturnGeneration !== appSheetState.historyReturnGeneration) return true;
+      if ((appSheetState.historyReturnGeneration !== null &&
+           (!state || state.sheetReturnGeneration == null)) ||
+          (state && state.sheetReturnGeneration != null &&
+           state.sheetReturnGeneration !== appSheetState.historyReturnGeneration)) return true;
       if (appSheetState.kind === 'selection' && state &&
           (state.view === 'books' || state.view === 'chapters' || state.view === 'verse-picker')) return false;
       appSheetState.historyOwned = false;

@@ -490,6 +490,13 @@ const controllerSource = bible.slice(pureStart, pureEnd) + '\n' +
   'retarget: retargetAppSheetMeasurement, state: appSheetState};';
 vm.runInNewContext(controllerSource, controllerContext);
 const api = controllerContext.api;
+function currentReturnPopState() {
+  const state = { view: 'verses', book: 'John', chapter: '3', verse: '16' };
+  if (api.state.historyReturnGeneration !== null) {
+    state.sheetReturnGeneration = api.state.historyReturnGeneration;
+  }
+  return state;
+}
 
 api.install();
 const installedListenerCount = dialog.listenerCount + handle.listenerCount + body.listenerCount;
@@ -557,21 +564,22 @@ frames.delete(viewportFrame);
 assert.equal(dialog.style.getPropertyValue('--sheet-height'), '420px', 'visual viewport changes recalculate the cap');
 
 measure.scrollHeight = 900;
-controllerContext.window.visualViewport.height = NaN;
+const savedVisualViewport = controllerContext.window.visualViewport;
+delete controllerContext.window.visualViewport;
 controllerContext.window.innerHeight = 700;
 windowListeners.resize[0]();
 let fallbackFrame = [...frames.keys()][0];
 frames.get(fallbackFrame)();
 frames.delete(fallbackFrame);
-assert.equal(dialog.style.getPropertyValue('--sheet-height'), '489px', 'invalid visual viewport falls back to finite innerHeight');
-controllerContext.window.visualViewport.height = Infinity;
+assert.equal(dialog.style.getPropertyValue('--sheet-height'), '489px', 'missing visualViewport falls back to finite innerHeight');
 controllerContext.window.innerHeight = NaN;
 controllerContext.document.documentElement.clientHeight = 600;
 windowListeners.resize[0]();
 fallbackFrame = [...frames.keys()][0];
 frames.get(fallbackFrame)();
 frames.delete(fallbackFrame);
-assert.equal(dialog.style.getPropertyValue('--sheet-height'), '420px', 'nonfinite window geometry falls back to clientHeight');
+assert.equal(dialog.style.getPropertyValue('--sheet-height'), '420px',
+  'missing visualViewport and nonfinite innerHeight fall back to clientHeight');
 const fallbackWrites = dialog.styleWriteCount;
 controllerContext.document.documentElement.clientHeight = -Infinity;
 windowListeners.resize[0]();
@@ -580,6 +588,7 @@ frames.get(fallbackFrame)();
 frames.delete(fallbackFrame);
 assert.equal(dialog.style.getPropertyValue('--sheet-height'), '420px');
 assert.equal(dialog.styleWriteCount, fallbackWrites, 'fully hostile viewport geometry cannot write an unbounded height');
+controllerContext.window.visualViewport = savedVisualViewport;
 controllerContext.window.visualViewport.height = 600;
 controllerContext.window.innerHeight = 800;
 controllerContext.document.documentElement.clientHeight = 780;
@@ -630,7 +639,7 @@ assert.notEqual(measure.textContent, '', 'default descriptors render determinist
 assert.equal(api.close('button'), true);
 assert.equal(historyCalls.back, 1, 'dismissal traverses back from an owned entry');
 assert.equal(dialog.open, true, 'dialog waits for popstate before closing');
-assert.equal(api.pop({ view: 'verses', book: 'John', chapter: '3', verse: '16' }), true);
+assert.equal(api.pop(currentReturnPopState()), true);
 assert.equal(dialog.open, false);
 assert.equal(opener.focusCount, 1, 'connected opener receives focus after close');
 assert.equal(fabMain.getAttribute('aria-expanded'), 'false', 'close keeps Settings launcher collapsed');
@@ -641,7 +650,7 @@ assert.equal(api.open('history', { opener }), true);
 assert.equal(fabMain.getAttribute('aria-expanded'), 'false', 'switching kind collapses the Settings launcher');
 assert.equal(historyRenderExpansion.at(-1), 'false', 'kind switch synchronizes before the next renderer runs');
 assert.equal(settingsCleanupExpansion.at(-1), 'false', 'kind-switch cleanup observes Settings collapsed');
-api.pop({ view: 'verses', book: 'John', chapter: '3', verse: '16' });
+api.pop(currentReturnPopState());
 
 const pushesBeforeForward = historyCalls.push.length;
 assert.equal(api.pop({
@@ -714,7 +723,7 @@ const backsBeforeCancel = historyCalls.back;
 dialog.dispatch('cancel', { preventDefault() { cancelPrevented += 1; } });
 assert.equal(cancelPrevented, 1, 'native Escape/cancel is prevented for the unified close path');
 assert.equal(historyCalls.back, backsBeforeCancel + 1, 'Escape/cancel requests history dismissal');
-api.pop({ view: 'verses', book: 'John', chapter: '3', verse: '16' });
+api.pop(currentReturnPopState());
 assert.equal(dialog.classList.contains('edge-top'), false, 'close resets top-edge presentation state');
 assert.equal(dialog.classList.contains('edge-bottom'), true);
 
@@ -754,27 +763,40 @@ assert.deepEqual({
   kind: api.state.kind, content: measure.textContent, focus: opener.focusCount
 }, reopened, 'stale observer, RAF, and timer callbacks cannot mutate the reopened generation');
 
+reduceMotion = true;
+api.state.historyOwned = false;
+api.close('prepare-tagged-stale-history');
+api.open('history', { page: 'old-generation' });
 const staleGeneration = api.state.generation;
+const staleReturnGeneration = api.state.historyReturnGeneration;
 const staleSheetPop = {
   view: 'verses', book: 'John', chapter: '3', verse: '16',
   sheet: { kind: 'search', page: 'old', generation: staleGeneration }
 };
 const staleClosePop = {
-  view: 'verses', book: 'John', chapter: '3', verse: '16', sheetReturnGeneration: staleGeneration
+  view: 'verses', book: 'John', chapter: '3', verse: '16', sheetReturnGeneration: staleReturnGeneration
 };
+const untaggedStaleSheetPop = {
+  view: 'verses', book: 'John', chapter: '3', verse: '16', sheet: { kind: 'search', page: 'untagged-old' }
+};
+const untaggedStaleClosePop = { view: 'verses', book: 'John', chapter: '3', verse: '16' };
+api.state.historyOwned = false;
+api.close('invalidate-old-history-generation');
 api.open('history', { page: 'new' });
 const currentAfterReopen = {
   generation: api.state.generation, kind: api.state.kind, content: measure.textContent,
   phase: api.state.phase, focus: opener.focusCount
 };
 assert.notEqual(currentAfterReopen.generation, staleGeneration);
+assert.notEqual(api.state.historyReturnGeneration, staleReturnGeneration);
 assert.equal(api.pop(staleSheetPop), true);
 assert.equal(api.pop(staleClosePop), true);
+assert.equal(api.pop(untaggedStaleSheetPop), true);
+assert.equal(api.pop(untaggedStaleClosePop), true);
 assert.deepEqual({
   generation: api.state.generation, kind: api.state.kind, content: measure.textContent,
   phase: api.state.phase, focus: opener.focusCount
-}, currentAfterReopen, 'old-generation sheet and close popstate callbacks cannot mutate a reopened sheet');
-reduceMotion = true;
+}, currentAfterReopen, 'tagged and untagged stale sheet/close callbacks cannot mutate a reopened sheet');
 
 api.state.historyOwned = false;
 api.close('prepare-forward-contract');
@@ -818,7 +840,7 @@ assert.equal(historyCalls.back, backsBeforeDoubleClose + 1, 'double dismiss requ
 assert.equal(api.open('search', { page: 'during-close' }), false, 'open is rejected while history close is pending');
 assert.equal(api.state.pendingHistoryClose, true, 'rejected reopen cannot race the pending traversal');
 assert.equal(dialog.open, true);
-api.pop({ view: 'verses', book: 'John', chapter: '3', verse: '16' });
+api.pop(currentReturnPopState());
 assert.equal(dialog.open, false);
 assert.equal(api.state.pendingHistoryClose, false, 'popstate clears pending close state');
 
@@ -837,7 +859,7 @@ assert.equal(historyCalls.replace.length, popupReplacesBefore + 2,
 assert.equal(historyCalls.replace.at(-1)[0].popup, undefined);
 assert.equal(historyCalls.push.length, popupPushesBefore + 1, 'sheet then pushes over the canonical reader entry');
 api.close('popup-normalized');
-api.pop({ view: 'verses', book: 'John', chapter: '3', verse: '16' });
+api.pop(currentReturnPopState());
 
 api.pop({ view: 'verses', book: 'John', chapter: '3', verse: '16', sheet: { kind: 'history' } });
 body.scrollTop = 40;
