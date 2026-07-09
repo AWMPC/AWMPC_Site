@@ -1127,7 +1127,10 @@
   .app-sheet.edge-top .selection-viewport { order: 1; }
   .app-sheet.edge-top .app-sheet-content-frame { order: 0; }
   .app-sheet.edge-top .app-sheet-handle { order: 3; }
-  .app-sheet.edge-top .app-sheet-shell { padding-top: env(safe-area-inset-top); }
+  .app-sheet.edge-top .app-sheet-shell {
+    grid-template-rows: minmax(0, 1fr) auto;
+    padding-top: env(safe-area-inset-top);
+  }
   .app-sheet.snap-fullscreen .app-sheet-shell { padding-top: env(safe-area-inset-top); }
 
   @media (prefers-reduced-motion: reduce) {
@@ -2786,6 +2789,7 @@
   }
 
   function onAppSheetHandleKeyDown(e) {
+    if (e.repeat) return;
     var toggle = e.key === 'Enter' || e.key === ' ';
     var inward = (appSheetState.edge === 'bottom' && e.key === 'ArrowUp') ||
       (appSheetState.edge === 'top' && e.key === 'ArrowDown');

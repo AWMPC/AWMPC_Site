@@ -26,6 +26,11 @@ assert.match(bible, /env\(safe-area-inset-top/);
 assert.match(bible, /\.app-sheet\.snap-fullscreen[\s\S]*padding-top: env\(safe-area-inset-top/,
   'bottom-edge fullscreen preserves the top safe area');
 assert.match(bible, /\.app-sheet\.edge-top \.app-sheet-handle\s*\{[^}]*order:\s*3/);
+assert.match(bible, /\.app-sheet-shell\s*\{[^}]*grid-template-rows:\s*auto\s+minmax\(0,\s*1fr\)\s*;/,
+  'bottom-edge sheet keeps the intrinsic handle above flexible content');
+assert.match(bible,
+  /\.app-sheet\.edge-top \.app-sheet-shell\s*\{[^}]*grid-template-rows:\s*minmax\(0,\s*1fr\)\s+auto\s*;/,
+  'top-edge sheet swaps the flexible content and intrinsic handle row tracks');
 
 function controllerFunction(name) {
   const match = bible.match(new RegExp('  function ' + name + '\\([^\\n]*\\) \\{[\\s\\S]*?\\n  \\}'));
@@ -37,6 +42,7 @@ function runHandleKeys(options) {
   const appSheet = fakeElement();
   const appSheetHandle = fakeElement();
   const closeCalls = [];
+  const snapCalls = [];
   const context = {
     appSheet,
     appSheetHandle,
@@ -47,6 +53,7 @@ function runHandleKeys(options) {
       return labels[kind] ? { label: labels[kind] } : null;
     },
     setSheetSnap(snap) {
+      snapCalls.push(snap);
       context.appSheetState.snap = snap;
       context.syncAppSheetAccessibleState();
       return true;
@@ -59,14 +66,15 @@ function runHandleKeys(options) {
     '\nthis.onAppSheetHandleKeyDown = onAppSheetHandleKeyDown;', context);
   context.syncAppSheetAccessibleState();
   return {
-    dispatch(key) {
-      const event = { key, prevented: false, preventDefault() { this.prevented = true; } };
+    dispatch(key, repeat = false) {
+      const event = { key, repeat, prevented: false, preventDefault() { this.prevented = true; } };
       context.onAppSheetHandleKeyDown(event);
       return event;
     },
     snap: () => context.appSheetState.snap,
     dialogLabel: () => appSheet.getAttribute('aria-label'),
     handleLabel: () => appSheetHandle.getAttribute('aria-label'),
+    snapCalls: () => snapCalls,
     closeCalls: () => closeCalls
   };
 }
@@ -115,6 +123,23 @@ function runHandleKeys(options) {
   event = harness.dispatch('Escape');
   assert.equal(event.prevented, true);
   assert.deepEqual(harness.closeCalls(), [['keyboard-handle', 'restore-opener']]);
+
+  for (const edge of ['bottom', 'top']) {
+    for (const snap of ['determined', 'fullscreen']) {
+      for (const key of ['Enter', ' ', 'ArrowUp', 'ArrowDown', 'Escape']) {
+        harness = runHandleKeys({ edge, snap, kind: 'settings' });
+        const dialogLabel = harness.dialogLabel();
+        const handleLabel = harness.handleLabel();
+        event = harness.dispatch(key, true);
+        assert.equal(event.prevented, false, `repeat ${edge}/${snap}/${key} is ignored before handling`);
+        assert.equal(harness.snap(), snap, `repeat ${edge}/${snap}/${key} preserves snap`);
+        assert.deepEqual(harness.snapCalls(), [], `repeat ${edge}/${snap}/${key} never invokes the snap setter`);
+        assert.deepEqual(harness.closeCalls(), [], `repeat ${edge}/${snap}/${key} never closes`);
+        assert.equal(harness.dialogLabel(), dialogLabel);
+        assert.equal(harness.handleLabel(), handleLabel);
+      }
+    }
+  }
 }
 
 const pureStart = bible.indexOf('/* APP SHEET PURE HELPERS START */');
