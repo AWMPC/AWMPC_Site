@@ -2575,6 +2575,17 @@
       bibleWheelBurst.generation + 1 : 1;
   }
 
+  function restoreBibleWheelConsumedLock(consumed, direction) {
+    if (!consumed || (direction !== -1 && direction !== 1)) return;
+    bibleWheelBurst.consumed = true;
+    bibleWheelBurst.direction = direction;
+    var generation = bibleWheelBurst.generation;
+    bibleWheelBurst.timer = window.setTimeout(function () {
+      if (generation !== bibleWheelBurst.generation) return;
+      resetBibleWheelBurst();
+    }, BIBLE_WHEEL_IDLE_MS);
+  }
+
   function bibleWheelTargetBlocked(event) {
     if (!event || event.ctrlKey || event.metaKey || event.shiftKey) return true;
     if (appSheetState.phase === 'dragging' || appSheetState.phase === 'settling' ||
@@ -2594,7 +2605,13 @@
   }
 
   function accumulateBibleWheel(event) {
-    if (bibleWheelTargetBlocked(event)) return 0;
+    if (bibleWheelTargetBlocked(event)) {
+      var blockedConsumed = bibleWheelBurst.consumed;
+      var blockedDirection = bibleWheelBurst.direction;
+      resetBibleWheelBurst();
+      restoreBibleWheelConsumedLock(blockedConsumed, blockedDirection);
+      return 0;
+    }
     var viewportWidth = window.visualViewport && isFiniteAppSheetNumber(window.visualViewport.width) &&
       window.visualViewport.width > 0 ? window.visualViewport.width : window.innerWidth;
     if (!isFiniteAppSheetNumber(viewportWidth) || viewportWidth <= 0) {
@@ -2602,7 +2619,13 @@
     }
     var dx = normalizeBibleWheelDelta(event.deltaX, event.deltaMode, viewportWidth);
     var dy = normalizeBibleWheelDelta(event.deltaY, event.deltaMode, viewportWidth);
-    if (dx === null || dy === null) return 0;
+    if (dx === null || dy === null) {
+      var invalidConsumed = bibleWheelBurst.consumed;
+      var invalidDirection = bibleWheelBurst.direction;
+      resetBibleWheelBurst();
+      restoreBibleWheelConsumedLock(invalidConsumed, invalidDirection);
+      return 0;
+    }
 
     if (bibleWheelBurst.timer !== null) window.clearTimeout(bibleWheelBurst.timer);
     bibleWheelBurst.generation = isFiniteAppSheetNumber(bibleWheelBurst.generation) ?

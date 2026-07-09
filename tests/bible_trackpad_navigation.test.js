@@ -91,6 +91,7 @@ function wheelHarness(page = 'chapters') {
     ${functionSource('normalizeBibleWheelDelta')}
     ${functionSource('bibleWheelClaimDirection')}
     ${functionSource('resetBibleWheelBurst')}
+    ${functionSource('restoreBibleWheelConsumedLock')}
     ${functionSource('bibleWheelTargetBlocked')}
     ${functionSource('accumulateBibleWheel')}
     ${functionSource('onSelectionWheel')}
@@ -242,6 +243,66 @@ test('wheel guards independently block candidates, pointers, editable targets, s
   editable.api.wheel(event);
   assert.equal(event.prevented, false);
   assert.equal(editable.pages.length, 0);
+});
+
+test('blocked native interactions reset partial wheel bursts before normal motion resumes', () => {
+  const cases = [
+    { event: () => wheelEvent(24, 0, { ctrlKey: true }) },
+    { event: () => wheelEvent(24, 0, { metaKey: true }) },
+    { event: () => wheelEvent(24, 0, { shiftKey: true }) },
+    { event: () => wheelEvent(24, 0, {
+      target: { inside: true, isContentEditable: true, closest() { return null; } }
+    }) },
+    { before: api => api.selection({ isCollapsed: false }), after: api => api.selection({ isCollapsed: true }),
+      event: () => wheelEvent(24) },
+    { before: api => api.pointer({ id: 1 }), after: api => api.pointer(null), event: () => wheelEvent(24) },
+    { before: api => api.candidate({ id: 1 }), after: api => api.candidate(null), event: () => wheelEvent(24) },
+    { before: api => api.phase('settling'), after: api => api.phase('idle'), event: () => wheelEvent(24) }
+  ];
+  for (const entry of cases) {
+    const { api, pages, timers } = wheelHarness();
+    api.wheel(wheelEvent(24));
+    const partialTimer = timers.at(-1);
+    if (entry.before) entry.before(api);
+    const blocked = entry.event();
+    api.wheel(blocked);
+    if (entry.after) entry.after(api);
+    assert.equal(blocked.prevented, false, 'blocked/native input stays native');
+    assert.equal(partialTimer.cleared, true, 'blocked input clears the partial-burst timer');
+    api.wheel(wheelEvent(24));
+    assert.equal(pages.length, 0, 'post-boundary motion cannot combine with stale motion');
+    api.reset();
+    api.wheel(wheelEvent(48));
+    assert.equal(pages.length, 1, 'a fresh deliberate burst may still claim');
+  }
+});
+
+test('blocked input after a consumed claim cannot turn residual momentum into a second page', () => {
+  const { api, pages } = wheelHarness('books');
+  api.wheel(wheelEvent(48));
+  assert.equal(pages.length, 1);
+  const blocked = wheelEvent(24, 0, { ctrlKey: true });
+  api.wheel(blocked);
+  assert.equal(blocked.prevented, false);
+  const residualMomentum = wheelEvent(120);
+  api.wheel(residualMomentum);
+  assert.equal(residualMomentum.prevented, true, 'the one-action lock survives a blocked boundary');
+  assert.equal(pages.length, 1);
+  api.expire();
+  api.wheel(wheelEvent(48));
+  assert.equal(pages.length, 2, 'a deliberate burst after idle may page again');
+});
+
+test('invalid wheel deltas reset partial state instead of combining across an untrusted event', () => {
+  const { api, pages, timers } = wheelHarness();
+  api.wheel(wheelEvent(24));
+  const partialTimer = timers.at(-1);
+  const invalid = wheelEvent(Infinity);
+  api.wheel(invalid);
+  assert.equal(invalid.prevented, false);
+  assert.equal(partialTimer.cleared, true);
+  api.wheel(wheelEvent(24));
+  assert.equal(pages.length, 0);
 });
 
 test('wheel page-mode normalization falls back to the document viewport width', () => {
