@@ -161,7 +161,8 @@ const pureSource = bible.slice(pureStart, pureEnd) + '\nthis.hooks = {' +
   'visual: appSheetGestureVisual,' +
   'axis: appSheetAxis, boundary: appSheetBoundaryAllowsDrag, phases: APP_SHEET_PHASES,' +
   'constants: [APP_SHEET_AXIS_LOCK_PX, APP_SHEET_SNAP_PX, APP_SHEET_SNAP_VELOCITY,' +
-  'APP_SHEET_VELOCITY_RECENCY_MS, APP_SHEET_MAX_VELOCITY, APP_SHEET_CLICK_GUARD_MS],' +
+  'APP_SHEET_VELOCITY_RECENCY_MS, APP_SHEET_MAX_VELOCITY, APP_SHEET_CLICK_GUARD_MS,' +
+  'APP_SHEET_OPEN_CLOSE_MS, APP_SHEET_RESIZE_MS],' +
   'state: validatedAppSheetHistoryState};';
 const context = { Math };
 vm.runInNewContext(pureSource, context);
@@ -181,8 +182,8 @@ assert.equal(h.validAnchor('right'), true);
 assert.equal(h.validAnchor('center'), false);
 assert.equal(h.validAnchor('__proto__'), false, 'anchor enum rejects inherited/property attacks');
 assert.equal(h.validAnchor(0), false, 'anchor enum rejects non-string values');
-assert.deepEqual(Array.from(h.phases), ['closed', 'idle', 'dragging', 'settling', 'closing']);
-assert.deepEqual(Array.from(h.constants), [8, 80, .4, 80, 3, 500]);
+assert.deepEqual(Array.from(h.phases), ['closed', 'opening', 'idle', 'dragging', 'settling', 'closing']);
+assert.deepEqual(Array.from(h.constants), [8, 80, .4, 80, 3, 500, 280, 320]);
 
 assert.equal(h.finite(0), true);
 assert.equal(h.finite(-1), true);
@@ -1908,6 +1909,130 @@ for (let cycle = 0; cycle < 3; cycle += 1) {
     `cycle ${cycle} does not retain listeners`);
   assert.equal(resizeObserverInstances.at(-1).disconnected, true, `cycle ${cycle} disconnects observer`);
 }
+
+if (dialog.open) {
+  api.state.historyOwned = false;
+  api.close('motion-test-setup');
+}
+reduceMotion = false;
+const motionClassSnapshot = () => [
+  'is-preparing', 'is-opening', 'is-closing', 'no-motion', 'edge-top', 'edge-bottom',
+  'inline-left', 'inline-right', 'snap-determined', 'snap-fullscreen'
+].filter(name => dialog.classList.contains(name));
+assert.equal(api.open('history', { opener, edge: 'top' }), true);
+assert.equal(api.state.phase, 'opening');
+assert.equal(dialog.classList.contains('is-preparing'), true,
+  'new sheet is hidden before its first paint');
+assert.equal(dialog.classList.contains('is-opening'), true,
+  'new top sheet starts in its off-edge pose');
+assert.equal(dialog.style.getPropertyValue('--sheet-backdrop-opacity'), '0',
+  'sheet and backdrop begin at paired zero progress');
+assert.equal(dialog.classList.contains('edge-top'), true);
+assert.equal(dialog.classList.contains('inline-right'), true,
+  'vertical opening motion preserves the immutable horizontal anchor');
+const interruptedOpenFrame = api.state.openFrame;
+const interruptedOpenCallback = frames.get(interruptedOpenFrame);
+interruptedOpenCallback();
+frames.delete(interruptedOpenFrame);
+assert.equal(dialog.classList.contains('is-preparing'), false,
+  'first paint reveals the measured off-edge pose');
+assert.equal(dialog.classList.contains('is-opening'), true);
+assert.equal(dialog.style.getPropertyValue('--sheet-backdrop-opacity'), '',
+  'first reveal advances backdrop progress with the still off-edge sheet');
+const interruptedOpenFrame2 = api.state.openFrame2;
+const interruptedOpenCallback2 = frames.get(interruptedOpenFrame2);
+api.state.historyOwned = false;
+api.close('open-interruption');
+assert.ok(cancelledFrames.includes(interruptedOpenFrame2), 'close cancels the owned second opening frame');
+assert.match(dialog.style.getPropertyValue('--sheet-drag-offset'), /^-\d+px$/,
+  'top close reverses toward the same navbar edge');
+const interruptedCloseSnapshot = {
+  phase: api.state.phase,
+  classes: motionClassSnapshot(),
+  offset: dialog.style.getPropertyValue('--sheet-drag-offset'),
+  focus: opener.focusCount
+};
+interruptedOpenCallback2();
+assert.deepEqual({
+  phase: api.state.phase,
+  classes: motionClassSnapshot(),
+  offset: dialog.style.getPropertyValue('--sheet-drag-offset'),
+  focus: opener.focusCount
+}, interruptedCloseSnapshot, 'stale second opening paint cannot mutate close state or focus');
+const interruptedCloseTimer = api.state.settleTimer;
+timers.get(interruptedCloseTimer)();
+timers.delete(interruptedCloseTimer);
+assert.equal(dialog.open, false);
+
+assert.equal(api.open('history', { opener }), true);
+const replacedOpenFrame = api.state.openFrame;
+const replacedOpenCallback = frames.get(replacedOpenFrame);
+assert.equal(api.open('search', { opener: replacementOpener }), true);
+assert.ok(cancelledFrames.includes(replacedOpenFrame), 'kind replacement cancels the old opening paint');
+const replacementSnapshot = {
+  kind: api.state.kind,
+  phase: api.state.phase,
+  anchor: api.state.anchor,
+  classes: motionClassSnapshot(),
+  focus: replacementOpener.focusCount
+};
+replacedOpenCallback();
+assert.deepEqual({
+  kind: api.state.kind,
+  phase: api.state.phase,
+  anchor: api.state.anchor,
+  classes: motionClassSnapshot(),
+  focus: replacementOpener.focusCount
+}, replacementSnapshot, 'stale kind opening callback cannot mutate its replacement');
+
+const staleResizeFrame = api.state.measureFrame;
+const staleResizeCallback = frames.get(staleResizeFrame);
+api.retarget();
+const writesBeforeStaleResize = dialog.styleWriteCount;
+staleResizeCallback();
+assert.equal(dialog.styleWriteCount, writesBeforeStaleResize,
+  'a cancelled same-generation resize frame cannot write newer geometry');
+
+const anchoredClass = api.state.anchor === 'left' ? 'inline-left' : 'inline-right';
+api.snap('fullscreen', false);
+const staleMaximizeTimer = api.state.settleTimer;
+const staleMaximizeCallback = timers.get(staleMaximizeTimer);
+assert.equal(dialog.classList.contains(anchoredClass), true,
+  'maximize expands inward without changing the side anchor');
+api.snap('determined', false);
+const restoreTimer = api.state.settleTimer;
+staleMaximizeCallback();
+assert.equal(api.state.phase, 'settling', 'stale maximize completion cannot settle an interrupted restore');
+assert.equal(api.state.snap, 'determined');
+assert.equal(dialog.classList.contains(anchoredClass), true,
+  'restore contracts toward the same immutable side anchor');
+timers.get(restoreTimer)();
+timers.delete(restoreTimer);
+assert.equal(api.state.phase, 'idle');
+
+api.state.historyOwned = false;
+api.close('motion-test-normal-cleanup');
+const normalCleanupTimer = api.state.settleTimer;
+timers.get(normalCleanupTimer)();
+timers.delete(normalCleanupTimer);
+reduceMotion = true;
+const frameCountBeforeReducedOpen = frames.size;
+const timerCountBeforeReducedOpen = timers.size;
+replacementOpenerLeft = 20;
+assert.equal(api.open('history', { opener: replacementOpener, edge: 'bottom' }), true);
+assert.equal(api.state.phase, 'idle', 'reduced motion reaches the final open phase synchronously');
+assert.equal(api.state.openFrame, null);
+assert.equal(api.state.openFrame2, null);
+assert.equal(dialog.classList.contains('is-preparing'), false);
+assert.equal(dialog.classList.contains('is-opening'), false);
+assert.equal(dialog.classList.contains('edge-bottom'), true);
+assert.equal(dialog.classList.contains('inline-left'), true,
+  'bottom opening also preserves a left-side opener anchor');
+assert.equal(timers.size, timerCountBeforeReducedOpen, 'reduced open has no animation fallback timer');
+assert.equal(frames.size, frameCountBeforeReducedOpen + 2,
+  'reduced open schedules only measurement and fade work, never lifecycle animation frames');
+api.state.historyOwned = false;
+api.close('motion-test-reduced-cleanup');
 
 const selectionFrameBaseline = frames.size;
 const selectionTimerBaseline = timers.size;

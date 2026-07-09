@@ -37,6 +37,40 @@ test('one cubic easing token owns application transitions', () => {
   );
 });
 
+test('app sheet lifecycle uses named paired motion durations and anchored edge origins', () => {
+  assert.match(css, /\.app-sheet \{[\s\S]*--sheet-open-close-duration:\s*280ms;/);
+  assert.match(css, /\.app-sheet \{[\s\S]*--sheet-resize-duration:\s*320ms;/);
+  assert.match(css, /transition-property:\s*width, height, transform, opacity;/);
+  assert.match(css, /transition-duration:\s*var\(--sheet-resize-duration\),\s*var\(--sheet-resize-duration\),\s*var\(--sheet-open-close-duration\),\s*var\(--sheet-open-close-duration\);/);
+  assert.match(css, /--sheet-origin-inline:\s*right;/);
+  assert.match(css, /--sheet-origin-block:\s*bottom;/);
+  assert.match(css, /transform-origin:\s*var\(--sheet-origin-inline\) var\(--sheet-origin-block\);/);
+  assert.match(css, /\.app-sheet\.inline-left\s*\{[^}]*--sheet-origin-inline:\s*left;/s);
+  assert.match(css, /\.app-sheet\.edge-top\s*\{[^}]*--sheet-origin-block:\s*top;/s);
+  assert.match(css, /\.app-sheet\.is-preparing\s*\{[^}]*visibility:\s*hidden;[^}]*transition-duration:\s*0s;/s);
+  assert.match(css, /\.app-sheet\.is-opening\.edge-bottom\s*\{[^}]*translateY\(100%\)/s);
+  assert.match(css, /\.app-sheet\.is-opening\.edge-top\s*\{[^}]*translateY\(-100%\)/s);
+  assert.match(css, /\.app-sheet::backdrop\s*\{[^}]*transition-duration:\s*var\(--sheet-open-close-duration\)/s);
+  assert.match(css, /\.app-sheet\.is-dragging\s*\{[^}]*transition:\s*none;/s);
+  assert.match(css, /\.app-sheet\.is-dragging::backdrop\s*\{[^}]*transition:\s*none;/s);
+});
+
+test('app sheet controller owns lifecycle frames and named fallbacks', () => {
+  assert.match(bible, /var APP_SHEET_OPEN_CLOSE_MS = 280;/);
+  assert.match(bible, /var APP_SHEET_RESIZE_MS = 320;/);
+  assert.match(bible, /openFrame:\s*null/);
+  assert.match(bible, /openFrame2:\s*null/);
+  assert.match(bible, /function clearAppSheetOpenFrames\(\)/);
+  assert.match(bible, /clearAppSheetOpenFrames\(\);[\s\S]*cancelAnimationFrame/);
+  assert.match(bible, /setSheetSnap\(snap, immediate\)[\s\S]*APP_SHEET_RESIZE_MS/);
+  assert.match(bible, /requestCloseAppSheet\(source, focusPolicy\)[\s\S]*APP_SHEET_OPEN_CLOSE_MS/);
+  assert.doesNotMatch(
+    bible.slice(bible.indexOf('/* APP SHEET CONTROLLER START */'), bible.indexOf('/* APP SHEET CONTROLLER END */')),
+    /setTimeout\([\s\S]{0,500},\s*(?:200|240|260)\)/,
+    'sheet lifecycle fallbacks do not retain anonymous legacy durations'
+  );
+});
+
 test('key animation families share easing and reduced motion disables them', () => {
   for (const [name, duration] of [
     ['press-ripple', '320ms'],
