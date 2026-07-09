@@ -139,6 +139,24 @@ test('minimum targets and narrow reflow protections remain intact', () => {
   assert.match(bible, /@media \(max-width: 320px\) \{[\s\S]*?\.view-inner,[\s\S]*?\.fab-panel,[\s\S]*?min-width:\s*0;[\s\S]*?max-width:\s*100%;/);
 });
 
+test('chrome hover paint is fine-pointer only while keyboard focus paint is unconditional', () => {
+  const capability = bible.match(/@media \(hover:hover\) and \(pointer:fine\) \{([\s\S]*?)\n  \}/);
+  assert.ok(capability, 'fine-pointer hover capability query missing');
+  for (const selector of ['.floating-nav button:hover', '.bottom-action-button:hover', '.fab-main:hover']) {
+    assert.match(capability[1], new RegExp(selector.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')),
+      `${selector} must be capability gated`);
+    const outsideCapability = bible.slice(0, capability.index) + bible.slice(capability.index + capability[0].length);
+    assert.doesNotMatch(outsideCapability, new RegExp(selector.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')),
+      `${selector} must not stick on coarse pointers`);
+  }
+  for (const selector of ['.floating-nav button:focus-visible', '.bottom-action-button:focus-visible', '.fab-main:focus-visible']) {
+    assert.match(bible, new RegExp(selector.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')),
+      `${selector} keyboard paint missing`);
+    assert.doesNotMatch(capability[1], new RegExp(selector.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')),
+      `${selector} must remain unconditional`);
+  }
+});
+
 test('production clearance lifecycle recomputes across desktop, mobile, and hidden navigation', () => {
   const fixture = clearanceFixture({ navHeight: 72, navTop: 720, actionHeight: 60, actionTop: 732 });
   fixture.update();

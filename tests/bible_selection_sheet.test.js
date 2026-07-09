@@ -113,6 +113,19 @@ test('selection indicator is a compact noninteractive 36 by 28 tonal float', () 
   assert.equal(pixelDeclaration(marker, 'height'), 4);
   assert.match(target, /pointer-events:\s*none/);
   assert.match(target, /user-select:\s*none/);
+  assert.match(target, /z-index:\s*3/);
+});
+
+test('selection panels reserve the tonal float and mobile top edge owns only a local inset', () => {
+  const panel = extract(/\.selection-panel \{[^}]*\}/, 'selection panel rule missing');
+  assert.match(panel,
+    /padding:\s*0\s+var\(--display-panel-padding\)\s+max\(52px,\s*calc\(var\(--display-panel-padding\) \+ env\(safe-area-inset-bottom\)\)\)/,
+    'the final selection row must clear the 28px tonal float and free-edge handle');
+  const mobile = extract(/@media \(max-width: 640px\) \{[\s\S]*?\.app-sheet\.edge-top \.selection-panel\s*\{[^}]*\}[\s\S]*?\n  \}/,
+    'mobile top-opening selection inset missing');
+  assert.match(mobile, /\.app-sheet\.edge-top \.selection-panel\s*\{[^}]*padding-top:\s*\.5rem/);
+  assert.doesNotMatch(mobile.match(/\.app-sheet\.edge-top \.selection-panel\s*\{[^}]*\}/)[0],
+    /safe-area-inset-top/, 'the shell already owns the top safe area');
 });
 
 test('navbar opens exact selection pages without invoking destructive legacy views', () => {

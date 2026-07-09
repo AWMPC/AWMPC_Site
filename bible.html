@@ -389,7 +389,6 @@
     box-shadow: var(--shadow);
     display: inline-flex; align-items: center; justify-content: center; line-height: 1.15; white-space: nowrap; overflow: hidden;
   }
-  .floating-nav button:hover,
   .floating-nav button:focus-visible {
     color: var(--accent);
     border-color: var(--accent);
@@ -448,7 +447,6 @@
     padding: var(--display-control-pad-y) var(--display-control-pad-x); cursor: pointer; box-shadow: var(--shadow);
     display: inline-flex; align-items: center; justify-content: center; line-height: 1.15; white-space: nowrap; overflow: hidden;
   }
-  .bottom-action-button:hover,
   .bottom-action-button:focus-visible {
     color: var(--accent); border-color: var(--accent); background: var(--hover-bg); outline: none;
   }
@@ -578,12 +576,21 @@
     padding: 0;
     overflow: hidden;
   }
-  .fab-main:hover,
   .fab-main:focus-visible {
     color: var(--accent);
     border-color: var(--accent);
     background: var(--hover-bg);
     outline: none;
+  }
+  @media (hover:hover) and (pointer:fine) {
+    .floating-nav button:hover,
+    .bottom-action-button:hover,
+    .fab-main:hover {
+      color: var(--accent);
+      border-color: var(--accent);
+      background: var(--hover-bg);
+      outline: none;
+    }
   }
   .fab-panel {
     display: flex;
@@ -1088,7 +1095,7 @@
     cursor: ns-resize; touch-action: none;
   }
   .app-sheet-handle::before {
-    content: ''; display: block; width: 42px; height: 4px; margin: auto;
+    content: ''; display: block; width: 30px; height: 3px; margin: auto;
     border-radius: var(--radius-pill); background: var(--fg4);
   }
   .app-sheet-content-frame { order: 1; position: relative; min-height: 0; overflow: hidden; }
@@ -1112,7 +1119,6 @@
   .app-sheet-fade.is-visible { opacity: 1; }
   .app-sheet-fade-top { top: 0; background: linear-gradient(to bottom, var(--surface), transparent); }
   .app-sheet-fade-bottom { bottom: 0; background: linear-gradient(to top, var(--surface), transparent); }
-  .app-sheet-body.selection-sheet-host ~ .app-sheet-fade-bottom { bottom: 28px; }
   .settings-sheet-content { display: grid; gap: var(--display-panel-gap); }
   .settings-sheet-content > .fab-card,
   .settings-sheet-content > .app-version { width: 100%; }
@@ -1150,7 +1156,7 @@
   .selection-track.no-motion { transition-duration: 0s; }
   .selection-panel {
     flex: 0 0 100%; min-width: 0; height: 100%; overflow: auto; overscroll-behavior: contain;
-    padding: 0 var(--display-panel-padding) max(var(--display-panel-padding), env(safe-area-inset-bottom));
+    padding: 0 var(--display-panel-padding) max(52px, calc(var(--display-panel-padding) + env(safe-area-inset-bottom)));
   }
   .selection-panel .testaments { padding-top: 0; }
   .selection-empty { color: var(--fg3); padding: 24px 12px; text-align: center; white-space: normal; }
@@ -1174,6 +1180,7 @@
 
   @media (max-width: 640px) {
     .app-sheet { width: 100%; max-width: none; margin-left: 0; margin-right: 0; }
+    .app-sheet.edge-top .selection-panel { padding-top: .5rem; }
   }
 
   @media (prefers-reduced-motion: reduce) {

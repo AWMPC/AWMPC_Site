@@ -1174,6 +1174,8 @@ dialog.onClose = () => { nativeRestoreCount += 1; controllerContext.document.act
 dialog.dispatch('cancel', { preventDefault() { cancelPrevented += 1; } });
 assert.equal(cancelPrevented, 1, 'native Escape/cancel is prevented for the unified close path');
 assert.equal(historyCalls.back, backsBeforeCancel + 1, 'Escape/cancel requests history dismissal');
+assert.equal(opener.classList.contains('active'), false, 'Escape clears launcher highlight before history/animation completion');
+assert.equal(opener.getAttribute('aria-expanded'), 'false');
 api.pop(currentReturnPopState());
 assert.equal(nativeRestoreCount, 1, 'native close restores the opener exactly once');
 assert.equal(controllerContext.document.activeElement, opener);
@@ -1193,6 +1195,8 @@ dialog.onClose = () => { controllerContext.document.activeElement = opener; };
 opener.onBlur = () => { controllerContext.document.activeElement = null; };
 dialog.dispatch('click', { target: dialog });
 assert.equal(historyCalls.back, backsBeforeBackdrop + 1, 'backdrop click uses the unified history close path');
+assert.equal(opener.classList.contains('active'), false, 'pointer backdrop clears launcher highlight immediately');
+assert.equal(opener.getAttribute('aria-expanded'), 'false');
 api.pop({ view: 'verses', book: 'John', chapter: '3', verse: '16' });
 assert.equal(opener.focusCount, focusBeforeBackdrop, 'pointer backdrop close never programmatically focuses');
 assert.equal(opener.blurCount, blurBeforeBackdrop + 1, 'pointer none policy clears native-restored launcher focus by blurring');

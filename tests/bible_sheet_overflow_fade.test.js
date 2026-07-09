@@ -231,7 +231,9 @@ test('overflow fades use decorative accessible surface gradients and respect pla
   assert.match(bible, /\.app-sheet-fade\s*\{[^}]*transition-property:\s*opacity[^}]*transition-duration:\s*160ms[^}]*transition-timing-function:\s*var\(--motion-ease\)/s);
   assert.match(bible, /\.app-sheet-fade-top\s*\{[^}]*linear-gradient\(to bottom,\s*var\(--surface\),\s*transparent\)/s);
   assert.match(bible, /\.app-sheet-fade-bottom\s*\{[^}]*linear-gradient\(to top,\s*var\(--surface\),\s*transparent\)/s);
-  assert.match(bible, /\.app-sheet-body\.selection-sheet-host\s*~\s*\.app-sheet-fade-bottom\s*\{[^}]*bottom:\s*28px/s);
+  assert.match(bible, /\.app-sheet-fade-bottom\s*\{[^}]*bottom:\s*0/s);
+  assert.doesNotMatch(bible, /\.app-sheet-body\.selection-sheet-host\s*~\s*\.app-sheet-fade-bottom\s*\{[^}]*bottom:\s*28px/s,
+    'the fade belongs to the clipped content frame, directly above the free-edge handle');
   assert.match(bible, /\.selection-indicator\s*\{[^}]*z-index:\s*3/s);
   assert.match(bible, /@media \(prefers-reduced-motion: reduce\)[\s\S]*\.app-sheet-fade[\s\S]*transition-duration:\s*0s/);
   assert.match(bible, /@media \(forced-colors: active\)[\s\S]*\.app-sheet-fade[\s\S]*Canvas/);
