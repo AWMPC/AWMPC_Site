@@ -3595,10 +3595,10 @@
     for (var i = 0; i < selectionPages.length; i++) {
       var active = selectionPages[i] === selectionSheetPage;
       if (active) activePanel = selectionPanels[i];
+      selectionDots[i].classList.toggle('is-active', active);
       if (!active && selectionPanels[i] === oldPanel && activeFocusWasInOldPanel) continue;
       selectionPanels[i].setAttribute('aria-hidden', active ? 'false' : 'true');
       if ('inert' in selectionPanels[i]) selectionPanels[i].inert = !active;
-      selectionDots[i].classList.toggle('is-active', active);
     }
     if (focusMode) focusSelectionPanel(activePanel, focusMode);
     if (oldPanel && activeFocusWasInOldPanel) {

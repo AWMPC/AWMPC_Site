@@ -468,6 +468,50 @@ test('indicator active state and inactive panel semantics execute', () => {
   assert.deepEqual(state.panels.map(panel => panel.getAttribute('aria-hidden')), ['true', 'false', 'true']);
 });
 
+test('focused pointer and keyboard page transitions always leave exactly one active indicator dot', () => {
+  const panels = [new FakeElement('section'), new FakeElement('section'), new FakeElement('section')];
+  const dots = [new FakeElement('span'), new FakeElement('span'), new FakeElement('span')];
+  panels.forEach(panel => { panel.inert = false; });
+  dots[0].classList.add('is-active');
+  const bookButton = new FakeElement('button');
+  const chapterButton = new FakeElement('button');
+  const verseButton = new FakeElement('button');
+  panels[0].appendChild(bookButton);
+  panels[1].appendChild(chapterButton);
+  panels[2].appendChild(verseButton);
+  const focusOrder = [];
+  const document = { activeElement: bookButton };
+  panels[1].focus = function () {
+    focusOrder.push(['pointer', panels[0].inert]);
+    document.activeElement = panels[1];
+  };
+  verseButton.focus = function () {
+    focusOrder.push(['keyboard', panels[1].inert]);
+    document.activeElement = verseButton;
+  };
+  const api = Function('selectionPanels', 'selectionDots', 'document', `
+    var selectionPages = ['books', 'chapters', 'verses'];
+    var selectionSheetPage = 'books';
+    ${functionSource('focusSelectionPanel')}
+    ${functionSource('updateSelectionPageSemantics')}
+    return function transition(page, mode, oldPanel) {
+      selectionSheetPage = page;
+      updateSelectionPageSemantics(mode, oldPanel);
+    };
+  `)(panels, dots, document);
+
+  api('chapters', 'pointer', panels[0]);
+  assert.deepEqual(dots.map(dot => dot.classList.values.has('is-active')), [false, true, false]);
+  assert.deepEqual(focusOrder.at(-1), ['pointer', false], 'pointer focus moves before old-panel inerting');
+  assert.equal(panels[0].inert, true);
+
+  document.activeElement = chapterButton;
+  api('verses', 'keyboard', panels[1]);
+  assert.deepEqual(dots.map(dot => dot.classList.values.has('is-active')), [false, false, true]);
+  assert.deepEqual(focusOrder.at(-1), ['keyboard', false], 'keyboard focus moves before old-panel inerting');
+  assert.equal(panels[1].inert, true);
+});
+
 test('pointer focus relocates before old panel inerting and keyboard focus selects first enabled control', () => {
   const focusSource = functionSource('focusSelectionPanel');
   const semanticsSource = functionSource('updateSelectionPageSemantics');
