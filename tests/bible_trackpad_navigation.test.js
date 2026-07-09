@@ -87,9 +87,11 @@ function wheelHarness(page = 'chapters') {
     var appSheetState = { kind: 'selection', phase: 'idle', pointer: null, candidate: null };
     var selectionPointer = null;
     var bibleWheelBurst = { x: 0, y: 0, consumed: false, direction: 0, timer: null, generation: 0 };
+    var bibleReaderWheelTransitionLock = { active: false, direction: 0, generation: 0 };
     function isFiniteAppSheetNumber(value) { return typeof value === 'number' && Number.isFinite(value); }
     ${functionSource('normalizeBibleWheelDelta')}
     ${functionSource('bibleWheelClaimDirection')}
+    ${functionSource('clearBibleReaderWheelTransitionLock')}
     ${functionSource('resetBibleWheelBurst')}
     ${functionSource('restoreBibleWheelConsumedLock')}
     ${functionSource('bibleWheelTargetBlocked')}
@@ -361,13 +363,18 @@ function readerWheelHarness(options = {}) {
     var selectionPointer = null;
     var bibleReaderWheelAction = false;
     var bibleWheelBurst = { x: 0, y: 0, consumed: false, direction: 0, timer: null, generation: 0 };
+    var bibleReaderWheelTransitionLock = { active: false, direction: 0, generation: 0 };
     function isFiniteAppSheetNumber(value) { return typeof value === 'number' && Number.isFinite(value); }
     function releaseVerseChaseForFreeScroll() { stats.releases++; }
     function showAdjacentChapter(direction) { chapters.push(direction); return ${options.endpoint === true ? 'false' : 'true'}; }
     ${functionSource('normalizeBibleWheelDelta')}
     ${functionSource('bibleWheelClaimDirection')}
+    ${functionSource('bibleWheelEventHorizontalDirection')}
+    ${functionSource('clearBibleReaderWheelTransitionLock')}
     ${functionSource('resetBibleWheelBurst')}
     ${functionSource('restoreBibleWheelConsumedLock')}
+    ${functionSource('holdBibleReaderWheelTransitionLock')}
+    ${functionSource('finishBibleReaderWheelTransitionLock')}
     ${functionSource('bibleWheelTargetBlocked')}
     ${functionSource('accumulateBibleWheel')}
     ${functionSource('onBibleReaderWheel')}
@@ -486,4 +493,128 @@ test('adjacent chapter action retains recalled verse fallback and the establishe
     bible.indexOf('  function shouldIgnoreBibleShortcut('));
   assert.match(transition, /if \(chapterCrossfadeGeneration !== readerTransitionGeneration\) return;/,
     'stale transition callbacks cannot unlock a newer wheel burst');
+  assert.match(transition, /finishBibleReaderWheelTransitionLock\(readerWheelLockGeneration\)/,
+    'transition completion is scoped to its reader wheel lock token');
+});
+
+test('reader transition owns the consumed lock across idle expiry and starts quiet time after completion', () => {
+  const timers = [];
+  const chapters = [];
+  const classList = { add() {}, remove() {} };
+  const viewInner = {
+    classList,
+    offsetWidth: 1,
+    cloneNode() {
+      return {
+        className: '', style: {}, classList, removeAttribute() {}, setAttribute() {},
+        querySelectorAll() { return []; }, remove() {}
+      };
+    }
+  };
+  const viewEl = {
+    scrollTop: 0,
+    contains(target) { return target && target.inside === true; },
+    appendChild() {}
+  };
+  const documentObject = { documentElement: { clientWidth: 600 } };
+  const windowObject = {
+    innerWidth: 800,
+    visualViewport: { width: 700 },
+    getSelection() { return { isCollapsed: true }; },
+    setTimeout(fn, ms) { const timer = { fn, ms, cleared: false }; timers.push(timer); return timer; },
+    clearTimeout(timer) { if (timer) timer.cleared = true; }
+  };
+  const source = [
+    'normalizeBibleWheelDelta', 'bibleWheelClaimDirection', 'clearBibleReaderWheelTransitionLock',
+    'bibleWheelEventHorizontalDirection',
+    'resetBibleWheelBurst', 'restoreBibleWheelConsumedLock', 'holdBibleReaderWheelTransitionLock',
+    'finishBibleReaderWheelTransitionLock', 'bibleWheelTargetBlocked', 'accumulateBibleWheel',
+    'onBibleReaderWheel', 'showVersesViewWithTransition'
+  ].map(functionSource).join('\n');
+  const api = Function('window', 'document', 'viewEl', 'viewInner', 'timers', 'chapters', `
+    var BIBLE_WHEEL_AXIS_RATIO = 1.25;
+    var BIBLE_WHEEL_ACTIVATION_PX = 48;
+    var BIBLE_WHEEL_IDLE_MS = 160;
+    var BIBLE_WHEEL_LINE_PX = 16;
+    var BIBLE_WHEEL_MAX_EVENT_PX = 120;
+    var CHAPTER_CROSSFADE_MS = 200;
+    var uiView = 'verses';
+    var appSheet = { open: false };
+    var appSheetState = { phase: 'idle', pointer: null, candidate: null };
+    var selectionPointer = null;
+    var bibleReaderWheelAction = false;
+    var bibleWheelBurst = { x: 0, y: 0, consumed: false, direction: 0, timer: null, generation: 0 };
+    var bibleReaderWheelTransitionLock = { active: false, direction: 0, generation: 0 };
+    var chapterCrossfadeTimer = null;
+    var chapterCrossfadeGeneration = 0;
+    var preservingChapterCrossfade = false;
+    function isFiniteAppSheetNumber(value) { return typeof value === 'number' && Number.isFinite(value); }
+    function releaseVerseChaseForFreeScroll() {}
+    function closeVerseActions() {}
+    function clearReaderPointerState() {}
+    function shouldReduceChapterMotion() { return false; }
+    function clearChapterCrossfadeTimer() {
+      chapterCrossfadeGeneration++;
+      if (chapterCrossfadeTimer) window.clearTimeout(chapterCrossfadeTimer);
+      chapterCrossfadeTimer = null;
+    }
+    function clearRetiringChapterViews() {}
+    function prepareRetiringView() {}
+    function showVersesView() {}
+    function requestAnimationFrame() { return 1; }
+    function showAdjacentChapter(direction) {
+      chapters.push(direction);
+      holdBibleReaderWheelTransitionLock(direction);
+      showVersesViewWithTransition('Genesis', chapters.length + 1, '1');
+      return true;
+    }
+    ${source}
+    return {
+      wheel: onBibleReaderWheel,
+      burst: function () { return bibleWheelBurst; },
+      lock: function () { return bibleReaderWheelTransitionLock; },
+      reset: resetBibleWheelBurst,
+      finish: finishBibleReaderWheelTransitionLock
+    };
+  `)(windowObject, documentObject, viewEl, viewInner, timers, chapters);
+
+  const claim = wheelEvent(48);
+  api.wheel(claim);
+  assert.equal(claim.prevented, true);
+  assert.deepEqual(chapters, [1]);
+  assert.equal(api.lock().active, true);
+  const originalIdle = timers.find(timer => timer.ms === 160);
+  const transition = timers.find(timer => timer.ms === 200);
+  assert.ok(originalIdle && transition);
+  assert.equal(originalIdle.cleared, true, 'transition ownership cancels the ordinary idle timer');
+
+  originalIdle.fn();
+  assert.equal(api.burst().consumed, true, 'stale pre-transition idle cannot release ownership');
+  for (const delta of [120, -120]) {
+    const residual = wheelEvent(delta);
+    api.wheel(residual);
+    assert.equal(residual.prevented, true);
+  }
+  assert.deepEqual(chapters, [1]);
+
+  transition.fn();
+  assert.equal(api.lock().active, false);
+  const afterTransition = wheelEvent(120);
+  api.wheel(afterTransition);
+  assert.equal(afterTransition.prevented, true);
+  assert.deepEqual(chapters, [1], 'post-transition momentum remains locked');
+
+  timers.at(-1).fn();
+  const fresh = wheelEvent(-48);
+  api.wheel(fresh);
+  assert.equal(fresh.prevented, true);
+  assert.deepEqual(chapters, [1, -1], 'a fresh burst is allowed after post-transition quiet time');
+
+  const staleGeneration = api.lock().generation;
+  const staleTransition = timers.filter(timer => timer.ms === 200).at(-1);
+  api.reset();
+  assert.equal(api.lock().active, false, 'unrelated reset cancels transition ownership');
+  staleTransition.fn();
+  api.finish(staleGeneration);
+  assert.equal(api.lock().active, false, 'stale completion cannot restore or release a newer owner');
 });

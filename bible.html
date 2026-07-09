@@ -2412,6 +2412,18 @@
         Math.abs(deltaX) < Math.abs(deltaY) * BIBLE_WHEEL_AXIS_RATIO) return 0;
     return deltaX < 0 ? -1 : 1;
   }
+  function bibleWheelEventHorizontalDirection(event) {
+    if (!event) return 0;
+    var viewportWidth = window.visualViewport && isFiniteAppSheetNumber(window.visualViewport.width) &&
+      window.visualViewport.width > 0 ? window.visualViewport.width : window.innerWidth;
+    if (!isFiniteAppSheetNumber(viewportWidth) || viewportWidth <= 0) {
+      viewportWidth = document.documentElement && document.documentElement.clientWidth;
+    }
+    var dx = normalizeBibleWheelDelta(event.deltaX, event.deltaMode, viewportWidth);
+    var dy = normalizeBibleWheelDelta(event.deltaY, event.deltaMode, viewportWidth);
+    if (dx === null || dy === null || dx === 0 || Math.abs(dx) < Math.abs(dy) * BIBLE_WHEEL_AXIS_RATIO) return 0;
+    return dx < 0 ? -1 : 1;
+  }
   function appSheetEffectiveSnapDistance(adjacentDistance) {
     if (!isFiniteAppSheetNumber(adjacentDistance) || adjacentDistance <= 0) return null;
     return Math.min(APP_SHEET_SNAP_PX, adjacentDistance);
@@ -2563,6 +2575,14 @@
   var appSheetDescriptors = Object.create(null);
   var appSheetReaderFocusCleanup = null;
   var bibleWheelBurst = { x: 0, y: 0, consumed: false, direction: 0, timer: null, generation: 0 };
+  var bibleReaderWheelTransitionLock = { active: false, direction: 0, generation: 0 };
+
+  function clearBibleReaderWheelTransitionLock() {
+    bibleReaderWheelTransitionLock.active = false;
+    bibleReaderWheelTransitionLock.direction = 0;
+    bibleReaderWheelTransitionLock.generation = isFiniteAppSheetNumber(bibleReaderWheelTransitionLock.generation) ?
+      bibleReaderWheelTransitionLock.generation + 1 : 1;
+  }
 
   function resetBibleWheelBurst() {
     if (bibleWheelBurst.timer !== null) window.clearTimeout(bibleWheelBurst.timer);
@@ -2573,6 +2593,7 @@
     bibleWheelBurst.timer = null;
     bibleWheelBurst.generation = isFiniteAppSheetNumber(bibleWheelBurst.generation) ?
       bibleWheelBurst.generation + 1 : 1;
+    clearBibleReaderWheelTransitionLock();
   }
 
   function restoreBibleWheelConsumedLock(consumed, direction) {
@@ -2584,6 +2605,30 @@
       if (generation !== bibleWheelBurst.generation) return;
       resetBibleWheelBurst();
     }, BIBLE_WHEEL_IDLE_MS);
+  }
+
+  function holdBibleReaderWheelTransitionLock(direction) {
+    if (direction !== -1 && direction !== 1) return false;
+    if (bibleWheelBurst.timer !== null) window.clearTimeout(bibleWheelBurst.timer);
+    bibleWheelBurst.timer = null;
+    bibleWheelBurst.generation = isFiniteAppSheetNumber(bibleWheelBurst.generation) ?
+      bibleWheelBurst.generation + 1 : 1;
+    bibleWheelBurst.consumed = true;
+    bibleWheelBurst.direction = direction;
+    bibleReaderWheelTransitionLock.active = true;
+    bibleReaderWheelTransitionLock.direction = direction;
+    bibleReaderWheelTransitionLock.generation = isFiniteAppSheetNumber(bibleReaderWheelTransitionLock.generation) ?
+      bibleReaderWheelTransitionLock.generation + 1 : 1;
+    return true;
+  }
+
+  function finishBibleReaderWheelTransitionLock(expectedGeneration) {
+    if (!bibleReaderWheelTransitionLock.active ||
+        (expectedGeneration != null && expectedGeneration !== bibleReaderWheelTransitionLock.generation)) return false;
+    var direction = bibleReaderWheelTransitionLock.direction;
+    resetBibleWheelBurst();
+    restoreBibleWheelConsumedLock(true, direction);
+    return true;
   }
 
   function bibleWheelTargetBlocked(event) {
@@ -5927,6 +5972,14 @@
       releaseVerseChaseForFreeScroll();
       return;
     }
+    if (bibleReaderWheelTransitionLock.active) {
+      if (bibleWheelTargetBlocked(event) || !bibleWheelEventHorizontalDirection(event)) {
+        releaseVerseChaseForFreeScroll();
+        return;
+      }
+      event.preventDefault();
+      return;
+    }
     var direction = accumulateBibleWheel(event);
     if (!direction) {
       releaseVerseChaseForFreeScroll();
@@ -5936,10 +5989,12 @@
     if (bibleWheelBurst.consumed) return;
     bibleWheelBurst.consumed = true;
     bibleReaderWheelAction = true;
+    var navigated = false;
     try {
-      showAdjacentChapter(direction);
+      navigated = showAdjacentChapter(direction);
     } finally {
       bibleReaderWheelAction = false;
+      if (!navigated) finishBibleReaderWheelTransitionLock();
     }
   }
 
@@ -6132,11 +6187,14 @@
   function showVersesViewWithTransition(bookName, chapterNum, scrollToVerse) {
     closeVerseActions(false);
     clearReaderPointerState();
+    var readerWheelLockGeneration = bibleReaderWheelTransitionLock.active ?
+      bibleReaderWheelTransitionLock.generation : null;
     if (uiView !== 'verses' || shouldReduceChapterMotion()) {
       clearChapterCrossfadeTimer();
       clearRetiringChapterViews();
       viewInner.classList.remove('chapter-transition-ready', 'chapter-transition-in');
       showVersesView(bookName, chapterNum, scrollToVerse);
+      finishBibleReaderWheelTransitionLock(readerWheelLockGeneration);
       return;
     }
 
@@ -6169,10 +6227,7 @@
       retiring.remove();
       viewInner.classList.remove('chapter-transition-ready', 'chapter-transition-in');
       chapterCrossfadeTimer = null;
-      var wheelConsumed = bibleWheelBurst.consumed;
-      var wheelDirection = bibleWheelBurst.direction;
-      resetBibleWheelBurst();
-      restoreBibleWheelConsumedLock(wheelConsumed, wheelDirection);
+      finishBibleReaderWheelTransitionLock(readerWheelLockGeneration);
     }, CHAPTER_CROSSFADE_MS);
   }
 
@@ -6324,6 +6379,7 @@
     if (!bibleData || navBook == null || navChapter == null) return false;
     var next = direction < 0 ? prevChapterNav(navBook, navChapter) : nextChapterNav(navBook, navChapter);
     if (!next) return false;
+    if (bibleReaderWheelAction) holdBibleReaderWheelTransitionLock(direction);
     prepareToLeaveReadingView();
     showVersesViewWithTransition(next.book, next.chapter, recalledChapterVerse(next.book, next.chapter) || '1');
     return true;

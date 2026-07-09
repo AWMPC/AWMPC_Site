@@ -315,7 +315,7 @@ test('reader wheel adapter owns claimed paging while native wheel and touch rele
   assert.match(readerWheel, /var direction = accumulateBibleWheel\(event\);/);
   assert.match(readerWheel, /if \(!direction\) \{[\s\S]*releaseVerseChaseForFreeScroll\(\);[\s\S]*return;/);
   assert.match(readerWheel, /event\.preventDefault\(\);[\s\S]*bibleWheelBurst\.consumed = true;[\s\S]*showAdjacentChapter\(direction\);/);
-  assert.doesNotMatch(readerWheel.slice(readerWheel.indexOf('event.preventDefault()')), /releaseVerseChaseForFreeScroll\(\)/,
+  assert.doesNotMatch(readerWheel.slice(readerWheel.lastIndexOf('event.preventDefault()')), /releaseVerseChaseForFreeScroll\(\)/,
     'claimed chapter paging must not cancel destination positioning');
   assert.match(bible, /viewEl\.addEventListener\('wheel', onBibleReaderWheel, \{ passive: false \}\);/);
   assert.match(bible, /viewEl\.addEventListener\('touchstart', releaseVerseChaseForFreeScroll, \{ passive: true \}\);/);
