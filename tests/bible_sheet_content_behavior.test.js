@@ -1,0 +1,288 @@
+const assert = require('node:assert/strict');
+const fs = require('node:fs');
+const path = require('node:path');
+const vm = require('node:vm');
+
+const bible = fs.readFileSync(path.join(__dirname, '..', 'bible.html'), 'utf8');
+
+assert.doesNotMatch(bible, /function showSearchView(?:WithTransition)?\s*\(/,
+  'legacy destructive search view functions are removed');
+assert.doesNotMatch(bible, /setUIView\('search'\)/, 'Search never replaces the mounted reader view');
+assert.doesNotMatch(bible, /uiView === 'search'/, 'no lifecycle branch can re-enter the retired Search view');
+
+function sourceBetween(startMarker, endMarker) {
+  const start = bible.indexOf(startMarker);
+  const end = bible.indexOf(endMarker, start + startMarker.length);
+  assert.ok(start >= 0 && end > start, `missing source boundary: ${startMarker}`);
+  return bible.slice(start, end);
+}
+
+function functionSource(name, endMarker = '\n  function ') {
+  const startMarker = `  function ${name}(`;
+  const start = bible.indexOf(startMarker);
+  const end = bible.indexOf(endMarker, start + startMarker.length);
+  assert.ok(start >= 0 && end > start, `missing function: ${name}`);
+  return bible.slice(start, end);
+}
+
+function makeStorage(initial = {}) {
+  const values = new Map(Object.entries(initial));
+  return {
+    getItem(key) { return values.has(key) ? values.get(key) : null; },
+    setItem(key, value) { values.set(key, String(value)); },
+    removeItem(key) { values.delete(key); },
+    json(key) { const value = this.getItem(key); return value == null ? null : JSON.parse(value); }
+  };
+}
+
+function loadState(initial = {}) {
+  const storage = makeStorage(initial);
+  const pure = sourceBetween('/* SEARCH SHEET PURE HELPERS START */', '/* SEARCH SHEET PURE HELPERS END */');
+  const stateSource = sourceBetween('  var State = {', '\n\n  // ===================== CONSTANTS');
+  const syncPayload = functionSource('_syncPayload');
+  const context = {
+    localStorage: storage,
+    _syncedLocalStateQuarantined: false,
+    SYNCED_LOCAL_KEYS: [],
+    _localRevision: 0,
+    LOCAL_KEY_TO_SYNC_FIELD: Object.create(null),
+    _localFieldRevisions: Object.create(null),
+    _scheduleSync() {},
+    DEFAULT_TEXT_SCALE: 100,
+    normalizeTextScale(value) { return typeof value === 'number' ? value : null; },
+    firebase: { firestore: { FieldValue: { serverTimestamp() { return 'server-time'; } } } }
+  };
+  vm.runInNewContext(`${pure}\n${stateSource}\n${syncPayload}\nthis.api = { State, sync: _syncPayload };`, context);
+  return { ...context.api, storage };
+}
+
+{
+  const hostile = [
+    ' x ', 'valid query', ` ${'z'.repeat(220)} `, 'valid query', null, {}, 'ok', 'x', '  another  '
+  ];
+  const { State, sync, storage } = loadState({ bible_search_hist: JSON.stringify(hostile) });
+  const normalized = JSON.parse(JSON.stringify(State.getSearchHistory()));
+  assert.deepEqual(normalized, ['valid query', 'z'.repeat(160), 'ok', 'another']);
+  assert.ok(normalized.every(query => typeof query === 'string' && query.length >= 2 && query.length <= 160));
+  assert.deepEqual(JSON.parse(JSON.stringify(sync().searchHistory)), normalized,
+    'cloud payload is normalized even when local storage was hostile');
+
+  State.pushSearchHistory(`  ${'p'.repeat(200)}  `);
+  assert.equal(State.getSearchHistory()[0], 'p'.repeat(160));
+  const beforeShortPush = JSON.stringify(State.getSearchHistory());
+  State.pushSearchHistory(' q ');
+  assert.equal(JSON.stringify(State.getSearchHistory()), beforeShortPush, 'short queries are never persisted');
+  const hostileInput = { toString() { throw new Error('untrusted coercion ran'); } };
+  assert.doesNotThrow(() => State.pushSearchHistory(hostileInput));
+  assert.doesNotThrow(() => State.removeSearchHistory(hostileInput));
+  assert.equal(JSON.stringify(State.getSearchHistory()), beforeShortPush, 'non-string State inputs are rejected');
+  State.removeSearchHistory(` ${'p'.repeat(200)} `);
+  assert.equal(State.getSearchHistory().includes('p'.repeat(160)), false, 'remove normalizes its input');
+
+  State.applyCloudData({
+    searchHistory: [` ${'c'.repeat(200)} `, 'hi', ' h ', 'hi', 42, 'cloud valid']
+  }, []);
+  assert.deepEqual(storage.json('bible_search_hist'), ['c'.repeat(160), 'hi', 'cloud valid'],
+    'cloud hydration is normalized before local persistence');
+  State.applyCloudData({ searchHistory: Array.from({ length: 25 }, (_, index) => `cloud-${index}`) }, []);
+  assert.equal(storage.json('bible_search_hist').length, 20, 'cloud hydration retains the existing 20-query cap');
+
+  storage.setItem('bible_history', JSON.stringify([{ book: 'John', ch: '3', verse: '16' }]));
+  State.clearHistory();
+  assert.deepEqual(storage.json('bible_history'), [], 'clearHistory persists through the State boundary');
+}
+
+{
+  const pure = sourceBetween('/* SEARCH SHEET PURE HELPERS START */', '/* SEARCH SHEET PURE HELPERS END */');
+  const mutated = pure.replace('.slice(0, 160)', '.slice(0, 200)');
+  assert.notEqual(mutated, pure, 'query-limit mutation must alter production source');
+  const context = {};
+  vm.runInNewContext(`${mutated}\nthis.bounded = boundedSearchQuery;`, context);
+  assert.equal(context.bounded('x'.repeat(220)).length, 200, '160-to-200 mutation is behaviorally observable');
+}
+
+{
+  let popHandler = null;
+  const calls = { open: 0, destructive: 0, books: 0 };
+  const context = {
+    bibleData: { John: { 3: { 16: 'text' } } },
+    window: { addEventListener(type, handler) { if (type === 'popstate') popHandler = handler; } },
+    handleAppSheetPopState() { return false; },
+    suppressNextPopupPop: false,
+    fabPanel: { classList: { contains() { return false; } } },
+    openMenu: null,
+    closeMenus() {},
+    fabPanelHistoryOpen: false,
+    openFabPanel() {},
+    navFromPop: false,
+    normalizeVerseReference(book, chapter, verse) {
+      return book === 'John' && String(chapter) === '3' && String(verse) === '16' ?
+        { book: 'John', chapter: 3, verse: '16' } : null;
+    },
+    normalizeBookChapter() { return null; },
+    showSelectedVerseWithTransition() {},
+    showVersePickerViewWithTransition() {},
+    showChaptersViewWithTransition() {},
+    showSearchViewWithTransition() { calls.destructive += 1; },
+    showBooksViewWithTransition() { calls.books += 1; },
+    currentNavStateForHistory() { return { view: 'verses', book: 'John', chapter: 3, verse: '16' }; },
+    canonicalVerseUrl() { return 'https://example.invalid/bible.html?book=John&chapter=3&verse=16'; },
+    history: {
+      replaceState(state, _title, url) {
+        assert.equal(Object.prototype.hasOwnProperty.call(state, 'query'), false);
+        assert.equal(url.includes('must-not-survive'), false);
+      }
+    },
+    openAppSheet(kind, options) {
+      assert.equal(kind, 'search');
+      assert.equal(options.fromPop, true);
+      assert.deepEqual(JSON.parse(JSON.stringify(options.historyState)), {
+        view: 'verses', book: 'John', chapter: '3', verse: '16', sheet: { kind: 'search' }
+      });
+      calls.open += 1;
+      return true;
+    }
+  };
+  vm.runInNewContext(sourceBetween("  window.addEventListener('popstate', function (e) {", '\n\n  // ===================== VIEW: BOOKS'), context);
+  assert.equal(typeof popHandler, 'function');
+  popHandler({ state: { view: 'search', query: 'must-not-survive' } });
+  assert.deepEqual(calls, { open: 1, destructive: 0, books: 0 },
+    'legacy search state opens a query-free sheet without replacing the reader');
+}
+
+function fakeElement(tag = 'div') {
+  const listeners = Object.create(null);
+  const classes = new Set();
+  let text = '';
+  const element = {
+    tag, children: [], parentNode: null, value: '', style: {}, isConnected: true,
+    className: '', type: '', maxLength: 0,
+    classList: {
+      add(...names) { names.forEach(name => classes.add(name)); },
+      remove(...names) { names.forEach(name => classes.delete(name)); },
+      contains(name) { return classes.has(name); }
+    },
+    setAttribute() {},
+    appendChild(child) {
+      if (child.parentNode) {
+        const index = child.parentNode.children.indexOf(child);
+        if (index >= 0) child.parentNode.children.splice(index, 1);
+      }
+      child.parentNode = this;
+      this.children.push(child);
+      return child;
+    },
+    addEventListener(type, handler) { (listeners[type] || (listeners[type] = [])).push(handler); },
+    dispatch(type, event = {}) { (listeners[type] || []).forEach(handler => handler({ target: this, ...event })); },
+    click() { this.dispatch('click', { stopPropagation() {} }); },
+    focus() { this.focused = true; }
+  };
+  Object.defineProperty(element, 'textContent', {
+    get() { return text; },
+    set(value) { text = String(value); if (text === '') element.children.length = 0; }
+  });
+  Object.defineProperty(element, 'firstChild', { get() { return element.children[0] || null; } });
+  return element;
+}
+
+{
+  const created = [];
+  let clearCalls = 0;
+  let historyList = [{ book: 'Bad', ch: '99', verse: '99' }];
+  const target = fakeElement();
+  const context = {
+    document: {
+      createElement(tag) { const node = fakeElement(tag); created.push(node); return node; }
+    },
+    State: {
+      getHistory() { return historyList; },
+      normalizeHistoryEntry(entry) { return entry; },
+      clearHistory() { clearCalls += 1; historyList = []; }
+    },
+    normalizeVerseReference() { return null; },
+    setMarqueeText(node, value) { node.textContent = value; },
+    formatHistoryTimestamp() { return 'time'; },
+    history: {}, canonicalVerseUrl() {}, finishCloseAppSheet() {}, navFromPop: false,
+    showVersesViewWithTransition() {}
+  };
+  vm.runInNewContext(`${functionSource('renderHistorySheet', '\n  function renderSettingsSheet')}\nthis.render = renderHistorySheet;`, context);
+  context.render(target);
+  assert.ok(target.children.some(node => node.className === 'dd-empty'), 'all-invalid history renders empty state');
+  const clear = target.children.find(node => node.className === 'search-hist-clear');
+  assert.ok(clear, 'history sheet renders a clear control');
+  clear.click();
+  assert.equal(clearCalls, 1);
+  assert.ok(target.children.some(node => node.className === 'dd-empty'), 'clear immediately rerenders empty state');
+  assert.equal(target.children.some(node => node.className === 'search-hist-clear'), false,
+    'clear control is removed after history is empty');
+}
+
+{
+  const first = fakeElement('section');
+  const second = fakeElement('section');
+  const fabPanel = fakeElement('aside');
+  fabPanel.appendChild(first);
+  fabPanel.appendChild(second);
+  const target = fakeElement('main');
+  const context = { fabPanel };
+  vm.runInNewContext(`${functionSource('renderSettingsSheet', '\n  function renderSearchSheet')}\nthis.render = renderSettingsSheet;`, context);
+  for (let cycle = 0; cycle < 3; cycle++) {
+    const cleanup = context.render(target);
+    assert.deepEqual(target.children, [first, second], 'settings moves the same live nodes into the sheet');
+    assert.equal(fabPanel.children.length, 0);
+    cleanup();
+    assert.deepEqual(fabPanel.children, [first, second], 'settings cleanup returns the same live nodes');
+    assert.equal(target.children.length, 0);
+  }
+}
+
+{
+  const timers = new Map();
+  let nextTimer = 1;
+  const runQueries = [];
+  const created = [];
+  const context = {
+    searchSheetGeneration: 0,
+    searchIndexReady: false,
+    document: { createElement(tag) { const node = fakeElement(tag); created.push(node); return node; } },
+    window: {
+      setTimeout(handler) { const id = nextTimer++; timers.set(id, handler); return id; },
+      clearTimeout(id) { timers.delete(id); }
+    },
+    clearTimeout(id) { timers.delete(id); },
+    boundedSearchQuery(value) { return String(value == null ? '' : value).trim().slice(0, 160); },
+    State: { pushSearchHistory() {} },
+    renderSearchHistory() {},
+    renderSearchSkeleton() {},
+    runSearch(query) { runQueries.push(query); }
+  };
+  vm.runInNewContext(`${functionSource('renderSearchSheet', '\n\n\n  // ===================== BOOK BUTTON FACTORY')}\nthis.render = renderSearchSheet;`, context);
+  const target = fakeElement();
+  const cleanup = context.render(target);
+  const input = created.find(node => node.tag === 'input');
+  input.value = ' pending truth ';
+  input.dispatch('input');
+  context.searchIndexReady = true;
+  const [readinessId, readiness] = [...timers.entries()][0];
+  timers.delete(readinessId);
+  readiness();
+  assert.deepEqual(runQueries, ['pending truth'], 'index readiness reruns the current bounded query');
+  const remainingAfterReady = [...timers.values()];
+  timers.clear();
+  remainingAfterReady.forEach(callback => callback());
+  assert.deepEqual(runQueries, ['pending truth'], 'readiness cancels the superseded input debounce');
+
+  const detachedTarget = fakeElement();
+  const cleanupDetached = context.render(detachedTarget);
+  const detachedInput = created.filter(node => node.tag === 'input').at(-1);
+  detachedInput.value = 'must not run';
+  detachedInput.dispatch('input');
+  const lateCallbacks = [...timers.values()];
+  cleanupDetached();
+  detachedTarget.isConnected = false;
+  lateCallbacks.forEach(callback => callback());
+  assert.deepEqual(runQueries, ['pending truth'], 'closed generations cannot rerun detached search work');
+  cleanup();
+}
+
+console.log('Bible sheet content behavior tests pass');

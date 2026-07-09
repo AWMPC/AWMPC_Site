@@ -2060,19 +2060,28 @@
       } catch(e) { return false; }
     },
 
-    getSearchHistory: function () { return this._get('bible_search_hist', []); },
+    getSearchHistory: function () { return normalizeSearchHistory(this._get('bible_search_hist', [])); },
     pushSearchHistory: function (q) {
+      if (typeof q !== 'string') return false;
+      q = boundedSearchQuery(q);
+      if (q.length < 2) return false;
       var list = this.getSearchHistory();
       list = list.filter(function (x) { return x !== q; });
       list.unshift(q);
       if (list.length > 20) list = list.slice(0, 20);
       this._set('bible_search_hist', list);
+      return true;
     },
     removeSearchHistory: function (q) {
+      if (typeof q !== 'string') return false;
+      q = boundedSearchQuery(q);
+      if (q.length < 2) return false;
       var list = this.getSearchHistory().filter(function (x) { return x !== q; });
       this._set('bible_search_hist', list);
+      return true;
     },
     clearSearchHistory: function () { this._set('bible_search_hist', []); },
+    clearHistory: function () { this._set('bible_history', []); },
 
     applyCloudData: function (data, skippedFields) {
       if (!data) return;
@@ -2094,7 +2103,9 @@
         try { localStorage.setItem('bible_font_step', JSON.stringify(data.font ? 125 : 100)); } catch(e) {}
       }
       if (skippedFields.indexOf('history') === -1 && Array.isArray(data.history)) { try { localStorage.setItem('bible_history', JSON.stringify(data.history)); } catch(e) {} }
-      if (skippedFields.indexOf('searchHistory') === -1 && Array.isArray(data.searchHistory)) { try { localStorage.setItem('bible_search_hist', JSON.stringify(data.searchHistory)); } catch(e) {} }
+      if (skippedFields.indexOf('searchHistory') === -1 && Array.isArray(data.searchHistory)) {
+        try { localStorage.setItem('bible_search_hist', JSON.stringify(normalizeSearchHistory(data.searchHistory))); } catch(e) {}
+      }
     }
   };
 
@@ -2787,7 +2798,6 @@
     if (uiView === 'verses') return { view: 'verses', book: navBook, chapter: navChapter, verse: activeVerse };
     if (uiView === 'verse-picker') return { view: 'verse-picker', book: navBook, chapter: navChapter };
     if (uiView === 'chapters') return { view: 'chapters', book: navBook };
-    if (uiView === 'search') return { view: 'search' };
     return { view: 'books' };
   }
 
@@ -3130,7 +3140,6 @@
           renderSeason('auto');
           applyTextScale(DEFAULT_TEXT_SCALE, false);
           historyMenu.textContent = '';
-          if (uiView === 'search' && bibleData) showBooksView();
           _setSyncStatus('Sync unavailable');
           return;
         }
@@ -3144,7 +3153,6 @@
         renderSeason(State.getSeason());
         applyTextScale(State.getTextScale(), false);
         historyMenu.textContent = '';
-        if (uiView === 'search') showSearchView();
       } else if (isFirstOwner) {
         _syncedLocalStateQuarantined = false;
         // First sign-in may adopt existing anonymous preferences/history for this UID.
@@ -4199,10 +4207,6 @@
     showViewWithTransition(function () { showVersesView(bookName, chapterNum, verse); });
   }
 
-  function showSearchViewWithTransition() {
-    showViewWithTransition(function () { showSearchView(); });
-  }
-
   function showVersesViewWithTransition(bookName, chapterNum, scrollToVerse) {
     closeVerseActions(false);
     clearReaderPointerState();
@@ -4384,7 +4388,6 @@
     if (uiView === 'verses') { showVersePickerViewWithTransition(navBook, navChapter); return true; }
     if (uiView === 'verse-picker') { showChaptersViewWithTransition(navBook); return true; }
     if (uiView === 'chapters') { showBooksViewWithTransition(); return true; }
-    if (uiView === 'search') { showBooksViewWithTransition(); return true; }
     return false;
   }
 
@@ -4475,6 +4478,22 @@
       fabPanelHistoryOpen = true;
       return;
     }
+    if (s && s.view === 'search') {
+      var retainedReader = currentNavStateForHistory();
+      var retainedReference = retainedReader && retainedReader.view === 'verses' ?
+        normalizeVerseReference(retainedReader.book, retainedReader.chapter, retainedReader.verse) : null;
+      if (retainedReference) {
+        var normalizedSearchState = {
+          view: 'verses', book: retainedReference.book, chapter: String(retainedReference.chapter),
+          verse: retainedReference.verse, sheet: { kind: 'search' }
+        };
+        history.replaceState(normalizedSearchState, '', canonicalVerseUrl(
+          retainedReference.book, retainedReference.chapter, retainedReference.verse
+        ));
+        openAppSheet('search', { fromPop: true, historyState: normalizedSearchState });
+        return;
+      }
+    }
     navFromPop = true;
     var poppedVerse = s && s.view === 'verses' ? normalizeVerseReference(s.book, s.chapter, s.verse) : null;
     var poppedChapter = s && (s.view === 'verse-picker' || s.view === 'chapters') ?
@@ -4482,7 +4501,6 @@
     if (poppedVerse) showSelectedVerseWithTransition(poppedVerse.book, poppedVerse.chapter, poppedVerse.verse);
     else if (s && s.view === 'verse-picker' && poppedChapter) showVersePickerViewWithTransition(poppedChapter.book, poppedChapter.chapter);
     else if (s && s.view === 'chapters' && poppedChapter) showChaptersViewWithTransition(poppedChapter.book);
-    else if (s && s.view === 'search') showSearchViewWithTransition();
     else showBooksViewWithTransition();
     navFromPop = false;
   });
@@ -4765,6 +4783,19 @@
   function boundedSearchQuery(value) {
     return String(value == null ? '' : value).trim().slice(0, 160);
   }
+  function normalizeSearchHistory(values) {
+    if (!Array.isArray(values)) return [];
+    var normalized = [];
+    var seen = Object.create(null);
+    for (var i = 0; i < values.length && normalized.length < 20; i++) {
+      if (typeof values[i] !== 'string') continue;
+      var query = boundedSearchQuery(values[i]);
+      if (query.length < 2 || seen[query]) continue;
+      seen[query] = true;
+      normalized.push(query);
+    }
+    return normalized;
+  }
   /* SEARCH SHEET PURE HELPERS END */
 
   /** Map first normalized match of qn in raw (footnote-stripped) to [start,end) indices in that same string. */
@@ -4860,10 +4891,6 @@
     scheduleSearchIndexChunk(buildChunk);
   }
 
-  function buildSearchIndex() {
-    buildSearchIndexInChunks();
-  }
-
   function renderSearchHistory(histEl, input, countEl, resultsEl) {
     histEl.textContent = '';
     var hist = State.getSearchHistory();
@@ -4918,78 +4945,6 @@
       renderSearchHistory(histEl, input, countEl, resultsEl);
     });
     histEl.appendChild(clearBtn);
-  }
-
-  function showSearchView() {
-    prepareToLeaveReadingView();
-    viewEl.scrollTop = 0;
-    disconnectSelectionGridLayout();
-    viewInner.textContent = '';
-    currentBook = null;
-    currentChapter = null;
-    activeVerse = null;
-    setUIView('search');
-    resetBottomChromeScrollState();
-    updateNav();
-    pushNav({ view: 'search' });
-    buildSearchIndex();
-
-    var bar = document.createElement('div');
-    bar.className = 'search-bar';
-    var input = document.createElement('input');
-    input.type = 'text';
-    input.className = 'search-input';
-    input.placeholder = 'Search the Bible\u2026';
-    input.setAttribute('autocomplete', 'off');
-    bar.appendChild(input);
-    viewInner.appendChild(bar);
-
-    var countEl = document.createElement('div');
-    countEl.className = 'search-count';
-    viewInner.appendChild(countEl);
-
-    var resultsEl = document.createElement('div');
-    viewInner.appendChild(resultsEl);
-
-    var histEl = document.createElement('div');
-    viewInner.appendChild(histEl);
-    renderSearchHistory(histEl, input, countEl, resultsEl);
-
-    var debounce = null;
-    var lastCommitted = '';
-    input.addEventListener('input', function () {
-      clearTimeout(debounce);
-      var q = input.value.trim();
-      if (q.length < 2) {
-        countEl.textContent = '';
-        resultsEl.textContent = '';
-        histEl.style.display = '';
-        renderSearchHistory(histEl, input, countEl, resultsEl);
-        return;
-      }
-      histEl.style.display = 'none';
-      debounce = setTimeout(function () { runSearch(q, countEl, resultsEl); }, 250);
-    });
-
-    input.addEventListener('keydown', function (e) {
-      if (e.key === 'Enter') {
-        var q = input.value.trim();
-        if (q.length >= 2 && q !== lastCommitted) {
-          lastCommitted = q;
-          State.pushSearchHistory(q);
-        }
-      }
-    });
-
-    input.addEventListener('blur', function () {
-      var q = input.value.trim();
-      if (q.length >= 2 && q !== lastCommitted) {
-        lastCommitted = q;
-        State.pushSearchHistory(q);
-      }
-    });
-
-    setTimeout(function () { input.focus(); }, 100);
   }
 
   function runSearch(query, countEl, resultsEl) {
@@ -5176,17 +5131,23 @@
 
   function renderHistorySheet(target) {
     var list = State.getHistory();
-    if (list.length === 0) {
+    var validItems = [];
+    for (var i = 0; i < list.length; i++) {
+      var normalizedItem = State.normalizeHistoryEntry(list[i]);
+      var normalizedReference = normalizedItem && normalizeVerseReference(
+        normalizedItem.book, normalizedItem.ch, normalizedItem.verse
+      );
+      if (normalizedReference) validItems.push({ item: normalizedItem, reference: normalizedReference });
+    }
+    if (validItems.length === 0) {
       var empty = document.createElement('div');
       empty.className = 'dd-empty';
       empty.textContent = 'No history yet';
       target.appendChild(empty);
-      return;
     }
-    for (var i = 0; i < list.length; i++) {
-      var item = State.normalizeHistoryEntry(list[i]);
-      var normalized = item && normalizeVerseReference(item.book, item.ch, item.verse);
-      if (!normalized) continue;
+    for (i = 0; i < validItems.length; i++) {
+      var item = validItems[i].item;
+      var normalized = validItems[i].reference;
       var button = document.createElement('button');
       button.type = 'button';
       button.className = 'dd-item';
@@ -5215,6 +5176,18 @@
         };
       })(normalized));
       target.appendChild(button);
+    }
+    if (list.length) {
+      var clearButton = document.createElement('button');
+      clearButton.type = 'button';
+      clearButton.className = 'search-hist-clear';
+      clearButton.textContent = 'Clear reading history';
+      clearButton.addEventListener('click', function () {
+        State.clearHistory();
+        target.textContent = '';
+        renderHistorySheet(target);
+      });
+      target.appendChild(clearButton);
     }
   }
 
@@ -5265,8 +5238,20 @@
       if (generation !== searchSheetGeneration || !target.isConnected) return;
       if (searchIndexReady) {
         readyTimer = null;
-        countEl.textContent = '';
-        resultsEl.textContent = '';
+        if (debounce !== null) {
+          clearTimeout(debounce);
+          debounce = null;
+        }
+        var currentQuery = boundedSearchQuery(input.value);
+        if (currentQuery.length >= 2) {
+          histEl.style.display = 'none';
+          runSearch(currentQuery, countEl, resultsEl);
+        } else {
+          countEl.textContent = '';
+          resultsEl.textContent = '';
+          histEl.style.display = '';
+          renderSearchHistory(histEl, input, countEl, resultsEl);
+        }
         return;
       }
       renderSearchSkeleton(resultsEl);

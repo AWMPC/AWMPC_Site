@@ -278,7 +278,7 @@ test('selection RAF coalesces even when the browser returns frame id zero', () =
 
 test('view replacement cleans selection layout first and new grids attach before initial measurement', () => {
   const replacements = [...bible.matchAll(/(^|\n)(\s*)viewInner\.textContent = '';/g)];
-  assert.equal(replacements.length, 5, 'all five view renderers are audited');
+  assert.equal(replacements.length, 4, 'all four remaining view renderers are audited');
   for (const match of replacements) {
     const before = bible.slice(Math.max(0, match.index - 100), match.index);
     assert.match(before, /disconnectSelectionGridLayout\(\);\s*$/, 'cleanup must precede view removal');
