@@ -358,13 +358,22 @@ assert.match(bible, /\.view-inner\.chapter-transition-ready \{ opacity: 0; trans
 assert.match(bible, /\.view-inner\.chapter-transition-ready\.chapter-transition-in \{[\s\S]*opacity: 1;[\s\S]*transition-property: opacity;[\s\S]*transition-duration: 200ms;[\s\S]*transition-timing-function: var\(--motion-ease\);/);
 assert.match(bible, /transition-property: opacity;[\s\S]*transition-duration: 200ms;[\s\S]*transition-timing-function: var\(--motion-ease\);/);
 assert.match(bible, /@media \(prefers-reduced-motion: reduce\) \{[\s\S]*?\.view-inner \{[\s\S]*?transition: none;/);
-for (const safeArea of [7, 8, 9]) {
-  const indicatorBottom = Math.max(8, safeArea);
-  const finalReservation = Math.max(52, 44 + safeArea);
-  assert.equal(indicatorBottom, safeArea < 8 ? 8 : safeArea,
+const indicatorBottomCss = bible.match(/\.selection-indicator \{[^}]*bottom: max\((\d+)px, env\(safe-area-inset-bottom\)\)/);
+const indicatorReservationCss = bible.match(/\.selection-panel \{[^}]*padding:[^;]*max\((\d+)px, calc\((\d+)px \+ env\(safe-area-inset-bottom\)\)\)/);
+assert.ok(indicatorBottomCss && indicatorReservationCss, 'indicator geometry constants are captured from production CSS');
+const indicatorFloor = Number(indicatorBottomCss[1]);
+const indicatorHeightCss = bible.match(/\.selection-indicator \{[^}]*height: (\d+)px/);
+assert.ok(indicatorHeightCss, 'indicator height is captured from production CSS');
+const indicatorHeight = Number(indicatorHeightCss[1]);
+const reservationFloor = Number(indicatorReservationCss[1]);
+const reservationSafeBase = Number(indicatorReservationCss[2]);
+for (const safeArea of [indicatorFloor - 1, indicatorFloor, indicatorFloor + 1]) {
+  const indicatorBottom = Math.max(indicatorFloor, safeArea);
+  const finalReservation = Math.max(reservationFloor, reservationSafeBase + safeArea);
+  assert.equal(indicatorBottom, safeArea < indicatorFloor ? indicatorFloor : safeArea,
     `indicator bottom follows the threshold at ${safeArea}px`);
-  assert.ok(finalReservation >= indicatorBottom + 36,
-    `final panel reservation clears the 28px indicator and its 8px breathing room at ${safeArea}px`);
+  assert.ok(finalReservation >= indicatorBottom + indicatorHeight + indicatorFloor,
+    `final panel reservation clears the indicator and its floor-sized breathing room at ${safeArea}px`);
 }
 assert.match(bible, /function clearChapterCrossfadeTimer\(\)/);
 assert.match(bible, /window\.clearTimeout\(chapterCrossfadeTimer\);/);

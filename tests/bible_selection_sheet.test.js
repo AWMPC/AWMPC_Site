@@ -146,16 +146,24 @@ test('selection indicator is a compact noninteractive 36 by 28 tonal float', () 
 
 test('selection panels reserve the tonal float and mobile top edge owns only a local inset', () => {
   const panel = extract(/\.selection-panel \{[^}]*\}/, 'selection panel rule missing');
+  const indicator = extract(/\.selection-indicator \{[^}]*\}/, 'selection indicator rule missing');
   assert.match(panel,
     /padding:\s*0\s+var\(--display-panel-padding\)\s+max\(52px,\s*calc\(44px \+ env\(safe-area-inset-bottom\)\)\)/,
     'the final selection row must clear the 28px tonal float and free-edge handle');
+  const reservation = panel.match(/max\((\d+)px,\s*calc\((\d+)px \+ env\(safe-area-inset-bottom\)\)\)/);
+  const bottom = indicator.match(/bottom:\s*max\((\d+)px,\s*env\(safe-area-inset-bottom\)\)/);
+  assert.ok(reservation && bottom);
+  const reserveFloor = Number(reservation[1]);
+  const reserveOffset = Number(reservation[2]);
+  const bottomFloor = Number(bottom[1]);
+  const indicatorHeight = pixelDeclaration(indicator, 'height');
   for (const safeArea of [0, 34]) {
-    const reserved = Math.max(52, 44 + safeArea);
-    const indicatorBottom = safeArea;
-    const indicatorTop = indicatorBottom + 28;
+    const reserved = Math.max(reserveFloor, reserveOffset + safeArea);
+    const indicatorBottom = Math.max(bottomFloor, safeArea);
+    const indicatorTop = indicatorBottom + indicatorHeight;
     assert.ok(reserved >= indicatorTop,
       `${safeArea}px safe area keeps final content above the complete tonal float`);
-    assert.ok(reserved >= 52, `${safeArea}px safe area retains the minimum handle/float clearance`);
+    assert.ok(reserved >= reserveFloor, `${safeArea}px safe area retains the minimum handle/float clearance`);
   }
   const mobile = extract(/@media \(max-width: 640px\) \{[\s\S]*?\.app-sheet\.edge-top \.selection-panel\s*\{[^}]*\}[\s\S]*?\n  \}/,
     'mobile top-opening selection inset missing');
@@ -344,6 +352,16 @@ test('hostile selection history is executable-data sanitized before it is return
   const inheritedResult = validate({ ...base, sheet: inherited });
   assert.deepEqual(inheritedResult.sheet, { kind: 'selection', page: 'books', book: 'John', chapter: '3' },
     'inherited selection fields cannot control page or dataset context');
+
+  let coercionCalls = 0;
+  const hostileChapter = {
+    [Symbol.toPrimitive]() { coercionCalls += 1; throw new Error('nested chapter coercion ran'); },
+    toString() { coercionCalls += 1; throw new Error('nested chapter string coercion ran'); }
+  };
+  assert.equal(validate({
+    ...base, sheet: { kind: 'selection', page: 'chapters', book: 'John', chapter: hostileChapter }
+  }), null, 'nested object chapter fails closed');
+  assert.equal(coercionCalls, 0, 'nested object chapter conversion hooks never execute');
 });
 
 function runOpenWithHistory(historyState, source = bible) {

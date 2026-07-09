@@ -428,6 +428,23 @@ const throwingHistoryState = {};
 Object.defineProperty(throwingHistoryState, 'view', { get() { throw new Error('hostile history getter'); } });
 assert.doesNotThrow(() => h.state(throwingHistoryState), 'throwing history properties fail closed');
 assert.equal(h.state(throwingHistoryState), null);
+for (const field of ['chapter', 'verse']) {
+  let coercionCalls = 0;
+  const hostile = {
+    [Symbol.toPrimitive]() { coercionCalls += 1; throw new Error(`hostile ${field} primitive coercion`); },
+    toString() { coercionCalls += 1; throw new Error(`hostile ${field} string coercion`); }
+  };
+  const state = { view: 'verses', book: 'John', chapter: '3', verse: '16', sheet: { kind: 'history' } };
+  state[field] = hostile;
+  assert.equal(h.state(state), null, `object ${field} fails closed before conversion`);
+  assert.equal(coercionCalls, 0, `object ${field} conversion hooks never execute`);
+}
+assert.deepEqual(JSON.parse(JSON.stringify(h.state({
+  view: 'verses', book: 'John', chapter: 3, verse: 16, sheet: { kind: 'history' }
+}))), {
+  view: 'verses', book: 'John', chapter: '3', verse: '16', readerRouteScope: 0,
+  sheet: { kind: 'history' }
+}, 'primitive integer chapter and verse numbers remain valid');
 for (const field of ['kind', 'page', 'generation', 'returnGeneration', 'book', 'chapter']) {
   let getterCalls = 0;
   const sheet = { kind: 'selection' };
@@ -441,6 +458,16 @@ for (const field of ['kind', 'page', 'generation', 'returnGeneration', 'book', '
   }), null, `nested ${field} accessor fails closed`);
   assert.equal(getterCalls, 0, `nested ${field} accessor is never executed`);
 }
+let nestedChapterCoercions = 0;
+const hostileNestedChapter = {
+  [Symbol.toPrimitive]() { nestedChapterCoercions += 1; throw new Error('hostile nested chapter coercion'); },
+  toString() { nestedChapterCoercions += 1; throw new Error('hostile nested chapter string coercion'); }
+};
+assert.equal(h.state({
+  view: 'verses', book: 'John', chapter: '3', verse: '16',
+  sheet: { kind: 'selection', page: 'chapters', book: 'John', chapter: hostileNestedChapter }
+}), null, 'object selection chapter fails closed before data-context conversion');
+assert.equal(nestedChapterCoercions, 0, 'nested selection chapter conversion hooks never execute');
 const inheritedOptionalSheet = Object.create({
   page: '<script>', generation: 9, returnGeneration: 8, book: 'Missing', chapter: '999'
 });

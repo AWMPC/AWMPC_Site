@@ -2512,6 +2512,12 @@
     if (!Object.prototype.hasOwnProperty.call(descriptor, 'value')) return { valid: false };
     return { valid: true, present: true, value: descriptor.value };
   }
+  function appSheetHistoryDecimal(value) {
+    if (typeof value === 'number' && (!Number.isSafeInteger(value) || value < 0)) return null;
+    if (typeof value !== 'string' && typeof value !== 'number') return null;
+    var text = String(value);
+    return /^\d+$/.test(text) ? text : null;
+  }
   function validatedAppSheetHistoryState(state) {
     try {
       var viewField = appSheetOwnDataField(state, 'view', true);
@@ -2519,9 +2525,11 @@
       var chapterField = appSheetOwnDataField(state, 'chapter', true);
       var verseField = appSheetOwnDataField(state, 'verse', true);
       var sheetField = appSheetOwnDataField(state, 'sheet', true);
+      var stateChapter = chapterField.valid ? appSheetHistoryDecimal(chapterField.value) : null;
+      var stateVerse = verseField.valid ? appSheetHistoryDecimal(verseField.value) : null;
       if (!viewField.valid || !bookField.valid || !chapterField.valid || !verseField.valid || !sheetField.valid ||
           viewField.value !== 'verses' || typeof bookField.value !== 'string' || !bookField.value ||
-          !/^\d+$/.test(String(chapterField.value)) || !/^\d+$/.test(String(verseField.value))) return null;
+          stateChapter === null || stateVerse === null) return null;
       var sourceSheet = sheetField.value;
       var kindField = appSheetOwnDataField(sourceSheet, 'kind', true);
       var pageField = appSheetOwnDataField(sourceSheet, 'page', false);
@@ -2531,6 +2539,9 @@
       var selectionChapterField = appSheetOwnDataField(sourceSheet, 'chapter', false);
       if (!kindField.valid || !pageField.valid || !generationField.valid || !returnGenerationField.valid ||
           !selectionBookField.valid || !selectionChapterField.valid || !isValidAppSheetKind(kindField.value)) return null;
+      var selectionChapter = selectionChapterField.present && selectionChapterField.value != null ?
+        appSheetHistoryDecimal(selectionChapterField.value) : undefined;
+      if (selectionChapterField.present && selectionChapterField.value != null && selectionChapter === null) return null;
       var kind = kindField.value;
       var page = pageField.present ? pageField.value : undefined;
       if (kind !== 'selection' && page != null && (typeof page !== 'string' ||
@@ -2545,8 +2556,6 @@
         sheet.returnGeneration = returnGenerationField.value;
       }
       var stateBook = bookField.value;
-      var stateChapter = chapterField.value;
-      var stateVerse = verseField.value;
       if (kind === 'selection') {
         sheet.page = normalizedSelectionPage(page);
         var data = typeof bibleData === 'undefined' ? null : bibleData;
@@ -2554,7 +2563,7 @@
         var fallbackChapter = typeof navChapter === 'number' || typeof navChapter === 'string' ? navChapter : null;
         var context = sanitizedSelectionDataContext(
           data, selectionBookField.present ? selectionBookField.value : undefined,
-          selectionChapterField.present ? selectionChapterField.value : undefined,
+          selectionChapter,
           fallbackBook, fallbackChapter
         );
         if (context) {
