@@ -3511,6 +3511,7 @@
   function onAppSheetHandleKeyDown(e) {
     if (appSheetState.phase === 'closing') return;
     if (e.repeat) return;
+    if (appSheetState.phase === 'opening' && e.key !== 'Escape') return;
     var toggle = e.key === 'Enter' || e.key === ' ';
     var inward = (appSheetState.edge === 'bottom' && e.key === 'ArrowUp') ||
       (appSheetState.edge === 'top' && e.key === 'ArrowDown');

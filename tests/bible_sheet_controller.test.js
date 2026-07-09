@@ -53,7 +53,7 @@ function runHandleKeys(options) {
   const context = {
     appSheet,
     appSheetHandle,
-    appSheetState: { edge: options.edge, snap: options.snap, kind: options.kind },
+    appSheetState: { edge: options.edge, snap: options.snap, kind: options.kind, phase: options.phase || 'idle' },
     resolveAppSheetDescriptor(kind) {
       const labels = { history: 'History', settings: 'Settings', search: 'Search', selection: 'Selection',
         'verse-actions': 'Verse Actions' };
@@ -129,6 +129,21 @@ function runHandleKeys(options) {
 
   event = harness.dispatch('Escape');
   assert.equal(event.prevented, true);
+  assert.deepEqual(harness.closeCalls(), [['keyboard-handle', 'restore-opener']]);
+
+  for (const edge of ['bottom', 'top']) {
+    for (const key of ['Enter', ' ', 'ArrowUp', 'ArrowDown']) {
+      harness = runHandleKeys({ edge, snap: 'determined', kind: 'settings', phase: 'opening' });
+      event = harness.dispatch(key);
+      assert.equal(event.prevented, false, `opening ${edge}/${key} remains native and ignored`);
+      assert.equal(harness.snap(), 'determined');
+      assert.deepEqual(harness.snapCalls(), []);
+      assert.deepEqual(harness.closeCalls(), []);
+    }
+  }
+  harness = runHandleKeys({ edge: 'bottom', snap: 'determined', kind: 'settings', phase: 'opening' });
+  event = harness.dispatch('Escape');
+  assert.equal(event.prevented, true, 'opening Escape retains the unified close path');
   assert.deepEqual(harness.closeCalls(), [['keyboard-handle', 'restore-opener']]);
 
   for (const edge of ['bottom', 'top']) {
@@ -1944,6 +1959,13 @@ assert.equal(dialog.style.getPropertyValue('--sheet-backdrop-opacity'), '0',
 assert.equal(dialog.classList.contains('edge-top'), true);
 assert.equal(dialog.classList.contains('inline-right'), true,
   'vertical opening motion preserves the immutable horizontal anchor');
+for (const key of ['Enter', ' ', 'ArrowDown', 'ArrowUp']) {
+  const openingEvent = { key, repeat: false, prevented: false, preventDefault() { this.prevented = true; } };
+  handle.dispatch('keydown', openingEvent);
+  assert.equal(openingEvent.prevented, false, `${key} before first opening paint is ignored`);
+  assert.equal(api.state.snap, 'determined');
+  assert.equal(api.state.phase, 'opening');
+}
 const interruptedOpenFrame = api.state.openFrame;
 const interruptedOpenCallback = frames.get(interruptedOpenFrame);
 interruptedOpenCallback();
@@ -1953,6 +1975,13 @@ assert.equal(dialog.classList.contains('is-preparing'), false,
 assert.equal(dialog.classList.contains('is-opening'), true);
 assert.equal(dialog.style.getPropertyValue('--sheet-backdrop-opacity'), '0',
   'first reveal preserves paired zero progress for both backdrop and sheet');
+for (const key of ['Enter', ' ', 'ArrowDown', 'ArrowUp']) {
+  const openingEvent = { key, repeat: false, prevented: false, preventDefault() { this.prevented = true; } };
+  handle.dispatch('keydown', openingEvent);
+  assert.equal(openingEvent.prevented, false, `${key} between opening paints is ignored`);
+  assert.equal(api.state.snap, 'determined');
+  assert.equal(api.state.phase, 'opening');
+}
 const interruptedOpenFrame2 = api.state.openFrame2;
 const interruptedOpenCallback2 = frames.get(interruptedOpenFrame2);
 interruptedOpenCallback2();
@@ -1963,6 +1992,10 @@ assert.equal(dialog.style.getPropertyValue('--sheet-backdrop-opacity'), '',
 const pairedOpenTimer = api.state.settleTimer;
 timers.get(pairedOpenTimer)();
 timers.delete(pairedOpenTimer);
+assert.equal(api.state.phase, 'idle');
+assert.equal(dialog.classList.contains('is-preparing'), false);
+assert.equal(dialog.classList.contains('is-opening'), false);
+assert.equal(dialog.style.getPropertyValue('--sheet-backdrop-opacity'), '');
 api.state.historyOwned = false;
 api.close('paired-open-test-reset');
 const pairedResetTimer = api.state.settleTimer;
@@ -1976,7 +2009,9 @@ frames.delete(interruptedRevealFrame);
 const staleInterruptedFrame2 = api.state.openFrame2;
 const staleInterruptedCallback2 = frames.get(staleInterruptedFrame2);
 api.state.historyOwned = false;
-api.close('open-interruption');
+const openingEscape = { key: 'Escape', repeat: false, prevented: false, preventDefault() { this.prevented = true; } };
+handle.dispatch('keydown', openingEscape);
+assert.equal(openingEscape.prevented, true, 'Escape can close between opening paints');
 assert.ok(cancelledFrames.includes(staleInterruptedFrame2), 'close cancels the owned second opening frame');
 assert.match(dialog.style.getPropertyValue('--sheet-drag-offset'), /^-\d+px$/,
   'top close reverses toward the same navbar edge');
