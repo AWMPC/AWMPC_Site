@@ -236,6 +236,9 @@ assert.match(bible, /class="app-sheet-fade app-sheet-fade-bottom" aria-hidden="t
 assert.doesNotMatch(bible, /aria-labelledby="app-sheet-title"|id="app-sheet-title"|id="app-sheet-close"|class="app-sheet-header"/);
 assert.doesNotMatch(bible, /\bappSheetTitle\b|\bappSheetClose\b/);
 assert.match(bible, /\.app-sheet\.edge-top \.app-sheet-handle\s*\{[^}]*order:\s*3/);
+assert.match(bible,
+  /\.app-sheet\.search-viewport-fullscreen\.snap-fullscreen\s*\{[^}]*top:\s*var\(--sheet-viewport-top,\s*0(?:px)?\)[^}]*bottom:\s*auto[^}]*height:\s*var\(--sheet-viewport-height,\s*100dvh\)[^}]*max-height:\s*var\(--sheet-viewport-height,\s*100dvh\)/s,
+  'Search fullscreen follows the visual viewport and remains above the keyboard');
 assert.match(bible, /\.app-sheet-handle\s*\{[^}]*width:\s*100%[^}]*min-height:\s*44px[^}]*padding:\s*10px[^}]*touch-action:\s*none/);
 assert.match(bible, /\.app-sheet-handle::before\s*\{[^}]*width:\s*30px[^}]*height:\s*3px/,
   'the visible grab mark is exactly 30 by 3 CSS pixels without shrinking its button target');

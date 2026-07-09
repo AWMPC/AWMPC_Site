@@ -1067,6 +1067,16 @@
   .app-sheet.inline-left { --sheet-origin-inline: left; }
   .app-sheet.snap-determined { height: var(--sheet-height, min(70dvh, 720px)); }
   .app-sheet.snap-fullscreen { height: 100dvh; border-radius: 0; }
+  .app-sheet.search-viewport-fullscreen.snap-fullscreen {
+    top: var(--sheet-viewport-top, 0px);
+    bottom: auto;
+    height: var(--sheet-viewport-height, 100dvh);
+    max-height: var(--sheet-viewport-height, 100dvh);
+    width: 100%;
+    max-width: none;
+    margin-left: 0;
+    margin-right: 0;
+  }
   .app-sheet.is-preparing { visibility: hidden; transition-duration: 0s; }
   .app-sheet.is-opening.edge-bottom { transform: translateY(100%); opacity: 0; }
   .app-sheet.is-opening.edge-top { transform: translateY(-100%); opacity: 0; }
@@ -2560,6 +2570,10 @@
     overflowScroller: null,
     overflowContentTarget: null,
     overflowListener: null,
+    searchFullscreenLatched: false,
+    viewportFrame: null,
+    viewportListener: null,
+    viewportOwnerGeneration: null,
     contentCleanup: null,
     historyState: null,
     historyReturnGeneration: null,
@@ -2773,6 +2787,95 @@
     if (isFiniteAppSheetNumber(window.innerHeight) && window.innerHeight > 0) return window.innerHeight;
     var clientHeight = document.documentElement && document.documentElement.clientHeight;
     return isFiniteAppSheetNumber(clientHeight) && clientHeight > 0 ? clientHeight : null;
+  }
+
+  function cleanupAppSheetViewportOwnership(ownerGeneration) {
+    if (ownerGeneration != null && ownerGeneration !== appSheetState.viewportOwnerGeneration) return false;
+    if (appSheetState.viewportFrame !== null) cancelAnimationFrame(appSheetState.viewportFrame);
+    appSheetState.viewportFrame = null;
+    var ownership = appSheetState.viewportListener;
+    if (ownership && ownership.viewport && typeof ownership.viewport.removeEventListener === 'function') {
+      ownership.viewport.removeEventListener('resize', ownership.handler);
+      ownership.viewport.removeEventListener('scroll', ownership.handler);
+    }
+    appSheetState.viewportListener = null;
+    appSheetState.viewportOwnerGeneration = null;
+    appSheetState.searchFullscreenLatched = false;
+    appSheet.classList.remove('search-viewport-fullscreen');
+    appSheet.style.removeProperty('--sheet-viewport-height');
+    appSheet.style.removeProperty('--sheet-viewport-top');
+    return true;
+  }
+
+  function updateSearchViewportGeometry(generation) {
+    if (!isCurrentAppSheetGeneration(generation) || appSheetState.kind !== 'search' ||
+        !appSheetState.searchFullscreenLatched || appSheetState.viewportOwnerGeneration !== generation) return false;
+    var viewport = window.visualViewport;
+    var height = viewport && viewport.height;
+    if (!isFiniteAppSheetNumber(height) || height <= 0) height = appSheetViewportHeight();
+    if (!isFiniteAppSheetNumber(height) || height <= 0) return false;
+    var offsetTop = viewport && viewport.offsetTop;
+    if (!isFiniteAppSheetNumber(offsetTop) || offsetTop < 0) offsetTop = 0;
+    appSheet.style.setProperty('--sheet-viewport-height', height + 'px');
+    appSheet.style.setProperty('--sheet-viewport-top', offsetTop + 'px');
+    return true;
+  }
+
+  function scheduleSearchViewportGeometry(generation) {
+    if (!isCurrentAppSheetGeneration(generation) || appSheetState.kind !== 'search' ||
+        !appSheetState.searchFullscreenLatched || appSheetState.viewportOwnerGeneration !== generation ||
+        appSheetState.viewportFrame !== null) return false;
+    var frame = requestAnimationFrame(function () {
+      if (appSheetState.viewportFrame !== frame) return;
+      appSheetState.viewportFrame = null;
+      updateSearchViewportGeometry(generation);
+      scheduleAppSheetOverflowFades(generation);
+    });
+    appSheetState.viewportFrame = frame;
+    return true;
+  }
+
+  function installSearchViewportOwnership(generation) {
+    if (!isCurrentAppSheetGeneration(generation) || appSheetState.phase === 'closed' ||
+        appSheetState.viewportOwnerGeneration !== generation) return false;
+    if (appSheetState.viewportListener) return true;
+    var viewport = window.visualViewport;
+    if (!viewport || typeof viewport.addEventListener !== 'function' ||
+        typeof viewport.removeEventListener !== 'function') return true;
+    var handler = function () {
+      if (!isCurrentAppSheetGeneration(generation)) return;
+      resetBibleWheelBurst();
+      if (appSheetState.kind === 'search' && appSheetState.searchFullscreenLatched) {
+        scheduleSearchViewportGeometry(generation);
+      } else {
+        scheduleAppSheetMeasurement(generation);
+        scheduleAppSheetOverflowFades(generation);
+      }
+    };
+    appSheetState.viewportListener = { viewport: viewport, handler: handler, generation: generation };
+    viewport.addEventListener(['resize'][0], handler, { passive: true });
+    viewport.addEventListener('scroll', handler, { passive: true });
+    return true;
+  }
+
+  function latchMobileSearchFullscreen(generation) {
+    if (!isCurrentAppSheetGeneration(generation) || appSheetState.kind !== 'search' ||
+        appSheetState.phase === 'closing' || appSheetState.phase === 'closed' ||
+        !isFiniteAppSheetNumber(window.innerWidth) || window.innerWidth <= 0 || window.innerWidth > 640) return false;
+    if (appSheetState.searchFullscreenLatched && appSheetState.viewportOwnerGeneration === generation) return true;
+    if (appSheetState.viewportOwnerGeneration !== generation) {
+      cleanupAppSheetViewportOwnership();
+      appSheetState.viewportOwnerGeneration = generation;
+    }
+    appSheetState.searchFullscreenLatched = true;
+    appSheet.classList.add('search-viewport-fullscreen');
+    installSearchViewportOwnership(generation);
+    if (!setSheetSnap('fullscreen', true)) {
+      cleanupAppSheetViewportOwnership(generation);
+      return false;
+    }
+    updateSearchViewportGeometry(generation);
+    return true;
   }
 
   function appSheetPixelValue(value) {
@@ -3129,6 +3232,7 @@
 
   function resetAppSheetState() {
     appSheetState.generation += 1;
+    if (typeof cleanupAppSheetViewportOwnership === 'function') cleanupAppSheetViewportOwnership();
     cleanupAppSheetMeasurement();
     cleanupAppSheetOverflowFades();
     if (appSheetState.historyTimer !== null) window.clearTimeout(appSheetState.historyTimer);
@@ -3167,6 +3271,7 @@
   function setSheetSnap(snap, immediate) {
     if (appSheetState.phase === 'closing') return false;
     if (!isValidAppSheetSnap(snap)) return false;
+    if (appSheetState.searchFullscreenLatched && appSheetState.kind === 'search' && snap === 'determined') return false;
     var generation = appSheetState.generation;
     if (appSheetState.settleTimer !== null) window.clearTimeout(appSheetState.settleTimer);
     appSheetState.settleTimer = null;
@@ -3302,6 +3407,8 @@
     }
     installAppSheetMeasurement(appSheetState.generation);
     installAppSheetOverflowFades(currentAppSheetOverflowScroller());
+    appSheetState.viewportOwnerGeneration = appSheetState.generation;
+    installSearchViewportOwnership(appSheetState.generation);
   }
 
   function refreshOwnerScopedAppSheet() {
@@ -3335,6 +3442,7 @@
     var previousKind = appSheetState.kind;
     var previousReturnGeneration = appSheetState.historyReturnGeneration;
     clearAppSheetMotion();
+    if (typeof cleanupAppSheetViewportOwnership === 'function') cleanupAppSheetViewportOwnership();
     if (typeof cleanupAppSheetMeasurement === 'function') cleanupAppSheetMeasurement();
     appSheetState.generation = typeof appSheetState.generation === 'number' && Number.isFinite(appSheetState.generation) ?
       appSheetState.generation + 1 : 1;
@@ -3703,9 +3811,7 @@
     });
     if (window.visualViewport) window.visualViewport.addEventListener(['resize'][0], function () {
       resetBibleWheelBurst();
-      scheduleAppSheetMeasurement(appSheetState.generation);
-      scheduleAppSheetOverflowFades(appSheetState.generation);
-    });
+    }, { passive: true });
   }
   /* APP SHEET CONTROLLER END */
 
@@ -7223,6 +7329,7 @@
   function renderSearchSheet(target) {
     searchSheetGeneration++;
     var generation = searchSheetGeneration;
+    var sheetGeneration = appSheetState.generation;
     var debounce = null;
     var focusTimer = null;
     var readyTimer = null;
@@ -7253,6 +7360,9 @@
         lastCommitted = q;
         State.pushSearchHistory(q);
       }
+    }
+    function onSearchFocus() {
+      latchMobileSearchFullscreen(sheetGeneration);
     }
     function waitUntilReady() {
       if (generation !== searchSheetGeneration || !target.isConnected) return;
@@ -7300,10 +7410,14 @@
       if (event.key === 'Enter') commitQuery();
     });
     input.addEventListener('blur', commitQuery);
+    input.addEventListener('focus', onSearchFocus);
     if (!searchIndexReady) waitUntilReady();
     focusTimer = window.setTimeout(function () {
       focusTimer = null;
-      if (generation !== searchSheetGeneration || !target.isConnected) return;
+      if (generation !== searchSheetGeneration || !target.isConnected || !appSheet.open ||
+          appSheetState.generation !== sheetGeneration || appSheetState.kind !== 'search' ||
+          appSheetState.phase === 'closing' || appSheetState.phase === 'closed') return;
+      latchMobileSearchFullscreen(sheetGeneration);
       input.focus({ preventScroll: true });
     }, 100);
     return function () {
@@ -7314,6 +7428,8 @@
       debounce = null;
       focusTimer = null;
       readyTimer = null;
+      input.removeEventListener('focus', onSearchFocus);
+      cleanupAppSheetViewportOwnership(sheetGeneration);
     };
   }
 

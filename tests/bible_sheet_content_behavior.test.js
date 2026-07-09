@@ -240,6 +240,11 @@ function fakeElement(tag = 'div') {
       return child;
     },
     addEventListener(type, handler) { (listeners[type] || (listeners[type] = [])).push(handler); },
+    removeEventListener(type, handler) {
+      const handlers = listeners[type] || [];
+      const index = handlers.indexOf(handler);
+      if (index >= 0) handlers.splice(index, 1);
+    },
     dispatch(type, event = {}) { (listeners[type] || []).forEach(handler => handler({ target: this, ...event })); },
     click() { this.dispatch('click', { stopPropagation() {} }); },
     focus() { this.focused = true; }
@@ -308,9 +313,17 @@ function fakeElement(tag = 'div') {
   let nextTimer = 1;
   const runQueries = [];
   const created = [];
+  const focusOrder = [];
   const context = {
     searchSheetGeneration: 0,
     searchIndexReady: false,
+    appSheet: { open: true },
+    appSheetState: { generation: 41, kind: 'search' },
+    latchMobileSearchFullscreen(generation) {
+      focusOrder.push(['latch', generation]);
+      return true;
+    },
+    cleanupAppSheetViewportOwnership() {},
     document: { createElement(tag) { const node = fakeElement(tag); created.push(node); return node; } },
     window: {
       setTimeout(handler) { const id = nextTimer++; timers.set(id, handler); return id; },
@@ -327,6 +340,10 @@ function fakeElement(tag = 'div') {
   const target = fakeElement();
   const cleanup = context.render(target);
   const input = created.find(node => node.tag === 'input');
+  input.focus = options => { focusOrder.push(['focus', options]); };
+  input.dispatch('focus');
+  assert.deepEqual(focusOrder, [['latch', 41]],
+    'manual input focus uses the generation-owned mobile fullscreen latch');
   input.value = ' pending truth ';
   input.dispatch('input');
   context.searchIndexReady = true;
@@ -338,6 +355,8 @@ function fakeElement(tag = 'div') {
   timers.clear();
   remainingAfterReady.forEach(callback => callback());
   assert.deepEqual(runQueries, ['pending truth'], 'readiness cancels the superseded input debounce');
+  assert.equal(JSON.stringify(focusOrder), JSON.stringify([['latch', 41], ['latch', 41], ['focus', { preventScroll: true }]]),
+    'delayed autofocus commits the fullscreen latch before exactly one preventScroll focus');
 
   const detachedTarget = fakeElement();
   const cleanupDetached = context.render(detachedTarget);
@@ -349,7 +368,32 @@ function fakeElement(tag = 'div') {
   detachedTarget.isConnected = false;
   lateCallbacks.forEach(callback => callback());
   assert.deepEqual(runQueries, ['pending truth'], 'closed generations cannot rerun detached search work');
+  assert.equal(focusOrder.filter(entry => entry[0] === 'focus').length, 1,
+    'detached Search generations cannot receive stale autofocus');
+  context.appSheetState.generation += 1;
+  context.appSheetState.kind = 'history';
+  lateCallbacks.forEach(callback => callback());
+  assert.equal(focusOrder.filter(entry => entry[0] === 'focus').length, 1,
+    'autofocus verifies the current app sheet generation and kind');
+  const latchCallsBeforeCleanup = focusOrder.filter(entry => entry[0] === 'latch').length;
   cleanup();
+  input.dispatch('focus');
+  assert.equal(focusOrder.filter(entry => entry[0] === 'latch').length, latchCallsBeforeCleanup,
+    'Search cleanup removes its input focus listener');
+
+  context.appSheetState.generation = 55;
+  context.appSheetState.kind = 'search';
+  context.appSheetState.phase = 'closing';
+  const closingTarget = fakeElement();
+  const cleanupClosing = context.render(closingTarget);
+  const closingInput = created.filter(node => node.tag === 'input').at(-1);
+  closingInput.focus = options => { focusOrder.push(['closing-focus', options]); };
+  const closingCallbacks = [...timers.values()];
+  timers.clear();
+  closingCallbacks.forEach(callback => callback());
+  assert.equal(focusOrder.some(entry => entry[0] === 'closing-focus'), false,
+    'a pending autofocus callback cannot summon the keyboard after close begins');
+  cleanupClosing();
 }
 
 {

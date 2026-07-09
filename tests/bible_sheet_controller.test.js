@@ -420,6 +420,7 @@ assert.equal(h.state({ view: 'verses', book: 'John', chapter: '3', verse: '16', 
 
 for (const field of ['kind', 'edge', 'snap', 'anchor', 'phase', 'generation', 'determinedHeight', 'determinedWidth', 'candidate', 'gesture',
   'pointer', 'frame', 'measureFrame', 'settleTimer', 'historyTimer', 'resizeObserver', 'contentCleanup',
+  'searchFullscreenLatched', 'viewportFrame', 'viewportListener', 'viewportOwnerGeneration',
   'historyState', 'historyReturnGeneration', 'historyOwned', 'pendingHistoryClose', 'pendingPostCloseState',
   'pendingPostCloseDestination',
   'opener', 'nativeOpener', 'focusPolicy']) {
@@ -470,6 +471,16 @@ assert.match(bible, /appSheetState\.pointer = null/);
 assert.match(bible, /shouldReduceVerseMotion\(\)[\s\S]*setSheetSnap/);
 assert.match(bible, /function openAppSheet\(kind, options\)/);
 assert.match(bible, /function setSheetSnap\(snap, immediate\)/);
+for (const name of ['cleanupAppSheetViewportOwnership', 'updateSearchViewportGeometry',
+  'scheduleSearchViewportGeometry', 'installSearchViewportOwnership', 'latchMobileSearchFullscreen']) {
+  assert.match(bible, new RegExp('function ' + name + '\\('), `${name} is an explicit generation-owned controller primitive`);
+}
+assert.match(controllerFunction('setSheetSnap'),
+  /searchFullscreenLatched[\s\S]*snap === 'determined'[\s\S]*return false/,
+  'a latched mobile Search cannot be demoted by resize, rotation, gesture, or keyboard controls');
+assert.doesNotMatch(controllerFunction('installAppSheetListeners'),
+  /visualViewport[\s\S]*addEventListener[\s\S]*scheduleAppSheet(?:Measurement|OverflowFades)/,
+  'global listeners do not permanently retain sheet measurement or fade ownership');
 assert.doesNotMatch(controllerFunction('setSheetSnap'), /offsetHeight/, 'snap changes avoid forced synchronous layout');
 assert.match(bible, /function requestCloseAppSheet\(source, focusPolicy\)/);
 assert.match(bible, /function finishCloseAppSheet\(\)/);
@@ -752,8 +763,13 @@ const controllerContext = {
     innerWidth: 1200,
     visualViewport: {
       height: 800,
+      offsetTop: 0,
       addEventListener(type, fn) { (viewportListeners[type] || (viewportListeners[type] = [])).push(fn); },
-      removeEventListener() {}
+      removeEventListener(type, fn) {
+        const handlers = viewportListeners[type] || [];
+        const index = handlers.indexOf(fn);
+        if (index >= 0) handlers.splice(index, 1);
+      }
     },
     addEventListener(type, fn) { (windowListeners[type] || (windowListeners[type] = [])).push(fn); },
     removeEventListener() {},
@@ -782,7 +798,9 @@ const controllerSource = bible.slice(pureStart, pureEnd) + '\n' +
   'install: installAppSheetListeners, open: openAppSheet, close: requestCloseAppSheet,' +
   'pop: handleAppSheetPopState, snap: setSheetSnap, register: registerAppSheetDescriptor,' +
   'retarget: retargetAppSheetMeasurement, selectPage: setSelectionPage, commitSelection: commitSelectionVerse,' +
-  'finishAction: finishVerseAction, state: appSheetState};';
+  'finishAction: finishVerseAction, latchSearch: latchMobileSearchFullscreen,' +
+  'updateSearchViewport: updateSearchViewportGeometry, scheduleSearchViewport: scheduleSearchViewportGeometry,' +
+  'cleanupViewport: cleanupAppSheetViewportOwnership, state: appSheetState};';
 vm.runInNewContext(controllerSource, controllerContext);
 const api = controllerContext.api;
 function currentReturnPopState() {
@@ -794,6 +812,7 @@ function currentReturnPopState() {
 }
 
 api.install();
+const viewportResizeListenerBaseline = (viewportListeners.resize || []).length;
 const installedListenerCount = dialog.listenerCount + handle.listenerCount + body.listenerCount;
 api.install();
 assert.equal(dialog.listenerCount + handle.listenerCount + body.listenerCount, installedListenerCount,
@@ -864,7 +883,7 @@ assert.equal(dialog.style.getPropertyValue('--sheet-height'), '164px', 'measurem
 
 measure.scrollHeight = 500;
 controllerContext.window.visualViewport.height = 600;
-viewportListeners.resize[0]();
+windowListeners.resize[0]();
 for (const [id, callback] of [...frames]) { callback(); frames.delete(id); }
 assert.equal(dialog.style.getPropertyValue('--sheet-height'), '420px', 'visual viewport changes recalculate the cap');
 
@@ -893,7 +912,7 @@ controllerContext.window.innerHeight = 800;
 controllerContext.document.documentElement.clientHeight = 780;
 api.snap('fullscreen', true);
 measure.scrollHeight = 180;
-viewportListeners.resize[0]();
+windowListeners.resize[0]();
 assert.equal(frames.size, 1, 'fullscreen sheets skip measurement while coalescing one fade frame');
 for (const [id, callback] of [...frames]) { callback(); frames.delete(id); }
 api.snap('determined', true);
@@ -1957,9 +1976,10 @@ for (let cycle = 0; cycle < 3; cycle += 1) {
   assert.equal(dialog.open, false);
   for (const field of ['candidate', 'pointer', 'gesture', 'frame', 'measureFrame', 'settleTimer',
     'historyTimer', 'resizeObserver', 'contentCleanup', 'closeGeneration', 'pendingPostCloseState',
-    'pendingPostCloseDestination']) {
+    'pendingPostCloseDestination', 'viewportFrame', 'viewportListener', 'viewportOwnerGeneration']) {
     assert.equal(api.state[field], null, `cycle ${cycle} releases ${field}`);
   }
+  assert.equal(api.state.searchFullscreenLatched, false, `cycle ${cycle} releases Search fullscreen ownership`);
   assert.equal(measure.textContent, '', `cycle ${cycle} releases rendered nodes`);
   assert.equal(handle.hasPointerCapture(200 + cycle), false, `cycle ${cycle} releases capture`);
   assert.equal(dialog.classList.contains('is-dragging'), false);
@@ -2271,5 +2291,98 @@ cancelAction.dispatch('click');
 assertLauncherClearedImmediately(opener, 'verse-action cancel');
 api.pop(currentReturnPopState());
 assert.equal(dialog.open, false);
+
+// Mobile Search owns visual viewport geometry for exactly one sheet generation.
+dialog.open = true;
+api.state.generation += 1;
+api.state.kind = 'search';
+api.state.phase = 'idle';
+api.state.snap = 'determined';
+controllerContext.window.innerWidth = 640;
+controllerContext.window.innerHeight = 777;
+controllerContext.window.visualViewport.height = 420;
+controllerContext.window.visualViewport.offsetTop = 18;
+const mobileSearchGeneration = api.state.generation;
+assert.equal(api.latchSearch(mobileSearchGeneration), true, '640px is the inclusive mobile breakpoint');
+assert.equal(api.state.searchFullscreenLatched, true);
+assert.equal(api.state.snap, 'fullscreen');
+assert.equal(dialog.classList.contains('search-viewport-fullscreen'), true);
+assert.equal(dialog.style.getPropertyValue('--sheet-viewport-height'), '420px');
+assert.equal(dialog.style.getPropertyValue('--sheet-viewport-top'), '18px');
+assert.equal(viewportListeners.resize.length, viewportResizeListenerBaseline + 1,
+  'one generation-owned resize listener is installed for a Search opening');
+assert.equal(viewportListeners.scroll.length, 1, 'one scroll listener is installed for a Search opening');
+assert.equal(api.latchSearch(mobileSearchGeneration), true);
+assert.equal(viewportListeners.resize.length, viewportResizeListenerBaseline + 1,
+  'repeat focus does not duplicate viewport listeners');
+assert.equal(api.snap('determined', true), false, 'blur, rotation, and generic snap requests cannot demote a latch');
+controllerContext.window.innerWidth = 900;
+viewportListeners.resize.at(-1)();
+const viewportFrame = api.state.viewportFrame;
+viewportListeners.scroll[0]();
+viewportListeners.resize.at(-1)();
+assert.equal(api.state.viewportFrame, viewportFrame, 'resize and scroll bursts coalesce into one RAF');
+frames.get(viewportFrame)();
+frames.delete(viewportFrame);
+assert.equal(api.state.snap, 'fullscreen', 'orientation changes preserve fullscreen ownership');
+
+controllerContext.window.visualViewport.height = NaN;
+controllerContext.window.visualViewport.offsetTop = -40;
+assert.equal(api.updateSearchViewport(mobileSearchGeneration), true);
+assert.equal(dialog.style.getPropertyValue('--sheet-viewport-height'), '777px',
+  'invalid visual viewport height falls back to the finite dynamic layout viewport');
+assert.equal(dialog.style.getPropertyValue('--sheet-viewport-top'), '0px',
+  'negative visual viewport offsets are sanitized');
+controllerContext.window.visualViewport.height = 390;
+controllerContext.window.visualViewport.offsetTop = Infinity;
+api.updateSearchViewport(mobileSearchGeneration);
+assert.equal(dialog.style.getPropertyValue('--sheet-viewport-height'), '390px');
+assert.equal(dialog.style.getPropertyValue('--sheet-viewport-top'), '0px', 'nonfinite offsets are sanitized');
+
+viewportListeners.resize.at(-1)();
+const staleViewportFrame = api.state.viewportFrame;
+const staleViewportCallback = frames.get(staleViewportFrame);
+const staleViewportListener = viewportListeners.resize.at(-1);
+assert.equal(api.cleanupViewport(mobileSearchGeneration), true);
+assert.equal(frames.has(staleViewportFrame), false, 'cleanup cancels the pending viewport RAF');
+assert.equal(viewportListeners.resize.length, viewportResizeListenerBaseline);
+assert.equal(viewportListeners.scroll.length, 0);
+assert.equal(dialog.classList.contains('search-viewport-fullscreen'), false);
+assert.equal(dialog.style.getPropertyValue('--sheet-viewport-height'), '');
+assert.equal(dialog.style.getPropertyValue('--sheet-viewport-top'), '');
+staleViewportListener();
+staleViewportCallback();
+assert.equal(api.state.viewportFrame, null, 'stale listener and RAF callbacks are inert after cleanup');
+
+api.state.generation += 1;
+api.state.kind = 'search';
+api.state.snap = 'determined';
+controllerContext.window.innerWidth = 641;
+assert.equal(api.latchSearch(api.state.generation), false, 'desktop Search focus does not force fullscreen');
+assert.equal(api.state.snap, 'determined');
+controllerContext.window.innerWidth = 0;
+assert.equal(api.latchSearch(api.state.generation), false, 'invalid zero-width geometry is not treated as mobile');
+controllerContext.window.innerWidth = 640;
+api.state.phase = 'closing';
+assert.equal(api.latchSearch(api.state.generation), false, 'a closing Search cannot reacquire keyboard ownership');
+assert.equal(dialog.classList.contains('search-viewport-fullscreen'), false);
+assert.equal(viewportListeners.resize.length, viewportResizeListenerBaseline);
+api.state.phase = 'idle';
+assert.equal(api.latchSearch(api.state.generation), true, 'a later Search opening can acquire a fresh latch');
+assert.equal(viewportListeners.resize.length, viewportResizeListenerBaseline + 1);
+api.cleanupViewport(api.state.generation);
+
+api.state.generation += 1;
+api.state.kind = 'search';
+api.state.snap = 'determined';
+const savedRemoveViewportListener = controllerContext.window.visualViewport.removeEventListener;
+delete controllerContext.window.visualViewport.removeEventListener;
+assert.equal(api.latchSearch(api.state.generation), true,
+  'a partial visualViewport API still permits CSS fallback fullscreen');
+assert.equal(viewportListeners.resize.length, viewportResizeListenerBaseline,
+  'an unremovable visualViewport listener is never installed');
+api.cleanupViewport(api.state.generation);
+controllerContext.window.visualViewport.removeEventListener = savedRemoveViewportListener;
+dialog.open = false;
 
 console.log('bible sheet controller tests passed');
