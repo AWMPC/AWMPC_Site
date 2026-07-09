@@ -80,6 +80,7 @@ const validState = h.state({
 });
 assert.deepEqual(JSON.parse(JSON.stringify(validState)), {
   view: 'verses', book: 'John', chapter: '3', verse: '16',
+  readerRouteScope: 0,
   sheet: { kind: 'history', page: 'recent' }
 });
 assert.equal(h.state({ view: 'books', sheet: { kind: 'history' } }), null);

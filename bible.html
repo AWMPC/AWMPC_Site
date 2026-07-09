@@ -2319,7 +2319,8 @@
         state = { book: reader.book, chapter: String(reader.chapter), verse: String(reader.verse) };
       }
     } else if (state.sheet.page) sheet.page = state.sheet.page;
-    return { view: 'verses', book: state.book, chapter: String(state.chapter), verse: String(state.verse), sheet: sheet };
+    return { view: 'verses', book: state.book, chapter: String(state.chapter), verse: String(state.verse),
+      readerRouteScope: typeof readerRouteScope === 'number' ? readerRouteScope : 0, sheet: sheet };
   }
   /* APP SHEET PURE HELPERS END */
 
@@ -2477,6 +2478,7 @@
     if (!reader || reader.view !== 'verses') return null;
     var state = { view: 'verses', book: reader.book, chapter: String(reader.chapter), verse: String(reader.verse), sheet: { kind: kind } };
     if (page) state.sheet.page = page;
+    state.readerRouteScope = typeof readerRouteScope === 'number' ? readerRouteScope : 0;
     return validatedAppSheetHistoryState(state);
   }
 
@@ -2752,6 +2754,7 @@
   var chapterPositionFlushTimer = null;
   var readingRouteReplaceTimer = null;
   var pendingReadingRoute = null;
+  var readerRouteScope = 0;
   var chapterPositions = State.getChapterPositions();
   var chapterPositionsDirty = false;
   var verseChaseFrame = null;
@@ -3124,7 +3127,8 @@
   function commitSelectionVerse(verse) {
     var reference = selectionContext && normalizeVerseReference(selectionContext.book, selectionContext.chapter, verse);
     if (!reference) return false;
-    var state = { view: 'verses', book: reference.book, chapter: String(reference.chapter), verse: String(reference.verse) };
+    var state = { view: 'verses', book: reference.book, chapter: String(reference.chapter), verse: String(reference.verse),
+      readerRouteScope: typeof readerRouteScope === 'number' ? readerRouteScope : 0 };
     history.replaceState(state, '', canonicalVerseUrl(reference.book, reference.chapter, reference.verse));
     appSheetState.historyOwned = false;
     navFromPop = true;
@@ -3446,7 +3450,8 @@
   }
 
   function currentNavStateForHistory() {
-    if (uiView === 'verses') return { view: 'verses', book: navBook, chapter: navChapter, verse: activeVerse };
+    if (uiView === 'verses') return { view: 'verses', book: navBook, chapter: navChapter, verse: activeVerse,
+      readerRouteScope: typeof readerRouteScope === 'number' ? readerRouteScope : 0 };
     if (uiView === 'verse-picker') return { view: 'verse-picker', book: navBook, chapter: navChapter };
     if (uiView === 'chapters') return { view: 'chapters', book: navBook };
     return { view: 'books' };
@@ -5110,6 +5115,7 @@
   var navFromPop = false;
   function pushNav(state) {
     if (navFromPop) return;
+    if (state && state.view === 'verses') state.readerRouteScope = typeof readerRouteScope === 'number' ? readerRouteScope : 0;
     var url = cleanBibleUrl();
     if (state && state.view === 'verses') {
       var reference = normalizeVerseReference(state.book, state.chapter, state.verse);
@@ -5120,6 +5126,11 @@
   window.addEventListener('popstate', function (e) {
     if (!bibleData) return;
     var s = e.state;
+    if (typeof readerRouteScope === 'number' && readerRouteScope && s && s.view === 'verses' && !isCurrentReaderRouteState(s)) {
+      if (appSheet.open) finishCloseAppSheet();
+      showCanonicalReadingReference(defaultStartupReadingReference());
+      return;
+    }
     if (handleAppSheetPopState(s)) return;
     if (suppressNextPopupPop) {
       suppressNextPopupPop = false;
@@ -5716,7 +5727,8 @@
     if (!reference || !bibleData || !bibleData[reference.book]) return false;
     var readerState = {
       view: 'verses', book: reference.book,
-      chapter: reference.chapter, verse: reference.verse
+      chapter: reference.chapter, verse: reference.verse,
+      readerRouteScope: typeof readerRouteScope === 'number' ? readerRouteScope : 0
     };
     history.replaceState(readerState, '', canonicalVerseUrl(reference.book, reference.chapter, reference.verse));
     finishCloseAppSheet();
@@ -5848,7 +5860,8 @@
       button.appendChild(label);
       button.addEventListener('click', (function (reference) {
         return function () {
-          var readerState = { view: 'verses', book: reference.book, chapter: reference.chapter, verse: reference.verse };
+          var readerState = { view: 'verses', book: reference.book, chapter: reference.chapter, verse: reference.verse,
+            readerRouteScope: typeof readerRouteScope === 'number' ? readerRouteScope : 0 };
           history.replaceState(readerState, '', canonicalVerseUrl(reference.book, reference.chapter, reference.verse));
           finishCloseAppSheet();
           navFromPop = true;
@@ -6194,6 +6207,15 @@
   var bibleStartupComplete = false;
 
   /* STARTUP READING LOCATION START */
+  function scopedReaderRouteState(state) {
+    if (state && state.view === 'verses') state.readerRouteScope = readerRouteScope;
+    return state;
+  }
+
+  function isCurrentReaderRouteState(state) {
+    return !readerRouteScope || !!(state && state.view === 'verses' && state.readerRouteScope === readerRouteScope);
+  }
+
   function firstDatasetVerseReference() {
     if (!bibleData || typeof bibleData !== 'object') return null;
     var books = Object.keys(bibleData);
@@ -6259,9 +6281,9 @@
   }
 
   function readingHistoryState(reference) {
-    var state = {
+    var state = scopedReaderRouteState({
       view: 'verses', book: reference.book, chapter: reference.chapter, verse: reference.verse
-    };
+    });
     if (appSheet.open && appSheetState.historyOwned) {
       var sheetState = validatedAppSheetHistoryState(appSheetState.historyState);
       if (sheetState) state.sheet = sheetState.sheet;
@@ -6310,9 +6332,9 @@
 
   function showCanonicalReadingReference(reference) {
     if (!reference) return false;
-    history.replaceState({
+    history.replaceState(scopedReaderRouteState({
       view: 'verses', book: reference.book, chapter: reference.chapter, verse: reference.verse
-    }, '', canonicalVerseUrl(reference.book, reference.chapter, reference.verse));
+    }), '', canonicalVerseUrl(reference.book, reference.chapter, reference.verse));
     navFromPop = true;
     try {
       showVersesView(reference.book, reference.chapter, reference.verse);
@@ -6332,6 +6354,7 @@
   function resetReaderForOwnerIsolation(retainedOwnerSheet) {
     clearPendingReadingRoute();
     if (!bibleData) return false;
+    readerRouteScope += 1;
     var reset = showCanonicalReadingReference(defaultStartupReadingReference());
     if (reset && appSheet.open) {
       appSheetState.historyOwned = false;
@@ -6379,8 +6402,13 @@
         showLoadError('Unable to load Bible data.');
         return;
       }
-      loadingEl.style.display = 'none';
       bibleData = xhr.response;
+      if (Array.isArray(bibleData) || !firstDatasetVerseReference()) {
+        bibleData = null;
+        showLoadError('Bible data is unavailable or invalid.');
+        return;
+      }
+      loadingEl.style.display = 'none';
       buildSearchIndexInChunks();
       initNavAnchor();
       if (bibleStartupComplete) return;

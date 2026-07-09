@@ -41,6 +41,7 @@ function startupHarness(options = {}) {
     readingRouteReplaceTimer: null,
     pendingReadingRoute: null,
     READING_ROUTE_REPLACE_MS: 120,
+    readerRouteScope: options.readerRouteScope || 0,
     uiView: options.uiView || 'books',
     currentBook: options.currentBook || null,
     currentChapter: options.currentChapter || null,
@@ -117,6 +118,7 @@ function startupHarness(options = {}) {
     }
   };
   vm.runInNewContext(`${source}\nthis.startupApi = {
+    firstDatasetVerseReference,
     newestValidChapterPosition,
     defaultStartupReadingReference,
     startupReadingReference,
@@ -124,7 +126,8 @@ function startupHarness(options = {}) {
     resetReaderForOwnerIsolation,
     replaceReadingRoute,
     scheduleReadingRouteReplace,
-    flushReadingRouteReplace
+    flushReadingRouteReplace,
+    isCurrentReaderRouteState: typeof isCurrentReaderRouteState === 'function' ? isCurrentReaderRouteState : null
   };`, context);
   return {
     context,
@@ -242,7 +245,7 @@ test('owner isolation always resets the reader canonically even when a private s
   assert.equal(retained.context.appSheetState.historyOwned, false,
     'closing the retained sheet must not traverse back to the prior owner route');
   assert.deepEqual(clone(retained.context.appSheetState.historyState), {
-    view: 'verses', book: 'Genesis', chapter: 1, verse: '1'
+    view: 'verses', book: 'Genesis', chapter: 1, verse: '1', readerRouteScope: 1
   }, 'sheet history state is rebased to the safe reader route');
 });
 
@@ -341,4 +344,40 @@ test('pagehide executes route and chapter-position flushes in privacy-safe order
   const withoutRouteFlush = body.replace('flushReadingRouteReplace();', '');
   assert.notDeepEqual(persistenceCalls(execute(withoutRouteFlush)), ['route', 'remember', 'positions'],
     'removing the route flush must be observable');
+});
+
+test('owner route scope rejects Back navigation into a prior owner history entry', () => {
+  const h = startupHarness({
+    readerRouteScope: 4,
+    uiView: 'verses', currentBook: 'Genesis', currentChapter: 1, activeVerse: '1'
+  });
+  assert.equal(typeof h.api.isCurrentReaderRouteState, 'function');
+  assert.equal(h.api.isCurrentReaderRouteState({
+    view: 'verses', book: 'Genesis', chapter: 1, verse: '1', readerRouteScope: 4
+  }), true);
+  assert.equal(h.api.isCurrentReaderRouteState({
+    view: 'verses', book: 'John', chapter: 3, verse: '16', readerRouteScope: 3
+  }), false, 'a previous owner/session route must not be restorable with Back');
+  assert.equal(h.api.isCurrentReaderRouteState({
+    view: 'verses', book: 'John', chapter: 3, verse: '16'
+  }), false, 'legacy unscoped routes become stale after owner isolation');
+
+  const popstate = sourceBetween(
+    "  window.addEventListener('popstate', function (e) {",
+    '\n\n  function normalizeLegacySelectionHistory'
+  );
+  assert.match(popstate, /isCurrentReaderRouteState\(s\)/);
+  assert.match(popstate, /showCanonicalReadingReference\(defaultStartupReadingReference\(\)\)/);
+});
+
+test('empty, array, and structurally invalid Bible data have no startup reference', () => {
+  assert.equal(startupHarness({ dataset: {} }).api.firstDatasetVerseReference(), null);
+  assert.equal(startupHarness({ dataset: [] }).api.firstDatasetVerseReference(), null);
+  assert.equal(startupHarness({ dataset: { Genesis: { nope: [] } } }).api.firstDatasetVerseReference(), null);
+
+  const loader = sourceBetween('  function loadBibleData() {', '\n\n  loadBibleData();');
+  assert.match(loader, /firstDatasetVerseReference\(\)/,
+    'the loader must validate that the response contains at least one usable verse');
+  assert.match(loader, /showLoadError\(/,
+    'invalid data must retain a retryable error surface');
 });
