@@ -1280,6 +1280,36 @@ api.state.historyOwned = false;
 api.close('queued-state-cleanup', 'none');
 
 controllerContext.document.activeElement = opener;
+api.open('history', { opener, page: 'legacy-selection-origin' });
+const legacyClosingGeneration = api.state.generation;
+const legacyClosingReturn = api.state.historyReturnGeneration;
+const legacyOpenBaseline = legacySelectionOpenCalls;
+api.close('legacy-selection-close', 'none');
+const legacySelectionFinish = timers.get(api.state.historyTimer);
+api.pop({
+  view: 'books', book: 'John', chapter: '3', verse: '16',
+  sheet: { kind: 'selection', page: 'chapters', book: 'John', chapter: '3',
+    generation: legacyClosingGeneration, returnGeneration: legacyClosingReturn }
+});
+assert.equal(api.state.phase, 'closing');
+assert.equal(api.state.pendingPostCloseDestination.kind, 'sheet');
+assert.equal(api.state.pendingPostCloseState.sheet.kind, 'selection');
+assert.equal(api.state.pendingPostCloseState.sheet.generation, legacyClosingGeneration,
+  'sanitized legacy selection is tagged to the closing runtime generation');
+assert.equal(api.state.pendingPostCloseState.sheet.returnGeneration, legacyClosingReturn);
+legacySelectionFinish();
+assert.equal(dialog.open, true, 'accepted legacy selection opens after terminal finish');
+assert.equal(api.state.kind, 'selection');
+assert.equal(api.state.page, 'chapters');
+const legacyQueuedRuntime = api.state.generation;
+legacySelectionFinish();
+assert.equal(api.state.generation, legacyQueuedRuntime, 'legacy pending destination applies exactly once');
+assert.equal(legacySelectionOpenCalls, legacyOpenBaseline,
+  'queued legacy selection uses the unified sheet lifecycle instead of a duplicate legacy open');
+api.state.historyOwned = false;
+api.close('legacy-selection-cleanup', 'none');
+
+controllerContext.document.activeElement = opener;
 api.open('history', { opener, page: 'sheet-then-reader' });
 const sheetThenReaderGeneration = api.state.generation;
 const sheetThenReaderReturn = api.state.historyReturnGeneration;

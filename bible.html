@@ -2962,6 +2962,16 @@
       if (reader) {
         var context = normalizedSelectionContext(state.sheet.book, state.sheet.chapter, reader);
         var sanitized = selectionHistoryState(reader, normalizedSelectionPage(state.sheet.page), context);
+        if (appSheet.open && appSheetState.phase === 'closing') {
+          sanitized.sheet.generation = appSheetState.generation;
+          sanitized.sheet.returnGeneration = appSheetState.historyReturnGeneration;
+          sanitized = validatedAppSheetHistoryState(sanitized);
+          if (!sanitized) return true;
+          history.replaceState(sanitized, '', canonicalVerseUrl(reader.book, reader.chapter, reader.verse));
+          appSheetState.pendingPostCloseState = sanitized;
+          appSheetState.pendingPostCloseDestination = { kind: 'sheet', state: sanitized };
+          return true;
+        }
         history.replaceState(sanitized, '', canonicalVerseUrl(reader.book, reader.chapter, reader.verse));
         openSelectionSheet(sanitized.sheet.page, null, {
           fromPop: true, historyState: sanitized, reader: reader,
