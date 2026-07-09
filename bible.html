@@ -2502,37 +2502,60 @@
       backdrop: Math.max(0, 1 - outward / determinedHeight)
     };
   }
+  function appSheetOwnDataField(object, key, required) {
+    if (!object || typeof object !== 'object' || Array.isArray(object)) return { valid: false };
+    var descriptor;
+    try { descriptor = Object.getOwnPropertyDescriptor(object, key); } catch (descriptorError) {
+      return { valid: false };
+    }
+    if (!descriptor) return required ? { valid: false } : { valid: true, present: false };
+    if (!Object.prototype.hasOwnProperty.call(descriptor, 'value')) return { valid: false };
+    return { valid: true, present: true, value: descriptor.value };
+  }
   function validatedAppSheetHistoryState(state) {
     try {
-      if (!state || typeof state !== 'object' || Array.isArray(state) ||
-          !Object.prototype.hasOwnProperty.call(state, 'view') ||
-          !Object.prototype.hasOwnProperty.call(state, 'book') ||
-          !Object.prototype.hasOwnProperty.call(state, 'chapter') ||
-          !Object.prototype.hasOwnProperty.call(state, 'verse') ||
-          !Object.prototype.hasOwnProperty.call(state, 'sheet') ||
-          state.view !== 'verses' || typeof state.book !== 'string' || !state.book ||
-          !/^\d+$/.test(String(state.chapter)) || !/^\d+$/.test(String(state.verse)) ||
-          !state.sheet || typeof state.sheet !== 'object' || Array.isArray(state.sheet) ||
-          !Object.prototype.hasOwnProperty.call(state.sheet, 'kind') ||
-          !isValidAppSheetKind(state.sheet.kind)) return null;
-      if (state.sheet.kind !== 'selection' && state.sheet.page != null && (typeof state.sheet.page !== 'string' ||
-          state.sheet.page.length > 128 || !/^[A-Za-z0-9._~-]*$/.test(state.sheet.page))) return null;
-      var sheet = { kind: state.sheet.kind };
-      if (state.sheet.generation != null) {
-        if (!Number.isSafeInteger(state.sheet.generation) || state.sheet.generation <= 0) return null;
-        sheet.generation = state.sheet.generation;
+      var viewField = appSheetOwnDataField(state, 'view', true);
+      var bookField = appSheetOwnDataField(state, 'book', true);
+      var chapterField = appSheetOwnDataField(state, 'chapter', true);
+      var verseField = appSheetOwnDataField(state, 'verse', true);
+      var sheetField = appSheetOwnDataField(state, 'sheet', true);
+      if (!viewField.valid || !bookField.valid || !chapterField.valid || !verseField.valid || !sheetField.valid ||
+          viewField.value !== 'verses' || typeof bookField.value !== 'string' || !bookField.value ||
+          !/^\d+$/.test(String(chapterField.value)) || !/^\d+$/.test(String(verseField.value))) return null;
+      var sourceSheet = sheetField.value;
+      var kindField = appSheetOwnDataField(sourceSheet, 'kind', true);
+      var pageField = appSheetOwnDataField(sourceSheet, 'page', false);
+      var generationField = appSheetOwnDataField(sourceSheet, 'generation', false);
+      var returnGenerationField = appSheetOwnDataField(sourceSheet, 'returnGeneration', false);
+      var selectionBookField = appSheetOwnDataField(sourceSheet, 'book', false);
+      var selectionChapterField = appSheetOwnDataField(sourceSheet, 'chapter', false);
+      if (!kindField.valid || !pageField.valid || !generationField.valid || !returnGenerationField.valid ||
+          !selectionBookField.valid || !selectionChapterField.valid || !isValidAppSheetKind(kindField.value)) return null;
+      var kind = kindField.value;
+      var page = pageField.present ? pageField.value : undefined;
+      if (kind !== 'selection' && page != null && (typeof page !== 'string' ||
+          page.length > 128 || !/^[A-Za-z0-9._~-]*$/.test(page))) return null;
+      var sheet = { kind: kind };
+      if (generationField.present && generationField.value != null) {
+        if (!Number.isSafeInteger(generationField.value) || generationField.value <= 0) return null;
+        sheet.generation = generationField.value;
       }
-      if (state.sheet.returnGeneration != null) {
-        if (!Number.isSafeInteger(state.sheet.returnGeneration) || state.sheet.returnGeneration <= 0) return null;
-        sheet.returnGeneration = state.sheet.returnGeneration;
+      if (returnGenerationField.present && returnGenerationField.value != null) {
+        if (!Number.isSafeInteger(returnGenerationField.value) || returnGenerationField.value <= 0) return null;
+        sheet.returnGeneration = returnGenerationField.value;
       }
-      if (state.sheet.kind === 'selection') {
-        sheet.page = normalizedSelectionPage(state.sheet.page);
+      var stateBook = bookField.value;
+      var stateChapter = chapterField.value;
+      var stateVerse = verseField.value;
+      if (kind === 'selection') {
+        sheet.page = normalizedSelectionPage(page);
         var data = typeof bibleData === 'undefined' ? null : bibleData;
         var fallbackBook = typeof navBook === 'string' ? navBook : null;
         var fallbackChapter = typeof navChapter === 'number' || typeof navChapter === 'string' ? navChapter : null;
         var context = sanitizedSelectionDataContext(
-          data, state.sheet.book, state.sheet.chapter, fallbackBook, fallbackChapter
+          data, selectionBookField.present ? selectionBookField.value : undefined,
+          selectionChapterField.present ? selectionChapterField.value : undefined,
+          fallbackBook, fallbackChapter
         );
         if (context) {
           sheet.book = context.book;
@@ -2541,13 +2564,15 @@
           sheet.page = 'books';
         }
         if (data && typeof normalizeVerseReference === 'function') {
-          var reader = normalizeVerseReference(state.book, state.chapter, state.verse);
+          var reader = normalizeVerseReference(stateBook, stateChapter, stateVerse);
           if (!reader && typeof currentSelectionReaderReference === 'function') reader = currentSelectionReaderReference();
           if (!reader) return null;
-          state = { book: reader.book, chapter: String(reader.chapter), verse: String(reader.verse) };
+          stateBook = reader.book;
+          stateChapter = String(reader.chapter);
+          stateVerse = String(reader.verse);
         }
-      } else if (state.sheet.page) sheet.page = state.sheet.page;
-      return { view: 'verses', book: state.book, chapter: String(state.chapter), verse: String(state.verse),
+      } else if (page) sheet.page = page;
+      return { view: 'verses', book: stateBook, chapter: String(stateChapter), verse: String(stateVerse),
         readerRouteScope: typeof readerRouteScope === 'number' ? readerRouteScope : 0, sheet: sheet };
     } catch (historyStateError) {
       return null;
@@ -4665,6 +4690,18 @@
     if (next !== index) setSelectionPage(selectionPages[next], true, focusMode);
   }
 
+  function installSelectionWheelListener() {
+    if (!selectionPager || typeof selectionPager.addEventListener !== 'function') return false;
+    selectionPager.addEventListener('wheel', onSelectionWheel, { passive: false });
+    return true;
+  }
+
+  function removeSelectionWheelListener() {
+    if (!selectionPager || typeof selectionPager.removeEventListener !== 'function') return false;
+    selectionPager.removeEventListener('wheel', onSelectionWheel);
+    return true;
+  }
+
   function installSelectionEdgeListener() {
     selectionMediaQuery = window.matchMedia('(max-width: 640px)');
     selectionMediaListener = function () { applySelectionSheetEdge(); };
@@ -4695,7 +4732,7 @@
       selectionPager.removeEventListener('lostpointercapture', onSelectionLostPointerCapture);
       selectionPager.removeEventListener('click', guardSelectionClick, true);
       selectionPager.removeEventListener('keydown', onSelectionPagerKeyDown);
-      selectionPager.removeEventListener('wheel', onSelectionWheel);
+      removeSelectionWheelListener();
     }
     if (typeof resetBibleWheelBurst === 'function') resetBibleWheelBurst();
     if (selectionTrack) selectionTrack.removeEventListener('transitionend', finishSelectionPageSettle);
@@ -4771,7 +4808,7 @@
     selectionPager.addEventListener('lostpointercapture', onSelectionLostPointerCapture);
     selectionPager.addEventListener('click', guardSelectionClick, true);
     selectionPager.addEventListener('keydown', onSelectionPagerKeyDown);
-    selectionPager.addEventListener('wheel', onSelectionWheel, { passive: false });
+    installSelectionWheelListener();
     selectionTrack.addEventListener('transitionend', finishSelectionPageSettle);
     installSelectionEdgeListener();
     setSelectionPage(selectionSheetPage, false);

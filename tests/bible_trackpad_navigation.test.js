@@ -65,6 +65,7 @@ function functionSource(name) {
 function wheelHarness(page = 'chapters') {
   const timers = [];
   const pages = [];
+  const pagerListeners = new Map();
   const selectionPanels = [0, 1, 2].map(panel => ({
     contains(element) { return element && element.panel === panel; }
   }));
@@ -74,7 +75,17 @@ function wheelHarness(page = 'chapters') {
   };
   const pager = {
     clientWidth: 640,
-    contains(target) { return target && target.inside === true; }
+    contains(target) { return target && target.inside === true; },
+    addEventListener(type, handler) {
+      const handlers = pagerListeners.get(type) || [];
+      handlers.push(handler);
+      pagerListeners.set(type, handlers);
+    },
+    removeEventListener(type, handler) {
+      pagerListeners.set(type, (pagerListeners.get(type) || []).filter(item => item !== handler));
+    },
+    dispatch(type, event) { for (const handler of pagerListeners.get(type) || []) handler(event); },
+    listenerCount(type) { return (pagerListeners.get(type) || []).length; }
   };
   const windowObject = {
     innerWidth: 800,
@@ -105,6 +116,8 @@ function wheelHarness(page = 'chapters') {
     ${functionSource('bibleWheelTargetBlocked')}
     ${functionSource('accumulateBibleWheel')}
     ${functionSource('onSelectionWheel')}
+    ${functionSource('installSelectionWheelListener')}
+    ${functionSource('removeSelectionWheelListener')}
     function setSelectionPage(next, replace, mode) {
       selectionSheetPage = next;
       pages.push([next, replace, mode]);
@@ -112,6 +125,9 @@ function wheelHarness(page = 'chapters') {
     }
     return {
       wheel: onSelectionWheel,
+      mount: installSelectionWheelListener,
+      unmount: function () { removeSelectionWheelListener(); resetBibleWheelBurst(); },
+      liveTimers: function () { return timers.filter(function (timer) { return !timer.cleared; }).length; },
       reset: resetBibleWheelBurst,
       burst: function () { return bibleWheelBurst; },
       page: function () { return selectionSheetPage; },
@@ -338,6 +354,29 @@ test('selector claims endpoints and stale idle callbacks cannot reset a newer bu
   stale.fn();
   api.wheel(wheelEvent(-24));
   assert.deepEqual(pages, [['chapters', true, 'pointer']], 'stale timer leaves the newer burst intact');
+});
+
+test('100 mounted selector wheel lifecycles release the real listener, timer, and burst state', () => {
+  for (let cycle = 0; cycle < 100; cycle += 1) {
+    const { api, pages, pager } = wheelHarness('chapters');
+    api.mount();
+    assert.equal(pager.listenerCount('wheel'), 1, `cycle ${cycle} mounts one real wheel listener`);
+    const partial = wheelEvent(24);
+    pager.dispatch('wheel', partial);
+    const claim = wheelEvent(24);
+    pager.dispatch('wheel', claim);
+    assert.equal(claim.prevented, true, `cycle ${cycle} dispatches through the installed handler`);
+    assert.deepEqual(pages, [['verses', true, 'pointer']]);
+    assert.equal(api.liveTimers(), 1, `cycle ${cycle} owns one wheel quiet timer`);
+    api.unmount();
+    assert.equal(pager.listenerCount('wheel'), 0, `cycle ${cycle} removes the exact wheel listener`);
+    assert.equal(api.liveTimers(), 0, `cycle ${cycle} clears the wheel timer`);
+    assert.equal(api.burst().x, 0);
+    assert.equal(api.burst().y, 0);
+    assert.equal(api.burst().consumed, false);
+    assert.equal(api.burst().direction, 0);
+    assert.equal(api.burst().timer, null, `cycle ${cycle} resets shared wheel state`);
+  }
 });
 
 function readerWheelHarness(options = {}) {

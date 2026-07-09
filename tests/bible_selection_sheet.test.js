@@ -75,11 +75,15 @@ test('selection pager owns one non-passive wheel listener with symmetric burst c
     'selection renderer missing');
   const cleanup = extract(/function cleanupSelectionSheet\(\) \{[\s\S]*?\n  \}/,
     'selection cleanup missing');
+  const installWheel = functionSource('installSelectionWheelListener');
+  const removeWheel = functionSource('removeSelectionWheelListener');
   assert.match(renderer, /resetBibleWheelBurst\(\)/, 'replacement starts from a clean generation');
-  assert.match(renderer, /selectionPager\.addEventListener\('wheel', onSelectionWheel, \{ passive: false \}\)/);
-  assert.match(cleanup, /selectionPager\.removeEventListener\('wheel', onSelectionWheel\)/);
+  assert.match(renderer, /installSelectionWheelListener\(\)/);
+  assert.match(installWheel, /selectionPager\.addEventListener\('wheel', onSelectionWheel, \{ passive: false \}\)/);
+  assert.match(cleanup, /removeSelectionWheelListener\(\)/);
+  assert.match(removeWheel, /selectionPager\.removeEventListener\('wheel', onSelectionWheel\)/);
   assert.match(cleanup, /resetBibleWheelBurst\(\)/, 'timer and burst state are cleared at teardown');
-  assert.equal((renderer.match(/addEventListener\('wheel'/g) || []).length, 1,
+  assert.equal((bible.match(/selectionPager\.addEventListener\('wheel'/g) || []).length, 1,
     'render installs no per-panel or duplicate wheel listener');
 });
 
@@ -334,6 +338,12 @@ test('hostile selection history is executable-data sanitized before it is return
   const noNav = validatorFor({ Genesis: { 1: { 1: 'beginning' } } }, 'Missing', 88);
   const first = noNav({ ...base, sheet: { kind: 'selection', page: 'verses', book: 'Missing', chapter: '0' } });
   assert.deepEqual(first.sheet, { kind: 'selection', page: 'verses', book: 'Genesis', chapter: '1' });
+
+  const inherited = Object.create({ page: 'verses', book: 'Genesis', chapter: '2' });
+  inherited.kind = 'selection';
+  const inheritedResult = validate({ ...base, sheet: inherited });
+  assert.deepEqual(inheritedResult.sheet, { kind: 'selection', page: 'books', book: 'John', chapter: '3' },
+    'inherited selection fields cannot control page or dataset context');
 });
 
 function runOpenWithHistory(historyState, source = bible) {
@@ -433,6 +443,8 @@ function runDotRenderer(source = bible) {
     'selection panel factory missing');
   const render = extractFrom(source, /function renderSelectionSheet\(target, sheet\) \{[\s\S]*?\n  \}/,
     'selection renderer missing');
+  const installWheel = extractFrom(source, /function installSelectionWheelListener\(\) \{[\s\S]*?\n  \}/,
+    'selection wheel installer missing');
   const calls = [];
   const document = { createElement: tag => new FakeElement(tag) };
   const api = Function('document', 'calls', `
@@ -471,6 +483,7 @@ function runDotRenderer(source = bible) {
     function setSelectionPage(page, replace) { calls.push([page, replace]); selectionSheetPage = page; }
     var appSheetBody = document.createElement('div');
     ${createPanel}
+    ${installWheel}
     ${render}
     var target = document.createElement('div');
     renderSelectionSheet(target, { page: 'books', context: { book: 'John', chapter: 3 } });

@@ -302,6 +302,7 @@ function fakeElement(tag = 'div') {
       const index = handlers.indexOf(handler);
       if (index >= 0) handlers.splice(index, 1);
     },
+    listenerCount(type) { return (listeners[type] || []).length; },
     dispatch(type, event = {}) { (listeners[type] || []).forEach(handler => handler({ target: this, ...event })); },
     click() { this.dispatch('click', { stopPropagation() {} }); },
     focus() { this.focused = true; },
@@ -518,6 +519,61 @@ function fakeElement(tag = 'div') {
   assert.equal(focusOrder.some(entry => entry[0] === 'closing-focus'), false,
     'a pending autofocus callback cannot summon the keyboard after close begins');
   cleanupClosing();
+
+  context.appSheetState.phase = 'idle';
+  context.appSheetState.kind = 'search';
+  context.appSheetState.searchFullscreenLatched = false;
+  context.appSheetState.viewportOwnerGeneration = null;
+  context.searchSheetFocusRestore = null;
+  const searchTimerBaseline = timers.size;
+  const searchFrameBaseline = frames.size;
+  for (let cycle = 0; cycle < 100; cycle += 1) {
+    context.appSheetState.generation = 1000 + cycle;
+    const cycleTarget = fakeElement();
+    const latchBaseline = focusOrder.filter(entry => entry[0] === 'latch').length;
+    if (cycle % 2 === 1) {
+      context.appSheetState.searchFullscreenLatched = true;
+      context.appSheetState.viewportOwnerGeneration = context.appSheetState.generation;
+      context.searchSheetFocusRestore = {
+        generation: context.appSheetState.generation, query: `restored ${cycle}`,
+        start: 0, end: 4, direction: 'forward'
+      };
+    } else {
+      context.appSheetState.searchFullscreenLatched = false;
+      context.appSheetState.viewportOwnerGeneration = null;
+    }
+    const cleanupCycle = context.render(cycleTarget);
+    const cycleInput = created.filter(node => node.tag === 'input').at(-1);
+    cycleInput.focus = options => {
+      context.document.activeElement = cycleInput;
+      focusOrder.push(['soak-focus', cycle, options]);
+      cycleInput.dispatch('focus');
+    };
+    assert.equal(cycleInput.listenerCount('focus'), 1, `Search cycle ${cycle} installs its real focus listener`);
+    cycleInput.dispatch('focus');
+    cycleInput.value = `cycle query ${cycle}`;
+    cycleInput.dispatch('input');
+    const staleTimers = [...timers.values()];
+    const staleFrames = [...frames.values()];
+    assert.ok(timers.size > searchTimerBaseline || frames.size > searchFrameBaseline,
+      `Search cycle ${cycle} owns real autofocus/readiness/debounce or handoff work`);
+    cleanupCycle();
+    cycleTarget.isConnected = false;
+    context.document.activeElement = null;
+    assert.equal(cycleInput.listenerCount('focus'), 0, `Search cycle ${cycle} removes its focus listener`);
+    assert.equal(timers.size, searchTimerBaseline, `Search cycle ${cycle} returns timers to baseline`);
+    assert.equal(frames.size, searchFrameBaseline, `Search cycle ${cycle} returns RAFs to baseline`);
+    const queryCount = runQueries.length;
+    const focusCount = focusOrder.filter(entry => entry[0] === 'soak-focus').length;
+    staleTimers.forEach(callback => callback());
+    staleFrames.forEach(callback => callback());
+    cycleInput.dispatch('focus');
+    assert.equal(runQueries.length, queryCount, `Search cycle ${cycle} stale callbacks cannot search`);
+    assert.equal(focusOrder.filter(entry => entry[0] === 'soak-focus').length, focusCount,
+      `Search cycle ${cycle} stale callbacks cannot refocus`);
+    assert.equal(focusOrder.filter(entry => entry[0] === 'latch').length, latchBaseline + 1,
+      `Search cycle ${cycle} owns exactly one explicit real focus latch`);
+  }
 }
 
 {
