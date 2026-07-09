@@ -401,6 +401,11 @@ function fakeElement() {
       this.listenerCount += 1;
       (listeners[type] || (listeners[type] = [])).push(fn);
     },
+    removeEventListener(type, fn) {
+      const handlers = listeners[type] || [];
+      const index = handlers.indexOf(fn);
+      if (index >= 0) { handlers.splice(index, 1); this.listenerCount -= 1; }
+    },
     setAttribute(name, value) { attributes[name] = String(value); },
     removeAttribute(name) { delete attributes[name]; },
     getAttribute(name) { return Object.prototype.hasOwnProperty.call(attributes, name) ? attributes[name] : null; },
@@ -913,14 +918,38 @@ assert.equal(replacementOpener.classList.contains('active'), false);
 
 api.pop({ view: 'verses', book: 'John', chapter: '3', verse: '16', sheet: { kind: 'history' } });
 const readerFocusBefore = viewInner.focusCount;
+const readerListenerBaseline = viewInner.listenerCount;
 assert.equal(api.close('selection-complete', 'reader'), true);
+const terminalCloseTimer = api.state.historyTimer;
+const terminalCloseCallback = timers.get(terminalCloseTimer);
+const terminalCloseBacks = historyCalls.back;
+const terminalCloseSnap = api.state.snap;
+assert.equal(api.snap(terminalCloseSnap === 'determined' ? 'fullscreen' : 'determined', true), false,
+  'direct snap mutation is rejected while closing');
+handle.dispatch('pointerdown', {
+  isPrimary: true, button: 0, pointerId: 180, clientX: 0, clientY: 0, timeStamp: 1
+});
+assert.equal(api.state.candidate, null, 'closing cannot begin another gesture');
+for (const key of ['Enter', 'ArrowUp', 'ArrowDown', 'Escape']) {
+  handle.dispatch('keydown', { key, repeat: false, preventDefault() {} });
+  assert.equal(api.state.phase, 'closing', `${key} cannot leave terminal closing phase`);
+  assert.equal(api.state.focusPolicy, 'reader', `${key} cannot replace immutable close focus`);
+  assert.equal(api.state.snap, terminalCloseSnap, `${key} cannot mutate snap while closing`);
+}
+assert.equal(historyCalls.back, terminalCloseBacks, 'close-time keyboard input cannot traverse history again');
 assert.equal(api.close('late-policy-change', 'none'), true, 'repeat close is idempotent');
 api.pop(currentReturnPopState());
 assert.equal(viewInner.focusCount, readerFocusBefore + 1, 'completion returns focus to the reader');
 assert.equal(viewInner.focusOptions.at(-1).preventScroll, true, 'reader focus never scrolls the underlying chapter');
-assert.equal(viewInner.getAttribute('tabindex'), null, 'temporary reader tabindex is removed after focus');
+assert.equal(viewInner.getAttribute('tabindex'), '-1', 'temporary reader tabindex remains while reader owns focus');
+assert.equal(viewInner.listenerCount, readerListenerBaseline + 1, 'one focus-leave cleanup is installed');
+terminalCloseCallback();
 api.pop(currentReturnPopState());
 assert.equal(viewInner.focusCount, readerFocusBefore + 1, 'late close callbacks never focus twice');
+assert.equal(viewInner.listenerCount, readerListenerBaseline + 1, 'late callbacks cannot retain another cleanup listener');
+viewInner.dispatch('focusout');
+assert.equal(viewInner.getAttribute('tabindex'), null, 'temporary reader tabindex clears only after focus leaves');
+assert.equal(viewInner.listenerCount, readerListenerBaseline, 'focus-leave cleanup removes its listener');
 
 api.pop({ view: 'verses', book: 'John', chapter: '3', verse: '16', sheet: { kind: 'history' } });
 controllerContext.document.activeElement = body;
@@ -930,8 +959,23 @@ api.close('owner-change');
 api.pop(currentReturnPopState());
 assert.equal(viewInner.focusCount, fallbackReaderFocus + 1,
   'preserve-or-reader falls back when focus is trapped in the closing sheet');
+assert.equal(viewInner.getAttribute('tabindex'), '-1');
+viewInner.dispatch('focusout');
+assert.equal(viewInner.getAttribute('tabindex'), null);
+assert.equal(viewInner.listenerCount, readerListenerBaseline);
 controllerContext.document.activeElement = opener;
 dialog.contains = () => false;
+
+for (let focusCycle = 0; focusCycle < 3; focusCycle += 1) {
+  api.pop({ view: 'verses', book: 'John', chapter: '3', verse: '16', sheet: { kind: 'history' } });
+  api.close('reader-focus-cycle', 'reader');
+  api.pop(currentReturnPopState());
+  assert.equal(viewInner.getAttribute('tabindex'), '-1');
+  assert.equal(viewInner.listenerCount, readerListenerBaseline + 1);
+  viewInner.dispatch('focusout');
+  assert.equal(viewInner.getAttribute('tabindex'), null);
+  assert.equal(viewInner.listenerCount, readerListenerBaseline, `reader focus cycle ${focusCycle} releases listener`);
+}
 
 api.pop({ view: 'verses', book: 'John', chapter: '3', verse: '16', sheet: { kind: 'history' } });
 reduceMotion = false;
@@ -946,11 +990,15 @@ api.close('test-timer');
 const pendingSettleTimer = api.state.settleTimer;
 const oldSettleCallback = timers.get(pendingSettleTimer);
 assert.ok(pendingSettleTimer, 'animated close stores its settle timer');
-api.pop({ view: 'verses', book: 'John', chapter: '3', verse: '16', sheet: { kind: 'history' } });
-assert.ok(cancelledTimers.includes(pendingSettleTimer), 'reopen cancels the pending settle timer');
+const terminalReopenState = { view: 'verses', book: 'John', chapter: '3', verse: '16', sheet: { kind: 'history' } };
+api.pop(terminalReopenState);
+assert.equal(api.state.phase, 'closing', 'Forward cannot replace a generation while close is terminal');
 assert.ok(oldObserver.disconnected, 'reopen disconnects the previous generation observer');
-assert.ok(cancelledFrames.includes(oldMeasureFrameId), 'reopen cancels the previous generation measure RAF');
-assert.notEqual(api.state.generation, oldGeneration);
+assert.ok(cancelledFrames.includes(oldMeasureFrameId), 'close cancels the previous generation measure RAF');
+oldSettleCallback();
+assert.equal(dialog.open, false, 'the original generation completes its close');
+api.pop(terminalReopenState);
+assert.notEqual(api.state.generation, oldGeneration, 'Forward can reopen only after terminal close finishes');
 const reopened = {
   height: dialog.style.getPropertyValue('--sheet-height'), phase: api.state.phase,
   kind: api.state.kind, content: measure.textContent, focus: opener.focusCount
@@ -1156,6 +1204,26 @@ frames.delete(bodyMeasureFrame);
 body.scrollTop = 40;
 body.scrollHeight = 800;
 body.clientHeight = 400;
+handle.dispatch('pointerdown', {
+  isPrimary: true, button: 0, pointerId: 18, clientX: 10, clientY: 10, timeStamp: 1
+});
+handle.dispatch('pointermove', {
+  pointerId: 18, clientX: 10, clientY: 30, timeStamp: 20, preventDefault() {}
+});
+assert.equal(api.state.pointer.id, 18, 'bottom handle drag ignores the scrolled body origin');
+handle.dispatch('pointercancel', { pointerId: 18, clientY: 30, timeStamp: 21 });
+api.state.edge = 'top';
+body.scrollTop = 0;
+handle.dispatch('pointerdown', {
+  isPrimary: true, button: 0, pointerId: 19, clientX: 10, clientY: 30, timeStamp: 30
+});
+handle.dispatch('pointermove', {
+  pointerId: 19, clientX: 10, clientY: 10, timeStamp: 50, preventDefault() {}
+});
+assert.equal(api.state.pointer.id, 19, 'top handle drag ignores a body that is not scrolled to its end');
+handle.dispatch('pointercancel', { pointerId: 19, clientY: 10, timeStamp: 51 });
+api.state.edge = 'bottom';
+body.scrollTop = 40;
 body.dispatch('pointerdown', {
   isPrimary: true, button: 0, pointerId: 20, clientX: 10, clientY: 10, timeStamp: 1
 });
