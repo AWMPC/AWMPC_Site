@@ -629,10 +629,8 @@ assert.equal(opener.classList.contains('active'), true);
 assert.equal(dialog.getAttribute('aria-label'), 'History — Bible panel');
 assert.equal(handle.getAttribute('aria-label'), 'Expand History panel');
 assert.equal(measure.textContent, 'history:recent');
-assert.equal(frames.size, 1, 'opening schedules one measurement frame');
-const initialMeasureFrame = [...frames.keys()][0];
-frames.get(initialMeasureFrame)();
-frames.delete(initialMeasureFrame);
+assert.equal(frames.size, 2, 'opening schedules one measurement frame and one coalesced fade frame');
+for (const [id, callback] of [...frames]) { callback(); frames.delete(id); }
 assert.equal(dialog.style.getPropertyValue('--sheet-height'), '224px',
   'short content uses intrinsic height plus fixed chrome');
 assert.equal(api.state.determinedHeight, 224);
@@ -665,17 +663,13 @@ resizeObserverInstances[0].fire();
 for (const [id, callback] of [...frames]) { callback(); frames.delete(id); }
 assert.equal(dialog.style.getPropertyValue('--sheet-height'), '560px', 'measurement freezes during an active pointer');
 handle.dispatch('pointercancel', { pointerId: 71, clientY: 30, timeStamp: 3 });
-const resumedFrame = [...frames.keys()][0];
-frames.get(resumedFrame)();
-frames.delete(resumedFrame);
+for (const [id, callback] of [...frames]) { callback(); frames.delete(id); }
 assert.equal(dialog.style.getPropertyValue('--sheet-height'), '164px', 'measurement resumes after pointer cancellation');
 
 measure.scrollHeight = 500;
 controllerContext.window.visualViewport.height = 600;
 viewportListeners.resize[0]();
-const viewportFrame = [...frames.keys()][0];
-frames.get(viewportFrame)();
-frames.delete(viewportFrame);
+for (const [id, callback] of [...frames]) { callback(); frames.delete(id); }
 assert.equal(dialog.style.getPropertyValue('--sheet-height'), '420px', 'visual viewport changes recalculate the cap');
 
 measure.scrollHeight = 900;
@@ -683,24 +677,18 @@ const savedVisualViewport = controllerContext.window.visualViewport;
 delete controllerContext.window.visualViewport;
 controllerContext.window.innerHeight = 700;
 windowListeners.resize[0]();
-let fallbackFrame = [...frames.keys()][0];
-frames.get(fallbackFrame)();
-frames.delete(fallbackFrame);
+for (const [id, callback] of [...frames]) { callback(); frames.delete(id); }
 assert.equal(dialog.style.getPropertyValue('--sheet-height'), '489px', 'missing visualViewport falls back to finite innerHeight');
 controllerContext.window.innerHeight = NaN;
 controllerContext.document.documentElement.clientHeight = 600;
 windowListeners.resize[0]();
-fallbackFrame = [...frames.keys()][0];
-frames.get(fallbackFrame)();
-frames.delete(fallbackFrame);
+for (const [id, callback] of [...frames]) { callback(); frames.delete(id); }
 assert.equal(dialog.style.getPropertyValue('--sheet-height'), '420px',
   'missing visualViewport and nonfinite innerHeight fall back to clientHeight');
 const fallbackWrites = dialog.styleWriteCount;
 controllerContext.document.documentElement.clientHeight = -Infinity;
 windowListeners.resize[0]();
-fallbackFrame = [...frames.keys()][0];
-frames.get(fallbackFrame)();
-frames.delete(fallbackFrame);
+for (const [id, callback] of [...frames]) { callback(); frames.delete(id); }
 assert.equal(dialog.style.getPropertyValue('--sheet-height'), '420px');
 assert.equal(dialog.styleWriteCount, fallbackWrites, 'fully hostile viewport geometry cannot write an unbounded height');
 controllerContext.window.visualViewport = savedVisualViewport;
@@ -710,11 +698,10 @@ controllerContext.document.documentElement.clientHeight = 780;
 api.snap('fullscreen', true);
 measure.scrollHeight = 180;
 viewportListeners.resize[0]();
-assert.equal(frames.size, 0, 'fullscreen sheets ignore determined-height remeasurement');
+assert.equal(frames.size, 1, 'fullscreen sheets skip measurement while coalescing one fade frame');
+for (const [id, callback] of [...frames]) { callback(); frames.delete(id); }
 api.snap('determined', true);
-const restoreDeterminedFrame = [...frames.keys()][0];
-frames.get(restoreDeterminedFrame)();
-frames.delete(restoreDeterminedFrame);
+for (const [id, callback] of [...frames]) { callback(); frames.delete(id); }
 assert.equal(dialog.style.getPropertyValue('--sheet-height'), '224px');
 
 bodyPaddingStart = 10;
@@ -1531,18 +1518,14 @@ api.close('selector-history-chain-setup');
 api.open('selection', { page: 'books' });
 assert.equal(resizeObserverInstances.at(-1).targets[0], activePanelA,
   'selection measurement observes only the active panel, not a taller hidden panel');
-let selectionMeasureFrame = [...frames.keys()][0];
-frames.get(selectionMeasureFrame)();
-frames.delete(selectionMeasureFrame);
+for (const [id, callback] of [...frames]) { callback(); frames.delete(id); }
 assert.equal(dialog.style.getPropertyValue('--sheet-height'), '252px');
 const firstSelectionObserver = resizeObserverInstances.at(-2);
 activeMeasurementPanel = activePanelB;
 api.retarget();
 assert.ok(firstSelectionObserver.disconnected);
 assert.equal(resizeObserverInstances.at(-1).targets[0], activePanelB, 'page settle retargets the observer');
-selectionMeasureFrame = [...frames.keys()][0];
-frames.get(selectionMeasureFrame)();
-frames.delete(selectionMeasureFrame);
+for (const [id, callback] of [...frames]) { callback(); frames.delete(id); }
 assert.equal(dialog.style.getPropertyValue('--sheet-height'), '292px',
   'active page changes recompute without hidden persistent panel inflation');
 

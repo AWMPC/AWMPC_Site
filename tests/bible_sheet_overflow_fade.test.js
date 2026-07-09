@@ -51,9 +51,11 @@ test('overflow fade geometry is strict and uses a one-pixel edge tolerance', () 
 
 function fakeClassList() {
   const values = new Set();
+  let toggleCount = 0;
   return {
-    toggle(name, force) { if (force) values.add(name); else values.delete(name); },
-    contains(name) { return values.has(name); }
+    toggle(name, force) { toggleCount += 1; if (force) values.add(name); else values.delete(name); },
+    contains(name) { return values.has(name); },
+    get toggleCount() { return toggleCount; }
   };
 }
 
@@ -127,7 +129,7 @@ test('overflow lifecycle observes one scroller, coalesces work, retargets, and r
   assert.equal(h.body.listenerCount(), 1);
   assert.equal(h.observers.length, 1);
   assert.deepEqual(h.observers[0].targets, [h.body]);
-  assert.equal(h.frames.size, 0, 'initial state renders without competing with sheet measurement RAF');
+  assert.equal(h.frames.size, 1, 'install schedules one fade RAF');
 
   h.body.fire('scroll');
   h.observers[0].fire();
@@ -157,7 +159,10 @@ test('overflow lifecycle observes one scroller, coalesces work, retargets, and r
   assert.equal(h.fadeBottom.classList.contains('is-visible'), false);
 
   h.state.kind = 'selection';
+  h.api.schedule(h.state.generation);
+  const pendingRetargetFrame = [...h.frames.keys()][0];
   h.api.retarget();
+  assert.ok(h.cancelled.includes(pendingRetargetFrame), 'retarget cancels the pending prior-scroller RAF');
   assert.equal(h.body.listenerCount(), 0, 'generic body is released on selection retarget');
   assert.equal(h.firstPanel.listenerCount(), 1);
   assert.equal(h.observers.length, 2);
@@ -169,7 +174,10 @@ test('overflow lifecycle observes one scroller, coalesces work, retargets, and r
   assert.equal(h.observers.length, 3);
   assert.deepEqual(h.observers[2].targets, [h.secondPanel]);
 
+  const pendingCleanupFrame = [...h.frames.keys()][0];
   h.api.cleanup();
+  assert.ok(h.cancelled.includes(pendingCleanupFrame), 'cleanup cancels the pending active-scroller RAF');
+  assert.equal(h.frames.size, 0);
   h.api.cleanup();
   assert.equal(h.secondPanel.listenerCount(), 0);
   assert.equal(h.fadeTop.classList.contains('is-visible'), false);
@@ -178,6 +186,10 @@ test('overflow lifecycle observes one scroller, coalesces work, retargets, and r
   assert.equal(h.state.overflowObserver, null);
   assert.equal(h.state.overflowScroller, null);
   assert.equal(h.state.overflowListener, null);
+  assert.equal(h.body.addCount, h.body.removeCount);
+  assert.equal(h.firstPanel.addCount, h.firstPanel.removeCount);
+  assert.equal(h.secondPanel.addCount, h.secondPanel.removeCount);
+  assert.equal(h.observers.every(observer => observer.disconnectCount === 1), true);
 });
 
 test('overflow fades use decorative accessible surface gradients and respect platform modes', () => {
@@ -189,7 +201,11 @@ test('overflow fades use decorative accessible surface gradients and respect pla
   assert.match(bible, /\.selection-indicator\s*\{[^}]*z-index:\s*3/s);
   assert.match(bible, /@media \(prefers-reduced-motion: reduce\)[\s\S]*\.app-sheet-fade[\s\S]*transition-duration:\s*0s/);
   assert.match(bible, /@media \(forced-colors: active\)[\s\S]*\.app-sheet-fade[\s\S]*Canvas/);
-  assert.match(bible, /@media \(forced-colors: active\)[\s\S]*\.selection-indicator[\s\S]*box-shadow:\s*none/);
+  assert.match(bible, /@media \(forced-colors: active\)[\s\S]*\.app-sheet-fade-top\s*\{[^}]*forced-color-adjust:\s*none/);
+  assert.match(bible, /@media \(forced-colors: active\)[\s\S]*\.app-sheet-fade-bottom\s*\{[^}]*forced-color-adjust:\s*none/);
+  assert.match(bible, /@media \(forced-colors: active\)[\s\S]*\.selection-indicator\s*\{[^}]*forced-color-adjust:\s*auto[^}]*box-shadow:\s*none/);
+  assert.match(bible, /@media \(forced-colors: active\)[\s\S]*\.selection-indicator-dot\s*\{[^}]*background:\s*GrayText/);
+  assert.match(bible, /@media \(forced-colors: active\)[\s\S]*\.selection-indicator-dot\.is-active\s*\{[^}]*background:\s*Highlight/);
   assert.equal((bible.match(/class="app-sheet-fade app-sheet-fade-(?:top|bottom)" aria-hidden="true"/g) || []).length, 2);
 });
 
@@ -197,7 +213,27 @@ test('content, page-settle, snap, and viewport hooks schedule or retarget fades'
   assert.match(functionSource('renderAppSheetContent'), /installAppSheetOverflowFades\(currentAppSheetOverflowScroller\(\)\)/);
   assert.match(functionSource('finishSelectionPageSettle'), /retargetAppSheetOverflowFades\(\)/);
   assert.match(functionSource('setSelectionPage'), /shouldReduceVerseMotion\(\)[\s\S]*retargetAppSheetOverflowFades\(\)/);
-  assert.match(functionSource('setSheetSnap'), /renderAppSheetOverflowFades\(generation\)/);
-  assert.match(functionSource('applyTextScale'), /renderAppSheetOverflowFades\(appSheetState\.generation\)/);
+  assert.doesNotMatch(functionSource('setSheetSnap'), /renderAppSheetOverflowFades/);
+  assert.match(functionSource('setSheetSnap'), /scheduleAppSheetOverflowFades\(generation\)/);
+  assert.doesNotMatch(functionSource('installAppSheetListeners'), /renderAppSheetOverflowFades/);
+  assert.match(functionSource('installAppSheetListeners'), /scheduleAppSheetOverflowFades\(appSheetState\.generation\)/);
+  assert.doesNotMatch(functionSource('applyTextScale'), /renderAppSheetOverflowFades/);
+  assert.match(functionSource('applyTextScale'), /scheduleAppSheetOverflowFades\(appSheetState\.generation\)/);
   assert.match(functionSource('resetAppSheetState'), /cleanupAppSheetOverflowFades\(\)/);
+});
+
+test('all fade triggers coalesce into one pending lifecycle frame', () => {
+  const h = lifecycleHarness();
+  h.api.install(h.body);
+  const writesBeforeTriggers = h.fadeTop.classList.toggleCount;
+  h.api.schedule(h.state.generation); // snap
+  h.api.schedule(h.state.generation); // viewport
+  h.api.schedule(h.state.generation); // text scale
+  h.body.fire('scroll');
+  h.observers[0].fire();
+  assert.equal(h.frames.size, 1);
+  h.flush();
+  assert.equal(h.frames.size, 0);
+  assert.equal(h.fadeTop.classList.toggleCount, writesBeforeTriggers + 1,
+    'all triggers produce one fade render/write cycle');
 });

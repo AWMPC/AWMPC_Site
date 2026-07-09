@@ -1160,13 +1160,18 @@
   }
 
   @media (forced-colors: active) {
-    .app-sheet-fade-top { background: linear-gradient(to bottom, Canvas, transparent); }
-    .app-sheet-fade-bottom { background: linear-gradient(to top, Canvas, transparent); }
+    .app-sheet-fade-top {
+      forced-color-adjust: none; background: linear-gradient(to bottom, Canvas, transparent);
+    }
+    .app-sheet-fade-bottom {
+      forced-color-adjust: none; background: linear-gradient(to top, Canvas, transparent);
+    }
     .selection-indicator {
-      background: Canvas; color: CanvasText; border: 1px solid CanvasText; box-shadow: none;
+      forced-color-adjust: auto; background: Canvas; color: CanvasText;
+      border: 1px solid CanvasText; box-shadow: none;
       -webkit-backdrop-filter: none; backdrop-filter: none;
     }
-    .selection-indicator-dot { background: CanvasText; }
+    .selection-indicator-dot { background: GrayText; }
     .selection-indicator-dot.is-active { background: Highlight; }
   }
 
@@ -2710,7 +2715,7 @@
       });
       appSheetState.overflowObserver.observe(scroller);
     }
-    renderAppSheetOverflowFades(generation);
+    scheduleAppSheetOverflowFades(generation);
     return true;
   }
 
@@ -2859,7 +2864,7 @@
     appSheet.classList.toggle('snap-fullscreen', snap === 'fullscreen');
     appSheet.classList.remove('no-motion');
     syncAppSheetAccessibleState();
-    renderAppSheetOverflowFades(generation);
+    scheduleAppSheetOverflowFades(generation);
     if (synchronous) {
       appSheetState.phase = appSheet.open ? 'idle' : appSheetState.phase;
       if (snap === 'determined') scheduleAppSheetMeasurement(generation);
@@ -2870,7 +2875,7 @@
         appSheetState.settleTimer = null;
         appSheetState.phase = 'idle';
         if (appSheetState.snap === 'determined') scheduleAppSheetMeasurement(generation);
-        renderAppSheetOverflowFades(generation);
+        scheduleAppSheetOverflowFades(generation);
       }, 260);
     }
     return true;
@@ -3321,11 +3326,11 @@
     appSheetBody.addEventListener('touchcancel', onSelectionTouchCancel, { passive: false });
     window.addEventListener(['resize'][0], function () {
       scheduleAppSheetMeasurement(appSheetState.generation);
-      renderAppSheetOverflowFades(appSheetState.generation);
+      scheduleAppSheetOverflowFades(appSheetState.generation);
     });
     if (window.visualViewport) window.visualViewport.addEventListener(['resize'][0], function () {
       scheduleAppSheetMeasurement(appSheetState.generation);
-      renderAppSheetOverflowFades(appSheetState.generation);
+      scheduleAppSheetOverflowFades(appSheetState.generation);
     });
   }
   /* APP SHEET CONTROLLER END */
@@ -4532,7 +4537,7 @@
     scheduleMarqueeMeasure();
     scheduleSelectionGridLayout();
     if (typeof scheduleAppSheetMeasurement === 'function') scheduleAppSheetMeasurement(appSheetState.generation);
-    if (typeof renderAppSheetOverflowFades === 'function') renderAppSheetOverflowFades(appSheetState.generation);
+    if (typeof scheduleAppSheetOverflowFades === 'function') scheduleAppSheetOverflowFades(appSheetState.generation);
   }
   applyTextScale(State.getTextScale(), false);
   if (textScaleSelect) {
