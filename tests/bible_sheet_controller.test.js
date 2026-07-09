@@ -307,7 +307,8 @@ assert.equal(h.state({ view: 'verses', book: 'John', chapter: '3', verse: '16', 
 for (const field of ['kind', 'edge', 'snap', 'phase', 'generation', 'determinedHeight', 'candidate', 'gesture',
   'pointer', 'frame', 'measureFrame', 'settleTimer', 'historyTimer', 'resizeObserver', 'contentCleanup',
   'historyState', 'historyReturnGeneration', 'historyOwned', 'pendingHistoryClose', 'pendingPostCloseState',
-  'opener', 'focusPolicy']) {
+  'pendingPostCloseDestination',
+  'opener', 'nativeOpener', 'focusPolicy']) {
   assert.match(bible, new RegExp('var appSheetState = \\{[\\s\\S]*' + field + ':'), `state explicitly owns ${field}`);
 }
 assert.doesNotMatch(controllerFunction('openAppSheet'), /options\.(?:render|content)/);
@@ -936,9 +937,60 @@ api.pop({ view: 'verses', book: 'John', chapter: '3', verse: '16', sheet: { kind
 api.open('search', { opener: replacementOpener });
 assert.equal(opener.classList.contains('active'), false, 'owner replacement clears the prior launcher');
 assert.equal(replacementOpener.classList.contains('active'), true, 'owner replacement highlights only the new launcher');
-api.close('owner-replacement');
+assert.equal(api.state.nativeOpener, opener, 'replacement preserves the modal native restoration target');
+let replacementNativeTarget = api.state.nativeOpener;
+const originalBlurBeforeReplacement = opener.blurCount;
+controllerContext.document.activeElement = body;
+dialog.contains = node => node === body;
+dialog.onClose = () => { controllerContext.document.activeElement = replacementNativeTarget; };
+opener.onBlur = () => { controllerContext.document.activeElement = null; };
+api.close('owner-replacement', 'none');
 api.pop(currentReturnPopState());
 assert.equal(replacementOpener.classList.contains('active'), false);
+assert.equal(opener.blurCount, originalBlurBeforeReplacement + 1,
+  'none blurs the original native target after logical opener replacement');
+assert.notEqual(controllerContext.document.activeElement, opener);
+dialog.onClose = null;
+opener.onBlur = null;
+dialog.contains = () => false;
+
+controllerContext.document.activeElement = opener;
+api.open('history', { opener });
+api.open('search', { opener: replacementOpener });
+replacementNativeTarget = api.state.nativeOpener;
+const replacementFocusBefore = replacementOpener.focusCount;
+controllerContext.document.activeElement = body;
+dialog.contains = node => node === body;
+dialog.onClose = () => { controllerContext.document.activeElement = replacementNativeTarget; };
+replacementOpener.onFocus = () => { controllerContext.document.activeElement = replacementOpener; };
+api.close('owner-replacement-restore', 'restore-opener');
+api.pop(currentReturnPopState());
+assert.equal(replacementOpener.focusCount, replacementFocusBefore + 1,
+  'restore-opener focuses current logical opener B exactly once, not native target A');
+assert.equal(controllerContext.document.activeElement, replacementOpener);
+dialog.onClose = null;
+replacementOpener.onFocus = null;
+dialog.contains = () => false;
+
+controllerContext.document.activeElement = opener;
+api.open('history', { opener });
+api.open('search', { opener: replacementOpener });
+replacementNativeTarget = api.state.nativeOpener;
+const replacementReaderBefore = viewInner.focusCount;
+controllerContext.document.activeElement = body;
+dialog.contains = node => node === body;
+dialog.onClose = () => { controllerContext.document.activeElement = replacementNativeTarget; };
+viewInner.onFocus = () => { controllerContext.document.activeElement = viewInner; };
+api.close('owner-replacement-preserve');
+api.pop(currentReturnPopState());
+assert.equal(viewInner.focusCount, replacementReaderBefore + 1,
+  'preserve-or-reader evaluates invalid pre-close focus instead of native-restored A');
+assert.equal(controllerContext.document.activeElement, viewInner);
+viewInner.dispatch('focusout');
+dialog.onClose = null;
+viewInner.onFocus = null;
+dialog.contains = () => false;
+controllerContext.document.activeElement = opener;
 
 api.pop({ view: 'verses', book: 'John', chapter: '3', verse: '16', sheet: { kind: 'history' } });
 const readerFocusBefore = viewInner.focusCount;
@@ -1210,6 +1262,7 @@ const queuedSettingsState = {
 api.pop(queuedSearchState);
 assert.equal(api.state.phase, 'closing');
 assert.equal(api.state.pendingPostCloseState.sheet.kind, 'search', 'valid desired state queues during terminal close');
+assert.equal(api.state.pendingPostCloseDestination.kind, 'sheet');
 api.pop({
   ...queuedSettingsState,
   sheet: { ...queuedSettingsState.sheet, returnGeneration: queuedReturnGeneration + 999 }
@@ -1225,6 +1278,46 @@ assert.equal(api.state.pendingPostCloseState, null);
 assert.equal(opener.focusCount + viewInner.focusCount, queuedFocusBaseline, 'queued reopen cannot replace or double-run none focus');
 api.state.historyOwned = false;
 api.close('queued-state-cleanup', 'none');
+
+controllerContext.document.activeElement = opener;
+api.open('history', { opener, page: 'sheet-then-reader' });
+const sheetThenReaderGeneration = api.state.generation;
+const sheetThenReaderReturn = api.state.historyReturnGeneration;
+api.close('sheet-then-reader-close', 'none');
+const sheetThenReaderCallback = timers.get(api.state.historyTimer);
+api.pop({
+  view: 'verses', book: 'John', chapter: '3', verse: '16',
+  sheet: { kind: 'search', page: 'must-not-reopen', generation: sheetThenReaderGeneration,
+    returnGeneration: sheetThenReaderReturn }
+});
+assert.equal(api.state.pendingPostCloseState.sheet.kind, 'search');
+api.pop({ view: 'verses', book: 'John', chapter: '3', verse: '16',
+  sheetReturnGeneration: sheetThenReaderReturn });
+assert.equal(dialog.open, false, 'later accepted reader destination supersedes queued sheet before finish');
+assert.equal(api.state.pendingPostCloseState, null);
+sheetThenReaderCallback();
+assert.equal(dialog.open, false, 'late fallback cannot resurrect superseded sheet destination');
+
+controllerContext.document.activeElement = opener;
+api.open('history', { opener, page: 'reader-then-sheet' });
+const readerThenSheetGeneration = api.state.generation;
+const readerThenSheetReturn = api.state.historyReturnGeneration;
+api.close('reader-then-sheet-close', 'none');
+const readerThenSheetCallback = timers.get(api.state.historyTimer);
+api.pop({ view: 'verses', book: 'John', chapter: '3', verse: '16',
+  sheetReturnGeneration: readerThenSheetReturn });
+assert.equal(dialog.open, false);
+api.pop({
+  view: 'verses', book: 'John', chapter: '3', verse: '16',
+  sheet: { kind: 'search', page: 'latest-sheet', generation: readerThenSheetGeneration,
+    returnGeneration: readerThenSheetReturn }
+});
+assert.equal(dialog.open, true, 'later valid sheet event wins after accepted reader destination');
+assert.equal(api.state.kind, 'search');
+readerThenSheetCallback();
+assert.equal(api.state.kind, 'search', 'old close fallback cannot undo latest sheet event');
+api.state.historyOwned = false;
+api.close('reader-then-sheet-cleanup', 'none');
 
 api.open('history', { opener, page: 'stale-close-timer' });
 api.close('history-timer');
@@ -1456,7 +1549,8 @@ for (let cycle = 0; cycle < 3; cycle += 1) {
   api.pop(currentReturnPopState());
   assert.equal(dialog.open, false);
   for (const field of ['candidate', 'pointer', 'gesture', 'frame', 'measureFrame', 'settleTimer',
-    'historyTimer', 'resizeObserver', 'contentCleanup', 'closeGeneration', 'pendingPostCloseState']) {
+    'historyTimer', 'resizeObserver', 'contentCleanup', 'closeGeneration', 'pendingPostCloseState',
+    'pendingPostCloseDestination']) {
     assert.equal(api.state[field], null, `cycle ${cycle} releases ${field}`);
   }
   assert.equal(measure.textContent, '', `cycle ${cycle} releases rendered nodes`);

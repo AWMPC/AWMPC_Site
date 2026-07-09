@@ -2432,6 +2432,8 @@
     historyOwned: false,
     pendingHistoryClose: false,
     pendingPostCloseState: null,
+    pendingPostCloseDestination: null,
+    nativeOpener: null,
     focusPolicy: 'none',
     closeGeneration: null
   };
@@ -2643,11 +2645,11 @@
     try { viewInner.focus({ preventScroll: true }); } catch (e) { viewInner.focus(); }
   }
 
-  function applyAppSheetFocusPolicy(policy, opener, preCloseActive) {
+  function applyAppSheetFocusPolicy(policy, opener, nativeOpener, preCloseActive) {
     if (policy === 'none') {
       // A modal close may natively restore its invoker; blur only that browser-restored focus so pointer dismissal stays non-focusing.
-      if (opener && document.activeElement === opener && preCloseActive !== opener &&
-          typeof opener.blur === 'function') opener.blur();
+      if (nativeOpener && document.activeElement === nativeOpener && preCloseActive !== nativeOpener &&
+          typeof nativeOpener.blur === 'function') nativeOpener.blur();
       return;
     }
     if (policy === 'restore-opener') {
@@ -2715,6 +2717,8 @@
     appSheetState.historyOwned = false;
     appSheetState.pendingHistoryClose = false;
     appSheetState.pendingPostCloseState = null;
+    appSheetState.pendingPostCloseDestination = null;
+    appSheetState.nativeOpener = null;
     appSheetState.phase = 'closed';
     appSheetState.determinedHeight = 0;
     appSheetState.candidate = null;
@@ -2759,12 +2763,14 @@
   function finishCloseAppSheet() {
     var policy = appSheetState.focusPolicy;
     var opener = appSheetState.opener;
+    var nativeOpener = appSheetState.nativeOpener;
     var preCloseActive = document.activeElement;
-    var pendingState = appSheetState.pendingPostCloseState;
+    var pendingDestination = appSheetState.pendingPostCloseDestination;
     if (appSheet.open) appSheet.close();
     resetAppSheetState();
-    applyAppSheetFocusPolicy(policy, opener, preCloseActive);
-    if (pendingState) {
+    applyAppSheetFocusPolicy(policy, opener, nativeOpener, preCloseActive);
+    if (pendingDestination && pendingDestination.kind === 'sheet') {
+      var pendingState = pendingDestination.state;
       openAppSheet(pendingState.sheet.kind, {
         page: pendingState.sheet.page || null,
         edge: pendingState.sheet.kind === 'selection' ? selectionSheetEdge(window.innerWidth) : 'bottom',
@@ -2902,6 +2908,7 @@
     setSheetSnap(snap, true);
     renderAppSheetContent(descriptor);
     if (!wasOpen) {
+      appSheetState.nativeOpener = document.activeElement || appSheetState.opener;
       try { appSheet.showModal(); } catch (e) { resetAppSheetState(); return false; }
     }
     appSheetState.phase = 'idle';
@@ -2930,7 +2937,10 @@
     var validated = validatedAppSheetHistoryState(state);
     if (validated) {
       if (appSheet.open && appSheetState.phase === 'closing') {
-        if (isCurrentAppSheetHistoryToken(validated.sheet)) appSheetState.pendingPostCloseState = validated;
+        if (isCurrentAppSheetHistoryToken(validated.sheet)) {
+          appSheetState.pendingPostCloseState = validated;
+          appSheetState.pendingPostCloseDestination = { kind: 'sheet', state: validated };
+        }
         return true;
       }
       if (appSheet.open && !isCurrentAppSheetHistoryToken(validated.sheet)) return true;
@@ -2967,6 +2977,8 @@
            state.sheetReturnGeneration !== appSheetState.historyReturnGeneration)) return true;
       if (appSheetState.kind === 'selection' && state &&
           (state.view === 'books' || state.view === 'chapters' || state.view === 'verse-picker')) return false;
+      appSheetState.pendingPostCloseState = null;
+      appSheetState.pendingPostCloseDestination = { kind: 'reader' };
       appSheetState.historyOwned = false;
       appSheetState.pendingHistoryClose = false;
       requestCloseAppSheet('popstate');
