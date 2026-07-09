@@ -287,7 +287,7 @@ function runOpenWithHistory(historyState, source = bible) {
     var appSheetTitle = { textContent: '' };
     function isValidAppSheetKind(value) { return value === 'selection'; }
     function isValidAppSheetEdge(value) { return value === 'top' || value === 'bottom'; }
-    function isValidAppSheetSnap(value) { return value === 'compact' || value === 'fullscreen'; }
+    function isValidAppSheetSnap(value) { return value === 'determined' || value === 'fullscreen'; }
     function registerAppSheetDescriptor() {}
     function resolveAppSheetDescriptor() { return { title: 'Selection', render: function () {} }; }
     function sheetHistoryState() { return null; }

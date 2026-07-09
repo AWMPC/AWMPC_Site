@@ -14,7 +14,7 @@ assert.match(bible, /id="app-sheet-handle"[^>]*aria-label="Resize sheet"/);
 assert.match(bible, /id="app-sheet-close"[^>]*aria-label="Close"/);
 assert.match(bible, /id="app-sheet-body"[^>]*tabindex="0"/);
 assert.match(bible, /\.app-sheet\.edge-top/);
-assert.match(bible, /\.app-sheet\.snap-compact[\s\S]*70dvh/);
+assert.match(bible, /\.app-sheet\.snap-determined[\s\S]*70dvh/);
 assert.match(bible, /\.app-sheet\.snap-fullscreen[\s\S]*100dvh/);
 assert.match(bible, /\.app-sheet::backdrop[\s\S]*backdrop-filter: blur\(3px\)/);
 assert.match(bible, /env\(safe-area-inset-bottom/);
@@ -27,7 +27,11 @@ const pureEnd = bible.indexOf('/* APP SHEET PURE HELPERS END */');
 assert.ok(pureStart >= 0 && pureEnd > pureStart, 'pure sheet decisions are testable');
 const pureSource = bible.slice(pureStart, pureEnd) + '\nthis.hooks = {' +
   'validKind: isValidAppSheetKind, validEdge: isValidAppSheetEdge, validSnap: isValidAppSheetSnap,' +
-  'axis: appSheetAxis, boundary: appSheetBoundaryAllowsDrag, outcome: appSheetDragOutcome,' +
+  'finite: isFiniteAppSheetNumber, determinedHeight: appSheetDeterminedHeight,' +
+  'effectiveDistance: appSheetEffectiveSnapDistance, outcome: appSheetReleaseOutcome,' +
+  'axis: appSheetAxis, boundary: appSheetBoundaryAllowsDrag, phases: APP_SHEET_PHASES,' +
+  'constants: [APP_SHEET_AXIS_LOCK_PX, APP_SHEET_SNAP_PX, APP_SHEET_SNAP_VELOCITY,' +
+  'APP_SHEET_VELOCITY_RECENCY_MS, APP_SHEET_MAX_VELOCITY, APP_SHEET_CLICK_GUARD_MS],' +
   'state: validatedAppSheetHistoryState};';
 const context = { Math };
 vm.runInNewContext(pureSource, context);
@@ -39,7 +43,35 @@ assert.equal(h.validKind('__proto__'), false, 'kind enum rejects inherited/prope
 assert.equal(h.validEdge('top'), true);
 assert.equal(h.validEdge('side'), false);
 assert.equal(h.validSnap('fullscreen'), true);
+assert.equal(h.validSnap('determined'), true);
+assert.equal(h.validSnap('compact'), false);
 assert.equal(h.validSnap('half'), false);
+assert.deepEqual(Array.from(h.phases), ['closed', 'idle', 'dragging', 'settling', 'closing']);
+assert.deepEqual(Array.from(h.constants), [8, 80, .4, 80, 3, 500]);
+
+assert.equal(h.finite(0), true);
+assert.equal(h.finite(-1), true);
+assert.equal(h.finite('1'), false, 'numeric strings are not geometry');
+assert.equal(h.finite(Infinity), false);
+assert.equal(h.finite(-Infinity), false);
+assert.equal(h.finite(NaN), false);
+assert.equal(h.finite(new Number(1)), false);
+
+assert.equal(h.determinedHeight(176, 48, 800), 224, 'short content keeps its natural height');
+assert.equal(h.determinedHeight(900, 48, 800), 560, 'long content caps at floor(70dvh)');
+assert.equal(h.determinedHeight(0, 560.1, 800), null, 'fixed chrome that rounds above the cap is impossible');
+assert.equal(h.determinedHeight(0, 559.1, 800), 560, 'fixed chrome is rounded up before comparison');
+for (const args of [
+  [-1, 48, 800], [176, -1, 800], [176, 48, 0], [176, 48, -1],
+  [Infinity, 48, 800], [176, Infinity, 800], [176, 48, Infinity], ['176', 48, 800]
+]) assert.equal(h.determinedHeight(...args), null, `invalid determined height input: ${String(args)}`);
+
+assert.equal(h.effectiveDistance(40), 40);
+assert.equal(h.effectiveDistance(80), 80);
+assert.equal(h.effectiveDistance(120), 80);
+for (const value of [0, -1, Infinity, NaN, '40']) {
+  assert.equal(h.effectiveDistance(value), null, `invalid adjacent distance: ${String(value)}`);
+}
 
 assert.equal(h.axis(7, 7), null, 'axis remains unlocked before 8px');
 assert.equal(h.axis(9, 2), 'x', 'horizontal motion locks horizontal');
@@ -49,30 +81,39 @@ assert.equal(h.boundary('bottom', 1, 12, 100, 500), false, 'nested scroll consum
 assert.equal(h.boundary('top', -1, 400, 100, 500), true, 'top close drag starts at scroll bottom');
 assert.equal(h.boundary('top', -1, 350, 100, 500), false);
 
-assert.equal(h.outcome('bottom', 'compact', -90, -0.1), 'fullscreen');
-assert.equal(h.outcome('bottom', 'compact', 90, 0.1), 'closed');
-assert.equal(h.outcome('top', 'compact', 90, 0.1), 'fullscreen');
-assert.equal(h.outcome('top', 'compact', -90, -0.1), 'closed');
-assert.equal(h.outcome('bottom', 'compact', 10, 0.41), 'closed', 'velocity threshold dismisses');
-assert.equal(h.outcome('bottom', 'fullscreen', 90, 0.1), 'compact');
-assert.equal(h.outcome('top', 'fullscreen', -90, -0.1), 'compact');
-assert.equal(h.outcome('bottom', 'compact', 20, 0.1), 'compact');
-assert.equal(h.outcome('bottom', 'compact', 79, 0), 'compact');
-assert.equal(h.outcome('bottom', 'compact', 80, 0), 'compact');
-assert.equal(h.outcome('bottom', 'compact', 81, 0), 'closed', 'distance changes immediately above 80px');
-assert.equal(h.outcome('bottom', 'compact', 20, 0.399), 'compact');
-assert.equal(h.outcome('bottom', 'compact', 20, 0.4), 'compact');
-assert.equal(h.outcome('bottom', 'compact', 20, 0.401), 'closed', 'velocity changes immediately above .4px/ms');
-
-function outcomeFromMutation(find, replacement, displacement, velocity) {
-  const mutated = bible.slice(pureStart, pureEnd).replace(find, replacement);
-  assert.notEqual(mutated, bible.slice(pureStart, pureEnd), 'requested mutation must alter production source');
-  const mutatedContext = { Math };
-  vm.runInNewContext(mutated + '\nthis.outcome = appSheetDragOutcome;', mutatedContext);
-  return mutatedContext.outcome('bottom', 'compact', displacement, velocity);
-}
-assert.equal(outcomeFromMutation(/> 80/g, '> 89', 81, 0), 'compact', '80-to-89 mutation is killed');
-assert.equal(outcomeFromMutation(/> \.4/g, '> .405', 20, 0.401), 'compact', '.4-to-.405 mutation is killed');
+const release = (edge, snap, displacement, velocity, determinedHeight = 224, viewportHeight = 800,
+  velocityAge = 0) => h.outcome(edge, snap, displacement, velocity, determinedHeight, viewportHeight, velocityAge);
+assert.equal(release('bottom', 'determined', -80, -0.1), 'fullscreen', 'bottom inward expands at threshold');
+assert.equal(release('bottom', 'determined', 80, 0.1), 'closed', 'bottom outward closes at threshold');
+assert.equal(release('top', 'determined', 80, 0.1), 'fullscreen', 'top inward expands at threshold');
+assert.equal(release('top', 'determined', -80, -0.1), 'closed', 'top outward closes at threshold');
+assert.equal(release('bottom', 'fullscreen', 80, 0.1), 'determined', 'fullscreen moves outward only');
+assert.equal(release('top', 'fullscreen', -80, -0.1), 'determined');
+assert.equal(release('bottom', 'fullscreen', -1000, -3), 'fullscreen', 'fullscreen has no inward state');
+assert.equal(release('bottom', 'fullscreen', 1000, 3), 'determined', 'large movement advances one state only');
+assert.equal(release('bottom', 'determined', 79.999, 0), 'determined', 'below threshold stays put');
+assert.equal(release('bottom', 'determined', 10, .4, 224, 800, 80), 'closed',
+  'same-direction velocity qualifies through the exact recency window');
+assert.equal(release('bottom', 'determined', 0, .4, 224, 800, 81), 'determined', 'expired velocity is ignored');
+assert.equal(release('bottom', 'determined', -10, .4), 'determined',
+  'outward velocity is ignored after inward displacement');
+assert.equal(release('bottom', 'determined', 10, -.4), 'determined',
+  'inward velocity is ignored after outward displacement');
+assert.equal(release('bottom', 'determined', 40, 0, 40, 800), 'closed',
+  'short close distance is the effective threshold');
+assert.equal(release('bottom', 'determined', 39.999, 0, 40, 800), 'determined');
+assert.equal(release('bottom', 'determined', -40, 0, 560, 600), 'fullscreen',
+  'short expand distance is direction-specific');
+assert.equal(release('bottom', 'determined', -39.999, 0, 560, 600), 'determined');
+for (const args of [
+  ['side', 'determined', 80, 0, 224, 800, 0],
+  ['bottom', 'compact', 80, 0, 224, 800, 0],
+  ['bottom', 'determined', '80', 0, 224, 800, 0],
+  ['bottom', 'determined', 80, Infinity, 224, 800, 0],
+  ['bottom', 'determined', 80, 0, '224', 800, 0],
+  ['bottom', 'determined', 80, 0, 224, 800, -1],
+  ['bottom', 'determined', 80, 0, 800, 800, 0]
+]) assert.equal(h.outcome(...args), null, `invalid release input: ${String(args)}`);
 
 const validState = h.state({
   view: 'verses', book: 'John', chapter: '3', verse: '16',
@@ -200,6 +241,7 @@ const controllerContext = {
   fabMain,
   document: { activeElement: opener },
   window: {
+    innerHeight: 800,
     clearTimeout(id) { cancelledTimers.push(id); timers.delete(id); },
     setTimeout(fn) { const id = nextTimer++; timers.set(id, fn); return id; },
     getSelection() { return { isCollapsed: !textSelectionActive }; },
@@ -370,7 +412,7 @@ api.pop({ view: 'verses', book: 'John', chapter: '3', verse: '16', sheet: { kind
 assert.ok(cancelledTimers.includes(pendingSettleTimer), 'reopen cancels the pending settle timer');
 reduceMotion = true;
 
-api.snap('compact', true);
+api.snap('determined', true);
 const releasesBeforePointerUp = handle.releaseCount;
 handle.dispatch('pointerdown', {
   isPrimary: true, button: 0, pointerId: 9, clientX: 20, clientY: 120, timeStamp: 1
@@ -449,7 +491,7 @@ assert.equal(bodyPrevented, 1);
 body.dispatch('pointercancel', { pointerId: 21, clientY: 35 });
 assert.equal(body.hasPointerCapture(21), false);
 
-api.snap('compact', true);
+api.snap('determined', true);
 body.scrollTop = 0;
 body.dispatch('pointerdown', {
   isPrimary: true, button: 0, pointerId: 40, clientX: 10, clientY: 10, timeStamp: 100
@@ -469,8 +511,8 @@ assert.equal(api.state.pointer, null, 'boundary reversal clears an applied body 
 assert.equal(body.hasPointerCapture(40), false);
 assert.equal(dialog.style.getPropertyValue('--sheet-drag-offset'), '');
 assert.equal(dialog.style.getPropertyValue('--sheet-backdrop-opacity'), '');
-assert.equal(api.state.snap, 'compact');
-assert.equal(dialog.classList.contains('snap-compact'), true);
+assert.equal(api.state.snap, 'determined');
+assert.equal(dialog.classList.contains('snap-determined'), true);
 assert.equal(dialog.classList.contains('no-motion'), false, 'boundary reset restores stable transitions');
 
 body.dispatch('pointerdown', {
@@ -490,7 +532,7 @@ assert.ok(cancelledFrames.includes(pendingBodyFrame), 'boundary reversal cancels
 assert.equal(body.hasPointerCapture(41), false);
 assert.equal(dialog.style.getPropertyValue('--sheet-drag-offset'), '');
 assert.equal(dialog.style.getPropertyValue('--sheet-backdrop-opacity'), '');
-assert.equal(api.state.snap, 'compact');
+assert.equal(api.state.snap, 'determined');
 
 const interactiveTarget = { closest() { return this; } };
 body.dispatch('pointerdown', {
@@ -532,6 +574,6 @@ handle.dispatch('pointermove', {
   pointerId: 31, clientX: 11, clientY: 120, timeStamp: 320, preventDefault() {}
 });
 handle.dispatch('pointerup', { pointerId: 31, clientY: 120, timeStamp: 400 });
-assert.equal(api.state.snap, 'compact', 'velocity remains fresh through the exact 80ms window');
+assert.equal(api.state.snap, 'determined', 'velocity remains fresh through the exact 80ms window');
 
 console.log('bible sheet controller tests passed');

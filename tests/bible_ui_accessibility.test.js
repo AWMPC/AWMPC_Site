@@ -226,7 +226,7 @@ assert.doesNotMatch(bible, /authArea\.appendChild\(outBtn\);/);
 assert.match(bible, /inBtn\.className = 'dd-item dd-signin-button';/);
 
 assert.match(bible, /id="fn-verse"/);
-assert.match(bible, /<dialog id="app-sheet" class="app-sheet edge-bottom snap-compact" aria-labelledby="app-sheet-title">/);
+assert.match(bible, /<dialog id="app-sheet" class="app-sheet edge-bottom snap-determined" aria-labelledby="app-sheet-title">/);
 assert.match(bible, /<button type="button" id="app-sheet-close" class="app-sheet-close" aria-label="Close">/);
 assert.match(bible, /function showVersePickerView\(bookName, chapterNum\)/);
 assert.match(bible, /view: 'verse-picker'/);

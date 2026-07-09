@@ -1038,7 +1038,7 @@
     transition-duration: 240ms, 240ms, 190ms;
     transition-timing-function: var(--motion-ease);
   }
-  .app-sheet.snap-compact { height: min(70dvh, 720px); }
+  .app-sheet.snap-determined { height: min(70dvh, 720px); }
   .app-sheet.snap-fullscreen { height: 100dvh; border-radius: 0; }
   .app-sheet.edge-top {
     margin: 0 0 auto;
@@ -1389,7 +1389,7 @@
 
 <div id="status-live" class="sr-only" aria-live="polite" aria-atomic="true"></div>
 
-<dialog id="app-sheet" class="app-sheet edge-bottom snap-compact" aria-labelledby="app-sheet-title">
+<dialog id="app-sheet" class="app-sheet edge-bottom snap-determined" aria-labelledby="app-sheet-title">
   <div class="app-sheet-shell">
     <button type="button" id="app-sheet-handle" class="app-sheet-handle" aria-label="Resize sheet"></button>
     <header class="app-sheet-header">
@@ -2264,32 +2264,76 @@
   /* APP SHEET PURE HELPERS START */
   var APP_SHEET_KINDS = ['history', 'settings', 'search', 'selection', 'verse-actions'];
   var APP_SHEET_EDGES = ['top', 'bottom'];
-  var APP_SHEET_SNAPS = ['compact', 'fullscreen'];
+  var APP_SHEET_SNAPS = ['determined', 'fullscreen'];
+  var APP_SHEET_PHASES = ['closed', 'idle', 'dragging', 'settling', 'closing'];
+  var APP_SHEET_AXIS_LOCK_PX = 8;
+  var APP_SHEET_SNAP_PX = 80;
+  var APP_SHEET_SNAP_VELOCITY = .4;
+  var APP_SHEET_VELOCITY_RECENCY_MS = 80;
+  var APP_SHEET_MAX_VELOCITY = 3;
+  var APP_SHEET_CLICK_GUARD_MS = 500;
   function appSheetEnumHas(values, value) { return typeof value === 'string' && values.indexOf(value) !== -1; }
   function isValidAppSheetKind(value) { return appSheetEnumHas(APP_SHEET_KINDS, value); }
   function isValidAppSheetEdge(value) { return appSheetEnumHas(APP_SHEET_EDGES, value); }
   function isValidAppSheetSnap(value) { return appSheetEnumHas(APP_SHEET_SNAPS, value); }
+  function isFiniteAppSheetNumber(value) { return typeof value === 'number' && Number.isFinite(value); }
+  function appSheetDeterminedHeight(contentHeight, chromeHeight, viewportHeight) {
+    if (!isFiniteAppSheetNumber(contentHeight) || contentHeight < 0 ||
+        !isFiniteAppSheetNumber(chromeHeight) || chromeHeight < 0 ||
+        !isFiniteAppSheetNumber(viewportHeight) || viewportHeight <= 0) return null;
+    var cap = Math.floor(viewportHeight * .7);
+    var fixed = Math.ceil(chromeHeight);
+    if (fixed > cap) return null;
+    return Math.max(fixed, Math.min(Math.ceil(contentHeight + chromeHeight), cap));
+  }
+  function appSheetEffectiveSnapDistance(adjacentDistance) {
+    if (!isFiniteAppSheetNumber(adjacentDistance) || adjacentDistance <= 0) return null;
+    return Math.min(APP_SHEET_SNAP_PX, adjacentDistance);
+  }
+  function appSheetReleaseOutcome(edge, snap, displacement, velocity, determinedHeight, viewportHeight, velocityAge) {
+    if (!isValidAppSheetEdge(edge) || !isValidAppSheetSnap(snap) ||
+        !isFiniteAppSheetNumber(displacement) || !isFiniteAppSheetNumber(velocity) ||
+        !isFiniteAppSheetNumber(determinedHeight) || determinedHeight <= 0 ||
+        !isFiniteAppSheetNumber(viewportHeight) || viewportHeight <= determinedHeight ||
+        !isFiniteAppSheetNumber(velocityAge) || velocityAge < 0) return null;
+    var inwardSign = edge === 'bottom' ? -1 : 1;
+    var displacementDirection = displacement === 0 ? 0 : (displacement * inwardSign > 0 ? 1 : -1);
+    var clampedVelocity = Math.max(-APP_SHEET_MAX_VELOCITY, Math.min(APP_SHEET_MAX_VELOCITY, velocity));
+    var velocityDirection = clampedVelocity === 0 ? 0 : (clampedVelocity * inwardSign > 0 ? 1 : -1);
+    var velocityQualifies = velocityAge <= APP_SHEET_VELOCITY_RECENCY_MS &&
+      Math.abs(clampedVelocity) >= APP_SHEET_SNAP_VELOCITY;
+    if (displacementDirection && velocityDirection && displacementDirection !== velocityDirection) {
+      velocityQualifies = false;
+    }
+    function outcomeForDirection(direction) {
+      if (snap === 'fullscreen') return direction < 0 ? 'determined' : 'fullscreen';
+      return direction > 0 ? 'fullscreen' : 'closed';
+    }
+    function adjacentDistanceForDirection(direction) {
+      if (snap === 'fullscreen') return direction < 0 ? viewportHeight - determinedHeight : null;
+      return direction > 0 ? viewportHeight - determinedHeight : determinedHeight;
+    }
+    if (displacementDirection) {
+      var displacementDistance = appSheetEffectiveSnapDistance(adjacentDistanceForDirection(displacementDirection));
+      if (displacementDistance !== null && Math.abs(displacement) >= displacementDistance) {
+        return outcomeForDirection(displacementDirection);
+      }
+    }
+    if (velocityQualifies) {
+      var velocityDistance = appSheetEffectiveSnapDistance(adjacentDistanceForDirection(velocityDirection));
+      if (velocityDistance !== null) return outcomeForDirection(velocityDirection);
+    }
+    return snap;
+  }
   function appSheetAxis(dx, dy) {
-    if (Math.max(Math.abs(dx), Math.abs(dy)) < 8) return null;
+    var lockDistance = typeof APP_SHEET_AXIS_LOCK_PX === 'number' ? APP_SHEET_AXIS_LOCK_PX : 8;
+    if (Math.max(Math.abs(dx), Math.abs(dy)) < lockDistance) return null;
     return Math.abs(dx) > Math.abs(dy) ? 'x' : 'y';
   }
   function appSheetBoundaryAllowsDrag(edge, direction, scrollTop, clientHeight, scrollHeight) {
     if (edge === 'bottom' && direction > 0) return scrollTop <= 1;
     if (edge === 'top' && direction < 0) return scrollTop + clientHeight >= scrollHeight - 1;
     return true;
-  }
-  function appSheetDragOutcome(edge, snap, displacement, velocity) {
-    var inward = edge === 'bottom' ? displacement < 0 : displacement > 0;
-    var outward = edge === 'bottom' ? displacement > 0 : displacement < 0;
-    var fastInward = edge === 'bottom' ? velocity < -.4 : velocity > .4;
-    var fastOutward = edge === 'bottom' ? velocity > .4 : velocity < -.4;
-    if (snap === 'fullscreen') {
-      if ((outward && Math.abs(displacement) > 80) || fastOutward) return 'compact';
-      return 'fullscreen';
-    }
-    if ((inward && Math.abs(displacement) > 80) || fastInward) return 'fullscreen';
-    if ((outward && Math.abs(displacement) > 80) || fastOutward) return 'closed';
-    return 'compact';
   }
   function validatedAppSheetHistoryState(state) {
     if (!state || state.view !== 'verses' || typeof state.book !== 'string' || !state.book ||
@@ -2328,7 +2372,7 @@
   var appSheetState = {
     kind: null,
     edge: 'bottom',
-    snap: 'compact',
+    snap: 'determined',
     page: null,
     opener: null,
     pointer: null,
@@ -2342,7 +2386,6 @@
   };
   var appSheetListenersInstalled = false;
   var appSheetDescriptors = Object.create(null);
-  var APP_SHEET_VELOCITY_RECENCY_MS = 80;
 
   function registerAppSheetDescriptor(kind, descriptor) {
     if (!isValidAppSheetKind(kind) || !descriptor || typeof descriptor.title !== 'string' ||
@@ -2426,7 +2469,7 @@
     restoreAppSheetFocus();
     appSheetState.kind = null;
     appSheetState.edge = 'bottom';
-    appSheetState.snap = 'compact';
+    appSheetState.snap = 'determined';
     appSheetState.page = null;
     appSheetState.historyState = null;
     appSheetState.opener = null;
@@ -2434,7 +2477,7 @@
     appSheetState.pendingHistoryClose = false;
     appSheetState.closing = false;
     appSheet.classList.remove('edge-top', 'snap-fullscreen');
-    appSheet.classList.add('edge-bottom', 'snap-compact');
+    appSheet.classList.add('edge-bottom', 'snap-determined');
     appSheetTitle.textContent = 'Panel';
     syncAppSheetLauncherState();
   }
@@ -2443,7 +2486,7 @@
     if (!isValidAppSheetSnap(snap)) return false;
     appSheetState.snap = snap;
     if (immediate || shouldReduceVerseMotion()) appSheet.classList.add('no-motion');
-    appSheet.classList.toggle('snap-compact', snap === 'compact');
+    appSheet.classList.toggle('snap-determined', snap === 'determined');
     appSheet.classList.toggle('snap-fullscreen', snap === 'fullscreen');
     appSheet.offsetHeight;
     appSheet.classList.remove('no-motion');
@@ -2521,7 +2564,7 @@
     if (!isValidAppSheetKind(kind)) return false;
     if (appSheetState.pendingHistoryClose && !options.fromPop) return false;
     var edge = options.edge == null ? 'bottom' : options.edge;
-    var snap = options.snap == null ? 'compact' : options.snap;
+    var snap = options.snap == null ? 'determined' : options.snap;
     var page = options.page == null ? null : options.page;
     if (!isValidAppSheetEdge(edge) || !isValidAppSheetSnap(snap) || (page != null && typeof page !== 'string')) return false;
     if (typeof options.render === 'function') {
@@ -2705,12 +2748,16 @@
     if (!pointer || pointer.id !== e.pointerId) return;
     var displacement = e.clientY == null ? pointer.lastY - pointer.startY : e.clientY - pointer.startY;
     var endTime = e.timeStamp || Date.now();
-    var velocity = pointer.lastMoveTime !== null &&
-      endTime - pointer.lastMoveTime <= APP_SHEET_VELOCITY_RECENCY_MS ? pointer.velocity : 0;
+    var velocityAge = pointer.lastMoveTime === null ? APP_SHEET_VELOCITY_RECENCY_MS + 1 :
+      Math.max(0, endTime - pointer.lastMoveTime);
+    var viewportHeight = window.innerHeight;
+    var determinedHeight = Math.min(appSheet.offsetHeight, Math.floor(viewportHeight * .7));
     var outcome = cancelled || pointer.axis !== 'y' ? appSheetState.snap :
-      appSheetDragOutcome(appSheetState.edge, appSheetState.snap, displacement, velocity);
+      appSheetReleaseOutcome(appSheetState.edge, appSheetState.snap, displacement, pointer.velocity,
+        determinedHeight, viewportHeight, velocityAge);
     clearAppSheetMotion();
-    if (outcome === 'closed') requestCloseAppSheet('drag');
+    if (outcome === null) setSheetSnap(appSheetState.snap, shouldReduceVerseMotion());
+    else if (outcome === 'closed') requestCloseAppSheet('drag');
     else setSheetSnap(outcome, shouldReduceVerseMotion());
   }
 
@@ -2722,7 +2769,7 @@
     appSheet.addEventListener('click', function (e) { if (e.target === appSheet) requestCloseAppSheet('backdrop'); });
     appSheetHandle.addEventListener('pointerdown', onAppSheetPointerDown);
     appSheetHandle.addEventListener('click', function (e) {
-      if (e.detail === 0) setSheetSnap(appSheetState.snap === 'compact' ? 'fullscreen' : 'compact', false);
+      if (e.detail === 0) setSheetSnap(appSheetState.snap === 'determined' ? 'fullscreen' : 'determined', false);
     });
     appSheetHandle.addEventListener('pointermove', onAppSheetPointerMove);
     appSheetHandle.addEventListener('pointerup', function (e) { settleAppSheetPointer(e, false); });
