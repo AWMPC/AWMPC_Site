@@ -3353,6 +3353,8 @@
   var selectionPointerFrame = null;
   var selectionClickGuard = null;
   var selectionClickGuardTimer = null;
+  var selectionCompatibilityGuard = null;
+  var selectionCompatibilityGuardTimer = null;
   var selectionTouchIdentifiers = new Map();
   var selectionRetargetFrame = null;
   var selectionRetargetTimer = null;
@@ -3360,7 +3362,9 @@
   var selectionMediaListener = null;
   var SELECTION_POINTER_RECENCY_MS = 80;
   var SELECTION_CLICK_GUARD_MS = 500;
+  var SELECTION_COMPATIBILITY_GUARD_MS = 500;
   var SELECTION_TOUCH_TIMEOUT_MS = 1200;
+  var SELECTION_ENDPOINT_RESISTANCE_PX = 32;
 
   function currentSelectionReaderReference() {
     var verse = activeVerse || recalledChapterVerse(navBook, navChapter) || '1';
@@ -3695,12 +3699,53 @@
     return true;
   }
 
+  function clearSelectionCompatibilityGuard() {
+    if (selectionCompatibilityGuardTimer !== null) window.clearTimeout(selectionCompatibilityGuardTimer);
+    selectionCompatibilityGuardTimer = null;
+    selectionCompatibilityGuard = null;
+  }
+
+  function rememberSelectionTouchCompatibility(entry) {
+    clearSelectionCompatibilityGuard();
+    if (!entry || entry.generation !== appSheetState.generation) return;
+    selectionCompatibilityGuard = { target: entry.target, generation: entry.generation,
+      expiresAt: Date.now() + SELECTION_COMPATIBILITY_GUARD_MS };
+    selectionCompatibilityGuardTimer = window.setTimeout(clearSelectionCompatibilityGuard,
+      SELECTION_COMPATIBILITY_GUARD_MS);
+  }
+
+  function isSelectionCompatibilityPointer(e) {
+    if (e.pointerType === 'touch') return true;
+    if (!selectionCompatibilityGuard) return false;
+    if (selectionCompatibilityGuard.generation !== appSheetState.generation ||
+        Date.now() > selectionCompatibilityGuard.expiresAt) {
+      clearSelectionCompatibilityGuard();
+      return false;
+    }
+    return (e.pointerType === 'mouse' || !e.pointerType) &&
+      selectionCellTarget(e.target) === selectionCompatibilityGuard.target;
+  }
+
+  function resetSelectionPointerToStablePage() {
+    if (selectionPointerFrame !== null) cancelAnimationFrame(selectionPointerFrame);
+    selectionPointerFrame = null;
+    releaseSelectionPointer();
+    if (selectionTrack) {
+      selectionTrack.classList.add('no-motion');
+      selectionTrack.style.transform = 'translateX(' +
+        (-100 * selectionPages.indexOf(selectionSheetPage)) + '%)';
+    }
+  }
+
   function renderSelectionPointerFrame(pointer) {
     selectionPointerFrame = null;
     if (!selectionPointer || selectionPointer !== pointer || pointer.axis !== 'x' || !selectionTrack) return;
     var index = selectionPages.indexOf(selectionSheetPage);
-    var dx = pointer.pendingX;
-    if ((index === 0 && dx > 0) || (index === selectionPages.length - 1 && dx < 0)) dx *= .28;
+    var dx = typeof pointer.pendingX === 'number' && isFinite(pointer.pendingX) ? pointer.pendingX : 0;
+    if ((index === 0 && dx > 0) || (index === selectionPages.length - 1 && dx < 0)) {
+      dx = Math.max(-SELECTION_ENDPOINT_RESISTANCE_PX,
+        Math.min(SELECTION_ENDPOINT_RESISTANCE_PX, dx * .28));
+    }
     selectionTrack.classList.add('no-motion');
     selectionTrack.style.transform = 'translateX(calc(' + (-100 * index) + '% + ' + dx + 'px))';
   }
@@ -3715,8 +3760,16 @@
   }
 
   function onSelectionPointerDown(e) {
-    if (!e.isPrimary || e.button !== 0 || (selectionTouchIdentifiers.size && e.adapter !== 'touch') ||
+    if (!e.isPrimary || e.button !== 0 || (e.adapter !== 'touch' && isSelectionCompatibilityPointer(e)) ||
         !selectionPointerTargetAllowsSwipe(e.target)) return;
+    if (selectionTouchIdentifiers.size && e.adapter !== 'touch') {
+      if (e.pointerType === 'pen') cancelSelectionTouchCollision();
+      return;
+    }
+    if (selectionPointer && selectionPointer.id !== e.pointerId) {
+      resetSelectionPointerToStablePage();
+      return;
+    }
     releaseSelectionPointer();
     selectionPointer = {
       id: e.pointerId, startX: e.clientX, startY: e.clientY, lastX: e.clientX,
@@ -3817,6 +3870,15 @@
     selectionTouchIdentifiers.delete(identifier);
   }
 
+  function cancelSelectionTouchCollision() {
+    var entries = Array.from(selectionTouchIdentifiers.values());
+    resetSelectionPointerToStablePage();
+    for (var i = 0; i < entries.length; i++) {
+      rememberSelectionTouchCompatibility(entries[i]);
+      clearSelectionTouch(entries[i].identifier);
+    }
+  }
+
   function selectionTouchInput(entry, touch, event) {
     return {
       pointerId: entry.pointerId, clientX: touch.clientX, clientY: touch.clientY,
@@ -3827,8 +3889,11 @@
   }
 
   function onSelectionTouchStart(e) {
-    if (selectionTouchIdentifiers.size || !e.changedTouches || !e.changedTouches.length ||
-        !selectionPointerTargetAllowsSwipe(e.target)) return;
+    if (selectionTouchIdentifiers.size) {
+      cancelSelectionTouchCollision();
+      return;
+    }
+    if (!e.changedTouches || !e.changedTouches.length || !selectionPointerTargetAllowsSwipe(e.target)) return;
     var touch = e.changedTouches[0];
     var identifier = touch.identifier;
     var entry = { identifier: identifier, pointerId: -(identifier + 1), target: selectionCellTarget(e.target),
@@ -3883,6 +3948,7 @@
     if (appSheetState.pointer && appSheetState.pointer.id === entry.pointerId) {
       if (cancelled) cancelAppSheetGesture(input); else finishAppSheetGesture(input);
     } else if (appSheetState.candidate && appSheetState.candidate.id === entry.pointerId) cancelAppSheetGesture(input);
+    rememberSelectionTouchCompatibility(entry);
     clearSelectionTouch(entry.identifier);
   }
 
@@ -3910,6 +3976,7 @@
     if (selectionPointerFrame !== null) cancelAnimationFrame(selectionPointerFrame);
     selectionPointerFrame = null;
     clearSelectionClickGuard();
+    clearSelectionCompatibilityGuard();
     selectionTouchIdentifiers.forEach(function (entry, identifier) { clearSelectionTouch(identifier); });
     if (selectionRetargetFrame !== null) cancelAnimationFrame(selectionRetargetFrame);
     if (selectionRetargetTimer !== null) window.clearTimeout(selectionRetargetTimer);

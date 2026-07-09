@@ -573,7 +573,9 @@ function runGestureProgram(source = bible, selectionCollapsed = true) {
   const axis = extractFrom(source, /function appSheetAxis\(dx, dy\) \{[\s\S]*?\n  \}/, 'axis helper missing');
   const names = [
     'selectionPointerTargetAllowsSwipe', 'selectionCellTarget', 'clearSelectionClickGuard',
-    'armSelectionClickGuard', 'guardSelectionClick', 'renderSelectionPointerFrame', 'releaseSelectionPointer', 'onSelectionPointerDown',
+    'armSelectionClickGuard', 'guardSelectionClick', 'clearSelectionCompatibilityGuard',
+    'rememberSelectionTouchCompatibility', 'isSelectionCompatibilityPointer',
+    'resetSelectionPointerToStablePage', 'renderSelectionPointerFrame', 'releaseSelectionPointer', 'onSelectionPointerDown',
     'onSelectionPointerMove', 'settleSelectionPointer', 'onSelectionPointerUp',
     'onSelectionPointerCancel', 'onSelectionLostPointerCapture'
   ];
@@ -597,9 +599,13 @@ function runGestureProgram(source = bible, selectionCollapsed = true) {
     var selectionTouchIdentifiers = new Map();
     var selectionClickGuard = null;
     var selectionClickGuardTimer = null;
+    var selectionCompatibilityGuard = null;
+    var selectionCompatibilityGuardTimer = null;
     var appSheetState = { generation: 1 };
     var SELECTION_POINTER_RECENCY_MS = 80;
     var SELECTION_CLICK_GUARD_MS = 500;
+    var SELECTION_COMPATIBILITY_GUARD_MS = 500;
+    var SELECTION_ENDPOINT_RESISTANCE_PX = 32;
     function requestAnimationFrame(fn) { fn(); return 1; }
     function cancelAnimationFrame() {}
     function setSelectionPage(page) { selectionSheetPage = page; pages.push(page); }
@@ -610,6 +616,8 @@ function runGestureProgram(source = bible, selectionCollapsed = true) {
       guardClick: guardSelectionClick,
       guardArmed: function () { return !!selectionClickGuard; },
       track: function () { return selectionTrack.style.transform; },
+      setPage: function (page) { selectionSheetPage = page; selectionTrack.style.transform =
+        'translateX(' + (-100 * selectionPages.indexOf(page)) + '%)'; },
       page: function () { return selectionSheetPage; }, pointer: function () { return selectionPointer; }
     };
   `)({
@@ -770,6 +778,49 @@ test('real book, chapter, and verse cells support pen and mouse paging with one-
   }
 });
 
+test('a different pointer cancels candidate and claimed paging without adopting either pointer', () => {
+  const target = gridTarget('.chapter-btn');
+  const candidate = runGestureProgram();
+  candidate.api.down(pointerEvent(70, 180, 40, 1, target));
+  candidate.api.down(pointerEvent(71, 170, 40, 2, target));
+  assert.equal(candidate.api.pointer(), null);
+  assert.equal(candidate.api.track(), 'translateX(-100%)');
+  candidate.api.move(pointerEvent(70, 50, 40, 10, target));
+  candidate.api.move(pointerEvent(71, 50, 40, 11, target));
+  assert.equal(candidate.api.page(), 'chapters');
+
+  const claimed = runGestureProgram();
+  claimed.api.down(pointerEvent(72, 180, 40, 1, target));
+  claimed.api.move(pointerEvent(72, 80, 40, 10, target));
+  claimed.api.down(pointerEvent(73, 170, 40, 11, target));
+  assert.equal(claimed.api.pointer(), null);
+  assert.equal(claimed.api.track(), 'translateX(-100%)');
+  claimed.api.up(pointerEvent(72, 40, 40, 20, target));
+  claimed.api.up(pointerEvent(73, 40, 40, 21, target));
+  assert.equal(claimed.api.page(), 'chapters');
+});
+
+test('endpoint resistance is finite and bounded for hostile huge displacement', () => {
+  const target = gridTarget('.book-btn');
+  const h = runGestureProgram();
+  h.api.setPage('books');
+  h.api.down(pointerEvent(80, 0, 40, 1, target));
+  h.api.move(pointerEvent(80, Number.MAX_VALUE, 40, 10, target));
+  const booksTransform = h.api.track();
+  assert.doesNotMatch(booksTransform, /NaN|Infinity/);
+  assert.match(booksTransform, /\+ 32px/);
+  h.api.cancel(pointerEvent(80, Number.MAX_VALUE, 40, 11, target));
+
+  h.api.setPage('verses');
+  h.api.down(pointerEvent(81, 0, 40, 20, target));
+  h.api.move(pointerEvent(81, -Number.MAX_VALUE, 40, 30, target));
+  const versesTransform = h.api.track();
+  assert.doesNotMatch(versesTransform, /NaN|Infinity/);
+  assert.match(versesTransform, /\+ -32px/);
+  h.api.up(pointerEvent(81, -Number.MAX_VALUE, 40, 31, target));
+  assert.equal(h.api.page(), 'verses', 'endpoint release never skips or wraps a page');
+});
+
 function runTouchAdapter() {
   const helpers = extract(/\/\* SELECTION SHEET PURE HELPERS START \*\/[\s\S]*?\/\* SELECTION SHEET PURE HELPERS END \*\//,
     'selection helpers missing');
@@ -777,9 +828,12 @@ function runTouchAdapter() {
   const boundary = functionSource('appSheetBodyBoundaryAllowsDrag');
   const names = [
     'selectionPointerTargetAllowsSwipe', 'selectionCellTarget', 'clearSelectionClickGuard',
-    'armSelectionClickGuard', 'guardSelectionClick', 'renderSelectionPointerFrame', 'releaseSelectionPointer',
-    'onSelectionPointerDown', 'onSelectionPointerMove', 'settleSelectionPointer',
+    'armSelectionClickGuard', 'guardSelectionClick', 'clearSelectionCompatibilityGuard',
+    'rememberSelectionTouchCompatibility', 'isSelectionCompatibilityPointer',
+    'resetSelectionPointerToStablePage', 'renderSelectionPointerFrame', 'releaseSelectionPointer',
+    'onSelectionPointerDown', 'onSelectionPointerMove', 'settleSelectionPointer', 'onSelectionPointerCancel',
     'selectionTouchByIdentifier', 'clearSelectionTouch', 'selectionTouchInput',
+    'cancelSelectionTouchCollision',
     'onSelectionTouchStart', 'onSelectionTouchMove', 'settleSelectionTouch',
     'onSelectionTouchEnd', 'onSelectionTouchCancel'
   ];
@@ -801,10 +855,14 @@ function runTouchAdapter() {
     var selectionPointerFrame = null;
     var selectionClickGuard = null;
     var selectionClickGuardTimer = null;
+    var selectionCompatibilityGuard = null;
+    var selectionCompatibilityGuardTimer = null;
     var selectionTouchIdentifiers = new Map();
     var SELECTION_POINTER_RECENCY_MS = 80;
     var SELECTION_CLICK_GUARD_MS = 500;
+    var SELECTION_COMPATIBILITY_GUARD_MS = 500;
     var SELECTION_TOUCH_TIMEOUT_MS = 1200;
+    var SELECTION_ENDPOINT_RESISTANCE_PX = 32;
     var appSheetBody = { scrollTop: 0, clientHeight: 200, scrollHeight: 500 };
     var appSheetState = { generation: 7, edge: 'bottom', candidate: null, pointer: null };
     function requestAnimationFrame(fn) { frames.push(fn); return frames.length; }
@@ -840,13 +898,20 @@ function runTouchAdapter() {
       }; },
       track: function () { return selectionTrack.style.transform; },
       generation: function (value) { appSheetState.generation = value; },
+      compatibilityArmed: function () { return !!selectionCompatibilityGuard; },
       sheetPointer: function () { return appSheetState.pointer; },
       flush: function () { while (frames.length) frames.shift()(); },
-      expire: function () { while (timers.length) timers.shift()(); }
+      expireCompatibility: function () {
+        var pending = timers.splice(0, timers.length);
+        pending.filter(item => item.ms === 500).forEach(item => item.fn());
+        pending.filter(item => item.ms !== 500).forEach(item => timers.push(item));
+      },
+      expire: function () { while (timers.length) timers.shift().fn(); },
+      cancelPointer: onSelectionPointerCancel
     };
   `)({
     getSelection: () => ({ isCollapsed: true }),
-    setTimeout(fn) { timers.push(fn); return timers.length; }, clearTimeout() {}
+    setTimeout(fn, ms) { timers.push({ fn, ms }); return timers.length; }, clearTimeout() {}
   }, pager, frames, timers);
 }
 
@@ -867,7 +932,26 @@ test('touch adapter pages once, deduplicates compatibility pointers, and clears 
   assert.deepEqual(h.boundary(), { scrollTop: 120, clientHeight: 240, scrollHeight: 720 },
     'vertical ownership snapshots the nested scroller at touch start');
   h.start(touchEvent(9, 160, 40, 2, target));
-  assert.equal(h.count(), 1, 'a different second touch cannot replace ownership');
+  assert.equal(h.count(), 0, 'a different second touch cancels ownership without adopting either touch');
+  assert.equal(h.pointer(), null);
+  assert.equal(h.sheetPointer(), null);
+  h.move(touchEvent(2, 80, 42, 3, target));
+  h.move(touchEvent(9, 80, 42, 4, target));
+  assert.equal(h.page(), 'chapters', 'neither touch can continue after the collision');
+
+  h.start(touchEvent(6, 180, 40, 5, target));
+  h.move(touchEvent(6, 80, 42, 10, target));
+  h.flush();
+  assert.match(h.track(), /-100px/, 'first touch reaches claimed live displacement');
+  h.start(touchEvent(7, 170, 40, 11, target));
+  assert.equal(h.count(), 0);
+  assert.equal(h.pointer(), null);
+  assert.equal(h.track(), 'translateX(-100%)', 'claimed collision returns to the starting stable page');
+  h.end(touchEvent(6, 20, 42, 12, target));
+  h.end(touchEvent(7, 20, 42, 13, target));
+  assert.equal(h.page(), 'chapters');
+
+  h.start(touchEvent(2, 180, 40, 5, target));
   h.pointerDown(pointerEvent(99, 180, 40, 2, target));
   assert.equal(h.pointer().id, -3, 'compatibility pointer cannot replace active touch');
   const move = touchEvent(2, 80, 42, 20, target);
@@ -890,6 +974,33 @@ test('touch adapter pages once, deduplicates compatibility pointers, and clears 
   h.expire();
   assert.equal(h.count(), 0, 'timeout clears abandoned touch ownership');
   assert.equal(h.pointer(), null, 'timeout also releases retained gesture state');
+});
+
+test('touch pointer compatibility is rejected before registration and briefly after cleanup', () => {
+  const h = runTouchAdapter();
+  const target = gridTarget('.book-btn');
+  const earlyTouchPointer = { ...pointerEvent(101, 180, 40, 1, target), pointerType: 'touch' };
+  h.pointerDown(earlyTouchPointer);
+  assert.equal(h.pointer(), null, 'touch-origin PointerEvent is rejected before TouchEvent registration');
+
+  h.start(touchEvent(12, 180, 40, 2, target));
+  h.end(touchEvent(12, 180, 40, 3, target));
+  assert.equal(h.count(), 0);
+  h.pointerDown({ ...pointerEvent(102, 180, 40, 4, target), pointerType: 'mouse' });
+  assert.equal(h.pointer(), null, 'post-touch compatibility mouse is rejected during the guard window');
+  h.expireCompatibility();
+  h.pointerDown({ ...pointerEvent(103, 180, 40, 5, target), pointerType: 'mouse' });
+  assert.equal(h.pointer().id, 103, 'real mouse remains usable after the short guard');
+
+  h.cancelPointer(pointerEvent(103, 180, 40, 6, target));
+  h.start(touchEvent(13, 180, 40, 7, target));
+  h.end(touchEvent(13, 180, 40, 8, target));
+  h.generation(9);
+  h.pointerDown({ ...pointerEvent(105, 180, 40, 9, target), pointerType: 'touch' });
+  assert.equal(h.pointer(), null, 'touch-origin PointerEvent remains rejected across a stale generation');
+  h.pointerDown({ ...pointerEvent(104, 180, 40, 9, target), pointerType: 'mouse' });
+  assert.equal(h.pointer().id, 104, 'stale-generation guard is discarded rather than blocking real mouse');
+  assert.equal(h.compatibilityArmed(), false);
 });
 
 test('touch vertical motion stays native mid-scroll and only boundary-origin motion claims the sheet', () => {
@@ -949,6 +1060,7 @@ function runResponsiveCycle() {
     function disconnectSelectionGridLayout() {}
     function releaseSelectionPointer() { selectionPointer = null; }
     function clearSelectionClickGuard() { selectionClickGuard = null; }
+    function clearSelectionCompatibilityGuard() {}
     function clearSelectionTouch(identifier) { selectionTouchIdentifiers.delete(identifier); }
     function onSelectionPointerDown() {} function onSelectionPointerMove() {}
     function onSelectionPointerUp() {} function onSelectionPointerCancel() {}
