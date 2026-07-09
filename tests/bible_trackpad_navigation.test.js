@@ -197,6 +197,72 @@ test('selector wheel accumulates one claimed page per idle-delimited burst', () 
   assert.deepEqual(pages.at(-1), ['chapters', true, 'pointer']);
 });
 
+test('selector wheel accepts vertical then horizontal input at the same target after a claimed page', () => {
+  const { api, pages, timers } = wheelHarness('books');
+  const target = { inside: true, closest() { return null; } };
+  const claimed = wheelEvent(48, 0, { target });
+  api.wheel(claimed);
+  assert.equal(claimed.prevented, true);
+  assert.deepEqual(pages, [['chapters', true, 'pointer']]);
+  const claimedTimer = timers.at(-1);
+
+  const vertical = wheelEvent(0, 80, { target });
+  api.wheel(vertical);
+  assert.equal(vertical.prevented, false, 'vertical input remains native without moving the pointer');
+  assert.equal(claimedTimer.cleared, true, 'the prior horizontal ownership timer is released');
+  assert.equal(api.burst().x, 0);
+  assert.equal(api.burst().y, 0);
+  assert.equal(api.burst().consumed, false);
+  assert.equal(api.burst().direction, 0);
+  assert.equal(api.burst().timer, null);
+
+  const nextHorizontal = wheelEvent(48, 0, { target });
+  api.wheel(nextHorizontal);
+  assert.equal(nextHorizontal.prevented, true, 'the next same-target horizontal gesture can claim immediately');
+  assert.deepEqual(pages, [
+    ['chapters', true, 'pointer'],
+    ['verses', true, 'pointer']
+  ]);
+});
+
+test('vertical axis boundaries clear partial horizontal poison and rebuild the threshold', () => {
+  const { api, pages, timers } = wheelHarness('books');
+  api.wheel(wheelEvent(24));
+  const partialTimer = timers.at(-1);
+
+  const vertical = wheelEvent(0, 80);
+  api.wheel(vertical);
+  assert.equal(vertical.prevented, false);
+  assert.equal(partialTimer.cleared, true);
+  assert.equal(api.liveTimers(), 0, 'a vertical boundary does not own an idle timer');
+
+  api.wheel(wheelEvent(24));
+  assert.equal(pages.length, 0, 'pre-boundary horizontal motion cannot combine with the fresh gesture');
+  const threshold = wheelEvent(24);
+  api.wheel(threshold);
+  assert.equal(threshold.prevented, true);
+  assert.deepEqual(pages, [['chapters', true, 'pointer']]);
+});
+
+test('repeated vertical input stays native while ambiguous and horizontal momentum retain one-page ownership', () => {
+  const vertical = wheelHarness('chapters');
+  for (const dy of [8, 40, -80, 120]) {
+    const event = wheelEvent(0, dy);
+    vertical.api.wheel(event);
+    assert.equal(event.prevented, false);
+    assert.equal(vertical.api.liveTimers(), 0, 'vertical input does not extend shared wheel ownership');
+  }
+  assert.equal(vertical.pages.length, 0);
+
+  const locked = wheelHarness('books');
+  locked.api.wheel(wheelEvent(48));
+  for (const event of [wheelEvent(50, 41), wheelEvent(120), wheelEvent(-120)]) {
+    locked.api.wheel(event);
+    assert.equal(event.prevented, true, 'non-vertical momentum remains inside the claimed burst');
+  }
+  assert.deepEqual(locked.pages, [['chapters', true, 'pointer']], 'one gesture still pages exactly once');
+});
+
 test('selector wheel relocates focus only when the old panel owns it', () => {
   const focused = wheelHarness('chapters');
   focused.api.wheel(wheelEvent(48));

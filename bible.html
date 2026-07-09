@@ -2733,6 +2733,10 @@
       restoreBibleWheelConsumedLock(invalidConsumed, invalidDirection);
       return 0;
     }
+    if (dy !== 0 && Math.abs(dy) >= Math.abs(dx) * BIBLE_WHEEL_AXIS_RATIO) {
+      resetBibleWheelBurst();
+      return 0;
+    }
 
     if (bibleWheelBurst.timer !== null) window.clearTimeout(bibleWheelBurst.timer);
     bibleWheelBurst.generation = isFiniteAppSheetNumber(bibleWheelBurst.generation) ?
