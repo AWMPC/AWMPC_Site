@@ -90,7 +90,8 @@ test('wheel burst resets on visibility loss, blur, and viewport resizing', () =>
   assert.match(install, /document\.hidden[\s\S]*?resetBibleWheelBurst\(\)/);
   assert.match(install, /window\.addEventListener\('blur', resetBibleWheelBurst\)/);
   assert.match(install, /window\.addEventListener\(\['resize'\]\[0\],[\s\S]*?resetBibleWheelBurst\(\)/);
-  assert.match(install, /window\.visualViewport\.addEventListener\(\['resize'\]\[0\],[\s\S]*?resetBibleWheelBurst\(\)/);
+  assert.doesNotMatch(install, /visualViewport[\s\S]*addEventListener/,
+    'visual viewport ownership is scoped to an open sheet generation');
 });
 
 test('selection layout constrains the active panel as the sole vertical scroller', () => {

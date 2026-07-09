@@ -25,6 +25,13 @@ function functionSource(name, endMarker = '\n  function ') {
   return bible.slice(start, end);
 }
 
+const searchRendererSource = functionSource('renderSearchSheet', '\n\n\n  // ===================== BOOK BUTTON FACTORY');
+assert.doesNotMatch(searchRendererSource, /cleanupAppSheetViewportOwnership/,
+  'content rerenders cannot tear down controller-owned Search viewport lifetime');
+assert.match(searchRendererSource,
+  /if \(!appSheetState\.searchFullscreenLatched \|\| appSheetState\.viewportOwnerGeneration !== sheetGeneration\)[\s\S]*focusTimer = window\.setTimeout/,
+  'a same-generation latched Search refresh does not schedule a second autofocus lifecycle');
+
 {
   const refreshSource = functionSource('refreshOwnerScopedAppSheet');
   const body = fakeElement('main');
@@ -314,6 +321,7 @@ function fakeElement(tag = 'div') {
   const runQueries = [];
   const created = [];
   const focusOrder = [];
+  let viewportCleanupCalls = 0;
   const context = {
     searchSheetGeneration: 0,
     searchIndexReady: false,
@@ -323,7 +331,7 @@ function fakeElement(tag = 'div') {
       focusOrder.push(['latch', generation]);
       return true;
     },
-    cleanupAppSheetViewportOwnership() {},
+    cleanupAppSheetViewportOwnership() { viewportCleanupCalls += 1; },
     document: { createElement(tag) { const node = fakeElement(tag); created.push(node); return node; } },
     window: {
       setTimeout(handler) { const id = nextTimer++; timers.set(id, handler); return id; },
@@ -357,6 +365,16 @@ function fakeElement(tag = 'div') {
   assert.deepEqual(runQueries, ['pending truth'], 'readiness cancels the superseded input debounce');
   assert.equal(JSON.stringify(focusOrder), JSON.stringify([['latch', 41], ['latch', 41], ['focus', { preventScroll: true }]]),
     'delayed autofocus commits the fullscreen latch before exactly one preventScroll focus');
+
+  context.appSheetState.searchFullscreenLatched = true;
+  context.appSheetState.viewportOwnerGeneration = 41;
+  const refreshTarget = fakeElement();
+  const cleanupRefresh = context.render(refreshTarget);
+  assert.equal(timers.size, 0, 'same-generation latched refresh schedules no second autofocus timer');
+  cleanupRefresh();
+  assert.equal(viewportCleanupCalls, 0, 'Search content cleanup cannot release controller viewport ownership');
+  context.appSheetState.searchFullscreenLatched = false;
+  context.appSheetState.viewportOwnerGeneration = null;
 
   const detachedTarget = fakeElement();
   const cleanupDetached = context.render(detachedTarget);

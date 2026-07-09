@@ -800,7 +800,7 @@ const controllerSource = bible.slice(pureStart, pureEnd) + '\n' +
   'retarget: retargetAppSheetMeasurement, selectPage: setSelectionPage, commitSelection: commitSelectionVerse,' +
   'finishAction: finishVerseAction, latchSearch: latchMobileSearchFullscreen,' +
   'updateSearchViewport: updateSearchViewportGeometry, scheduleSearchViewport: scheduleSearchViewportGeometry,' +
-  'cleanupViewport: cleanupAppSheetViewportOwnership, state: appSheetState};';
+  'cleanupViewport: cleanupAppSheetViewportOwnership, refresh: refreshOwnerScopedAppSheet, state: appSheetState};';
 vm.runInNewContext(controllerSource, controllerContext);
 const api = controllerContext.api;
 function currentReturnPopState() {
@@ -811,7 +811,15 @@ function currentReturnPopState() {
   return state;
 }
 
-api.install();
+const savedViewportAdd = controllerContext.window.visualViewport.addEventListener;
+const savedViewportRemove = controllerContext.window.visualViewport.removeEventListener;
+delete controllerContext.window.visualViewport.addEventListener;
+delete controllerContext.window.visualViewport.removeEventListener;
+assert.doesNotThrow(() => api.install(),
+  'listener installation tolerates a partial visualViewport with geometry only');
+assert.equal(Object.keys(viewportListeners).length, 0, 'partial visualViewport installs no listener');
+controllerContext.window.visualViewport.addEventListener = savedViewportAdd;
+controllerContext.window.visualViewport.removeEventListener = savedViewportRemove;
 const viewportResizeListenerBaseline = (viewportListeners.resize || []).length;
 const installedListenerCount = dialog.listenerCount + handle.listenerCount + body.listenerCount;
 api.install();
@@ -2370,6 +2378,17 @@ assert.equal(viewportListeners.resize.length, viewportResizeListenerBaseline);
 api.state.phase = 'idle';
 assert.equal(api.latchSearch(api.state.generation), true, 'a later Search opening can acquire a fresh latch');
 assert.equal(viewportListeners.resize.length, viewportResizeListenerBaseline + 1);
+const refreshViewportListener = api.state.viewportListener;
+const refreshHeight = dialog.style.getPropertyValue('--sheet-viewport-height');
+const refreshTop = dialog.style.getPropertyValue('--sheet-viewport-top');
+assert.equal(api.refresh(), true, 'same-generation Search content can rerender');
+assert.equal(api.state.searchFullscreenLatched, true);
+assert.equal(api.state.snap, 'fullscreen');
+assert.equal(api.state.viewportListener, refreshViewportListener, 'refresh preserves exact viewport listener identity');
+assert.equal(viewportListeners.resize.length, viewportResizeListenerBaseline + 1, 'refresh installs no duplicate listener');
+assert.equal(dialog.classList.contains('search-viewport-fullscreen'), true);
+assert.equal(dialog.style.getPropertyValue('--sheet-viewport-height'), refreshHeight);
+assert.equal(dialog.style.getPropertyValue('--sheet-viewport-top'), refreshTop);
 api.cleanupViewport(api.state.generation);
 
 api.state.generation += 1;

@@ -3407,8 +3407,6 @@
     }
     installAppSheetMeasurement(appSheetState.generation);
     installAppSheetOverflowFades(currentAppSheetOverflowScroller());
-    appSheetState.viewportOwnerGeneration = appSheetState.generation;
-    installSearchViewportOwnership(appSheetState.generation);
   }
 
   function refreshOwnerScopedAppSheet() {
@@ -3809,9 +3807,6 @@
       scheduleAppSheetMeasurement(appSheetState.generation);
       scheduleAppSheetOverflowFades(appSheetState.generation);
     });
-    if (window.visualViewport) window.visualViewport.addEventListener(['resize'][0], function () {
-      resetBibleWheelBurst();
-    }, { passive: true });
   }
   /* APP SHEET CONTROLLER END */
 
@@ -7412,14 +7407,16 @@
     input.addEventListener('blur', commitQuery);
     input.addEventListener('focus', onSearchFocus);
     if (!searchIndexReady) waitUntilReady();
-    focusTimer = window.setTimeout(function () {
-      focusTimer = null;
-      if (generation !== searchSheetGeneration || !target.isConnected || !appSheet.open ||
-          appSheetState.generation !== sheetGeneration || appSheetState.kind !== 'search' ||
-          appSheetState.phase === 'closing' || appSheetState.phase === 'closed') return;
-      latchMobileSearchFullscreen(sheetGeneration);
-      input.focus({ preventScroll: true });
-    }, 100);
+    if (!appSheetState.searchFullscreenLatched || appSheetState.viewportOwnerGeneration !== sheetGeneration) {
+      focusTimer = window.setTimeout(function () {
+        focusTimer = null;
+        if (generation !== searchSheetGeneration || !target.isConnected || !appSheet.open ||
+            appSheetState.generation !== sheetGeneration || appSheetState.kind !== 'search' ||
+            appSheetState.phase === 'closing' || appSheetState.phase === 'closed') return;
+        latchMobileSearchFullscreen(sheetGeneration);
+        input.focus({ preventScroll: true });
+      }, 100);
+    }
     return function () {
       searchSheetGeneration++;
       if (debounce !== null) clearTimeout(debounce);
@@ -7429,7 +7426,6 @@
       focusTimer = null;
       readyTimer = null;
       input.removeEventListener('focus', onSearchFocus);
-      cleanupAppSheetViewportOwnership(sheetGeneration);
     };
   }
 
