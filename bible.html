@@ -2106,6 +2106,7 @@
       if (skippedFields.indexOf('searchHistory') === -1 && Array.isArray(data.searchHistory)) {
         try { localStorage.setItem('bible_search_hist', JSON.stringify(normalizeSearchHistory(data.searchHistory))); } catch(e) {}
       }
+      refreshOwnerScopedAppSheet();
     }
   };
 
@@ -2304,8 +2305,14 @@
     try { opener.focus({ preventScroll: true }); } catch (e) { opener.focus(); }
   }
 
+  function syncAppSheetLauncherState() {
+    if (!fabMain) return;
+    fabMain.setAttribute('aria-expanded', appSheet.open && appSheetState.kind === 'settings' ? 'true' : 'false');
+  }
+
   function resetAppSheetState() {
     clearAppSheetMotion();
+    syncAppSheetLauncherState();
     cleanupAppSheetContent();
     restoreAppSheetFocus();
     appSheetState.kind = null;
@@ -2319,6 +2326,7 @@
     appSheet.classList.remove('edge-top', 'snap-fullscreen');
     appSheet.classList.add('edge-bottom', 'snap-compact');
     appSheetTitle.textContent = 'Panel';
+    syncAppSheetLauncherState();
   }
 
   function setSheetSnap(snap, immediate) {
@@ -2385,6 +2393,17 @@
     }
   }
 
+  function refreshOwnerScopedAppSheet() {
+    if (!appSheet.open || (appSheetState.kind !== 'history' && appSheetState.kind !== 'search')) return false;
+    var descriptor = resolveAppSheetDescriptor(appSheetState.kind);
+    if (!descriptor) {
+      finishCloseAppSheet();
+      return false;
+    }
+    renderAppSheetContent(descriptor);
+    return true;
+  }
+
   function openAppSheet(kind, options) {
     options = options || {};
     if (!isValidAppSheetKind(kind)) return false;
@@ -2412,6 +2431,7 @@
     var wasOpen = appSheet.open;
     clearAppSheetMotion();
     appSheetState.kind = kind;
+    syncAppSheetLauncherState();
     appSheetState.edge = edge;
     appSheetState.page = page;
     appSheetState.closing = false;
@@ -2434,6 +2454,7 @@
       appSheetState.historyOwned = true;
       appSheetState.pendingHistoryClose = false;
     }
+    syncAppSheetLauncherState();
     return true;
   }
 
@@ -2812,7 +2833,6 @@
     setBottomChromeHidden(false);
     closeMenus({ exceptFab: true, keepHistory: true });
     fabPanel.classList.add('open');
-    fabMain.setAttribute('aria-expanded', 'true');
     renderHistoryMenu();
     scheduleBottomChromeClearanceUpdate();
     ensurePopupHistory(pushHistory);
@@ -2825,7 +2845,6 @@
     var closedPopup = false;
     if (fabPanel.classList.contains('open') && !exceptFab) {
       fabPanel.classList.remove('open');
-      fabMain.setAttribute('aria-expanded', 'false');
       closedPopup = true;
     }
     if (openMenu && openMenu !== exceptMenu) { openMenu.classList.remove('open'); openMenu = null; closedPopup = true; }
@@ -3117,10 +3136,11 @@
       if (openMenu === historyMenu) openMenu = null;
       closeVerseActions(true);
       _syncedLocalStateQuarantined = !signoutStorageCleared;
+      var retainedOwnerSheet = refreshOwnerScopedAppSheet();
       applyThemeMode('light', false);
       renderSeason('auto');
       applyTextScale(DEFAULT_TEXT_SCALE, false);
-      if (bibleData) showBooksView();
+      if (bibleData && !retainedOwnerSheet) showBooksView();
       return;
     }
 
@@ -3140,6 +3160,7 @@
           renderSeason('auto');
           applyTextScale(DEFAULT_TEXT_SCALE, false);
           historyMenu.textContent = '';
+          refreshOwnerScopedAppSheet();
           _setSyncStatus('Sync unavailable');
           return;
         }
@@ -3149,6 +3170,7 @@
         chapterPositionsDirty = false;
         _setDirtySyncUid(null);
         _setLocalOwnerUid(authUid);
+        refreshOwnerScopedAppSheet();
         applyThemeMode(State.getThemeMode(), false);
         renderSeason(State.getSeason());
         applyTextScale(State.getTextScale(), false);

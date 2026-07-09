@@ -25,6 +25,72 @@ function functionSource(name, endMarker = '\n  function ') {
   return bible.slice(start, end);
 }
 
+{
+  const refreshSource = functionSource('refreshOwnerScopedAppSheet');
+  const body = fakeElement('main');
+  let ownerText = 'owner-a-history';
+  let cleanupCalls = 0;
+  let readerJumps = 0;
+  const context = {
+    appSheet: { open: true },
+    appSheetState: { kind: 'history', contentCleanup: () => { cleanupCalls += 1; } },
+    appSheetBody: body,
+    resolveAppSheetDescriptor() {
+      return { render(target) { target.textContent = ownerText; } };
+    },
+    renderAppSheetContent(descriptor) {
+      if (typeof context.appSheetState.contentCleanup === 'function') context.appSheetState.contentCleanup();
+      context.appSheetState.contentCleanup = null;
+      body.textContent = '';
+      descriptor.render(body);
+    },
+    showBooksView() { readerJumps += 1; }
+  };
+  vm.runInNewContext(`${refreshSource}\nthis.refresh = refreshOwnerScopedAppSheet;`, context);
+  context.refresh();
+  assert.equal(body.textContent, 'owner-a-history');
+  ownerText = 'signed-out-empty';
+  context.refresh();
+  assert.equal(body.textContent, 'signed-out-empty', 'sign-out replaces prior owner History immediately');
+  ownerText = 'owner-b-history';
+  context.refresh();
+  assert.equal(body.textContent, 'owner-b-history', 'A-to-B hydration replaces isolated History content');
+  assert.equal(cleanupCalls, 1, 'the stale owner renderer cleanup runs before its first replacement');
+  assert.equal(readerJumps, 0, 'ownership refresh never navigates the reader');
+
+  context.appSheetState.kind = 'search';
+  let searchGeneration = 10;
+  const armSearchCleanup = () => {
+    context.appSheetState.contentCleanup = () => { searchGeneration += 1; cleanupCalls += 1; };
+  };
+  ownerText = 'owner-a-search';
+  armSearchCleanup();
+  context.refresh();
+  assert.equal(body.textContent, 'owner-a-search');
+  ownerText = 'signed-out-search-empty';
+  armSearchCleanup();
+  context.refresh();
+  assert.equal(body.textContent, 'signed-out-search-empty', 'sign-out replaces prior owner Search immediately');
+  ownerText = 'owner-b-search';
+  armSearchCleanup();
+  context.refresh();
+  assert.equal(searchGeneration, 13, 'each Search ownership refresh invalidates its previous generation');
+  assert.equal(cleanupCalls, 4);
+  assert.equal(body.textContent, 'owner-b-search');
+}
+
+const authSource = sourceBetween("  auth.onAuthStateChanged(function (user) {", "\n\n  window.addEventListener('online'");
+assert.match(authSource, /_syncedLocalStateQuarantined = !signoutStorageCleared;[\s\S]*refreshOwnerScopedAppSheet\(\);/,
+  'sign-out refreshes owner-scoped sheet after State isolation');
+assert.match(authSource, /var retainedOwnerSheet = refreshOwnerScopedAppSheet\(\);[\s\S]*if \(bibleData && !retainedOwnerSheet\) showBooksView\(\);/,
+  'sign-out never navigates behind a retained owner-scoped sheet');
+assert.match(authSource, /_syncedLocalStateQuarantined = true;[\s\S]*refreshOwnerScopedAppSheet\(\);[\s\S]*_setSyncStatus\('Sync unavailable'\)/,
+  'failed owner switch quarantine refreshes before returning');
+assert.match(authSource, /_setLocalOwnerUid\(authUid\);[\s\S]*refreshOwnerScopedAppSheet\(\);/,
+  'successful A-to-B isolation refreshes before hydration');
+assert.match(sourceBetween('    applyCloudData: function (data, skippedFields) {', '\n    }\n  };'), /refreshOwnerScopedAppSheet\(\);/,
+  'cloud hydration refreshes visible owner-scoped content');
+
 function makeStorage(initial = {}) {
   const values = new Map(Object.entries(initial));
   return {
@@ -50,6 +116,7 @@ function loadState(initial = {}) {
     _scheduleSync() {},
     DEFAULT_TEXT_SCALE: 100,
     normalizeTextScale(value) { return typeof value === 'number' ? value : null; },
+    refreshOwnerScopedAppSheet() {},
     firebase: { firestore: { FieldValue: { serverTimestamp() { return 'server-time'; } } } }
   };
   vm.runInNewContext(`${pure}\n${stateSource}\n${syncPayload}\nthis.api = { State, sync: _syncPayload };`, context);

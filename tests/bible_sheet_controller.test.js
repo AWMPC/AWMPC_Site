@@ -111,12 +111,15 @@ assert.match(bible, /function handleBibleKeyboardNavigation\(e\) \{[\s\S]*if \(a
 assert.match(bible, /appSheetState\.opener[\s\S]*\.isConnected[\s\S]*\.focus/);
 assert.match(bible, /appSheetState\.contentCleanup\(\)/);
 assert.doesNotMatch(bible, /appSheetBody\.innerHTML/);
+assert.equal((bible.match(/fabMain\.setAttribute\('aria-expanded'/g) || []).length, 1,
+  'shared sheet lifecycle is the sole writer of Settings launcher expansion');
 
 function fakeElement() {
   const listeners = Object.create(null);
   const classes = new Set();
   const properties = Object.create(null);
   const captures = new Set();
+  const attributes = Object.create(null);
   return {
     open: false,
     isConnected: true,
@@ -147,6 +150,8 @@ function fakeElement() {
       this.listenerCount += 1;
       (listeners[type] || (listeners[type] = [])).push(fn);
     },
+    setAttribute(name, value) { attributes[name] = String(value); },
+    getAttribute(name) { return Object.prototype.hasOwnProperty.call(attributes, name) ? attributes[name] : null; },
     dispatch(type, event = {}) {
       event.target = event.target || this;
       event.currentTarget = this;
@@ -171,6 +176,8 @@ const close = fakeElement();
 const title = fakeElement();
 const body = fakeElement();
 const opener = fakeElement();
+const fabMain = fakeElement();
+fabMain.setAttribute('aria-expanded', 'false');
 const historyCalls = { push: [], replace: [], back: 0 };
 let reduceMotion = true;
 let nextFrame = 1;
@@ -189,6 +196,7 @@ const controllerContext = {
   appSheetClose: close,
   appSheetTitle: title,
   appSheetBody: body,
+  fabMain,
   document: { activeElement: opener },
   window: {
     clearTimeout(id) { cancelledTimers.push(id); timers.delete(id); },
@@ -223,14 +231,24 @@ assert.equal(dialog.listenerCount + handle.listenerCount + close.listenerCount, 
   'listener setup is idempotent');
 
 let cleanupCount = 0;
+const historyRenderExpansion = [];
+const settingsCleanupExpansion = [];
 assert.equal(api.register('history', {
   title: 'Registered History',
   render(target, sheet) {
+    historyRenderExpansion.push(fabMain.getAttribute('aria-expanded'));
     target.textContent = 'history:' + (sheet.page || 'root');
     return () => { cleanupCount += 1; };
   }
 }), true);
+assert.equal(api.register('settings', {
+  title: 'Registered Settings',
+  render() {
+    return () => { settingsCleanupExpansion.push(fabMain.getAttribute('aria-expanded')); };
+  }
+}), true);
 assert.equal(api.open('history', { opener, page: 'recent' }), true);
+assert.equal(fabMain.getAttribute('aria-expanded'), 'false', 'History does not expand the Settings launcher');
 assert.equal(dialog.open, true);
 assert.equal(title.textContent, 'Registered History');
 assert.equal(body.textContent, 'history:recent');
@@ -238,6 +256,7 @@ assert.equal(historyCalls.push.length, 1, 'first open pushes one sheet entry');
 assert.equal(historyCalls.replace.length, 0);
 
 assert.equal(api.open('search', { page: 'results' }), true);
+assert.equal(fabMain.getAttribute('aria-expanded'), 'false', 'kind switch away from Settings remains collapsed');
 assert.equal(historyCalls.push.length, 1, 'switching an open sheet never pushes again');
 assert.equal(historyCalls.replace.length, 1, 'switching kind/page replaces the owned sheet entry');
 assert.equal(cleanupCount, 1, 'old content cleanup runs before replacement');
@@ -250,14 +269,32 @@ assert.equal(dialog.open, true, 'dialog waits for popstate before closing');
 assert.equal(api.pop({ view: 'verses', book: 'John', chapter: '3', verse: '16' }), true);
 assert.equal(dialog.open, false);
 assert.equal(opener.focusCount, 1, 'connected opener receives focus after close');
+assert.equal(fabMain.getAttribute('aria-expanded'), 'false', 'close keeps Settings launcher collapsed');
 
+assert.equal(api.open('settings', { opener }), true);
+assert.equal(fabMain.getAttribute('aria-expanded'), 'true', 'opening Settings expands its launcher');
+assert.equal(api.open('history', { opener }), true);
+assert.equal(fabMain.getAttribute('aria-expanded'), 'false', 'switching kind collapses the Settings launcher');
+assert.equal(historyRenderExpansion.at(-1), 'false', 'kind switch synchronizes before the next renderer runs');
+assert.equal(settingsCleanupExpansion.at(-1), 'false', 'kind-switch cleanup observes Settings collapsed');
+api.pop({ view: 'verses', book: 'John', chapter: '3', verse: '16' });
+
+const pushesBeforeForward = historyCalls.push.length;
 assert.equal(api.pop({
   view: 'verses', book: 'John', chapter: '3', verse: '16', sheet: { kind: 'history', page: 'recent' }
 }), true, 'Forward reopens a validated sheet state');
 assert.equal(dialog.open, true);
 assert.equal(title.textContent, 'Registered History', 'Forward resolves the registered title');
 assert.equal(body.textContent, 'history:recent', 'Forward resolves registered content and page');
-assert.equal(historyCalls.push.length, 1, 'Forward restoration does not push');
+assert.equal(historyCalls.push.length, pushesBeforeForward, 'Forward restoration does not push');
+assert.equal(api.pop({
+  view: 'verses', book: 'John', chapter: '3', verse: '16', sheet: { kind: 'settings' }
+}), true, 'Forward restores Settings');
+assert.equal(fabMain.getAttribute('aria-expanded'), 'true', 'Forward-expanded Settings synchronizes its launcher');
+assert.equal(api.pop({ view: 'verses', book: 'John', chapter: '3', verse: '16' }), true);
+assert.equal(fabMain.getAttribute('aria-expanded'), 'false', 'Forward-restored Settings collapses on close');
+assert.equal(settingsCleanupExpansion.at(-1), 'false', 'close cleanup observes Settings collapsed');
+api.pop({ view: 'verses', book: 'John', chapter: '3', verse: '16', sheet: { kind: 'history' } });
 assert.equal(api.pop({ view: 'verses', book: 'John', chapter: '3', verse: '16', sheet: { kind: 'bad' } }), true);
 assert.equal(dialog.open, false, 'invalid Forward sheet state cannot remain open');
 
