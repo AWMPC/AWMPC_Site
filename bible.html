@@ -3123,19 +3123,21 @@
       setAppSheetLauncherExpanded(appSheetState.opener, false);
       appSheetState.opener = options.opener;
     }
-    var openerRect = null;
-    try {
-      if (appSheetState.opener && typeof appSheetState.opener.getBoundingClientRect === 'function') {
-        openerRect = appSheetState.opener.getBoundingClientRect();
-      }
-    } catch (openerGeometryError) {}
-    var anchor = null;
-    try {
-      if (openerRect && typeof appSheetHorizontalAnchor === 'function') {
-        anchor = appSheetHorizontalAnchor(openerRect.left, openerRect.width, window.innerWidth);
-      }
-    } catch (anchorGeometryError) {}
-    appSheetState.anchor = anchor === 'left' || anchor === 'right' ? anchor : 'right';
+    if (!wasOpen || options.opener) {
+      var openerRect = null;
+      try {
+        if (appSheetState.opener && typeof appSheetState.opener.getBoundingClientRect === 'function') {
+          openerRect = appSheetState.opener.getBoundingClientRect();
+        }
+      } catch (openerGeometryError) {}
+      var anchor = null;
+      try {
+        if (openerRect && typeof appSheetHorizontalAnchor === 'function') {
+          anchor = appSheetHorizontalAnchor(openerRect.left, openerRect.width, window.innerWidth);
+        }
+      } catch (anchorGeometryError) {}
+      appSheetState.anchor = anchor === 'left' || anchor === 'right' ? anchor : 'right';
+    }
     appSheet.classList.toggle('inline-left', appSheetState.anchor === 'left');
     appSheet.classList.toggle('inline-right', appSheetState.anchor === 'right');
     appSheet.classList.toggle('edge-top', edge === 'top');

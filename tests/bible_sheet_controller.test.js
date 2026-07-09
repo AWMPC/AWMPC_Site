@@ -607,7 +607,8 @@ class FakeResizeObserver {
 handle.rectHeight = 44;
 handle.getBoundingClientRect = () => ({ height: handle.rectHeight });
 opener.getBoundingClientRect = () => ({ left: 900, width: 40 });
-replacementOpener.getBoundingClientRect = () => ({ left: 20, width: 40 });
+let replacementOpenerLeft = 20;
+replacementOpener.getBoundingClientRect = () => ({ left: replacementOpenerLeft, width: 40 });
 const controllerContext = {
   Math,
   Date,
@@ -911,9 +912,14 @@ assert.equal(dialog.classList.contains('inline-right'), false);
 assert.equal(dialog.style.getPropertyValue('--sheet-width'), '220px',
   'caller-controlled fillsPanel cannot expand an intrinsic descriptor');
 
+replacementOpenerLeft = 900;
 body.scrollTop = 500;
 assert.equal(api.open('selection', { page: 'books' }), true);
 for (const [id, callback] of [...frames]) { callback(); frames.delete(id); }
+assert.equal(api.state.anchor, 'left',
+  'replacement without a new opener preserves the generation anchor after its saved launcher moves');
+assert.equal(dialog.classList.contains('inline-left'), true);
+assert.equal(dialog.classList.contains('inline-right'), false);
 assert.equal(dialog.style.getPropertyValue('--sheet-width'), '600px',
   'the trusted Selection descriptor alone fills the stable desktop half viewport');
 assert.equal(body.scrollTop, 0,
@@ -939,6 +945,9 @@ assert.equal(opener.focusCount, 0, 'programmatic/history close preserves valid e
 assert.equal(fabMain.getAttribute('aria-expanded'), 'false', 'close keeps Settings launcher collapsed');
 
 assert.equal(api.open('settings', { opener }), true);
+assert.equal(api.state.anchor, 'right', 'a fresh opening recalculates its anchor from the supplied opener');
+assert.equal(dialog.classList.contains('inline-right'), true);
+assert.equal(dialog.classList.contains('inline-left'), false);
 assert.equal(fabMain.getAttribute('aria-expanded'), 'true', 'opening Settings expands its launcher');
 assert.equal(api.open('history', { opener }), true);
 assert.equal(fabMain.getAttribute('aria-expanded'), 'false', 'switching kind collapses the Settings launcher');
