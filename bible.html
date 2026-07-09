@@ -1056,37 +1056,37 @@
     transition-duration: 190ms, 190ms;
     transition-timing-function: var(--motion-ease);
   }
-  .app-sheet-shell { display: grid; grid-template-rows: auto auto minmax(0, 1fr); height: 100%; white-space: normal; }
+  .app-sheet-shell { display: grid; grid-template-rows: auto minmax(0, 1fr); height: 100%; white-space: normal; }
   .app-sheet-handle {
-    width: 100%; min-height: 28px; padding: 10px; border: 0; background: transparent;
+    order: 0; width: 100%; min-height: 44px; padding: 10px; border: 0; background: transparent;
     cursor: ns-resize; touch-action: none;
   }
   .app-sheet-handle::before {
     content: ''; display: block; width: 42px; height: 4px; margin: auto;
     border-radius: var(--radius-pill); background: var(--fg4);
   }
-  .app-sheet-header {
-    display: flex; align-items: center; gap: var(--display-panel-gap);
-    padding: 0 var(--display-panel-padding) min(10px, var(--display-panel-gap));
-  }
-  .app-sheet-title { flex: 1; min-width: 0; margin: 0; font-size: var(--text-20); }
-  .app-sheet-close {
-    width: 44px; min-height: 44px; border: 1px solid var(--border2); border-radius: var(--radius-pill);
-    background: var(--surface-hi); color: var(--fg); font: inherit; font-size: var(--text-22); cursor: pointer;
-  }
+  .app-sheet-content-frame { order: 1; position: relative; min-height: 0; overflow: hidden; }
   .app-sheet-body {
-    min-height: 0; overflow: auto; overscroll-behavior: contain;
+    height: 100%; min-height: 0; overflow: auto; overscroll-behavior: contain;
     padding: 0 var(--display-panel-padding) max(var(--display-panel-padding), env(safe-area-inset-bottom));
   }
-  .app-sheet-body > .verse-actions {
+  .app-sheet-measure { min-height: 100%; }
+  .app-sheet-measure > .verse-actions {
     width: 100%; max-width: none; margin: 0; border: 0; box-shadow: none;
     opacity: 1; transform: none; background: transparent;
   }
+  .app-sheet-fade {
+    position: absolute; left: 0; right: 0; height: 28px; z-index: 2;
+    opacity: 0; pointer-events: none;
+  }
+  .app-sheet-fade-top { top: 0; }
+  .app-sheet-fade-bottom { bottom: 0; }
   .settings-sheet-content { display: grid; gap: var(--display-panel-gap); }
   .settings-sheet-content > .fab-card,
   .settings-sheet-content > .app-version { width: 100%; }
   .search-sheet-skeleton { margin-top: var(--display-panel-gap); }
   .app-sheet-body.selection-sheet-host { overflow: hidden; padding: 0; }
+  .app-sheet-body.selection-sheet-host .app-sheet-measure { height: 100%; }
   .selection-pager {
     display: flex; flex-direction: column; min-height: 0; height: 100%; overflow: hidden;
     touch-action: pan-y;
@@ -1125,6 +1125,8 @@
   .selection-empty { color: var(--fg3); padding: 24px 12px; text-align: center; white-space: normal; }
   .app-sheet.edge-top .selection-dots { order: 2; padding-bottom: max(6px, env(safe-area-inset-bottom)); }
   .app-sheet.edge-top .selection-viewport { order: 1; }
+  .app-sheet.edge-top .app-sheet-content-frame { order: 0; }
+  .app-sheet.edge-top .app-sheet-handle { order: 3; }
   .app-sheet.edge-top .app-sheet-shell { padding-top: env(safe-area-inset-top); }
   .app-sheet.snap-fullscreen .app-sheet-shell { padding-top: env(safe-area-inset-top); }
 
@@ -1389,14 +1391,16 @@
 
 <div id="status-live" class="sr-only" aria-live="polite" aria-atomic="true"></div>
 
-<dialog id="app-sheet" class="app-sheet edge-bottom snap-determined" aria-labelledby="app-sheet-title">
+<dialog id="app-sheet" class="app-sheet edge-bottom snap-determined" aria-label="Bible panel">
   <div class="app-sheet-shell">
-    <button type="button" id="app-sheet-handle" class="app-sheet-handle" aria-label="Resize sheet"></button>
-    <header class="app-sheet-header">
-      <h2 id="app-sheet-title" class="app-sheet-title">Panel</h2>
-      <button type="button" id="app-sheet-close" class="app-sheet-close" aria-label="Close"><span aria-hidden="true">&times;</span></button>
-    </header>
-    <div id="app-sheet-body" class="app-sheet-body" tabindex="0"></div>
+    <button type="button" id="app-sheet-handle" class="app-sheet-handle" aria-label="Expand Bible panel"></button>
+    <div class="app-sheet-content-frame">
+      <div id="app-sheet-body" class="app-sheet-body" tabindex="0">
+        <div id="app-sheet-measure" class="app-sheet-measure"></div>
+      </div>
+      <div class="app-sheet-fade app-sheet-fade-top" aria-hidden="true"></div>
+      <div class="app-sheet-fade app-sheet-fade-bottom" aria-hidden="true"></div>
+    </div>
   </div>
 </dialog>
 
@@ -2199,9 +2203,10 @@
   var statusLive = document.getElementById('status-live');
   var appSheet = document.getElementById('app-sheet');
   var appSheetHandle = document.getElementById('app-sheet-handle');
-  var appSheetTitle = document.getElementById('app-sheet-title');
-  var appSheetClose = document.getElementById('app-sheet-close');
   var appSheetBody = document.getElementById('app-sheet-body');
+  var appSheetMeasure = document.getElementById('app-sheet-measure');
+  var appSheetFadeTop = document.querySelector('.app-sheet-fade-top');
+  var appSheetFadeBottom = document.querySelector('.app-sheet-fade-bottom');
   var verseActionsDialog = document.getElementById('verse-actions');
   var verseActionsTitle = document.getElementById('verse-actions-title');
   var copyVerseButton = document.getElementById('copy-verse');
@@ -2391,7 +2396,11 @@
   function registerAppSheetDescriptor(kind, descriptor) {
     if (!isValidAppSheetKind(kind) || !descriptor || typeof descriptor.title !== 'string' ||
         !descriptor.title || typeof descriptor.render !== 'function') return false;
-    appSheetDescriptors[kind] = { title: descriptor.title, render: descriptor.render };
+    var existing = appSheetDescriptors[kind];
+    var label = typeof descriptor.label === 'string' && descriptor.label ? descriptor.label :
+      existing && existing.label;
+    if (!label) return false;
+    appSheetDescriptors[kind] = { label: label, title: descriptor.title, render: descriptor.render };
     return true;
   }
 
@@ -2403,22 +2412,22 @@
     return function (target) { target.textContent = label + ' will appear here.'; };
   }
 
-  registerAppSheetDescriptor('history', { title: 'History', render: function (target, sheet) {
+  registerAppSheetDescriptor('history', { label: 'History', title: 'History', render: function (target, sheet) {
     if (typeof renderHistorySheet === 'function') return renderHistorySheet(target, sheet);
     target.textContent = 'Reading history will appear here.';
   } });
-  registerAppSheetDescriptor('settings', { title: 'Settings', render: function (target, sheet) {
+  registerAppSheetDescriptor('settings', { label: 'Settings', title: 'Settings', render: function (target, sheet) {
     if (typeof renderSettingsSheet === 'function') return renderSettingsSheet(target, sheet);
     target.textContent = 'Settings will appear here.';
   } });
-  registerAppSheetDescriptor('search', { title: 'Search', render: function (target, sheet) {
+  registerAppSheetDescriptor('search', { label: 'Search', title: 'Search', render: function (target, sheet) {
     if (typeof renderSearchSheet === 'function') return renderSearchSheet(target, sheet);
     target.textContent = 'Search will appear here.';
   } });
-  registerAppSheetDescriptor('selection', { title: 'Selection', render: function (target, sheet) {
+  registerAppSheetDescriptor('selection', { label: 'Selection', title: 'Selection', render: function (target, sheet) {
     return renderSelectionSheet(target, sheet);
   } });
-  registerAppSheetDescriptor('verse-actions', { title: 'Verse Actions', render: function (target, sheet) {
+  registerAppSheetDescriptor('verse-actions', { label: 'Verse Actions', title: 'Verse Actions', render: function (target, sheet) {
     if (typeof renderVerseActionsSheet === 'function') return renderVerseActionsSheet(target, sheet);
     target.textContent = 'Verse actions will appear here.';
   } });
@@ -2449,7 +2458,7 @@
       try { appSheetState.contentCleanup(); } catch (e) {}
     }
     appSheetState.contentCleanup = null;
-    appSheetBody.textContent = '';
+    appSheetMeasure.textContent = '';
   }
 
   function restoreAppSheetFocus() {
@@ -2461,6 +2470,20 @@
   function syncAppSheetLauncherState() {
     if (!fabMain) return;
     fabMain.setAttribute('aria-expanded', appSheet.open && appSheetState.kind === 'settings' ? 'true' : 'false');
+  }
+
+  function syncAppSheetAccessibleState() {
+    var descriptor = resolveAppSheetDescriptor(appSheetState.kind);
+    if (!descriptor) {
+      appSheet.setAttribute('aria-label', 'Bible panel');
+      appSheetHandle.setAttribute('aria-label', 'Expand Bible panel');
+      return;
+    }
+    var label = descriptor.label;
+    appSheet.setAttribute('aria-label', label + ' — Bible panel');
+    appSheetHandle.setAttribute('aria-label',
+      (appSheetState.snap === 'fullscreen' ? 'Restore ' : 'Expand ') + label + ' panel' +
+      (appSheetState.snap === 'fullscreen' ? ' size' : ''));
   }
 
   function resetAppSheetState() {
@@ -2479,7 +2502,7 @@
     appSheetState.closing = false;
     appSheet.classList.remove('edge-top', 'snap-fullscreen');
     appSheet.classList.add('edge-bottom', 'snap-determined');
-    appSheetTitle.textContent = 'Panel';
+    syncAppSheetAccessibleState();
     syncAppSheetLauncherState();
   }
 
@@ -2491,6 +2514,7 @@
     appSheet.classList.toggle('snap-fullscreen', snap === 'fullscreen');
     appSheet.offsetHeight;
     appSheet.classList.remove('no-motion');
+    syncAppSheetAccessibleState();
     return true;
   }
 
@@ -2536,7 +2560,7 @@
   function renderAppSheetContent(descriptor) {
     cleanupAppSheetContent();
     try {
-      var cleanup = descriptor.render(appSheetBody, {
+      var cleanup = descriptor.render(appSheetMeasure, {
         kind: appSheetState.kind,
         edge: appSheetState.edge,
         snap: appSheetState.snap,
@@ -2545,7 +2569,7 @@
       });
       if (typeof cleanup === 'function') appSheetState.contentCleanup = cleanup;
     } catch (renderError) {
-      appSheetBody.textContent = 'This panel is unavailable.';
+      appSheetMeasure.textContent = 'This panel is unavailable.';
     }
   }
 
@@ -2596,7 +2620,6 @@
     if (!wasOpen) appSheetState.opener = options.opener || document.activeElement;
     appSheet.classList.toggle('edge-top', edge === 'top');
     appSheet.classList.toggle('edge-bottom', edge === 'bottom');
-    appSheetTitle.textContent = typeof options.title === 'string' && options.title ? options.title : descriptor.title;
     setSheetSnap(snap, true);
     renderAppSheetContent(descriptor);
     if (!wasOpen) {
@@ -2762,16 +2785,34 @@
     else setSheetSnap(outcome, shouldReduceVerseMotion());
   }
 
+  function onAppSheetHandleKeyDown(e) {
+    var toggle = e.key === 'Enter' || e.key === ' ';
+    var inward = (appSheetState.edge === 'bottom' && e.key === 'ArrowUp') ||
+      (appSheetState.edge === 'top' && e.key === 'ArrowDown');
+    var outward = (appSheetState.edge === 'bottom' && e.key === 'ArrowDown') ||
+      (appSheetState.edge === 'top' && e.key === 'ArrowUp');
+    if (!toggle && !inward && !outward && e.key !== 'Escape') return;
+    e.preventDefault();
+    if (e.key === 'Escape') {
+      requestCloseAppSheet('keyboard-handle', 'restore-opener');
+    } else if (toggle) {
+      setSheetSnap(appSheetState.snap === 'determined' ? 'fullscreen' : 'determined', false);
+    } else if (inward) {
+      if (appSheetState.snap === 'determined') setSheetSnap('fullscreen', false);
+    } else if (appSheetState.snap === 'fullscreen') {
+      setSheetSnap('determined', false);
+    } else {
+      requestCloseAppSheet('keyboard-handle', 'restore-opener');
+    }
+  }
+
   function installAppSheetListeners() {
     if (appSheetListenersInstalled) return;
     appSheetListenersInstalled = true;
-    appSheetClose.addEventListener('click', function () { requestCloseAppSheet('button'); });
     appSheet.addEventListener('cancel', function (e) { e.preventDefault(); requestCloseAppSheet('cancel'); });
     appSheet.addEventListener('click', function (e) { if (e.target === appSheet) requestCloseAppSheet('backdrop'); });
     appSheetHandle.addEventListener('pointerdown', onAppSheetPointerDown);
-    appSheetHandle.addEventListener('click', function (e) {
-      if (e.detail === 0) setSheetSnap(appSheetState.snap === 'determined' ? 'fullscreen' : 'determined', false);
-    });
+    appSheetHandle.addEventListener('keydown', onAppSheetHandleKeyDown);
     appSheetHandle.addEventListener('pointermove', onAppSheetPointerMove);
     appSheetHandle.addEventListener('pointerup', function (e) { settleAppSheetPointer(e, false); });
     appSheetHandle.addEventListener('pointercancel', function (e) { settleAppSheetPointer(e, true); });
@@ -3331,7 +3372,7 @@
   }
 
   function renderSelectionSheet(target, sheet) {
-    target.classList.add('selection-sheet-host');
+    appSheetBody.classList.add('selection-sheet-host');
     selectionSheetPage = normalizedSelectionPage(sheet.page);
     var reader = currentSelectionReaderReference();
     var context = sheet.context || {};

@@ -182,7 +182,7 @@ test('legacy selection history normalizes to a sheet over a validated reader and
 });
 
 test('selection descriptor is real, invalid selection history is sanitized, and repeated cleanup resets state', () => {
-  assert.match(bible, /registerAppSheetDescriptor\('selection', \{ title: 'Selection', render: function \(target, sheet\) \{\s*return renderSelectionSheet\(target, sheet\);/);
+  assert.match(bible, /registerAppSheetDescriptor\('selection', \{ label: 'Selection', title: 'Selection', render: function \(target, sheet\) \{\s*return renderSelectionSheet\(target, sheet\);/);
   const validator = extract(/function validatedAppSheetHistoryState\(state\) \{[\s\S]*?\n  \}/, 'sheet state validator missing');
   assert.match(validator, /normalizedSelectionPage/);
   const cleanup = extract(/function cleanupSelectionSheet\(\) \{[\s\S]*?\n  \}/, 'selection cleanup missing');
@@ -391,6 +391,7 @@ function runDotRenderer(source = bible) {
     function installSelectionEdgeListener() {}
     function cleanupSelectionSheet() {}
     function setSelectionPage(page, replace) { calls.push([page, replace]); selectionSheetPage = page; }
+    var appSheetBody = document.createElement('div');
     ${createPanel}
     ${render}
     var target = document.createElement('div');

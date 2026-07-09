@@ -226,8 +226,16 @@ assert.doesNotMatch(bible, /authArea\.appendChild\(outBtn\);/);
 assert.match(bible, /inBtn\.className = 'dd-item dd-signin-button';/);
 
 assert.match(bible, /id="fn-verse"/);
-assert.match(bible, /<dialog id="app-sheet" class="app-sheet edge-bottom snap-determined" aria-labelledby="app-sheet-title">/);
-assert.match(bible, /<button type="button" id="app-sheet-close" class="app-sheet-close" aria-label="Close">/);
+const appSheetDialogs = bible.match(/<dialog\b[^>]*\bid="app-sheet"[^>]*>/g) || [];
+assert.equal(appSheetDialogs.length, 1, 'one persistent app sheet dialog is present');
+assert.match(appSheetDialogs[0], /aria-label="Bible panel"/);
+assert.match(bible, /id="app-sheet-handle"[^>]*aria-label="Expand Bible panel"/);
+assert.match(bible, /id="app-sheet-measure" class="app-sheet-measure"/);
+assert.match(bible, /class="app-sheet-fade app-sheet-fade-top" aria-hidden="true"/);
+assert.match(bible, /class="app-sheet-fade app-sheet-fade-bottom" aria-hidden="true"/);
+assert.doesNotMatch(bible, /aria-labelledby="app-sheet-title"|id="app-sheet-title"|id="app-sheet-close"|class="app-sheet-header"/);
+assert.doesNotMatch(bible, /\bappSheetTitle\b|\bappSheetClose\b/);
+assert.match(bible, /\.app-sheet\.edge-top \.app-sheet-handle\s*\{[^}]*order:\s*3/);
 assert.match(bible, /function showVersePickerView\(bookName, chapterNum\)/);
 assert.match(bible, /view: 'verse-picker'/);
 assert.match(bible, /fnVerse\.textContent = activeVerse \? activeVerse : '1';/);

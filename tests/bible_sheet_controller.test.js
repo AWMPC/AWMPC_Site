@@ -9,10 +9,14 @@ const bible = fs.readFileSync(biblePath, 'utf8');
 
 const dialogs = [...bible.matchAll(/<dialog\b[^>]*\bid="app-sheet"[^>]*>/g)];
 assert.equal(dialogs.length, 1, 'one persistent app sheet dialog is present');
-assert.match(dialogs[0][0], /aria-labelledby="app-sheet-title"/);
-assert.match(bible, /id="app-sheet-handle"[^>]*aria-label="Resize sheet"/);
-assert.match(bible, /id="app-sheet-close"[^>]*aria-label="Close"/);
+assert.match(dialogs[0][0], /aria-label="Bible panel"/);
+assert.match(bible, /id="app-sheet-handle"[^>]*aria-label="Expand Bible panel"/);
 assert.match(bible, /id="app-sheet-body"[^>]*tabindex="0"/);
+assert.match(bible, /id="app-sheet-measure" class="app-sheet-measure"/);
+assert.match(bible, /class="app-sheet-fade app-sheet-fade-top" aria-hidden="true"/);
+assert.match(bible, /class="app-sheet-fade app-sheet-fade-bottom" aria-hidden="true"/);
+assert.doesNotMatch(bible, /aria-labelledby="app-sheet-title"|id="app-sheet-title"|id="app-sheet-close"/);
+assert.doesNotMatch(bible, /var appSheetTitle|var appSheetClose|appSheetClose\.addEventListener/);
 assert.match(bible, /\.app-sheet\.edge-top/);
 assert.match(bible, /\.app-sheet\.snap-determined[\s\S]*70dvh/);
 assert.match(bible, /\.app-sheet\.snap-fullscreen[\s\S]*100dvh/);
@@ -21,6 +25,97 @@ assert.match(bible, /env\(safe-area-inset-bottom/);
 assert.match(bible, /env\(safe-area-inset-top/);
 assert.match(bible, /\.app-sheet\.snap-fullscreen[\s\S]*padding-top: env\(safe-area-inset-top/,
   'bottom-edge fullscreen preserves the top safe area');
+assert.match(bible, /\.app-sheet\.edge-top \.app-sheet-handle\s*\{[^}]*order:\s*3/);
+
+function controllerFunction(name) {
+  const match = bible.match(new RegExp('  function ' + name + '\\([^\\n]*\\) \\{[\\s\\S]*?\\n  \\}'));
+  assert.ok(match, name + ' controller function is present');
+  return match[0];
+}
+
+function runHandleKeys(options) {
+  const appSheet = fakeElement();
+  const appSheetHandle = fakeElement();
+  const closeCalls = [];
+  const context = {
+    appSheet,
+    appSheetHandle,
+    appSheetState: { edge: options.edge, snap: options.snap, kind: options.kind },
+    resolveAppSheetDescriptor(kind) {
+      const labels = { history: 'History', settings: 'Settings', search: 'Search', selection: 'Selection',
+        'verse-actions': 'Verse Actions' };
+      return labels[kind] ? { label: labels[kind] } : null;
+    },
+    setSheetSnap(snap) {
+      context.appSheetState.snap = snap;
+      context.syncAppSheetAccessibleState();
+      return true;
+    },
+    requestCloseAppSheet(...args) { closeCalls.push(args); return true; }
+  };
+  vm.runInNewContext(controllerFunction('syncAppSheetAccessibleState') + '\n' +
+    controllerFunction('onAppSheetHandleKeyDown') +
+    '\nthis.syncAppSheetAccessibleState = syncAppSheetAccessibleState;' +
+    '\nthis.onAppSheetHandleKeyDown = onAppSheetHandleKeyDown;', context);
+  context.syncAppSheetAccessibleState();
+  return {
+    dispatch(key) {
+      const event = { key, prevented: false, preventDefault() { this.prevented = true; } };
+      context.onAppSheetHandleKeyDown(event);
+      return event;
+    },
+    snap: () => context.appSheetState.snap,
+    dialogLabel: () => appSheet.getAttribute('aria-label'),
+    handleLabel: () => appSheetHandle.getAttribute('aria-label'),
+    closeCalls: () => closeCalls
+  };
+}
+
+{
+  let harness = runHandleKeys({ edge: 'bottom', snap: 'determined', kind: 'history' });
+  let event = harness.dispatch('Enter');
+  assert.equal(event.prevented, true);
+  assert.equal(harness.snap(), 'fullscreen');
+  assert.equal(harness.dialogLabel(), 'History — Bible panel');
+  assert.equal(harness.handleLabel(), 'Restore History panel size');
+
+  event = harness.dispatch(' ');
+  assert.equal(event.prevented, true);
+  assert.equal(harness.snap(), 'determined');
+  assert.equal(harness.handleLabel(), 'Expand History panel');
+
+  harness = runHandleKeys({ edge: 'bottom', snap: 'determined', kind: 'history' });
+  assert.equal(harness.dispatch('ArrowUp').prevented, true);
+  assert.equal(harness.snap(), 'fullscreen');
+  harness = runHandleKeys({ edge: 'bottom', snap: 'determined', kind: 'history' });
+  assert.equal(harness.dispatch('ArrowDown').prevented, true);
+  assert.deepEqual(harness.closeCalls(), [['keyboard-handle', 'restore-opener']]);
+
+  harness = runHandleKeys({ edge: 'top', snap: 'determined', kind: 'search' });
+  assert.equal(harness.dispatch('ArrowDown').prevented, true);
+  assert.equal(harness.snap(), 'fullscreen');
+  harness = runHandleKeys({ edge: 'top', snap: 'determined', kind: 'search' });
+  assert.equal(harness.dispatch('ArrowUp').prevented, true);
+  assert.deepEqual(harness.closeCalls(), [['keyboard-handle', 'restore-opener']]);
+
+  harness = runHandleKeys({ edge: 'bottom', snap: 'fullscreen', kind: 'settings' });
+  assert.equal(harness.dispatch('ArrowDown').prevented, true);
+  assert.equal(harness.snap(), 'determined');
+  harness = runHandleKeys({ edge: 'top', snap: 'fullscreen', kind: 'settings' });
+  assert.equal(harness.dispatch('ArrowUp').prevented, true);
+  assert.equal(harness.snap(), 'determined');
+
+  harness = runHandleKeys({ edge: 'bottom', snap: 'fullscreen', kind: 'settings' });
+  assert.equal(harness.dispatch('ArrowUp').prevented, true);
+  assert.equal(harness.snap(), 'fullscreen');
+  harness = runHandleKeys({ edge: 'top', snap: 'fullscreen', kind: 'settings' });
+  assert.equal(harness.dispatch('ArrowDown').prevented, true);
+  assert.equal(harness.snap(), 'fullscreen');
+
+  event = harness.dispatch('Escape');
+  assert.equal(event.prevented, true);
+  assert.deepEqual(harness.closeCalls(), [['keyboard-handle', 'restore-opener']]);
+}
 
 const pureStart = bible.indexOf('/* APP SHEET PURE HELPERS START */');
 const pureEnd = bible.indexOf('/* APP SHEET PURE HELPERS END */');
@@ -229,9 +324,10 @@ const controllerEnd = bible.indexOf('/* APP SHEET CONTROLLER END */');
 assert.ok(controllerStart >= 0 && controllerEnd > controllerStart);
 const dialog = fakeElement();
 const handle = fakeElement();
-const close = fakeElement();
-const title = fakeElement();
 const body = fakeElement();
+const measure = fakeElement();
+const fadeTop = fakeElement();
+const fadeBottom = fakeElement();
 const opener = fakeElement();
 const fabMain = fakeElement();
 fabMain.setAttribute('aria-expanded', 'false');
@@ -250,9 +346,10 @@ const controllerContext = {
   Date,
   appSheet: dialog,
   appSheetHandle: handle,
-  appSheetClose: close,
-  appSheetTitle: title,
   appSheetBody: body,
+  appSheetMeasure: measure,
+  appSheetFadeTop: fadeTop,
+  appSheetFadeBottom: fadeBottom,
   fabMain,
   document: { activeElement: opener },
   window: {
@@ -283,9 +380,9 @@ vm.runInNewContext(controllerSource, controllerContext);
 const api = controllerContext.api;
 
 api.install();
-const installedListenerCount = dialog.listenerCount + handle.listenerCount + close.listenerCount;
+const installedListenerCount = dialog.listenerCount + handle.listenerCount + body.listenerCount;
 api.install();
-assert.equal(dialog.listenerCount + handle.listenerCount + close.listenerCount, installedListenerCount,
+assert.equal(dialog.listenerCount + handle.listenerCount + body.listenerCount, installedListenerCount,
   'listener setup is idempotent');
 
 let cleanupCount = 0;
@@ -308,8 +405,9 @@ assert.equal(api.register('settings', {
 assert.equal(api.open('history', { opener, page: 'recent' }), true);
 assert.equal(fabMain.getAttribute('aria-expanded'), 'false', 'History does not expand the Settings launcher');
 assert.equal(dialog.open, true);
-assert.equal(title.textContent, 'Registered History');
-assert.equal(body.textContent, 'history:recent');
+assert.equal(dialog.getAttribute('aria-label'), 'History — Bible panel');
+assert.equal(handle.getAttribute('aria-label'), 'Expand History panel');
+assert.equal(measure.textContent, 'history:recent');
 assert.equal(historyCalls.push.length, 1, 'first open pushes one sheet entry');
 assert.equal(historyCalls.replace.length, 0);
 
@@ -318,8 +416,8 @@ assert.equal(fabMain.getAttribute('aria-expanded'), 'false', 'kind switch away f
 assert.equal(historyCalls.push.length, 1, 'switching an open sheet never pushes again');
 assert.equal(historyCalls.replace.length, 1, 'switching kind/page replaces the owned sheet entry');
 assert.equal(cleanupCount, 1, 'old content cleanup runs before replacement');
-assert.equal(title.textContent, 'Search');
-assert.notEqual(body.textContent, '', 'default descriptors render deterministic content');
+assert.equal(dialog.getAttribute('aria-label'), 'Search — Bible panel');
+assert.notEqual(measure.textContent, '', 'default descriptors render deterministic content');
 
 assert.equal(api.close('button'), true);
 assert.equal(historyCalls.back, 1, 'dismissal traverses back from an owned entry');
@@ -342,8 +440,8 @@ assert.equal(api.pop({
   view: 'verses', book: 'John', chapter: '3', verse: '16', sheet: { kind: 'history', page: 'recent' }
 }), true, 'Forward reopens a validated sheet state');
 assert.equal(dialog.open, true);
-assert.equal(title.textContent, 'Registered History', 'Forward resolves the registered title');
-assert.equal(body.textContent, 'history:recent', 'Forward resolves registered content and page');
+assert.equal(dialog.getAttribute('aria-label'), 'History — Bible panel', 'Forward resolves the trusted label');
+assert.equal(measure.textContent, 'history:recent', 'Forward resolves registered content and page');
 assert.equal(historyCalls.push.length, pushesBeforeForward, 'Forward restoration does not push');
 assert.equal(api.pop({
   view: 'verses', book: 'John', chapter: '3', verse: '16', sheet: { kind: 'settings' }
@@ -441,13 +539,6 @@ assert.equal(api.state.snap, 'fullscreen', 'pointerup settles an inward bottom d
 assert.equal(api.state.pointer, null, 'pointerup clears pointer state');
 assert.ok(cancelledFrames.includes(pointerUpFrame), 'pointerup cancels the pending drag RAF');
 assert.equal(handle.releaseCount, releasesBeforePointerUp + 1, 'pointerup releases held pointer capture');
-
-const backsBeforeCloseButton = historyCalls.back;
-close.dispatch('click');
-assert.equal(historyCalls.back, backsBeforeCloseButton + 1, 'explicit close button uses requestCloseAppSheet/history.back');
-assert.equal(dialog.open, true, 'history-owned close button waits for popstate');
-api.pop({ view: 'verses', book: 'John', chapter: '3', verse: '16' });
-assert.equal(dialog.open, false, 'close-button dismissal converges on closure after popstate');
 
 api.pop({ view: 'verses', book: 'John', chapter: '3', verse: '16', sheet: { kind: 'history' } });
 const backsBeforeDoubleClose = historyCalls.back;

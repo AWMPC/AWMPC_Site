@@ -20,7 +20,7 @@ for (const [kind, renderer, title] of [
   ['settings', 'renderSettingsSheet', 'Settings'],
   ['search', 'renderSearchSheet', 'Search']
 ]) {
-  assert.match(bible, new RegExp(`registerAppSheetDescriptor\\('${kind}', \\{ title: '${title}', render: function \\([^)]+\\) \\{[\\s\\S]*?${renderer}`),
+  assert.match(bible, new RegExp(`registerAppSheetDescriptor\\('${kind}', \\{ label: '${title}', title: '${title}', render: function \\([^)]+\\) \\{[\\s\\S]*?${renderer}`),
     `${kind} must restore through the registered real renderer`);
 }
 
