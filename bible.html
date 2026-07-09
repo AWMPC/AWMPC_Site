@@ -1086,6 +1086,44 @@
   .settings-sheet-content > .fab-card,
   .settings-sheet-content > .app-version { width: 100%; }
   .search-sheet-skeleton { margin-top: var(--display-panel-gap); }
+  .app-sheet-body.selection-sheet-host { overflow: hidden; padding: 0; }
+  .selection-pager {
+    display: flex; flex-direction: column; min-height: 0; height: 100%; overflow: hidden;
+    touch-action: pan-y;
+  }
+  .selection-dots {
+    order: 0; display: flex; justify-content: center; align-items: center; gap: 8px;
+    min-height: 32px; padding: 6px var(--display-panel-padding);
+  }
+  .selection-dot {
+    width: 28px; min-height: 28px; padding: 0; border: 0; border-radius: var(--radius-pill);
+    background: transparent; cursor: pointer;
+  }
+  .selection-dot::before {
+    content: ''; display: block; width: 8px; height: 8px; margin: auto;
+    border-radius: 50%; background: var(--fg4);
+    transition-property: transform, background;
+    transition-duration: 180ms, 180ms;
+    transition-timing-function: var(--motion-ease);
+  }
+  .selection-dot[aria-selected="true"]::before { background: var(--accent); transform: scale(1.45); }
+  .selection-viewport { order: 1; flex: 1; min-height: 0; overflow: hidden; }
+  .selection-track {
+    display: flex; width: 100%; height: 100%;
+    transition-property: transform;
+    transition-duration: 220ms;
+    transition-timing-function: var(--motion-ease);
+    will-change: transform;
+  }
+  .selection-track.no-motion { transition-duration: 0s; }
+  .selection-panel {
+    flex: 0 0 100%; min-width: 0; height: 100%; overflow: auto; overscroll-behavior: contain;
+    padding: 0 var(--display-panel-padding) max(var(--display-panel-padding), env(safe-area-inset-bottom));
+  }
+  .selection-panel .testaments { padding-top: 0; }
+  .selection-empty { color: var(--fg3); padding: 24px 12px; text-align: center; white-space: normal; }
+  .app-sheet.edge-top .selection-dots { order: 2; padding-bottom: max(6px, env(safe-area-inset-bottom)); }
+  .app-sheet.edge-top .selection-viewport { order: 1; }
   .app-sheet.edge-top .app-sheet-shell { padding-top: env(safe-area-inset-top); }
   .app-sheet.snap-fullscreen .app-sheet-shell { padding-top: env(safe-area-inset-top); }
 
@@ -2176,6 +2214,25 @@
   var selectionGridFrame = null;
   var currentSelectionScale = DEFAULT_TEXT_SCALE;
 
+  /* SELECTION SHEET PURE HELPERS START */
+  var selectionPages = ['books', 'chapters', 'verses'];
+  function isValidSelectionPage(page) {
+    return typeof page === 'string' && selectionPages.indexOf(page) !== -1;
+  }
+  function normalizedSelectionPage(page) {
+    return isValidSelectionPage(page) ? page : 'books';
+  }
+  function selectionSheetEdge(viewportWidth) {
+    return typeof viewportWidth === 'number' && isFinite(viewportWidth) && viewportWidth <= 640 ? 'top' : 'bottom';
+  }
+  function selectionSwipePage(page, displacement, velocity, axis) {
+    var current = selectionPages.indexOf(normalizedSelectionPage(page));
+    if (axis !== 'x' || (Math.abs(displacement) < 56 && Math.abs(velocity) < .4)) return selectionPages[current];
+    var direction = displacement < 0 || velocity < -.4 ? 1 : -1;
+    return selectionPages[Math.max(0, Math.min(selectionPages.length - 1, current + direction))];
+  }
+  /* SELECTION SHEET PURE HELPERS END */
+
   /* APP SHEET PURE HELPERS START */
   var APP_SHEET_KINDS = ['history', 'settings', 'search', 'selection', 'verse-actions'];
   var APP_SHEET_EDGES = ['top', 'bottom'];
@@ -2213,7 +2270,12 @@
     if (state.sheet.page != null && (typeof state.sheet.page !== 'string' ||
         state.sheet.page.length > 128 || !/^[A-Za-z0-9._~-]*$/.test(state.sheet.page))) return null;
     var sheet = { kind: state.sheet.kind };
-    if (state.sheet.page) sheet.page = state.sheet.page;
+    if (state.sheet.kind === 'selection') {
+      sheet.page = normalizedSelectionPage(state.sheet.page);
+      if (typeof state.sheet.book === 'string' && state.sheet.book.length > 0 && state.sheet.book.length <= 80 &&
+          !/[\u0000-\u001f\u007f]/.test(state.sheet.book)) sheet.book = state.sheet.book;
+      if (/^\d+$/.test(String(state.sheet.chapter))) sheet.chapter = String(state.sheet.chapter);
+    } else if (state.sheet.page) sheet.page = state.sheet.page;
     return { view: 'verses', book: state.book, chapter: String(state.chapter), verse: String(state.verse), sheet: sheet };
   }
   /* APP SHEET PURE HELPERS END */
@@ -2229,6 +2291,7 @@
     settleTimer: null,
     frame: null,
     contentCleanup: null,
+    historyState: null,
     historyOwned: false,
     pendingHistoryClose: false,
     closing: false
@@ -2264,7 +2327,9 @@
     if (typeof renderSearchSheet === 'function') return renderSearchSheet(target, sheet);
     target.textContent = 'Search will appear here.';
   } });
-  registerAppSheetDescriptor('selection', { title: 'Selection', render: defaultAppSheetRenderer('Selection tools') });
+  registerAppSheetDescriptor('selection', { title: 'Selection', render: function (target, sheet) {
+    return renderSelectionSheet(target, sheet);
+  } });
   registerAppSheetDescriptor('verse-actions', { title: 'Verse Actions', render: function (target, sheet) {
     if (typeof renderVerseActionsSheet === 'function') return renderVerseActionsSheet(target, sheet);
     target.textContent = 'Verse actions will appear here.';
@@ -2319,6 +2384,7 @@
     appSheetState.edge = 'bottom';
     appSheetState.snap = 'compact';
     appSheetState.page = null;
+    appSheetState.historyState = null;
     appSheetState.opener = null;
     appSheetState.historyOwned = false;
     appSheetState.pendingHistoryClose = false;
@@ -2385,7 +2451,8 @@
         kind: appSheetState.kind,
         edge: appSheetState.edge,
         snap: appSheetState.snap,
-        page: appSheetState.page
+        page: appSheetState.page,
+        context: appSheetState.historyState && appSheetState.historyState.sheet
       });
       if (typeof cleanup === 'function') appSheetState.contentCleanup = cleanup;
     } catch (renderError) {
@@ -2434,6 +2501,7 @@
     syncAppSheetLauncherState();
     appSheetState.edge = edge;
     appSheetState.page = page;
+    appSheetState.historyState = historyState;
     appSheetState.closing = false;
     if (!wasOpen) appSheetState.opener = options.opener || document.activeElement;
     appSheet.classList.toggle('edge-top', edge === 'top');
@@ -2464,12 +2532,28 @@
       appSheetState.pendingHistoryClose = false;
       openAppSheet(validated.sheet.kind, {
         page: validated.sheet.page || null,
+        edge: validated.sheet.kind === 'selection' ? selectionSheetEdge(window.innerWidth) : 'bottom',
         historyState: validated,
         fromPop: true
       });
       return true;
     }
+    if (state && state.sheet && state.sheet.kind === 'selection') {
+      var reader = normalizeVerseReference(state.book, state.chapter, state.verse);
+      if (reader) {
+        var context = normalizedSelectionContext(state.sheet.book, state.sheet.chapter, reader);
+        var sanitized = selectionHistoryState(reader, normalizedSelectionPage(state.sheet.page), context);
+        history.replaceState(sanitized, '', canonicalVerseUrl(reader.book, reader.chapter, reader.verse));
+        openSelectionSheet(sanitized.sheet.page, null, {
+          fromPop: true, historyState: sanitized, reader: reader,
+          book: sanitized.sheet.book, chapter: sanitized.sheet.chapter
+        });
+        return true;
+      }
+    }
     if (appSheet.open) {
+      if (appSheetState.kind === 'selection' && state &&
+          (state.view === 'books' || state.view === 'chapters' || state.view === 'verse-picker')) return false;
       appSheetState.historyOwned = false;
       appSheetState.pendingHistoryClose = false;
       requestCloseAppSheet('popstate');
@@ -2692,7 +2776,8 @@
   function updateSelectionGridLayout() {
     selectionGridFrame = null;
     var grid = activeSelectionGrid;
-    if (!grid || grid.isConnected === false || !viewInner.contains(grid)) return;
+    if (!grid || grid.isConnected === false ||
+        (!viewInner.contains(grid) && (typeof appSheetBody === 'undefined' || !appSheetBody.contains(grid)))) return;
     var width = grid.clientWidth;
     if (typeof width !== 'number' || !isFinite(width) || width <= 0) return;
     var gap = parseFloat(window.getComputedStyle(grid).columnGap);
@@ -2722,6 +2807,500 @@
     if (selectionGridResizeObserver) selectionGridResizeObserver.observe(activeSelectionGrid);
     if (activeSelectionGrid.clientWidth > 0) updateSelectionGridLayout();
     else scheduleSelectionGridLayout();
+  }
+
+  // ===================== SELECTION SHEET =====================
+  var selectionSheetPage = 'books';
+  var selectionContext = null;
+  var selectionPager = null;
+  var selectionTrack = null;
+  var selectionPanels = null;
+  var selectionDots = null;
+  var selectionGrids = null;
+  var selectionPointer = null;
+  var selectionRetargetFrame = null;
+  var selectionRetargetTimer = null;
+  var selectionMediaQuery = null;
+  var selectionMediaListener = null;
+  var SELECTION_POINTER_RECENCY_MS = 80;
+
+  function currentSelectionReaderReference() {
+    var verse = activeVerse || recalledChapterVerse(navBook, navChapter) || '1';
+    var current = normalizeVerseReference(currentBook || navBook, currentChapter || navChapter, verse);
+    if (current) return current;
+    var nav = currentNavStateForHistory();
+    if (nav && nav.view === 'verses') {
+      current = normalizeVerseReference(nav.book, nav.chapter, nav.verse);
+      if (current) return current;
+    }
+    if (!bibleData) return null;
+    var books = Object.keys(bibleData);
+    for (var i = 0; i < books.length; i++) {
+      var chapters = sortedChapterKeys(books[i]);
+      if (!chapters.length) continue;
+      var verses = Object.keys(bibleData[books[i]][chapters[0]] || {});
+      if (verses.length) return normalizeVerseReference(books[i], chapters[0], verses[0]);
+    }
+    return null;
+  }
+
+  function normalizedSelectionContext(book, chapter, fallback) {
+    var normalized = normalizeBookChapter(book, chapter || '1');
+    if (!normalized && fallback) normalized = normalizeBookChapter(fallback.book, fallback.chapter);
+    return normalized ? { book: normalized.book, chapter: normalized.chapter } : { book: null, chapter: null };
+  }
+
+  function selectionHistoryState(reader, page, context) {
+    if (!reader) return null;
+    var state = {
+      view: 'verses', book: reader.book, chapter: String(reader.chapter), verse: String(reader.verse),
+      sheet: { kind: 'selection', page: normalizedSelectionPage(page) }
+    };
+    if (context && context.book) state.sheet.book = context.book;
+    if (context && context.chapter != null) state.sheet.chapter = String(context.chapter);
+    return validatedAppSheetHistoryState(state);
+  }
+
+  function activeSelectionGridFor(page) {
+    if (!selectionGrids) return null;
+    return page === 'chapters' ? selectionGrids.chapters : page === 'verses' ? selectionGrids.verses : null;
+  }
+
+  function retargetActiveSelectionGrid() {
+    selectionRetargetFrame = null;
+    if (!selectionTrack || !selectionTrack.isConnected) return;
+    var grid = activeSelectionGridFor(selectionSheetPage);
+    if (!grid || !grid.isConnected || grid.clientWidth <= 0) return;
+    observeSelectionGrid(grid);
+  }
+
+  function scheduleSelectionGridRetarget() {
+    if (selectionRetargetFrame !== null) return;
+    selectionRetargetFrame = requestAnimationFrame(retargetActiveSelectionGrid);
+  }
+
+  function finishSelectionPageSettle(event) {
+    if (event && (event.target !== selectionTrack || event.propertyName !== 'transform')) return;
+    if (selectionRetargetTimer !== null) window.clearTimeout(selectionRetargetTimer);
+    selectionRetargetTimer = null;
+    scheduleSelectionGridRetarget();
+  }
+
+  function updateSelectionPageSemantics() {
+    if (!selectionPanels || !selectionDots) return;
+    for (var i = 0; i < selectionPages.length; i++) {
+      var active = selectionPages[i] === selectionSheetPage;
+      selectionPanels[i].setAttribute('aria-hidden', active ? 'false' : 'true');
+      if ('inert' in selectionPanels[i]) selectionPanels[i].inert = !active;
+      selectionDots[i].setAttribute('aria-selected', active ? 'true' : 'false');
+      if (active) selectionDots[i].setAttribute('aria-current', 'page');
+      else selectionDots[i].removeAttribute('aria-current');
+      selectionDots[i].tabIndex = active ? 0 : -1;
+    }
+  }
+
+  function setSelectionPage(page, replaceHistory) {
+    if (!isValidSelectionPage(page) || !selectionTrack) return false;
+    selectionSheetPage = page;
+    appSheetState.page = page;
+    disconnectSelectionGridLayout();
+    if (selectionRetargetFrame !== null) cancelAnimationFrame(selectionRetargetFrame);
+    if (selectionRetargetTimer !== null) window.clearTimeout(selectionRetargetTimer);
+    selectionRetargetFrame = null;
+    selectionRetargetTimer = null;
+    selectionTrack.classList.toggle('no-motion', shouldReduceVerseMotion());
+    selectionTrack.style.transform = 'translateX(' + (-100 * selectionPages.indexOf(page)) + '%)';
+    updateSelectionPageSemantics();
+    if (shouldReduceVerseMotion()) scheduleSelectionGridRetarget();
+    else selectionRetargetTimer = window.setTimeout(finishSelectionPageSettle, 240);
+    if (replaceHistory && appSheet.open && appSheetState.kind === 'selection' && appSheetState.historyOwned) {
+      var state = selectionHistoryState(currentSelectionReaderReference(), page, selectionContext);
+      if (state) {
+        appSheetState.historyState = state;
+        history.replaceState(state, '', window.location.href);
+      }
+    }
+    return true;
+  }
+
+  function createSelectionEmpty(message) {
+    var empty = document.createElement('p');
+    empty.className = 'selection-empty';
+    empty.textContent = message;
+    return empty;
+  }
+
+  function createSelectionBookButton(bookName) {
+    var item = document.createElement('li');
+    var button = document.createElement('button');
+    button.type = 'button';
+    button.className = 'book-btn';
+    var english = document.createElement('div');
+    english.className = 'book-name-en';
+    english.textContent = bookName;
+    button.appendChild(english);
+    var korean = koName(bookName);
+    if (korean) {
+      var translated = document.createElement('div');
+      translated.className = 'book-name-ko';
+      translated.textContent = korean;
+      button.appendChild(translated);
+    }
+    button.addEventListener('click', function () { selectSelectionBook(bookName); });
+    item.appendChild(button);
+    return item;
+  }
+
+  function renderSelectionBooks(panel) {
+    panel.textContent = '';
+    var books = bibleData ? Object.keys(bibleData) : [];
+    if (!books.length) {
+      panel.appendChild(createSelectionEmpty('Books are unavailable.'));
+      return;
+    }
+    var wrap = document.createElement('div');
+    wrap.className = 'testaments';
+    var oldSection = document.createElement('section');
+    oldSection.className = 'testament';
+    var oldTitle = document.createElement('h3');
+    oldTitle.textContent = 'Old Testament';
+    oldSection.appendChild(oldTitle);
+    var oldList = document.createElement('ul');
+    oldSection.appendChild(oldList);
+    var newSection = document.createElement('section');
+    newSection.className = 'testament';
+    var newTitle = document.createElement('h3');
+    newTitle.textContent = 'New Testament';
+    newSection.appendChild(newTitle);
+    var newList = document.createElement('ul');
+    newSection.appendChild(newList);
+    for (var i = 0; i < books.length; i++) {
+      (i < OT_COUNT ? oldList : newList).appendChild(createSelectionBookButton(books[i]));
+    }
+    wrap.appendChild(oldSection);
+    wrap.appendChild(newSection);
+    panel.appendChild(wrap);
+  }
+
+  function renderSelectionChapters() {
+    var panel = selectionPanels && selectionPanels[1];
+    if (!panel) return;
+    panel.textContent = '';
+    selectionGrids.chapters = null;
+    var normalized = selectionContext && normalizeBookChapter(selectionContext.book, selectionContext.chapter || '1');
+    if (!normalized) {
+      panel.appendChild(createSelectionEmpty('Choose a book first.'));
+      return;
+    }
+    selectionContext = { book: normalized.book, chapter: normalized.chapter };
+    var card = document.createElement('section');
+    card.className = 'selection-card';
+    var header = document.createElement('h3');
+    header.className = 'chapters-header';
+    header.textContent = normalized.book + ' - Chapters';
+    card.appendChild(header);
+    var grid = document.createElement('div');
+    grid.className = 'chapter-grid';
+    var chapters = sortedChapterKeys(normalized.book);
+    for (var i = 0; i < chapters.length; i++) {
+      var button = document.createElement('button');
+      button.type = 'button';
+      button.className = 'chapter-btn';
+      button.textContent = chapters[i];
+      button.addEventListener('click', (function (chapter) {
+        return function () { selectSelectionChapter(chapter); };
+      })(chapters[i]));
+      grid.appendChild(button);
+    }
+    card.appendChild(grid);
+    panel.appendChild(card);
+    selectionGrids.chapters = grid;
+  }
+
+  function renderSelectionVerses() {
+    var panel = selectionPanels && selectionPanels[2];
+    if (!panel) return;
+    panel.textContent = '';
+    selectionGrids.verses = null;
+    var normalized = selectionContext && normalizeBookChapter(selectionContext.book, selectionContext.chapter);
+    if (!normalized) {
+      panel.appendChild(createSelectionEmpty('Choose a book and chapter first.'));
+      return;
+    }
+    selectionContext = { book: normalized.book, chapter: normalized.chapter };
+    var card = document.createElement('section');
+    card.className = 'selection-card';
+    var header = document.createElement('h3');
+    header.className = 'chapters-header';
+    header.textContent = normalized.book + ' - Chapter ' + normalized.chapter + ' - Verses';
+    card.appendChild(header);
+    var grid = document.createElement('div');
+    grid.className = 'verse-grid';
+    var verses = Object.keys(bibleData[normalized.book][String(normalized.chapter)] || {});
+    for (var i = 0; i < verses.length; i++) {
+      var button = document.createElement('button');
+      button.type = 'button';
+      button.className = 'chapter-btn';
+      button.textContent = verses[i];
+      button.addEventListener('click', (function (verse) {
+        return function () { commitSelectionVerse(verse); };
+      })(verses[i]));
+      grid.appendChild(button);
+    }
+    card.appendChild(grid);
+    panel.appendChild(card);
+    selectionGrids.verses = grid;
+  }
+
+  function selectSelectionBook(bookName) {
+    var normalized = normalizeBookChapter(bookName, '1');
+    if (!normalized) return false;
+    selectionContext.book = bookName;
+    selectionContext.chapter = normalized.chapter;
+    renderSelectionChapters();
+    renderSelectionVerses();
+    return setSelectionPage('chapters', true);
+  }
+
+  function selectSelectionChapter(chapter) {
+    var normalized = selectionContext && normalizeBookChapter(selectionContext.book, chapter);
+    if (!normalized) return false;
+    selectionContext.chapter = normalized.chapter;
+    renderSelectionVerses();
+    return setSelectionPage('verses', true);
+  }
+
+  function commitSelectionVerse(verse) {
+    var reference = selectionContext && normalizeVerseReference(selectionContext.book, selectionContext.chapter, verse);
+    if (!reference) return false;
+    var state = { view: 'verses', book: reference.book, chapter: String(reference.chapter), verse: String(reference.verse) };
+    history.replaceState(state, '', canonicalVerseUrl(reference.book, reference.chapter, reference.verse));
+    appSheetState.historyOwned = false;
+    navFromPop = true;
+    try {
+      showSelectedVerseWithTransition(reference.book, reference.chapter, reference.verse);
+    } finally {
+      navFromPop = false;
+    }
+    finishCloseAppSheet();
+    return true;
+  }
+
+  function selectionPointerTargetAllowsSwipe(target) {
+    try {
+      var selection = window.getSelection && window.getSelection();
+      if (selection && !selection.isCollapsed) return false;
+    } catch (selectionError) {}
+    if (!target || typeof target.closest !== 'function') return false;
+    return !target.closest('button,a,input,select,textarea,label,p,pre,code,[role="button"],[contenteditable="true"]');
+  }
+
+  function releaseSelectionPointer() {
+    var pointer = selectionPointer;
+    selectionPointer = null;
+    if (!pointer || !pointer.captured) return;
+    try {
+      if (selectionPager && selectionPager.hasPointerCapture(pointer.id)) selectionPager.releasePointerCapture(pointer.id);
+    } catch (releaseError) {}
+  }
+
+  function onSelectionPointerDown(e) {
+    if (!e.isPrimary || e.button !== 0 || !selectionPointerTargetAllowsSwipe(e.target)) return;
+    releaseSelectionPointer();
+    selectionPointer = {
+      id: e.pointerId, startX: e.clientX, startY: e.clientY, lastX: e.clientX,
+      lastTime: e.timeStamp || Date.now(), lastMoveTime: null, velocity: 0, axis: null, captured: false
+    };
+  }
+
+  function onSelectionPointerMove(e) {
+    var pointer = selectionPointer;
+    if (!pointer || pointer.id !== e.pointerId) return;
+    var dx = e.clientX - pointer.startX;
+    var dy = e.clientY - pointer.startY;
+    if (!pointer.axis) pointer.axis = appSheetAxis(dx, dy);
+    if (pointer.axis === 'y') {
+      releaseSelectionPointer();
+      return;
+    }
+    if (pointer.axis !== 'x') return;
+    var now = e.timeStamp || Date.now();
+    var elapsed = now - pointer.lastTime;
+    if (elapsed > 0) pointer.velocity = (e.clientX - pointer.lastX) / elapsed;
+    pointer.lastX = e.clientX;
+    pointer.lastTime = now;
+    pointer.lastMoveTime = now;
+    if (!pointer.captured) {
+      try {
+        selectionPager.setPointerCapture(pointer.id);
+        pointer.captured = true;
+      } catch (captureError) { return; }
+    }
+    e.preventDefault();
+    e.stopPropagation();
+  }
+
+  function settleSelectionPointer(e, cancelled) {
+    var pointer = selectionPointer;
+    if (!pointer || pointer.id !== e.pointerId) return;
+    var dx = e.clientX == null ? pointer.lastX - pointer.startX : e.clientX - pointer.startX;
+    var endTime = e.timeStamp || Date.now();
+    var velocity = pointer.lastMoveTime !== null && endTime - pointer.lastMoveTime <= SELECTION_POINTER_RECENCY_MS ? pointer.velocity : 0;
+    var next = cancelled ? selectionSheetPage : selectionSwipePage(selectionSheetPage, dx, velocity, pointer.axis);
+    releaseSelectionPointer();
+    if (!cancelled && next !== selectionSheetPage) setSelectionPage(next, true);
+  }
+
+  function onSelectionPointerUp(e) { settleSelectionPointer(e, false); }
+  function onSelectionPointerCancel(e) { settleSelectionPointer(e, true); }
+  function onSelectionLostPointerCapture(e) {
+    if (selectionPointer && selectionPointer.id === e.pointerId) settleSelectionPointer(e, true);
+  }
+
+  function onSelectionDotKeyDown(e) {
+    var index = selectionDots ? selectionDots.indexOf(e.currentTarget) : -1;
+    if (index < 0) return;
+    var next = index;
+    if (e.key === 'ArrowLeft') next = Math.max(0, index - 1);
+    else if (e.key === 'ArrowRight') next = Math.min(selectionPages.length - 1, index + 1);
+    else if (e.key === 'Home') next = 0;
+    else if (e.key === 'End') next = selectionPages.length - 1;
+    else return;
+    e.preventDefault();
+    setSelectionPage(selectionPages[next], true);
+    selectionDots[next].focus();
+  }
+
+  function applySelectionSheetEdge() {
+    if (!selectionMediaQuery || appSheetState.kind !== 'selection') return;
+    var edge = selectionMediaQuery.matches ? 'top' : 'bottom';
+    appSheetState.edge = edge;
+    appSheet.classList.toggle('edge-top', edge === 'top');
+    appSheet.classList.toggle('edge-bottom', edge === 'bottom');
+  }
+
+  function installSelectionEdgeListener() {
+    selectionMediaQuery = window.matchMedia('(max-width: 640px)');
+    selectionMediaListener = function () { applySelectionSheetEdge(); };
+    if (selectionMediaQuery.addEventListener) selectionMediaQuery.addEventListener('change', selectionMediaListener);
+    applySelectionSheetEdge();
+  }
+
+  function cleanupSelectionSheet() {
+    disconnectSelectionGridLayout();
+    releaseSelectionPointer();
+    if (selectionRetargetFrame !== null) cancelAnimationFrame(selectionRetargetFrame);
+    if (selectionRetargetTimer !== null) window.clearTimeout(selectionRetargetTimer);
+    selectionRetargetFrame = null;
+    selectionRetargetTimer = null;
+    if (selectionMediaQuery && selectionMediaListener && selectionMediaQuery.removeEventListener) {
+      selectionMediaQuery.removeEventListener('change', selectionMediaListener);
+    }
+    if (selectionPager) {
+      selectionPager.removeEventListener('pointerdown', onSelectionPointerDown);
+      selectionPager.removeEventListener('pointermove', onSelectionPointerMove);
+      selectionPager.removeEventListener('pointerup', onSelectionPointerUp);
+      selectionPager.removeEventListener('pointercancel', onSelectionPointerCancel);
+      selectionPager.removeEventListener('lostpointercapture', onSelectionLostPointerCapture);
+    }
+    if (selectionTrack) selectionTrack.removeEventListener('transitionend', finishSelectionPageSettle);
+    if (appSheetBody) appSheetBody.classList.remove('selection-sheet-host');
+    selectionPointer = null;
+    selectionPager = null;
+    selectionTrack = null;
+    selectionPanels = null;
+    selectionDots = null;
+    selectionGrids = null;
+    selectionContext = null;
+    selectionMediaQuery = null;
+    selectionMediaListener = null;
+  }
+
+  function createSelectionPanel(page, label) {
+    var panel = document.createElement('section');
+    panel.className = 'selection-panel selection-panel-' + page;
+    panel.id = 'selection-panel-' + page;
+    panel.setAttribute('role', 'tabpanel');
+    panel.setAttribute('aria-label', label);
+    panel.setAttribute('aria-labelledby', 'selection-dot-' + page);
+    return panel;
+  }
+
+  function renderSelectionSheet(target, sheet) {
+    target.classList.add('selection-sheet-host');
+    selectionSheetPage = normalizedSelectionPage(sheet.page);
+    var reader = currentSelectionReaderReference();
+    var context = sheet.context || {};
+    selectionContext = normalizedSelectionContext(context.book, context.chapter, reader);
+    selectionGrids = { chapters: null, verses: null };
+    selectionPager = document.createElement('section');
+    selectionPager.className = 'selection-pager';
+    selectionPager.setAttribute('aria-label', 'Bible selection');
+    var dots = document.createElement('div');
+    dots.className = 'selection-dots';
+    dots.setAttribute('role', 'tablist');
+    dots.setAttribute('aria-label', 'Selection pages');
+    selectionDots = [];
+    var labels = ['Books', 'Chapters', 'Verses'];
+    for (var i = 0; i < selectionPages.length; i++) {
+      var dot = document.createElement('button');
+      dot.type = 'button';
+      dot.className = 'selection-dot';
+      dot.id = 'selection-dot-' + selectionPages[i];
+      dot.setAttribute('role', 'tab');
+      dot.setAttribute('aria-label', labels[i]);
+      dot.setAttribute('aria-selected', 'false');
+      dot.setAttribute('aria-controls', 'selection-panel-' + selectionPages[i]);
+      dot.addEventListener('click', (function (page) {
+        return function () { setSelectionPage(page, true); };
+      })(selectionPages[i]));
+      dot.addEventListener('keydown', onSelectionDotKeyDown);
+      selectionDots.push(dot);
+      dots.appendChild(dot);
+    }
+    var viewport = document.createElement('div');
+    viewport.className = 'selection-viewport';
+    selectionTrack = document.createElement('div');
+    selectionTrack.className = 'selection-track';
+    selectionPanels = [
+      createSelectionPanel('books', 'Books'),
+      createSelectionPanel('chapters', 'Chapters'),
+      createSelectionPanel('verses', 'Verses')
+    ];
+    for (i = 0; i < selectionPanels.length; i++) selectionTrack.appendChild(selectionPanels[i]);
+    viewport.appendChild(selectionTrack);
+    selectionPager.appendChild(dots);
+    selectionPager.appendChild(viewport);
+    target.appendChild(selectionPager);
+    renderSelectionBooks(selectionPanels[0]);
+    renderSelectionChapters();
+    renderSelectionVerses();
+    selectionPager.addEventListener('pointerdown', onSelectionPointerDown);
+    selectionPager.addEventListener('pointermove', onSelectionPointerMove);
+    selectionPager.addEventListener('pointerup', onSelectionPointerUp);
+    selectionPager.addEventListener('pointercancel', onSelectionPointerCancel);
+    selectionPager.addEventListener('lostpointercapture', onSelectionLostPointerCapture);
+    selectionTrack.addEventListener('transitionend', finishSelectionPageSettle);
+    installSelectionEdgeListener();
+    setSelectionPage(selectionSheetPage, false);
+    return cleanupSelectionSheet;
+  }
+
+  function openSelectionSheet(page, opener, options) {
+    if (!bibleData) return false;
+    options = options || {};
+    var reader = options.reader || currentSelectionReaderReference();
+    if (!reader) return false;
+    var context = normalizedSelectionContext(options.book || reader.book, options.chapter || reader.chapter, reader);
+    var normalizedPage = normalizedSelectionPage(page);
+    var state = options.historyState || selectionHistoryState(reader, normalizedPage, context);
+    return openAppSheet('selection', {
+      page: normalizedPage,
+      edge: selectionSheetEdge(window.innerWidth),
+      opener: opener,
+      fromPop: !!options.fromPop,
+      historyState: state
+    });
   }
 
   function setMarqueeText(el, value) {
@@ -4516,16 +5095,43 @@
         return;
       }
     }
+    var legacySelection = normalizeLegacySelectionHistory(s);
+    if (legacySelection) {
+      var legacyReader = normalizeVerseReference(
+        legacySelection.book, legacySelection.chapter, legacySelection.verse
+      );
+      if (legacyReader && uiView !== 'verses') {
+        navFromPop = true;
+        showSelectedVerseWithTransition(legacyReader.book, legacyReader.chapter, legacyReader.verse);
+        navFromPop = false;
+      }
+      history.replaceState(legacySelection, '', canonicalVerseUrl(
+        legacySelection.book, legacySelection.chapter, legacySelection.verse
+      ));
+      openSelectionSheet(legacySelection.sheet.page, null, {
+        fromPop: true,
+        historyState: legacySelection,
+        reader: legacyReader,
+        book: legacySelection.sheet.book,
+        chapter: legacySelection.sheet.chapter
+      });
+      return;
+    }
     navFromPop = true;
     var poppedVerse = s && s.view === 'verses' ? normalizeVerseReference(s.book, s.chapter, s.verse) : null;
-    var poppedChapter = s && (s.view === 'verse-picker' || s.view === 'chapters') ?
-      normalizeBookChapter(s.book, s.chapter || '1') : null;
     if (poppedVerse) showSelectedVerseWithTransition(poppedVerse.book, poppedVerse.chapter, poppedVerse.verse);
-    else if (s && s.view === 'verse-picker' && poppedChapter) showVersePickerViewWithTransition(poppedChapter.book, poppedChapter.chapter);
-    else if (s && s.view === 'chapters' && poppedChapter) showChaptersViewWithTransition(poppedChapter.book);
     else showBooksViewWithTransition();
     navFromPop = false;
   });
+
+  function normalizeLegacySelectionHistory(state) {
+    if (!state || (state.view !== 'books' && state.view !== 'chapters' && state.view !== 'verse-picker')) return null;
+    var reader = currentSelectionReaderReference();
+    if (!reader) return null;
+    var page = state.view === 'verse-picker' ? 'verses' : state.view;
+    var context = normalizedSelectionContext(state.book, state.chapter, reader);
+    return selectionHistoryState(reader, page, context);
+  }
 
   // ===================== VIEW: BOOKS =====================
   function showBooksView() {
@@ -5351,14 +5957,14 @@
   fnNext.addEventListener('click', function () {
     showAdjacentChapter(1);
   });
-  fnBook.addEventListener('click', function () {
-    if (bibleData) showBooksViewWithTransition();
+  fnBook.addEventListener('click', function (e) {
+    if (bibleData) openSelectionSheet('books', e.currentTarget);
   });
-  fnChapter.addEventListener('click', function () {
-    if (bibleData && navBook) showChaptersViewWithTransition(navBook);
+  fnChapter.addEventListener('click', function (e) {
+    if (bibleData) openSelectionSheet('chapters', e.currentTarget);
   });
-  fnVerse.addEventListener('click', function () {
-    if (bibleData && navBook && navChapter) showVersePickerViewWithTransition(navBook, navChapter);
+  fnVerse.addEventListener('click', function (e) {
+    if (bibleData) openSelectionSheet('verses', e.currentTarget);
   });
   document.addEventListener('pointerdown', function (e) {
     clearSuppressReaderClick();

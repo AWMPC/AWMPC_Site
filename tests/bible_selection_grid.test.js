@@ -285,11 +285,14 @@ test('view replacement cleans selection layout first and new grids attach before
   }
 
   for (const className of ['chapter-grid', 'verse-grid']) {
-    const start = bible.indexOf(`grid.className = '${className}'`);
-    assert.notEqual(start, -1);
-    const tail = bible.slice(start, start + 1400);
-    assert.match(tail, /viewInner\.appendChild\(card\);\s*observeSelectionGrid\(grid\);/,
-      `${className} must be connected before first measurement`);
+    const matches = [...bible.matchAll(new RegExp(`grid\\.className = '${className}'`, 'g'))];
+    assert.equal(matches.length, 2, `${className} has one sheet and one legacy builder during migration`);
+    const sheetTail = bible.slice(matches[0].index, matches[0].index + 1800);
+    assert.match(sheetTail, /panel\.appendChild\(card\);\s*selectionGrids\.(?:chapters|verses) = grid;/,
+      `${className} sheet grid connects before becoming an observer target`);
+    const legacyTail = bible.slice(matches[1].index, matches[1].index + 1400);
+    assert.match(legacyTail, /viewInner\.appendChild\(card\);\s*observeSelectionGrid\(grid\);/,
+      `${className} legacy grid remains connected before initial measurement`);
   }
 
   const resizePath = extract(/window\.addEventListener\('resize',[\s\S]*?\n    \}\);/, 'existing resize path missing');
