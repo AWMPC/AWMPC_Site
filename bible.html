@@ -2357,6 +2357,10 @@
       if (!Number.isSafeInteger(state.sheet.generation) || state.sheet.generation <= 0) return null;
       sheet.generation = state.sheet.generation;
     }
+    if (state.sheet.returnGeneration != null) {
+      if (!Number.isSafeInteger(state.sheet.returnGeneration) || state.sheet.returnGeneration <= 0) return null;
+      sheet.returnGeneration = state.sheet.returnGeneration;
+    }
     if (state.sheet.kind === 'selection') {
       sheet.page = normalizedSelectionPage(state.sheet.page);
       var data = typeof bibleData === 'undefined' ? null : bibleData;
@@ -2754,9 +2758,16 @@
     appSheetState.edge = edge;
     appSheetState.page = page;
     var incomingHistoryGeneration = historyState.sheet.generation;
-    appSheetState.historyReturnGeneration = options.fromPop ? (incomingHistoryGeneration || null) :
+    var incomingReturnGeneration = historyState.sheet.returnGeneration || incomingHistoryGeneration;
+    appSheetState.historyReturnGeneration = options.fromPop ? (incomingReturnGeneration || null) :
       (wasOpen ? previousReturnGeneration : appSheetState.generation);
-    historyState.sheet.generation = appSheetState.generation;
+    if (appSheetState.historyReturnGeneration !== null) {
+      historyState.sheet.generation = appSheetState.generation;
+      historyState.sheet.returnGeneration = appSheetState.historyReturnGeneration;
+    } else {
+      delete historyState.sheet.generation;
+      delete historyState.sheet.returnGeneration;
+    }
     appSheetState.historyState = historyState;
     appSheetState.phase = 'idle';
     appSheetState.determinedHeight = 0;

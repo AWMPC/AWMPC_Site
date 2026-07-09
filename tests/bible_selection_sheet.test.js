@@ -348,7 +348,7 @@ test('Forward history and app sheet render receive sanitized state immediately',
   const opened = runOpenWithHistory(hostile);
   assert.equal(opened.result, true);
   assert.deepEqual(opened.appSheetState.historyState.sheet,
-    { kind: 'selection', page: 'books', book: 'John', chapter: '3', generation: 1 });
+    { kind: 'selection', page: 'books', book: 'John', chapter: '3' });
   assert.deepEqual(opened.rendered[0], opened.appSheetState.historyState);
 
   const openMutation = bible.replace(
@@ -356,7 +356,7 @@ test('Forward history and app sheet render receive sanitized state immediately',
     'options.historyState || sheetHistoryState(kind, page)'
   );
   assert.notDeepEqual(runOpenWithHistory(hostile, openMutation).appSheetState.historyState.sheet,
-    { kind: 'selection', page: 'books', book: 'John', chapter: '3', generation: 1 },
+    { kind: 'selection', page: 'books', book: 'John', chapter: '3' },
     'open-state sanitizer mutation is observable');
 });
 

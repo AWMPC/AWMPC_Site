@@ -264,13 +264,18 @@ assert.deepEqual(JSON.parse(JSON.stringify(validState)), {
 });
 const generatedState = h.state({
   view: 'verses', book: 'John', chapter: '3', verse: '16',
-  sheet: { kind: 'history', page: 'recent', generation: 7 }
+  sheet: { kind: 'history', page: 'recent', generation: 7, returnGeneration: 5 }
 });
 assert.equal(generatedState.sheet.generation, 7, 'validated sheet history preserves only a strict scalar generation token');
+assert.equal(generatedState.sheet.returnGeneration, 5, 'history-chain token is independently scalar-validated');
 assert.equal(h.state({
   view: 'verses', book: 'John', chapter: '3', verse: '16',
   sheet: { kind: 'history', generation: '7' }
 }), null, 'history generation tokens reject coercion');
+assert.equal(h.state({
+  view: 'verses', book: 'John', chapter: '3', verse: '16',
+  sheet: { kind: 'history', generation: 7, returnGeneration: '5' }
+}), null, 'history-chain tokens reject coercion');
 assert.equal(h.state({ view: 'books', sheet: { kind: 'history' } }), null);
 assert.equal(h.state({ view: 'verses', book: '', chapter: '3', verse: '16', sheet: { kind: 'history' } }), null);
 assert.equal(h.state({ view: 'verses', book: 'John', chapter: '3', verse: '16', sheet: { kind: 'evil' } }), null);
@@ -833,6 +838,49 @@ assert.equal(dialog.open, false, 'matching adjacent return token preserves user 
 assert.equal(api.pop(untaggedInvalidSelectionFallback), true);
 assert.equal(legacySelectionOpenCalls, 1,
   'tokenless legacy selection recovery remains available when no tagged lifecycle is active');
+
+const cyclePushStart = historyCalls.push.length;
+api.open('history', { page: 'cycle' });
+const cycleReturnState = historyCalls.replace.at(-1)[0];
+const cycleSheetState = historyCalls.push.at(-1)[0];
+assert.equal(historyCalls.push.length, cyclePushStart + 1);
+assert.equal(cycleReturnState.sheetReturnGeneration, cycleSheetState.sheet.returnGeneration,
+  'fresh adjacent reader and sheet entries share one history-chain token');
+api.pop(cycleReturnState);
+assert.equal(dialog.open, false, 'first recorded Back closes');
+api.pop(cycleSheetState);
+assert.equal(dialog.open, true, 'first recorded Forward reopens');
+const firstRewrittenCycleSheet = historyCalls.replace.at(-1)[0];
+assert.equal(firstRewrittenCycleSheet.sheet.returnGeneration, cycleReturnState.sheetReturnGeneration,
+  'Forward preserves the immutable chain token while runtime generation advances');
+assert.notEqual(firstRewrittenCycleSheet.sheet.generation, cycleSheetState.sheet.generation,
+  'Forward assigns a fresh runtime generation for stale callback rejection');
+api.pop(cycleReturnState);
+assert.equal(dialog.open, false, 'second recorded Back still closes');
+api.pop(firstRewrittenCycleSheet);
+assert.equal(dialog.open, true, 'second recorded Forward still reopens');
+api.pop(cycleReturnState);
+assert.equal(dialog.open, false, 'third recorded Back still closes');
+
+api.open('history', { page: 'before-switch' });
+const switchedReturnState = historyCalls.replace.at(-1)[0];
+const beforeSwitchSheetState = historyCalls.push.at(-1)[0];
+api.open('search', { page: 'after-switch' });
+const switchedSheetState = historyCalls.replace.at(-1)[0];
+assert.equal(switchedSheetState.sheet.returnGeneration, switchedReturnState.sheetReturnGeneration,
+  'kind/page replacement preserves the chain token');
+const switchedRuntime = { generation: api.state.generation, kind: api.state.kind, content: measure.textContent };
+api.pop(beforeSwitchSheetState);
+assert.deepEqual({ generation: api.state.generation, kind: api.state.kind, content: measure.textContent }, switchedRuntime,
+  'an old same-chain sheet callback cannot undo a newer kind/page replacement');
+api.pop(switchedReturnState);
+assert.equal(dialog.open, false);
+api.pop(switchedSheetState);
+assert.equal(dialog.open, true);
+assert.equal(api.state.kind, 'search');
+api.pop(switchedReturnState);
+assert.equal(dialog.open, false, 'switched sheet also survives Back/Forward/Back');
+
 api.pop({
   view: 'verses', book: 'John', chapter: '3', verse: '16',
   sheet: { kind: 'history', generation: 778 }
