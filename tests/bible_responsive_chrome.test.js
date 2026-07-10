@@ -112,10 +112,14 @@ test('mobile puts navigation at top and full-width actions at bottom with opposi
 });
 
 test('desktop sheets use measured half-viewport-bounded widths and immutable side origins', () => {
-  assert.match(bible, /@media \(min-width: 641px\) \{[\s\S]*?\.app-sheet\.snap-determined\s*\{[^}]*width:\s*var\(--sheet-width,\s*50vw\);[^}]*max-width:\s*50vw;/);
+  assert.match(bible, /@media \(min-width: 641px\) \{[\s\S]*?\.app-sheet\.snap-determined\s*\{[^}]*width:\s*var\(--sheet-width,\s*50vw\);/);
   assert.match(bible, /@media \(min-width: 641px\) \{[\s\S]*?\.app-sheet\.inline-left[^}]*margin-left:\s*12px;[^}]*margin-right:\s*auto;/);
   assert.match(bible, /@media \(min-width: 641px\) \{[\s\S]*?\.app-sheet\.inline-right[^}]*margin-left:\s*auto;[^}]*margin-right:\s*12px;/);
-  assert.match(bible, /@media \(min-width: 641px\) \{[\s\S]*?\.app-sheet\.snap-fullscreen\s*\{[^}]*width:\s*calc\(100vw\);[^}]*max-width:\s*none;/);
+  assert.match(bible, /@media \(min-width: 641px\) \{[\s\S]*?\.app-sheet\.snap-fullscreen\s*\{[^}]*width:\s*calc\(100vw\);/);
+  assert.doesNotMatch(bible, /\.app-sheet\.snap-determined\s*\{[^}]*max-width\s*:/,
+    'determined width does not introduce a non-animatable constraint during restore');
+  assert.doesNotMatch(bible, /\.app-sheet\.snap-fullscreen\s*\{[^}]*max-width\s*:/,
+    'fullscreen width shares the same unconstrained max-width used by determined sheets');
   assert.match(bible, /@media \(min-width: 641px\) \{[\s\S]*?\.app-sheet\.snap-fullscreen\.inline-left\s*\{[^}]*margin-left:\s*0;[^}]*margin-right:\s*auto;/,
     'left-anchored fullscreen sheets keep their auto end margin while expanding right');
   assert.match(bible, /@media \(min-width: 641px\) \{[\s\S]*?\.app-sheet\.snap-fullscreen\.inline-right\s*\{[^}]*margin-left:\s*auto;[^}]*margin-right:\s*0;/,

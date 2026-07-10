@@ -41,6 +41,8 @@ assert.match(bible,
 assert.match(bible,
   /\.app-sheet\.snap-fullscreen\.inline-right\s*\{[^}]*margin-left:\s*auto;[^}]*margin-right:\s*0;/,
   'right sheets preserve their inline origin throughout fullscreen width interpolation');
+assert.doesNotMatch(bible, /\.app-sheet\.snap-(?:determined|fullscreen)\s*\{[^}]*max-width\s*:/,
+  'both snap directions interpolate width without a differing non-animatable maximum');
 
 function controllerFunction(name) {
   const match = bible.match(new RegExp('  function ' + name + '\\([^\\n]*\\) \\{[\\s\\S]*?\\n  \\}'));
