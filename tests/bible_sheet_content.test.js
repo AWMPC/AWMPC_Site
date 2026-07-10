@@ -26,11 +26,11 @@ for (const [kind, renderer, title] of [
 
 assert.match(bible, /function openVerseActions\(verseEl\)[\s\S]*openAppSheet\('verse-actions', \{ opener: verseEl \}\)/,
   'active verse actions launch in the app sheet');
-assert.match(bible, /bindImmediateAppSheetLauncher\(fabMain,[\s\S]*openAppSheet\('settings', \{ opener: fabMain \}\)/,
+assert.match(bible, /bindAppSheetLauncher\(fabMain,[\s\S]*openAppSheet\('settings', \{ opener: fabMain \}\)/,
   'FAB launches settings in the app sheet');
-assert.match(bible, /bindImmediateAppSheetLauncher\(document\.getElementById\('btn-history'\),[\s\S]*openAppSheet\('history', \{ opener: launcher \}\)/,
+assert.match(bible, /bindAppSheetLauncher\(document\.getElementById\('btn-history'\),[\s\S]*openAppSheet\('history', \{ opener: launcher \}\)/,
   'History launches in the app sheet');
-assert.match(bible, /bindImmediateAppSheetLauncher\(document\.getElementById\('btn-search'\),[\s\S]*openAppSheet\('search', \{ opener: launcher \}\)/,
+assert.match(bible, /bindAppSheetLauncher\(document\.getElementById\('btn-search'\),[\s\S]*openAppSheet\('search', \{ opener: launcher \}\)/,
   'Search launches in the app sheet');
 
 for (const [name, next] of [

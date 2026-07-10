@@ -1095,6 +1095,7 @@
   .app-sheet.is-opening.edge-bottom { transform: translateY(100%); opacity: 0; }
   .app-sheet.is-opening.edge-top { transform: translateY(-100%); opacity: 0; }
   .app-sheet.is-dragging { height: var(--sheet-live-height); transition: none; }
+  .app-sheet.is-drag-exit { height: var(--sheet-live-height); }
   .app-sheet.is-dragging::backdrop { transition: none; }
   .app-sheet.edge-top {
     --sheet-origin-block: top;
@@ -1482,7 +1483,7 @@
         <button type="button" id="refresh-bible-text" class="settings-refresh-button" aria-describedby="refresh-bible-text-status">Refresh Bible Text</button>
         <span id="refresh-bible-text-status" class="settings-refresh-status" role="status" aria-live="polite">Check for newly published Bible text.</span>
       </div>
-      <div class="app-version"><span class="app-version-label">Version <span id="app-version">4.0.6</span></span><span class="app-version-separator">|</span><span id="footer-status" class="app-version-status" role="status" aria-live="polite">Signed out</span><span id="footer-signout-separator" class="app-version-separator" hidden>|</span><button type="button" id="footer-signout" class="dd-signout-button" hidden>Sign Out</button></div>
+      <div class="app-version"><span class="app-version-label">Version <span id="app-version">4.0.7</span></span><span class="app-version-separator">|</span><span id="footer-status" class="app-version-status" role="status" aria-live="polite">Signed out</span><span id="footer-signout-separator" class="app-version-separator" hidden>|</span><button type="button" id="footer-signout" class="dd-signout-button" hidden>Sign Out</button></div>
 </div>
 
 <div id="view">
@@ -1527,7 +1528,7 @@
 <script src="https://www.gstatic.com/firebasejs/11.2.0/firebase-firestore-compat.js"></script>
 <script>
 (function () {
-  var APP_VERSION = '4.0.6';
+  var APP_VERSION = '4.0.7';
   var TEXT_SCALE_VALUES = [50, 75, 100, 125, 150];
   var DEFAULT_TEXT_SCALE = 100;
   var LEGACY_DISPLAY_STEP_TO_SCALE = { 0: 75, 1: 100, 2: 125 };
@@ -3517,7 +3518,7 @@
     return true;
   }
 
-  function requestCloseAppSheet(source, focusPolicy) {
+  function requestCloseAppSheet(source, focusPolicy, releaseVisual) {
     if (appSheetState.phase === 'closing') return true;
     if (!appSheet.open) return false;
     if (!isValidAppSheetFocusPolicy(focusPolicy)) {
@@ -3536,9 +3537,21 @@
     var generation = appSheetState.generation;
     syncAppSheetLauncherState();
     var reducedMotion = shouldReduceVerseMotion();
+    var hasReleaseVisual = releaseVisual && isFiniteAppSheetNumber(releaseVisual.height) && releaseVisual.height > 0 &&
+      isFiniteAppSheetNumber(releaseVisual.offset) && isFiniteAppSheetNumber(releaseVisual.backdrop) &&
+      releaseVisual.backdrop >= 0 && releaseVisual.backdrop <= 1;
+    if (hasReleaseVisual) {
+      appSheet.classList.add('is-drag-exit');
+      appSheet.style.setProperty('--sheet-live-height', releaseVisual.height + 'px');
+      appSheet.style.setProperty('--sheet-drag-offset', releaseVisual.offset + 'px');
+      appSheet.style.setProperty('--sheet-backdrop-opacity', String(releaseVisual.backdrop));
+    }
     if (pointerDismissal && !reducedMotion && !demoteAppSheetForPointerClose()) {
       finishCloseAppSheet();
       return true;
+    }
+    if (hasReleaseVisual && typeof appSheet.getBoundingClientRect === 'function') {
+      try { appSheet.getBoundingClientRect(); } catch (releaseGeometryError) {}
     }
     appSheet.classList.add('is-closing');
     appSheet.style.setProperty('--sheet-drag-offset', (appSheetState.edge === 'bottom' ? 1 : -1) *
@@ -3999,6 +4012,7 @@
     appSheetState.candidate = null;
     appSheetState.gesture = null;
     appSheet.classList.remove('is-dragging');
+    appSheet.classList.remove('is-drag-exit');
     appSheet.style.removeProperty('--sheet-live-height');
     appSheet.style.removeProperty('--sheet-drag-offset');
     appSheet.style.removeProperty('--sheet-backdrop-opacity');
@@ -4035,9 +4049,11 @@
     var releaseY = isFiniteAppSheetNumber(e.clientY) ? e.clientY : pointer.lastY;
     var fullTravel = outcome === 'closed' &&
       appSheetReleaseAtOriginEdge(gesture.edge, releaseY, gesture.viewportHeight);
+    var releaseVisual = outcome === 'closed' ? appSheetGestureVisual(gesture.edge, gesture.startSnap,
+      gesture.determinedHeight, gesture.viewportHeight, displacement) : null;
     clearAppSheetGestureResources();
     if (outcome === null) setSheetSnap(appSheetState.snap, shouldReduceVerseMotion());
-    else if (outcome === 'closed') requestCloseAppSheet(fullTravel ? 'drag-full-travel' : 'drag', 'none');
+    else if (outcome === 'closed') requestCloseAppSheet(fullTravel ? 'drag-full-travel' : 'drag', 'none', releaseVisual);
     else setSheetSnap(outcome, shouldReduceVerseMotion());
   }
 
@@ -5444,81 +5460,15 @@
     });
   }
 
-  function bindImmediateAppSheetLauncher(launcher, activate) {
-    var candidate = null;
-    var directActivations = [];
-    function isDirectPointer(event) {
-      return event.pointerType === 'touch' || event.pointerType === 'pen' ||
-        (event.sourceCapabilities && event.sourceCapabilities.firesTouchEvents === true);
-    }
-    function clearCandidate(event) {
-      if (!candidate || !event || event.pointerId === candidate.id) candidate = null;
-    }
-    launcher.addEventListener('pointerdown', function (event) {
-      if (!isDirectPointer(event)) return;
-      if (!event.isPrimary || event.button !== 0 || !isFiniteAppSheetNumber(event.pointerId) ||
-          !isFiniteAppSheetNumber(event.clientX) || !isFiniteAppSheetNumber(event.clientY)) {
-        candidate = null;
-        return;
-      }
-      if (candidate && candidate.id !== event.pointerId) {
-        candidate = null;
-        return;
-      }
-      candidate = { id: event.pointerId, x: event.clientX, y: event.clientY, type: event.pointerType };
-    });
-    launcher.addEventListener('pointermove', function (event) {
-      if (!candidate || event.pointerId !== candidate.id || !isFiniteAppSheetNumber(event.clientX) ||
-          !isFiniteAppSheetNumber(event.clientY)) return;
-      if (Math.abs(event.clientX - candidate.x) > APP_SHEET_AXIS_LOCK_PX ||
-          Math.abs(event.clientY - candidate.y) > APP_SHEET_AXIS_LOCK_PX) candidate = null;
-    });
-    launcher.addEventListener('pointercancel', clearCandidate);
-    launcher.addEventListener('lostpointercapture', clearCandidate);
-    launcher.addEventListener('pointerup', function (event) {
-      if (!candidate || event.pointerId !== candidate.id) return;
-      var pointerType = candidate.type;
-      candidate = null;
-      directActivations.push({
-        type: pointerType,
-        time: isFiniteAppSheetNumber(event.timeStamp) ? event.timeStamp : null
-      });
-      if (directActivations.length > 4) directActivations.shift();
-      event.preventDefault();
-      event.stopPropagation();
-      activate(event.currentTarget);
-    });
+  function bindAppSheetLauncher(launcher, activate) {
     launcher.addEventListener('click', function (event) {
-      var clickTime = isFiniteAppSheetNumber(event.timeStamp) ? event.timeStamp : null;
-      var clickPointerType = event.pointerType === 'touch' || event.pointerType === 'pen' ? event.pointerType : null;
-      var touchGenerated = clickPointerType !== null ||
-        (event.sourceCapabilities && event.sourceCapabilities.firesTouchEvents === true);
-      if (clickTime !== null) directActivations = directActivations.filter(function (activation) {
-        return activation.time === null || clickTime - activation.time <= 1000;
-      });
-      var compatibilityIndex = -1;
-      if (touchGenerated && clickTime !== null) {
-        for (var i = 0; i < directActivations.length; i++) {
-          var activation = directActivations[i];
-          if (activation.time !== null && clickTime >= activation.time && clickTime - activation.time <= 1000 &&
-              (clickPointerType === null || clickPointerType === activation.type)) {
-            compatibilityIndex = i;
-            break;
-          }
-        }
-      }
       event.stopPropagation();
-      if (compatibilityIndex !== -1) {
-        directActivations.splice(compatibilityIndex, 1);
-        event.preventDefault();
-        return;
-      }
       activate(event.currentTarget);
     });
   }
 
   // ===================== FAB =====================
-  bindImmediateAppSheetLauncher(fabMain, function () {
+  bindAppSheetLauncher(fabMain, function () {
     openAppSheet('settings', { opener: fabMain });
   });
   fabPanel.addEventListener('click', function (e) { e.stopPropagation(); });
@@ -7932,13 +7882,13 @@
   fnNext.addEventListener('click', function () {
     showAdjacentChapter(1);
   });
-  bindImmediateAppSheetLauncher(fnBook, function (launcher) {
+  bindAppSheetLauncher(fnBook, function (launcher) {
     if (bibleData) openSelectionSheet('books', launcher);
   });
-  bindImmediateAppSheetLauncher(fnChapter, function (launcher) {
+  bindAppSheetLauncher(fnChapter, function (launcher) {
     if (bibleData) openSelectionSheet('chapters', launcher);
   });
-  bindImmediateAppSheetLauncher(fnVerse, function (launcher) {
+  bindAppSheetLauncher(fnVerse, function (launcher) {
     if (bibleData) openSelectionSheet('verses', launcher);
   });
   document.addEventListener('pointerdown', function (e) {
@@ -8065,10 +8015,10 @@
   viewEl.addEventListener('wheel', onBibleReaderWheel, { passive: false });
   viewEl.addEventListener('touchstart', releaseVerseChaseForFreeScroll, { passive: true });
   document.addEventListener('keydown', handleBibleKeyboardNavigation);
-  bindImmediateAppSheetLauncher(document.getElementById('btn-history'), function (launcher) {
+  bindAppSheetLauncher(document.getElementById('btn-history'), function (launcher) {
     openAppSheet('history', { opener: launcher });
   });
-  bindImmediateAppSheetLauncher(document.getElementById('btn-search'), function (launcher) {
+  bindAppSheetLauncher(document.getElementById('btn-search'), function (launcher) {
     if (bibleData) openAppSheet('search', { opener: launcher });
   });
 

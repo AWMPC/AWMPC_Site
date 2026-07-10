@@ -56,6 +56,7 @@ test('app sheet lifecycle uses named paired motion durations and anchored edge o
     'opening and closing transition the paired backdrop blur to zero');
   assert.match(css, /\.app-sheet\.is-dragging\s*\{[^}]*transition:\s*none;/s);
   assert.match(css, /\.app-sheet\.is-dragging::backdrop\s*\{[^}]*transition:\s*none;/s);
+  assert.match(css, /\.app-sheet\.is-drag-exit\s*\{[^}]*height:\s*var\(--sheet-live-height\);/s);
 });
 
 test('app sheet controller owns lifecycle frames and named fallbacks', () => {
@@ -66,7 +67,7 @@ test('app sheet controller owns lifecycle frames and named fallbacks', () => {
   assert.match(bible, /function clearAppSheetOpenFrames\(\)/);
   assert.match(bible, /clearAppSheetOpenFrames\(\);[\s\S]*cancelAnimationFrame/);
   assert.match(bible, /setSheetSnap\(snap, immediate\)[\s\S]*APP_SHEET_RESIZE_MS/);
-  assert.match(bible, /requestCloseAppSheet\(source, focusPolicy\)[\s\S]*APP_SHEET_OPEN_CLOSE_MS/);
+  assert.match(bible, /requestCloseAppSheet\(source, focusPolicy, releaseVisual\)[\s\S]*APP_SHEET_OPEN_CLOSE_MS/);
   assert.doesNotMatch(
     bible.slice(bible.indexOf('/* APP SHEET CONTROLLER START */'), bible.indexOf('/* APP SHEET CONTROLLER END */')),
     /setTimeout\([\s\S]{0,500},\s*(?:200|240|260)\)/,

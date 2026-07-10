@@ -173,7 +173,7 @@ test('selection panels reserve the tonal float and mobile top edge owns only a l
 });
 
 test('navbar opens exact selection pages without invoking destructive legacy views', () => {
-  const handlers = extract(/bindImmediateAppSheetLauncher\(fnBook,[\s\S]*?bindImmediateAppSheetLauncher\(fnVerse,[\s\S]*?\n  \}\);/, 'selection navbar handlers missing');
+  const handlers = extract(/bindAppSheetLauncher\(fnBook,[\s\S]*?bindAppSheetLauncher\(fnVerse,[\s\S]*?\n  \}\);/, 'selection navbar handlers missing');
   assert.match(handlers, /openSelectionSheet\('books',\s*launcher\)/);
   assert.match(handlers, /openSelectionSheet\('chapters',\s*launcher\)/);
   assert.match(handlers, /openSelectionSheet\('verses',\s*launcher\)/);
@@ -641,7 +641,7 @@ test('Alt arrow paging is bounded, focuses through the setter, and announces the
 });
 
 test('navbar direct-page launchers execute without touching the reader', () => {
-  const handlers = extract(/bindImmediateAppSheetLauncher\(fnBook,[\s\S]*?bindImmediateAppSheetLauncher\(fnVerse,[\s\S]*?\n  \}\);/,
+  const handlers = extract(/bindAppSheetLauncher\(fnBook,[\s\S]*?bindAppSheetLauncher\(fnVerse,[\s\S]*?\n  \}\);/,
     'navbar handler program missing');
   const calls = [];
   const fnBook = new FakeElement('button');
@@ -651,7 +651,7 @@ test('navbar direct-page launchers execute without touching the reader', () => {
     var bibleData = {};
     function openSelectionSheet(page, opener) { calls.push([page, opener]); }
     ${functionSource('isFiniteAppSheetNumber')}
-    ${functionSource('bindImmediateAppSheetLauncher')}
+    ${functionSource('bindAppSheetLauncher')}
     ${handlers}
   `)(fnBook, fnChapter, fnVerse, calls);
   fnBook.dispatch('click');
