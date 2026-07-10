@@ -244,7 +244,7 @@ const pureSource = bible.slice(pureStart, pureEnd) + '\nthis.hooks = {' +
   'finite: isFiniteAppSheetNumber, determinedHeight: appSheetDeterminedHeight,' +
   'width: appSheetDeterminedWidth, anchor: appSheetHorizontalAnchor,' +
   'effectiveDistance: appSheetEffectiveSnapDistance, outcome: appSheetReleaseOutcome,' +
-  'visual: appSheetGestureVisual,' +
+  'visual: appSheetGestureVisual, fullTravel: appSheetGestureIsFullTravel,' +
   'axis: appSheetAxis, boundary: appSheetBoundaryAllowsDrag, phases: APP_SHEET_PHASES,' +
   'constants: [APP_SHEET_AXIS_LOCK_PX, APP_SHEET_SNAP_PX, APP_SHEET_SNAP_VELOCITY,' +
   'APP_SHEET_VELOCITY_RECENCY_MS, APP_SHEET_MAX_VELOCITY, APP_SHEET_CLICK_GUARD_MS,' +
@@ -412,6 +412,12 @@ assert.deepEqual(JSON.parse(JSON.stringify(h.visual('bottom', 'fullscreen', 200,
   { height: 200, offset: 200, backdrop: 0 }, 'fullscreen full travel reaches the originating edge');
 assert.deepEqual(JSON.parse(JSON.stringify(h.visual('top', 'fullscreen', 200, 600, -440))),
   { height: 200, offset: -40, backdrop: .8 }, 'top fullscreen mirrors the continuous close leg');
+assert.equal(h.fullTravel('bottom', 'determined', 200, 600, 199.999), false);
+assert.equal(h.fullTravel('bottom', 'determined', 200, 600, 200), true);
+assert.equal(h.fullTravel('top', 'determined', 200, 600, -200), true);
+assert.equal(h.fullTravel('bottom', 'fullscreen', 200, 600, 599.999), false);
+assert.equal(h.fullTravel('bottom', 'fullscreen', 200, 600, 600), true);
+assert.equal(h.fullTravel('top', 'fullscreen', 200, 600, -600), true);
 assert.deepEqual(JSON.parse(JSON.stringify(h.visual('bottom', 'fullscreen', 200, 600, -40))),
   { height: 600, offset: 0, backdrop: 1 }, 'fullscreen cannot drag into a nonexistent inward state');
 for (const args of [
@@ -2199,9 +2205,12 @@ for (let cycle = 0; cycle < 100; cycle += 1) {
   assert.equal(dialog.open, false);
   for (const field of ['candidate', 'pointer', 'gesture', 'frame', 'measureFrame', 'settleTimer',
     'historyTimer', 'resizeObserver', 'contentCleanup', 'closeGeneration', 'pendingPostCloseState',
-    'pendingPostCloseDestination', 'viewportFrame', 'viewportListener', 'viewportOwnerGeneration']) {
+    'pendingPostCloseDestination', 'pendingLauncherOpen', 'viewportFrame', 'viewportListener',
+    'viewportOwnerGeneration']) {
     assert.equal(api.state[field], null, `cycle ${cycle} releases ${field}`);
   }
+  assert.equal(api.state.releaseOnHistoryReconcile, false,
+    `cycle ${cycle} releases full-travel history ownership`);
   assert.equal(api.state.searchFullscreenLatched, false, `cycle ${cycle} releases Search fullscreen ownership`);
   assert.equal(viewportListeners.resize.length, viewportResizeListenerBaseline,
     `cycle ${cycle} removes the exact viewport resize listener`);
@@ -2572,11 +2581,64 @@ handle.dispatch('pointerdown', {
   isPrimary: true, button: 0, pointerId: 911, clientX: 20, clientY: 100, timeStamp: 1
 });
 handle.dispatch('pointermove', {
-  pointerId: 911, clientX: 20, clientY: 300, timeStamp: 101, preventDefault() {}
+  pointerId: 911, clientX: 20, clientY: 180, timeStamp: 101, preventDefault() {}
 });
-handle.dispatch('pointerup', { pointerId: 911, clientY: 340, timeStamp: 120 });
+handle.dispatch('pointerup', { pointerId: 911, clientY: 200, timeStamp: 120 });
 assertLauncherClearedImmediately(opener, 'drag release outcome');
 finishHistoryOwnedAnimatedClose(currentReturnPopState(), 'drag release');
+
+openSettled('history', opener, { page: 'full-travel-close', edge: 'bottom' });
+api.state.determinedHeight = 224;
+const fullTravelReturn = currentReturnPopState();
+const fullTravelFocusBaseline = opener.focusCount + viewInner.focusCount;
+handle.dispatch('pointerdown', {
+  isPrimary: true, button: 0, pointerId: 912, clientX: 20, clientY: 100, timeStamp: 1
+});
+handle.dispatch('pointermove', {
+  pointerId: 912, clientX: 20, clientY: 324, timeStamp: 101, preventDefault() {}
+});
+handle.dispatch('pointerup', { pointerId: 912, clientY: 324, timeStamp: 120 });
+assert.equal(api.state.releaseOnHistoryReconcile, true,
+  'a full-travel close waits only for its owned history reconciliation');
+const fullTravelFallbackTimer = api.state.historyTimer;
+assert.ok(fullTravelFallbackTimer && timers.has(fullTravelFallbackTimer));
+assert.equal(api.pop(fullTravelReturn), true);
+assert.equal(dialog.open, false, 'history reconciliation synchronously releases the already-hidden modal');
+assert.equal(timers.has(fullTravelFallbackTimer), false, 'synchronous release cancels the fallback timer');
+assert.equal(opener.focusCount + viewInner.focusCount, fullTravelFocusBaseline,
+  'pointer full-travel close preserves the non-focusing policy');
+
+openSettled('history', opener, { page: 'queue-launcher-after-drag', edge: 'bottom' });
+api.state.determinedHeight = 224;
+const queuedLauncherReturn = currentReturnPopState();
+handle.dispatch('pointerdown', {
+  isPrimary: true, button: 0, pointerId: 913, clientX: 20, clientY: 100, timeStamp: 1
+});
+handle.dispatch('pointermove', {
+  pointerId: 913, clientX: 20, clientY: 180, timeStamp: 101, preventDefault() {}
+});
+handle.dispatch('pointerup', { pointerId: 913, clientY: 200, timeStamp: 120 });
+const queuedLauncherTimer = api.state.historyTimer;
+assert.equal(api.open('search', { opener: replacementOpener }), true,
+  'one trusted launcher press is accepted during terminal close');
+assert.deepEqual(Object.keys(api.state.pendingLauncherOpen).sort(),
+  ['closeGeneration', 'edge', 'kind', 'opener', 'page', 'snap'],
+  'queued launcher retains no callback or history object');
+assert.equal(api.open('settings', { opener: fabMain }), true, 'latest valid launcher intent wins');
+assert.equal(api.state.pendingLauncherOpen.kind, 'settings');
+assert.equal(api.open('search', { opener: { isConnected: false, tagName: 'BUTTON' } }), false,
+  'untrusted or disconnected launchers cannot enter the queue');
+api.pop(queuedLauncherReturn);
+reduceMotion = true;
+timers.get(queuedLauncherTimer)();
+timers.delete(queuedLauncherTimer);
+assert.equal(dialog.open, true, 'queued launcher opens without a second press after close completion');
+assert.equal(api.state.kind, 'settings');
+assert.equal(api.state.opener, fabMain);
+assert.equal(api.state.pendingLauncherOpen, null);
+api.state.historyOwned = false;
+api.close('queued-launcher-cleanup', 'none');
+reduceMotion = false;
 
 openSettled('selection', opener, { page: 'verses' });
 assert.equal(api.commitSelection(16), true, 'real selection commit executes');
