@@ -43,6 +43,8 @@ assert.match(bible,
   'right sheets preserve their inline origin throughout fullscreen width interpolation');
 assert.doesNotMatch(bible, /\.app-sheet\.snap-(?:determined|fullscreen)\s*\{[^}]*max-width\s*:/,
   'both snap directions interpolate width without a differing non-animatable maximum');
+assert.match(bible, /@media \(min-width: 641px\) \{\s*\.app-sheet\s*\{\s*box-shadow:\s*none;\s*\}/,
+  'desktop sheets have no broad outer glow');
 assert.match(bible,
   /\.app-sheet\.snap-determined\s*\{[^}]*width:\s*min\(var\(--sheet-width,\s*50vw\),\s*50vw\);/,
   'determined sheets retain a live CSS cap while stale measured pixels await viewport remeasurement');
@@ -2520,6 +2522,15 @@ function assertLauncherClearedImmediately(launcher, message) {
   assert.equal(launcher.getAttribute('aria-expanded'), 'false', `${message} clears aria-expanded immediately`);
 }
 
+function assertPointerDismissedImmediately(launcher, message) {
+  assert.equal(api.state.phase, 'closed', `${message} completes before another pointer activation`);
+  assert.equal(dialog.open, false, `${message} releases the native modal immediately`);
+  assert.equal(launcher.classList.contains('active'), false, `${message} clears .active immediately`);
+  assert.equal(launcher.getAttribute('aria-expanded'), 'false', `${message} clears aria-expanded immediately`);
+  assert.equal(api.state.historyTimer, null, `${message} leaves no input-blocking history timer`);
+  assert.equal(api.state.settleTimer, null, `${message} leaves no input-blocking settle timer`);
+}
+
 function finishUnownedAnimatedClose() {
   const timer = api.state.settleTimer;
   assert.ok(timer && timers.has(timer), 'unowned close exposes a pending animation completion');
@@ -2580,9 +2591,18 @@ finishHistoryOwnedAnimatedClose(currentReturnPopState(), 'native Escape/cancel')
 openSettled('history', opener, { page: 'backdrop-close' });
 const backdropFocusBaseline = opener.focusCount;
 dialog.dispatch('click', { target: dialog });
-assertLauncherClearedImmediately(opener, 'pointer backdrop click');
-finishHistoryOwnedAnimatedClose(currentReturnPopState(), 'pointer backdrop click');
+assertPointerDismissedImmediately(opener, 'pointer backdrop click');
 assert.equal(opener.focusCount, backdropFocusBaseline, 'pointer backdrop close does not steal focus');
+const postBackdropPushes = historyCalls.push.length;
+assert.equal(api.open('search', { opener: replacementOpener }), true,
+  'one launcher activation opens immediately after backdrop dismissal');
+assert.equal(dialog.open, true);
+assert.equal(api.state.kind, 'search');
+assert.equal(historyCalls.push.length, postBackdropPushes + 1);
+api.state.historyOwned = false;
+reduceMotion = true;
+api.close('backdrop-next-launcher-cleanup', 'none');
+reduceMotion = false;
 
 openSettled('history', opener, { page: 'pop-close' });
 const popReturn = currentReturnPopState();
@@ -2604,10 +2624,9 @@ handle.dispatch('pointermove', {
 });
 assert.equal(api.state.gesture.viewportHeight, 800, 'release classification freezes the physical viewport height');
 handle.dispatch('pointerup', { pointerId: 911, clientY: 700, timeStamp: 120 });
-assertLauncherClearedImmediately(opener, 'drag release outcome');
+assertPointerDismissedImmediately(opener, 'drag release outcome');
 assert.equal(api.state.releaseOnHistoryReconcile, false,
-  'a release outside the 22px edge tolerance retains the close animation');
-finishHistoryOwnedAnimatedClose(currentReturnPopState(), 'drag release');
+  'a release outside the 22px edge tolerance fully resets close ownership');
 
 openSettled('history', opener, { page: 'full-travel-close', edge: 'bottom' });
 api.state.determinedHeight = 224;
@@ -2620,13 +2639,9 @@ handle.dispatch('pointermove', {
   pointerId: 912, clientX: 20, clientY: 800, timeStamp: 101, preventDefault() {}
 });
 handle.dispatch('pointerup', { pointerId: 912, clientY: 800, timeStamp: 120 });
-assert.equal(api.state.releaseOnHistoryReconcile, true,
-  'a full-travel close waits only for its owned history reconciliation');
-const fullTravelFallbackTimer = api.state.historyTimer;
-assert.ok(fullTravelFallbackTimer && timers.has(fullTravelFallbackTimer));
-assert.equal(api.pop(fullTravelReturn), true);
-assert.equal(dialog.open, false, 'history reconciliation synchronously releases the already-hidden modal');
-assert.equal(timers.has(fullTravelFallbackTimer), false, 'synchronous release cancels the fallback timer');
+assertPointerDismissedImmediately(opener, 'full-travel drag');
+assert.equal(api.state.releaseOnHistoryReconcile, false,
+  'a full-travel close releases history reconciliation ownership immediately');
 assert.equal(opener.focusCount + viewInner.focusCount, fullTravelFocusBaseline,
   'pointer full-travel close preserves the non-focusing policy');
 const postFullTravelPushes = historyCalls.push.length;
@@ -2635,14 +2650,15 @@ assert.equal(api.open('search', { opener: replacementOpener }), true,
 assert.equal(dialog.open, true);
 assert.equal(api.state.kind, 'search');
 assert.equal(historyCalls.push.length, postFullTravelPushes + 1, 'one activation opens exactly once');
+assert.equal(api.pop(fullTravelReturn), true, 'late close traversal is rejected while the newer sheet owns the modal');
+assert.equal(dialog.open, true, 'late close traversal cannot dismiss the sheet opened by the first press');
 api.state.historyOwned = false;
 reduceMotion = true;
 api.close('full-travel-next-launcher-cleanup', 'none');
 reduceMotion = false;
 
-openSettled('history', opener, { page: 'queue-launcher-after-drag', edge: 'bottom' });
+openSettled('history', opener, { page: 'launcher-after-drag', edge: 'bottom' });
 api.state.determinedHeight = 224;
-const queuedLauncherReturn = currentReturnPopState();
 handle.dispatch('pointerdown', {
   isPrimary: true, button: 0, pointerId: 913, clientX: 20, clientY: 100, timeStamp: 1
 });
@@ -2650,26 +2666,16 @@ handle.dispatch('pointermove', {
   pointerId: 913, clientX: 20, clientY: 180, timeStamp: 101, preventDefault() {}
 });
 handle.dispatch('pointerup', { pointerId: 913, clientY: 200, timeStamp: 120 });
-const queuedLauncherTimer = api.state.historyTimer;
+assertPointerDismissedImmediately(opener, 'threshold drag');
 assert.equal(api.open('search', { opener: replacementOpener }), true,
-  'one trusted launcher press is accepted during terminal close');
-assert.deepEqual(Object.keys(api.state.pendingLauncherOpen).sort(),
-  ['closeGeneration', 'edge', 'kind', 'opener', 'page', 'snap'],
-  'queued launcher retains no callback or history object');
-assert.equal(api.open('settings', { opener: fabMain }), true, 'latest valid launcher intent wins');
-assert.equal(api.state.pendingLauncherOpen.kind, 'settings');
-assert.equal(api.open('search', { opener: { isConnected: false, tagName: 'BUTTON' } }), false,
-  'untrusted or disconnected launchers cannot enter the queue');
-api.pop(queuedLauncherReturn);
-reduceMotion = true;
-timers.get(queuedLauncherTimer)();
-timers.delete(queuedLauncherTimer);
-assert.equal(dialog.open, true, 'queued launcher opens without a second press after close completion');
-assert.equal(api.state.kind, 'settings');
-assert.equal(api.state.opener, fabMain);
+  'one trusted launcher press opens after a threshold drag');
+assert.equal(dialog.open, true);
+assert.equal(api.state.kind, 'search');
+assert.equal(api.state.opener, replacementOpener);
 assert.equal(api.state.pendingLauncherOpen, null);
 api.state.historyOwned = false;
-api.close('queued-launcher-cleanup', 'none');
+reduceMotion = true;
+api.close('drag-next-launcher-cleanup', 'none');
 reduceMotion = false;
 
 openSettled('selection', opener, { page: 'verses' });
