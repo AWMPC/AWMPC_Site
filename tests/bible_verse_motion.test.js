@@ -63,8 +63,9 @@ test('verse activation has no deferred double-click action path', () => {
 });
 
 test('touch, pen, mouse, and keyboard verse activations avoid duplicate footnote toggles', () => {
+  const pointerDown = sourceBetween("  document.addEventListener('pointerdown', function (e) {\n    if (readerPointerState", "  document.addEventListener('pointermove', function (e) {");
+  assert.match(pointerDown, /e\.pointerType !== 'touch' && e\.pointerType !== 'pen'/);
   const pointerUp = sourceBetween("  document.addEventListener('pointerup', function (e) {", "  document.addEventListener('pointercancel', function (e) {");
-  assert.match(pointerUp, /state\.pointerType === 'touch' \|\| state\.pointerType === 'pen'/);
   assert.match(pointerUp, /suppressFollowingReaderClick\(e, state\.verse\);/);
   assert.equal((pointerUp.match(/toggleAllVerseFootnotes\(state\.verse\)/g) || []).length, 1);
   assert.doesNotMatch(pointerUp, /openVerseActions|setTimeout|scheduleReader/);

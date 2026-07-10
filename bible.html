@@ -3987,9 +3987,6 @@
   var chapterCrossfadeGeneration = 0;
   var preservingChapterCrossfade = false;
   var readerPointerState = null;
-  var pendingReaderVerseAction = null;
-  var READER_DOUBLE_ACTIVATE_MS = 280;
-  var READER_MOUSE_DOUBLE_ACTIVATE_MS = 500;
   var suppressReaderClick = null;
   var suppressReaderClickTimer = null;
   var bibleReaderWheelAction = false;
@@ -6066,7 +6063,6 @@
   }
 
   function openVerseActions(verseEl) {
-    clearPendingReaderVerseAction();
     var payload = verseActionPayload(verseEl);
     if (!payload) return false;
     verseActionTarget = verseEl;
@@ -6178,50 +6174,6 @@
     readerPointerState = null;
   }
 
-  function clearPendingReaderVerseAction() {
-    if (pendingReaderVerseAction) window.clearTimeout(pendingReaderVerseAction.timer);
-    pendingReaderVerseAction = null;
-  }
-
-  function scheduleReaderVerseFootnoteToggle(verse, event, delay) {
-    clearPendingReaderVerseAction();
-    var pending = {
-      verse: verse,
-      pointerType: event.pointerType || 'mouse',
-      x: event.clientX,
-      y: event.clientY,
-      timer: null
-    };
-    pendingReaderVerseAction = pending;
-    pending.timer = window.setTimeout(function () {
-      if (pendingReaderVerseAction !== pending) return;
-      pendingReaderVerseAction = null;
-      if (verse.isConnected && uiView === 'verses' && verse.classList.contains('active')) {
-        toggleAllVerseFootnotes(verse);
-      }
-    }, delay || READER_DOUBLE_ACTIVATE_MS);
-  }
-
-  function scheduleReaderVerseMouseFootnoteToggle(verse, event) {
-    scheduleReaderVerseFootnoteToggle(verse, event, READER_MOUSE_DOUBLE_ACTIVATE_MS);
-  }
-
-  function isMatchingReaderDoubleActivation(event, verse) {
-    return !!pendingReaderVerseAction &&
-      pendingReaderVerseAction.verse === verse &&
-      pendingReaderVerseAction.pointerType === event.pointerType &&
-      Math.abs(event.clientX - pendingReaderVerseAction.x) <= 28 &&
-      Math.abs(event.clientY - pendingReaderVerseAction.y) <= 28;
-  }
-
-  function isMatchingReaderMouseDoubleActivation(event, verse) {
-    return !!pendingReaderVerseAction &&
-      pendingReaderVerseAction.verse === verse &&
-      pendingReaderVerseAction.pointerType === 'mouse' &&
-      Math.abs(event.clientX - pendingReaderVerseAction.x) <= 28 &&
-      Math.abs(event.clientY - pendingReaderVerseAction.y) <= 28;
-  }
-
   function clearSuppressReaderClick() {
     if (suppressReaderClickTimer) window.clearTimeout(suppressReaderClickTimer);
     suppressReaderClickTimer = null;
@@ -6243,7 +6195,6 @@
   function prepareToLeaveReadingView() {
     closeVerseActions(true);
     clearReaderPointerState();
-    clearPendingReaderVerseAction();
     flushReadingRouteReplace();
     if (uiView === 'verses') rememberCurrentChapterPosition();
     flushChapterPositions();
@@ -6413,7 +6364,6 @@
     if (!nextVerse) return;
     var target = getVerseElement(currentBook, currentChapter, nextVerse);
     if (!target) return;
-    clearPendingReaderVerseAction();
     var prev = viewInner.querySelector('.verse.active');
     if (prev) {
       prev.classList.remove('active');
@@ -7812,7 +7762,6 @@
     var dy = e.clientY - readerPointerState.y;
     if (Math.sqrt((dx * dx) + (dy * dy)) > 10) {
       readerPointerState.moved = true;
-      clearPendingReaderVerseAction();
     }
   }, { passive: true });
   document.addEventListener('pointerup', function (e) {
@@ -7835,31 +7784,15 @@
       return;
     }
     if (!state.verse || hasSelection || !state.verse.isConnected) {
-      clearPendingReaderVerseAction();
       return;
     }
     e.preventDefault();
     suppressFollowingReaderClick(e, state.verse);
-    if (state.pointerType === 'touch' || state.pointerType === 'pen') {
-      if (state.verse.classList.contains('active')) {
-        if (isMatchingReaderDoubleActivation(e, state.verse)) {
-          suppressFollowingReaderClick(e, state.verse);
-          clearPendingReaderVerseAction();
-          openVerseActions(state.verse);
-        } else scheduleReaderVerseFootnoteToggle(state.verse, e);
-      } else {
-        clearPendingReaderVerseAction();
-        setActiveVerse(state.verse.getAttribute('data-v'), true);
-      }
-    }
-    else {
-      clearPendingReaderVerseAction();
-      setActiveVerse(state.verse.getAttribute('data-v'), true);
-    }
+    if (state.verse.classList.contains('active')) toggleAllVerseFootnotes(state.verse);
+    else setActiveVerse(state.verse.getAttribute('data-v'), true);
   });
   document.addEventListener('pointercancel', function (e) {
     if (readerPointerState && readerPointerState.id === e.pointerId) clearReaderPointerState();
-    clearPendingReaderVerseAction();
   });
   document.addEventListener('click', function (e) {
     if (!suppressReaderClick) return;
@@ -7882,27 +7815,14 @@
     if (!verseEl || !viewInner.contains(verseEl)) return;
     if (verseEl.classList.contains('active')) {
       if (!verseEl.isConnected) return;
-      else scheduleReaderVerseMouseFootnoteToggle(verseEl, e);
-    } else {
-      clearPendingReaderVerseAction();
-      setActiveVerse(verseEl.getAttribute('data-v'), true);
-    }
-  });
-  document.addEventListener('dblclick', function (e) {
-    if (uiView !== 'verses' || e.button !== 0) return;
-    if (e.target.closest('button,dialog,a,input,select,textarea,[role="button"],.verse-actions')) return;
-    var verseEl = e.target.closest('.verse');
-    if (!verseEl || !viewInner.contains(verseEl) || !verseEl.classList.contains('active')) return;
-    if (!isMatchingReaderMouseDoubleActivation(e, verseEl)) return;
-    clearPendingReaderVerseAction();
-    openVerseActions(verseEl);
+      else toggleAllVerseFootnotes(verseEl);
+    } else setActiveVerse(verseEl.getAttribute('data-v'), true);
   });
   document.addEventListener('contextmenu', function (e) {
     if (uiView !== 'verses' || e.target.closest('button,dialog,a,input,select,textarea,[role="button"],.verse-actions')) return;
     var verseEl = e.target.closest('.verse');
     if (!verseEl || !viewInner.contains(verseEl) || !verseEl.classList.contains('active')) return;
     e.preventDefault();
-    clearPendingReaderVerseAction();
     openVerseActions(verseEl);
   });
   viewEl.addEventListener('scroll', function () {
