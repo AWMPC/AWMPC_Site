@@ -7654,7 +7654,6 @@
     input.addEventListener('input', function () {
       if (debounce !== null) clearTimeout(debounce);
       var q = boundedSearchQuery(input.value);
-      if (input.value !== q) input.value = q;
       if (q.length < 2) {
         countEl.textContent = '';
         resultsEl.textContent = '';
