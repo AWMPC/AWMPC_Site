@@ -1099,6 +1099,11 @@
     transition-duration: var(--sheet-open-close-duration), var(--sheet-open-close-duration);
     transition-timing-function: var(--motion-ease);
   }
+  .app-sheet.is-opening::backdrop,
+  .app-sheet.is-closing::backdrop {
+    backdrop-filter: blur(0);
+    -webkit-backdrop-filter: blur(0);
+  }
   .app-sheet-shell { display: grid; grid-template-rows: auto minmax(0, 1fr); height: 100%; white-space: normal; }
   .app-sheet-handle {
     order: 0; width: 100%; min-height: 44px; padding: 10px; border: 0; background: transparent;
@@ -3411,10 +3416,7 @@
 
   function requestCloseAppSheet(source, focusPolicy) {
     if (!appSheet.open) return false;
-    if (appSheetState.phase === 'closing') {
-      if (source === 'popstate' && appSheetState.closeGeneration === appSheetState.generation) finishCloseAppSheet();
-      return true;
-    }
+    if (appSheetState.phase === 'closing') return true;
     if (!isValidAppSheetFocusPolicy(focusPolicy)) {
       focusPolicy = source === 'cancel' || source === 'keyboard-handle' ? 'restore-opener' :
         (source === 'drag' || source === 'backdrop' ? 'none' : 'preserve-or-reader');

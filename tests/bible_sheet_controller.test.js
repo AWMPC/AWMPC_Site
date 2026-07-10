@@ -1494,11 +1494,14 @@ assert.equal(historyCalls.back, terminalCloseBacks, 'close-time keyboard input c
 assert.equal(api.close('late-policy-change', 'none'), true, 'repeat close is idempotent');
 reduceMotion = true;
 api.pop(currentReturnPopState());
+assert.equal(dialog.open, true, 'matching popstate does not bypass an already-started animated close');
+assert.equal(api.state.historyTimer, terminalCloseTimer, 'the initiating close retains timer ownership');
+terminalCloseCallback();
+timers.delete(terminalCloseTimer);
 assert.equal(viewInner.focusCount, readerFocusBefore + 1, 'completion returns focus to the reader');
 assert.equal(viewInner.focusOptions.at(-1).preventScroll, true, 'reader focus never scrolls the underlying chapter');
 assert.equal(viewInner.getAttribute('tabindex'), '-1', 'temporary reader tabindex remains while reader owns focus');
 assert.equal(viewInner.listenerCount, readerListenerBaseline + 1, 'one focus-leave cleanup is installed');
-terminalCloseCallback();
 api.pop(currentReturnPopState());
 assert.equal(viewInner.focusCount, readerFocusBefore + 1, 'late close callbacks never focus twice');
 assert.equal(viewInner.listenerCount, readerListenerBaseline + 1, 'late callbacks cannot retain another cleanup listener');
@@ -1714,6 +1717,7 @@ const backsBeforeDoubleClose = historyCalls.back;
 reduceMotion = false;
 assert.equal(api.close('first'), true);
 assert.equal(api.state.pendingHistoryClose, true);
+const doubleCloseTimer = api.state.historyTimer;
 assert.equal(api.close('second'), true, 'repeat dismiss while back is pending is idempotently handled');
 assert.equal(historyCalls.back, backsBeforeDoubleClose + 1, 'double dismiss requests exactly one history.back');
 assert.equal(api.open('search', { page: 'during-close' }), false, 'open is rejected while history close is pending');
@@ -1721,8 +1725,12 @@ assert.equal(api.state.pendingHistoryClose, true, 'rejected reopen cannot race t
 assert.equal(dialog.open, true);
 reduceMotion = true;
 api.pop(currentReturnPopState());
-assert.equal(dialog.open, false);
+assert.equal(dialog.open, true, 'history reconciliation keeps the original animated close alive');
+assert.equal(api.state.historyTimer, doubleCloseTimer);
 assert.equal(api.state.pendingHistoryClose, false, 'popstate clears pending close state');
+timers.get(doubleCloseTimer)();
+timers.delete(doubleCloseTimer);
+assert.equal(dialog.open, false);
 
 api.open('history', { opener, page: 'queue-origin' });
 const queuedGeneration = api.state.generation;
@@ -1800,6 +1808,7 @@ const sheetThenReaderGeneration = api.state.generation;
 const sheetThenReaderReturn = api.state.historyReturnGeneration;
 reduceMotion = false;
 api.close('sheet-then-reader-close', 'none');
+const sheetThenReaderTimer = api.state.historyTimer;
 const sheetThenReaderCallback = timers.get(api.state.historyTimer);
 api.pop({
   view: 'verses', book: 'John', chapter: '3', verse: '16',
@@ -1810,7 +1819,13 @@ assert.equal(api.state.pendingPostCloseState.sheet.kind, 'search');
 api.pop({ view: 'verses', book: 'John', chapter: '3', verse: '16',
   sheetReturnGeneration: sheetThenReaderReturn });
 reduceMotion = true;
-assert.equal(dialog.open, false, 'later accepted reader destination supersedes queued sheet before finish');
+assert.equal(dialog.open, true, 'accepted reader destination preserves the in-flight close motion');
+assert.equal(api.state.historyTimer, sheetThenReaderTimer);
+assert.equal(api.state.pendingPostCloseDestination.kind, 'reader',
+  'later accepted reader destination supersedes the queued sheet before finish');
+sheetThenReaderCallback();
+timers.delete(sheetThenReaderTimer);
+assert.equal(dialog.open, false, 'the original timer completes at the accepted reader destination');
 assert.equal(api.state.pendingPostCloseState, null);
 sheetThenReaderCallback();
 assert.equal(dialog.open, false, 'late fallback cannot resurrect superseded sheet destination');
@@ -1821,20 +1836,24 @@ const readerThenSheetGeneration = api.state.generation;
 const readerThenSheetReturn = api.state.historyReturnGeneration;
 reduceMotion = false;
 api.close('reader-then-sheet-close', 'none');
+const readerThenSheetTimer = api.state.historyTimer;
 const readerThenSheetCallback = timers.get(api.state.historyTimer);
 api.pop({ view: 'verses', book: 'John', chapter: '3', verse: '16',
   sheetReturnGeneration: readerThenSheetReturn });
-assert.equal(dialog.open, false);
+assert.equal(dialog.open, true, 'reader reconciliation does not terminate the active motion');
 reduceMotion = true;
 api.pop({
   view: 'verses', book: 'John', chapter: '3', verse: '16',
   sheet: { kind: 'search', page: 'latest-sheet', generation: readerThenSheetGeneration,
     returnGeneration: readerThenSheetReturn }
 });
-assert.equal(dialog.open, true, 'later valid sheet event wins after accepted reader destination');
-assert.equal(api.state.kind, 'search');
+assert.equal(dialog.open, true, 'later valid sheet event queues while the close remains visible');
+assert.equal(api.state.kind, 'history');
+readerThenSheetCallback();
+assert.equal(api.state.kind, 'search', 'the original timer opens the latest valid sheet destination');
 readerThenSheetCallback();
 assert.equal(api.state.kind, 'search', 'old close fallback cannot undo latest sheet event');
+timers.delete(readerThenSheetTimer);
 api.state.historyOwned = false;
 api.close('reader-then-sheet-cleanup', 'none');
 
@@ -1845,9 +1864,12 @@ const staleHistoryTimer = api.state.historyTimer;
 const staleHistoryCallback = timers.get(staleHistoryTimer);
 reduceMotion = true;
 api.pop(currentReturnPopState());
+assert.equal(dialog.open, true, 'matching Back keeps the history fallback timer authoritative');
+staleHistoryCallback();
 api.open('search', { opener, page: 'new-generation' });
 const generationAfterStaleClose = api.state.generation;
 staleHistoryCallback();
+timers.delete(staleHistoryTimer);
 assert.equal(api.state.generation, generationAfterStaleClose);
 assert.equal(dialog.open, true, 'stale history fallback cannot close a reopened generation');
 assert.equal(api.state.kind, 'search');
@@ -2467,6 +2489,18 @@ function finishUnownedAnimatedClose() {
   assert.equal(dialog.open, false);
 }
 
+function finishHistoryOwnedAnimatedClose(returnState, message) {
+  const timer = api.state.historyTimer;
+  assert.ok(timer && timers.has(timer), `${message} owns one history-backed animation timer`);
+  assert.equal(api.pop(returnState), true);
+  assert.equal(dialog.open, true, `${message} remains visible while matching history reconciles`);
+  assert.equal(api.state.phase, 'closing');
+  assert.equal(api.state.historyTimer, timer, `${message} keeps the initiating timer authoritative`);
+  timers.get(timer)();
+  timers.delete(timer);
+  assert.equal(dialog.open, false, `${message} finishes after the animation duration`);
+}
+
 function openSettled(kind, launcher, options = {}) {
   reduceMotion = true;
   assert.equal(api.open(kind, { opener: launcher, ...options }), true);
@@ -2481,8 +2515,34 @@ let keyboardPrevented = 0;
 handle.dispatch('keydown', { key: 'Escape', repeat: false, preventDefault() { keyboardPrevented += 1; } });
 assert.equal(keyboardPrevented, 1);
 assertLauncherClearedImmediately(opener, 'keyboard-handle Escape');
+const keyboardCloseTimer = api.state.historyTimer;
+assert.ok(keyboardCloseTimer && timers.has(keyboardCloseTimer),
+  'keyboard close owns one history-backed animation timer');
 api.pop(currentReturnPopState());
-assert.equal(dialog.open, false);
+assert.equal(dialog.open, true, 'matching Back reconciliation preserves the visible close motion');
+assert.equal(api.state.phase, 'closing');
+assert.equal(api.state.historyTimer, keyboardCloseTimer,
+  'matching Back reconciliation cannot replace the initiating close timer');
+api.pop(currentReturnPopState());
+assert.equal(dialog.open, true, 'repeated matching popstate cannot finish the motion early');
+assert.equal(api.state.historyTimer, keyboardCloseTimer);
+timers.get(keyboardCloseTimer)();
+timers.delete(keyboardCloseTimer);
+assert.equal(dialog.open, false, 'the initiating 280ms timer completes the close exactly once');
+
+openSettled('history', opener, { page: 'native-cancel-close' });
+let nativeCancelPrevented = 0;
+dialog.dispatch('cancel', { preventDefault() { nativeCancelPrevented += 1; } });
+assert.equal(nativeCancelPrevented, 1, 'native Escape is routed through the animated controller close');
+assertLauncherClearedImmediately(opener, 'native Escape/cancel');
+finishHistoryOwnedAnimatedClose(currentReturnPopState(), 'native Escape/cancel');
+
+openSettled('history', opener, { page: 'backdrop-close' });
+const backdropFocusBaseline = opener.focusCount;
+dialog.dispatch('click', { target: dialog });
+assertLauncherClearedImmediately(opener, 'pointer backdrop click');
+finishHistoryOwnedAnimatedClose(currentReturnPopState(), 'pointer backdrop click');
+assert.equal(opener.focusCount, backdropFocusBaseline, 'pointer backdrop close does not steal focus');
 
 openSettled('history', opener, { page: 'pop-close' });
 const popReturn = currentReturnPopState();
@@ -2500,8 +2560,7 @@ handle.dispatch('pointermove', {
 });
 handle.dispatch('pointerup', { pointerId: 911, clientY: 340, timeStamp: 120 });
 assertLauncherClearedImmediately(opener, 'drag release outcome');
-api.pop(currentReturnPopState());
-assert.equal(dialog.open, false);
+finishHistoryOwnedAnimatedClose(currentReturnPopState(), 'drag release');
 
 openSettled('selection', opener, { page: 'verses' });
 assert.equal(api.commitSelection(16), true, 'real selection commit executes');
@@ -2515,8 +2574,7 @@ controllerContext.verseActionTarget = fakeElement();
 openSettled('verse-actions', opener);
 api.finishAction(1, 'Verse copied.', true);
 assertLauncherClearedImmediately(opener, 'verse-action success');
-api.pop(currentReturnPopState());
-assert.equal(dialog.open, false);
+finishHistoryOwnedAnimatedClose(currentReturnPopState(), 'verse-action success');
 
 controllerContext.verseActionGeneration = 20;
 controllerContext.verseActionClosing = false;
@@ -2528,8 +2586,7 @@ const actionForm = actionRoot.children[0];
 const cancelAction = actionForm.children.at(-1);
 cancelAction.dispatch('click');
 assertLauncherClearedImmediately(opener, 'verse-action cancel');
-api.pop(currentReturnPopState());
-assert.equal(dialog.open, false);
+finishHistoryOwnedAnimatedClose(currentReturnPopState(), 'verse-action cancel');
 
 // Mobile Search owns visual viewport geometry for exactly one sheet generation.
 dialog.open = true;

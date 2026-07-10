@@ -51,6 +51,9 @@ test('app sheet lifecycle uses named paired motion durations and anchored edge o
   assert.match(css, /\.app-sheet\.is-opening\.edge-bottom\s*\{[^}]*translateY\(100%\)/s);
   assert.match(css, /\.app-sheet\.is-opening\.edge-top\s*\{[^}]*translateY\(-100%\)/s);
   assert.match(css, /\.app-sheet::backdrop\s*\{[^}]*transition-duration:\s*var\(--sheet-open-close-duration\)/s);
+  assert.match(css,
+    /\.app-sheet\.is-opening::backdrop,\s*\.app-sheet\.is-closing::backdrop\s*\{[^}]*backdrop-filter:\s*blur\(0\);[^}]*-webkit-backdrop-filter:\s*blur\(0\);/s,
+    'opening and closing transition the paired backdrop blur to zero');
   assert.match(css, /\.app-sheet\.is-dragging\s*\{[^}]*transition:\s*none;/s);
   assert.match(css, /\.app-sheet\.is-dragging::backdrop\s*\{[^}]*transition:\s*none;/s);
 });
