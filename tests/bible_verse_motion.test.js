@@ -42,12 +42,12 @@ function sourceFunction(signature) {
 test('pointer and Arrow verse activation share the active verse state', () => {
   const activeVerse = sourceBetween('  function setActiveVerse(verse, center) {', '  function updateActiveVerseFromViewport() {');
   assert.match(activeVerse, /viewInner\.querySelector\('\.verse\.active'\)/);
-  assert.match(activeVerse, /if \(!target\) return;[\s\S]*clearPendingReaderVerseAction\(\);[\s\S]*var prev = viewInner\.querySelector\('\.verse\.active'\)/);
+  assert.match(activeVerse, /if \(!target\) return;[\s\S]*var prev = viewInner\.querySelector\('\.verse\.active'\)/);
   assert.match(activeVerse, /prev\.classList\.remove\('active'\)/);
   assert.match(activeVerse, /target\.classList\.add\('active'\)/);
 
   const pointerActivation = sourceBetween("  document.addEventListener('pointerup', function (e) {", "  document.addEventListener('pointercancel', function (e) {");
-  assert.match(pointerActivation, /clearPendingReaderVerseAction\(\);[\s\S]*setActiveVerse\(state\.verse\.getAttribute\('data-v'\), true\)/);
+  assert.match(pointerActivation, /setActiveVerse\(state\.verse\.getAttribute\('data-v'\), true\)/);
 
   const arrowNavigation = sourceBetween('  function showAdjacentVerse(direction) {', '  // ===================== BROWSER HISTORY =====================');
   assert.match(arrowNavigation, /setActiveVerse\(verse, false\)/);
@@ -56,84 +56,37 @@ test('pointer and Arrow verse activation share the active verse state', () => {
   assert.match(arrowNavigation, /if \(key === 'ArrowDown'\) return showAdjacentVerse\(1\);/);
 });
 
-test('active verses use deferred double activation instead of long press', () => {
-  assert.match(bible, /var pendingReaderVerseAction = null;/);
-  assert.match(bible, /var READER_DOUBLE_ACTIVATE_MS = 280;/);
-  assert.match(bible, /var READER_MOUSE_DOUBLE_ACTIVATE_MS = 500;/);
-  assert.match(bible, /function scheduleReaderVerseFootnoteToggle\(verse, event, delay\) \{/);
-  assert.match(bible, /function scheduleReaderVerseMouseFootnoteToggle\(verse, event\) \{/);
-  assert.match(bible, /function clearPendingReaderVerseAction\(\) \{/);
-  assert.match(bible, /function isMatchingReaderDoubleActivation\(event, verse\) \{/);
-  assert.match(bible, /function isMatchingReaderMouseDoubleActivation\(event, verse\) \{/);
-  assert.doesNotMatch(bible, /READER_LONG_PRESS_MS|readerLongPressTimer/);
-
-  const leaveReading = sourceBetween('  function prepareToLeaveReadingView() {', '  function showAdjacentChapter(direction) {');
-  assert.match(leaveReading, /clearPendingReaderVerseAction\(\);/);
-
-  const pointerMove = sourceBetween("  document.addEventListener('pointermove', function (e) {", "  document.addEventListener('pointerup', function (e) {");
-  assert.match(pointerMove, /Math\.sqrt\(\(dx \* dx\) \+ \(dy \* dy\)\) > 10[\s\S]*clearPendingReaderVerseAction\(\);/);
-
-  const pointerCancel = sourceBetween("  document.addEventListener('pointercancel', function (e) {", "  document.addEventListener('click', function (e) {");
-  assert.match(pointerCancel, /clearReaderPointerState\(\);[\s\S]*clearPendingReaderVerseAction\(\);/);
-});
-
-test('deferred verse actions only toggle a live matching active verse once', () => {
-  const clearPending = sourceFunction('  function clearPendingReaderVerseAction() {');
-  assert.match(clearPending, /window\.clearTimeout\(pendingReaderVerseAction\.timer\)/);
-  assert.match(clearPending, /pendingReaderVerseAction = null;/);
-
-  const scheduleToggle = sourceFunction('  function scheduleReaderVerseFootnoteToggle(verse, event, delay) {');
-  assert.match(scheduleToggle, /clearPendingReaderVerseAction\(\);[\s\S]*window\.setTimeout/);
-  assert.match(scheduleToggle, /verse\.isConnected/);
-  assert.match(scheduleToggle, /uiView === 'verses'/);
-  assert.match(scheduleToggle, /verse\.classList\.contains\('active'\)/);
-  assert.match(scheduleToggle, /delay \|\| READER_DOUBLE_ACTIVATE_MS/);
-  assert.equal((scheduleToggle.match(/toggleAllVerseFootnotes\(verse\)/g) || []).length, 1);
-
-  const mouseScheduleToggle = sourceFunction('  function scheduleReaderVerseMouseFootnoteToggle(verse, event) {');
-  assert.match(mouseScheduleToggle, /scheduleReaderVerseFootnoteToggle\(verse, event, READER_MOUSE_DOUBLE_ACTIVATE_MS\);/);
-
-  const openActions = sourceFunction('  function openVerseActions(verseEl) {');
-  assert.match(openActions, /clearPendingReaderVerseAction\(\);[\s\S]*verseActionPayload\(verseEl\)/);
-
-  const matchingActivation = sourceFunction('  function isMatchingReaderDoubleActivation(event, verse) {');
-  assert.match(matchingActivation, /pendingReaderVerseAction\.verse\s*===\s*verse/);
-  assert.match(matchingActivation, /pendingReaderVerseAction\.pointerType\s*===\s*event\.pointerType/);
-  assert.match(matchingActivation, /Math\.abs\(event\.clientX\s*-\s*pendingReaderVerseAction\.x\)\s*<=\s*28/);
-  assert.match(matchingActivation, /Math\.abs\(event\.clientY\s*-\s*pendingReaderVerseAction\.y\)\s*<=\s*28/);
-
-  const mouseMatchingActivation = sourceFunction('  function isMatchingReaderMouseDoubleActivation(event, verse) {');
-  assert.match(mouseMatchingActivation, /pendingReaderVerseAction\.verse\s*===\s*verse/);
-  assert.match(mouseMatchingActivation, /pendingReaderVerseAction\.pointerType\s*===\s*'mouse'/);
-  assert.match(mouseMatchingActivation, /Math\.abs\(event\.clientX\s*-\s*pendingReaderVerseAction\.x\)\s*<=\s*28/);
-  assert.match(mouseMatchingActivation, /Math\.abs\(event\.clientY\s*-\s*pendingReaderVerseAction\.y\)\s*<=\s*28/);
+test('verse activation has no deferred double-click action path', () => {
+  assert.doesNotMatch(bible, /pendingReaderVerseAction|READER_(?:MOUSE_)?DOUBLE_ACTIVATE_MS/);
+  assert.doesNotMatch(bible, /scheduleReaderVerse(?:Mouse)?FootnoteToggle|isMatchingReader(?:Mouse)?DoubleActivation/);
+  assert.doesNotMatch(bible, /document\.addEventListener\('dblclick'/);
 });
 
 test('touch, pen, mouse, and keyboard verse activations avoid duplicate footnote toggles', () => {
   const pointerUp = sourceBetween("  document.addEventListener('pointerup', function (e) {", "  document.addEventListener('pointercancel', function (e) {");
   assert.match(pointerUp, /state\.pointerType === 'touch' \|\| state\.pointerType === 'pen'/);
   assert.match(pointerUp, /suppressFollowingReaderClick\(e, state\.verse\);/);
-  assert.match(pointerUp, /isMatchingReaderDoubleActivation\(e, state\.verse\)[\s\S]*suppressFollowingReaderClick\(e, state\.verse\);[\s\S]*clearPendingReaderVerseAction\(\);[\s\S]*openVerseActions\(state\.verse\);/);
-  assert.match(pointerUp, /else scheduleReaderVerseFootnoteToggle\(state\.verse, e\);/);
-  assert.doesNotMatch(pointerUp, /toggleAllVerseFootnotes\(state\.verse\)/);
-  assert.match(pointerUp, /else\s*\{\s*clearPendingReaderVerseAction\(\);\s*setActiveVerse\(state\.verse\.getAttribute\('data-v'\), true\)/);
+  assert.equal((pointerUp.match(/toggleAllVerseFootnotes\(state\.verse\)/g) || []).length, 1);
+  assert.doesNotMatch(pointerUp, /openVerseActions|setTimeout|scheduleReader/);
+  assert.match(pointerUp, /else\s*setActiveVerse\(state\.verse\.getAttribute\('data-v'\), true\)/);
 
-  const mouseClick = sourceBetween("  document.addEventListener('click', function (e) {\n    if (uiView !== 'verses'", "  document.addEventListener('dblclick', function (e) {");
+  const mouseClick = sourceBetween("  document.addEventListener('click', function (e) {\n    if (uiView !== 'verses'", "  document.addEventListener('contextmenu', function (e) {");
   assert.match(mouseClick, /e\.detail === 0[^;]*return/);
   assert.match(mouseClick, /e\.pointerType === 'touch' \|\| e\.pointerType === 'pen'/);
-  assert.match(mouseClick, /else scheduleReaderVerseMouseFootnoteToggle\(verseEl, e\);/);
-  assert.doesNotMatch(mouseClick, /toggleAllVerseFootnotes\(verseEl\)/);
+  assert.equal((mouseClick.match(/toggleAllVerseFootnotes\(verseEl\)/g) || []).length, 1);
+  assert.doesNotMatch(mouseClick, /setTimeout|scheduleReader/);
   assert.doesNotMatch(mouseClick, /openVerseActions\(verseEl\)/);
-  assert.match(mouseClick, /else\s*\{\s*clearPendingReaderVerseAction\(\);\s*setActiveVerse\(verseEl\.getAttribute\('data-v'\), true\)/);
-
-  const mouseDoubleClick = sourceBetween("  document.addEventListener('dblclick', function (e) {", "  document.addEventListener('contextmenu', function (e) {");
-  assert.match(mouseDoubleClick, /e\.button !== 0/);
-  assert.match(mouseDoubleClick, /verseEl\.classList\.contains\('active'\)/);
-  assert.match(mouseDoubleClick, /isMatchingReaderMouseDoubleActivation\(e, verseEl\)[\s\S]*clearPendingReaderVerseAction\(\);[\s\S]*openVerseActions\(verseEl\);/);
+  assert.match(mouseClick, /else\s*setActiveVerse\(verseEl\.getAttribute\('data-v'\), true\)/);
 
   const contextMenu = sourceBetween("  document.addEventListener('contextmenu', function (e) {", "  viewEl.addEventListener('scroll', function () {");
   assert.match(contextMenu, /verseEl\.classList\.contains\('active'\)/);
   assert.match(contextMenu, /e\.preventDefault\(\);[\s\S]*openVerseActions\(verseEl\);/);
+
+  const keyboard = sourceBetween('  function handleBibleKeyboardNavigation(e) {', '  // ===================== BROWSER HISTORY =====================');
+  assert.match(keyboard, /key === 'ContextMenu' \|\| \(key === 'F10' && e\.shiftKey\)/);
+  assert.match(keyboard, /handled = openVerseActions\(shortcutVerse\)/);
+  assert.match(keyboard, /if \(key === 'Enter'\) handled = uiView === 'verses' \? handleReadingEnterKey\(e\.target\)/);
+  assert.match(bible, /target\.setAttribute\('aria-keyshortcuts', 'Shift\+F10'\)/);
 });
 
 const runContract = Function('assert', `${productionFunctions}
