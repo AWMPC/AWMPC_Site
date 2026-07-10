@@ -11,7 +11,7 @@ const marqueeDeclarations = [...bible.matchAll(/([^{}]+)\{([^{}]*)\}/g)]
   .join('\n');
 
 assert.match(bible, /var APP_VERSION = '4\.0\.3';/);
-assert.match(sw, /var CACHE_NAME = 'bible-v3\.2\.0';/);
+assert.match(sw, /var CACHE_NAME = 'bible-v3\.2\.1';/);
 assert.match(bible, /id="app-version"/);
 assert.match(bible, /<span class="app-version-label">Version <span id="app-version">4\.0\.3<\/span><\/span><span class="app-version-separator">\|<\/span><span id="footer-status" class="app-version-status" role="status" aria-live="polite">Signed out<\/span><span id="footer-signout-separator" class="app-version-separator" hidden>\|<\/span><button type="button" id="footer-signout" class="dd-signout-button" hidden>Sign Out<\/button>/);
 
