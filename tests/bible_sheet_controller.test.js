@@ -2522,13 +2522,14 @@ function assertLauncherClearedImmediately(launcher, message) {
   assert.equal(launcher.getAttribute('aria-expanded'), 'false', `${message} clears aria-expanded immediately`);
 }
 
-function assertPointerDismissedImmediately(launcher, message) {
-  assert.equal(api.state.phase, 'closed', `${message} completes before another pointer activation`);
+function assertPointerModalReleasedImmediately(launcher, message) {
+  assert.equal(api.state.phase, 'closing', `${message} retains logical ownership of its pending Back traversal`);
   assert.equal(dialog.open, false, `${message} releases the native modal immediately`);
   assert.equal(launcher.classList.contains('active'), false, `${message} clears .active immediately`);
   assert.equal(launcher.getAttribute('aria-expanded'), 'false', `${message} clears aria-expanded immediately`);
-  assert.equal(api.state.historyTimer, null, `${message} leaves no input-blocking history timer`);
-  assert.equal(api.state.settleTimer, null, `${message} leaves no input-blocking settle timer`);
+  assert.equal(api.state.historyTimer, null, `${message} waits for its owned traversal without a fallback race`);
+  assert.equal(api.state.settleTimer, null, `${message} leaves no input-blocking animation timer`);
+  assert.equal(api.state.releaseOnHistoryReconcile, true, `${message} finishes only on its owned history callback`);
 }
 
 function finishUnownedAnimatedClose() {
@@ -2589,14 +2590,20 @@ assertLauncherClearedImmediately(opener, 'native Escape/cancel');
 finishHistoryOwnedAnimatedClose(currentReturnPopState(), 'native Escape/cancel');
 
 openSettled('history', opener, { page: 'backdrop-close' });
+const backdropReturn = currentReturnPopState();
 const backdropFocusBaseline = opener.focusCount;
 dialog.dispatch('click', { target: dialog });
-assertPointerDismissedImmediately(opener, 'pointer backdrop click');
+assertPointerModalReleasedImmediately(opener, 'pointer backdrop click');
 assert.equal(opener.focusCount, backdropFocusBaseline, 'pointer backdrop close does not steal focus');
 const postBackdropPushes = historyCalls.push.length;
 assert.equal(api.open('search', { opener: replacementOpener }), true,
-  'one launcher activation opens immediately after backdrop dismissal');
-assert.equal(dialog.open, true);
+  'one launcher activation is retained while the old Back traversal settles');
+assert.equal(dialog.open, false, 'the queued launch cannot race history by reopening the modal early');
+assert.equal(api.state.kind, 'history');
+assert.equal(api.state.pendingLauncherOpen.kind, 'search');
+assert.equal(historyCalls.push.length, postBackdropPushes, 'queued launch does not mutate history before Back');
+assert.equal(api.pop(backdropReturn), true, 'the close traversal is consumed by the sheet controller');
+assert.equal(dialog.open, true, 'the retained first activation opens automatically after reconciliation');
 assert.equal(api.state.kind, 'search');
 assert.equal(historyCalls.push.length, postBackdropPushes + 1);
 api.state.historyOwned = false;
@@ -2616,6 +2623,7 @@ controllerContext.window.visualViewport.offsetTop = 0;
 controllerContext.document.documentElement.clientHeight = 800;
 openSettled('history', opener, { page: 'drag-close', edge: 'bottom' });
 api.state.determinedHeight = 224;
+const dragReturn = currentReturnPopState();
 handle.dispatch('pointerdown', {
   isPrimary: true, button: 0, pointerId: 911, clientX: 20, clientY: 598, timeStamp: 1
 });
@@ -2624,9 +2632,11 @@ handle.dispatch('pointermove', {
 });
 assert.equal(api.state.gesture.viewportHeight, 800, 'release classification freezes the physical viewport height');
 handle.dispatch('pointerup', { pointerId: 911, clientY: 700, timeStamp: 120 });
-assertPointerDismissedImmediately(opener, 'drag release outcome');
-assert.equal(api.state.releaseOnHistoryReconcile, false,
-  'a release outside the 22px edge tolerance fully resets close ownership');
+assertPointerModalReleasedImmediately(opener, 'drag release outcome');
+assert.equal(api.pop(dragReturn), true,
+  'drag-close Back is consumed without falling through to verse-view navigation');
+assert.equal(api.state.phase, 'closed');
+assert.equal(dialog.open, false);
 
 openSettled('history', opener, { page: 'full-travel-close', edge: 'bottom' });
 api.state.determinedHeight = 224;
@@ -2639,19 +2649,19 @@ handle.dispatch('pointermove', {
   pointerId: 912, clientX: 20, clientY: 800, timeStamp: 101, preventDefault() {}
 });
 handle.dispatch('pointerup', { pointerId: 912, clientY: 800, timeStamp: 120 });
-assertPointerDismissedImmediately(opener, 'full-travel drag');
-assert.equal(api.state.releaseOnHistoryReconcile, false,
-  'a full-travel close releases history reconciliation ownership immediately');
+assertPointerModalReleasedImmediately(opener, 'full-travel drag');
 assert.equal(opener.focusCount + viewInner.focusCount, fullTravelFocusBaseline,
   'pointer full-travel close preserves the non-focusing policy');
 const postFullTravelPushes = historyCalls.push.length;
 assert.equal(api.open('search', { opener: replacementOpener }), true,
-  'the next launcher activation opens immediately after native modal release');
-assert.equal(dialog.open, true);
+  'the next launcher activation is accepted exactly once after native modal release');
+assert.equal(dialog.open, false);
+assert.equal(api.state.pendingLauncherOpen.kind, 'search');
+assert.equal(historyCalls.push.length, postFullTravelPushes);
+assert.equal(api.pop(fullTravelReturn), true, 'old close traversal remains owned until it is consumed');
+assert.equal(dialog.open, true, 'consuming old Back opens the sheet requested by the first press');
 assert.equal(api.state.kind, 'search');
 assert.equal(historyCalls.push.length, postFullTravelPushes + 1, 'one activation opens exactly once');
-assert.equal(api.pop(fullTravelReturn), true, 'late close traversal is rejected while the newer sheet owns the modal');
-assert.equal(dialog.open, true, 'late close traversal cannot dismiss the sheet opened by the first press');
 api.state.historyOwned = false;
 reduceMotion = true;
 api.close('full-travel-next-launcher-cleanup', 'none');
@@ -2659,6 +2669,7 @@ reduceMotion = false;
 
 openSettled('history', opener, { page: 'launcher-after-drag', edge: 'bottom' });
 api.state.determinedHeight = 224;
+const thresholdDragReturn = currentReturnPopState();
 handle.dispatch('pointerdown', {
   isPrimary: true, button: 0, pointerId: 913, clientX: 20, clientY: 100, timeStamp: 1
 });
@@ -2666,10 +2677,13 @@ handle.dispatch('pointermove', {
   pointerId: 913, clientX: 20, clientY: 180, timeStamp: 101, preventDefault() {}
 });
 handle.dispatch('pointerup', { pointerId: 913, clientY: 200, timeStamp: 120 });
-assertPointerDismissedImmediately(opener, 'threshold drag');
+assertPointerModalReleasedImmediately(opener, 'threshold drag');
 assert.equal(api.open('search', { opener: replacementOpener }), true,
-  'one trusted launcher press opens after a threshold drag');
-assert.equal(dialog.open, true);
+  'one trusted launcher press queues after a threshold drag');
+assert.equal(dialog.open, false);
+assert.equal(api.state.pendingLauncherOpen.kind, 'search');
+assert.equal(api.pop(thresholdDragReturn), true);
+assert.equal(dialog.open, true, 'queued threshold-drag launch opens without a second press');
 assert.equal(api.state.kind, 'search');
 assert.equal(api.state.opener, replacementOpener);
 assert.equal(api.state.pendingLauncherOpen, null);
