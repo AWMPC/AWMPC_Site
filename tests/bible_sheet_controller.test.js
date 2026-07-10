@@ -162,37 +162,30 @@ assert.match(controllerFunction('installAppSheetListeners'),
   for (const edge of ['bottom', 'top']) {
     const outwardKey = edge === 'bottom' ? 'ArrowDown' : 'ArrowUp';
     for (const key of ['Enter', ' ']) {
-      harness = runHandleKeys({
-        edge, snap: 'fullscreen', kind: 'search', searchFullscreenLatched: true
-      });
-      assert.equal(harness.handleLabel(), 'Close Search panel',
-        `latched ${edge} Search exposes a truthful close action`);
+      harness = runHandleKeys({ edge, snap: 'fullscreen', kind: 'search', searchFullscreenLatched: true });
+      assert.equal(harness.handleLabel(), 'Restore Search panel size',
+        `latched ${edge} Search exposes the same three-state handle as other sheets`);
       event = harness.dispatch(key);
-      assert.equal(event.prevented, false, `latched ${edge} Search leaves native ${key} activation intact`);
-      assert.deepEqual(harness.closeCalls(), [], `latched ${edge} Search avoids keydown double-fire`);
-      const click = harness.click();
-      assert.equal(click.prevented, true, `latched ${edge} Search claims the synthesized click`);
-      assert.deepEqual(harness.closeCalls(), [['keyboard-handle', 'restore-opener']],
-        `latched ${edge} Search native ${key} click closes through the controller`);
-      assert.deepEqual(harness.snapCalls(), [],
-        `latched ${edge} Search native ${key} never attempts the rejected determined restore`);
+      assert.equal(event.prevented, true, `latched ${edge} Search handles ${key}`);
+      assert.equal(harness.snap(), 'determined');
+      assert.deepEqual(harness.closeCalls(), []);
     }
 
     harness = runHandleKeys({ edge, snap: 'fullscreen', kind: 'search', searchFullscreenLatched: true });
     event = harness.dispatch(outwardKey);
     assert.equal(event.prevented, true, `latched ${edge} Search handles ${outwardKey}`);
-    assert.deepEqual(harness.closeCalls(), [['keyboard-handle', 'restore-opener']]);
-    assert.deepEqual(harness.snapCalls(), []);
+    assert.equal(harness.snap(), 'determined');
+    assert.deepEqual(harness.closeCalls(), []);
   }
 
   harness = runHandleKeys({
     edge: 'bottom', snap: 'fullscreen', kind: 'search', phase: 'opening', searchFullscreenLatched: true
   });
   event = harness.dispatch('Enter');
-  assert.equal(event.prevented, false, 'opening latched Search preserves native Enter activation');
+  assert.equal(event.prevented, false, 'opening Search ignores resize activation until opening settles');
   assert.deepEqual(harness.closeCalls(), []);
-  harness.click();
-  assert.deepEqual(harness.closeCalls(), [['keyboard-handle', 'restore-opener']]);
+  assert.equal(harness.click().prevented, false, 'opening Search handle click has no special close path');
+  assert.deepEqual(harness.closeCalls(), []);
   assert.deepEqual(harness.snapCalls(), []);
 
   harness = runHandleKeys({ edge: 'bottom', snap: 'fullscreen', kind: 'history' });
@@ -201,8 +194,8 @@ assert.match(controllerFunction('installAppSheetListeners'),
   harness = runHandleKeys({ edge: 'bottom', snap: 'fullscreen', kind: 'search', searchFullscreenLatched: true });
   assert.equal(harness.click(true).prevented, true, 'the trailing click from a claimed drag is discarded');
   assert.deepEqual(harness.closeCalls(), []);
-  assert.equal(harness.click().prevented, true, 'the drag guard is one-shot');
-  assert.deepEqual(harness.closeCalls(), [['keyboard-handle', 'restore-opener']]);
+  assert.equal(harness.click().prevented, false, 'the drag guard is one-shot without a Search-only action');
+  assert.deepEqual(harness.closeCalls(), []);
 
   harness = runHandleKeys({ edge: 'top', snap: 'fullscreen', kind: 'settings' });
   event = harness.dispatch('Escape');
@@ -412,6 +405,13 @@ assert.deepEqual(JSON.parse(JSON.stringify(h.visual('top', 'determined', 200, 60
   { height: 200, offset: -40, backdrop: .8 }, 'top outward drag uses the edge-signed offset');
 assert.deepEqual(JSON.parse(JSON.stringify(h.visual('bottom', 'fullscreen', 200, 600, 40))),
   { height: 560, offset: 0, backdrop: 1 }, 'fullscreen only shrinks toward its adjacent determined state');
+assert.deepEqual(JSON.parse(JSON.stringify(h.visual('bottom', 'fullscreen', 200, 600, 440))),
+  { height: 200, offset: 40, backdrop: .8 },
+  'fullscreen continues from determined into the close leg without a visual jump');
+assert.deepEqual(JSON.parse(JSON.stringify(h.visual('bottom', 'fullscreen', 200, 600, 600))),
+  { height: 200, offset: 200, backdrop: 0 }, 'fullscreen full travel reaches the originating edge');
+assert.deepEqual(JSON.parse(JSON.stringify(h.visual('top', 'fullscreen', 200, 600, -440))),
+  { height: 200, offset: -40, backdrop: .8 }, 'top fullscreen mirrors the continuous close leg');
 assert.deepEqual(JSON.parse(JSON.stringify(h.visual('bottom', 'fullscreen', 200, 600, -40))),
   { height: 600, offset: 0, backdrop: 1 }, 'fullscreen cannot drag into a nonexistent inward state');
 for (const args of [
@@ -430,8 +430,14 @@ assert.equal(release('top', 'determined', -80, -0.1), 'closed', 'top outward clo
 assert.equal(release('bottom', 'fullscreen', 80, 0.1), 'determined', 'fullscreen moves outward only');
 assert.equal(release('top', 'fullscreen', -80, -0.1), 'determined');
 assert.equal(release('bottom', 'fullscreen', -1000, -3), 'fullscreen', 'fullscreen has no inward state');
-assert.equal(release('bottom', 'fullscreen', 500, 0), 'determined',
-  'above-threshold displacement alone advances one state and kills equality-only comparison mutants');
+assert.equal(release('bottom', 'fullscreen', 655.999, 0, 224, 800), 'determined',
+  'fullscreen remains determined immediately before its second-leg close threshold');
+assert.equal(release('bottom', 'fullscreen', 656, 0, 224, 800), 'closed',
+  'fullscreen closes at shrink distance plus effective determined close threshold');
+assert.equal(release('top', 'fullscreen', -656, 0, 224, 800), 'closed',
+  'top fullscreen mirrors the exact close threshold');
+assert.equal(release('bottom', 'fullscreen', 10, .4), 'determined',
+  'a fullscreen outward flick advances only one state');
 assert.equal(release('bottom', 'determined', 79.999, 0), 'determined', 'below threshold stays put');
 assert.equal(release('bottom', 'determined', 10, .4, 224, 800, 80), 'closed',
   'same-direction velocity qualifies through the exact recency window');
@@ -616,9 +622,8 @@ for (const name of ['cleanupAppSheetViewportOwnership', 'updateSearchViewportGeo
   'scheduleAppSheetViewportUpdate', 'installAppSheetViewportOwnership', 'latchMobileSearchFullscreen']) {
   assert.match(bible, new RegExp('function ' + name + '\\('), `${name} is an explicit generation-owned controller primitive`);
 }
-assert.match(controllerFunction('setSheetSnap'),
-  /searchFullscreenLatched[\s\S]*snap === 'determined'[\s\S]*return false/,
-  'a latched mobile Search cannot be demoted by resize, rotation, gesture, or keyboard controls');
+assert.doesNotMatch(controllerFunction('setSheetSnap'), /searchFullscreenLatched/,
+  'Search viewport ownership does not prohibit an explicit three-state snap transition');
 assert.doesNotMatch(controllerFunction('installAppSheetListeners'),
   /visualViewport[\s\S]*addEventListener[\s\S]*scheduleAppSheet(?:Measurement|OverflowFades)/,
   'global listeners do not permanently retain sheet measurement or fade ownership');
@@ -2622,7 +2627,9 @@ assert.equal(viewportListeners.scroll.length, 1, 'one scroll listener is install
 assert.equal(api.latchSearch(mobileSearchGeneration), true);
 assert.equal(viewportListeners.resize.length, viewportResizeListenerBaseline + 1,
   'repeat focus does not duplicate viewport listeners');
-assert.equal(api.snap('determined', true), false, 'blur, rotation, and generic snap requests cannot demote a latch');
+assert.equal(api.snap('determined', true), true, 'an explicit gesture may restore latched Search to determined');
+assert.equal(api.latchSearch(mobileSearchGeneration), true, 'repeat focus preserves existing viewport ownership');
+assert.equal(api.state.snap, 'determined', 'repeat focus within the same latch does not force fullscreen again');
 controllerContext.window.innerWidth = 900;
 viewportListeners.resize.at(-1)();
 const viewportFrame = api.state.viewportFrame;
@@ -2631,7 +2638,7 @@ viewportListeners.resize.at(-1)();
 assert.equal(api.state.viewportFrame, viewportFrame, 'resize and scroll bursts coalesce into one RAF');
 frames.get(viewportFrame)();
 frames.delete(viewportFrame);
-assert.equal(api.state.snap, 'fullscreen', 'orientation changes preserve fullscreen ownership');
+assert.equal(api.state.snap, 'determined', 'orientation changes update geometry without forcing fullscreen');
 
 controllerContext.window.visualViewport.height = NaN;
 controllerContext.window.visualViewport.offsetTop = -40;
