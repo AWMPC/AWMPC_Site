@@ -2367,6 +2367,7 @@
   var APP_SHEET_CLICK_GUARD_MS = 500;
   var APP_SHEET_OPEN_CLOSE_MS = 280;
   var APP_SHEET_RESIZE_MS = 320;
+  var APP_SHEET_EDGE_RELEASE_TOLERANCE_PX = 22;
   var BIBLE_WHEEL_AXIS_RATIO = 1.25;
   var BIBLE_WHEEL_ACTIVATION_PX = 48;
   var BIBLE_WHEEL_IDLE_MS = 160;
@@ -2526,14 +2527,14 @@
       backdrop: Math.max(0, 1 - outward / determinedHeight)
     };
   }
-  function appSheetGestureIsFullTravel(edge, snap, determinedHeight, viewportHeight, displacement) {
-    if (!isValidAppSheetEdge(edge) || !isValidAppSheetSnap(snap) ||
-        !isFiniteAppSheetNumber(determinedHeight) || determinedHeight <= 0 ||
-        !isFiniteAppSheetNumber(viewportHeight) || viewportHeight <= determinedHeight ||
-        !isFiniteAppSheetNumber(displacement)) return false;
-    var outward = edge === 'bottom' ? displacement : -displacement;
-    var travel = snap === 'fullscreen' ? viewportHeight : determinedHeight;
-    return outward >= travel;
+  function appSheetReleaseAtOriginEdge(edge, clientY, viewportHeight) {
+    if (!isValidAppSheetEdge(edge) || !isFiniteAppSheetNumber(clientY) ||
+        !isFiniteAppSheetNumber(viewportHeight) || viewportHeight <= 0 ||
+        clientY < -APP_SHEET_EDGE_RELEASE_TOLERANCE_PX ||
+        clientY > viewportHeight + APP_SHEET_EDGE_RELEASE_TOLERANCE_PX) return false;
+    return edge === 'bottom' ?
+      clientY >= viewportHeight - APP_SHEET_EDGE_RELEASE_TOLERANCE_PX :
+      clientY <= APP_SHEET_EDGE_RELEASE_TOLERANCE_PX;
   }
   function appSheetOwnDataField(object, key, required) {
     if (!object || typeof object !== 'object' || Array.isArray(object)) return { valid: false };
@@ -3921,8 +3922,9 @@
     armAppSheetHandleClickGuard();
     var outcome = appSheetReleaseOutcome(gesture.edge, gesture.startSnap, displacement, pointer.velocity,
       gesture.determinedHeight, gesture.viewportHeight, velocityAge);
-    var fullTravel = appSheetGestureIsFullTravel(gesture.edge, gesture.startSnap,
-      gesture.determinedHeight, gesture.viewportHeight, displacement);
+    var releaseY = isFiniteAppSheetNumber(e.clientY) ? e.clientY : pointer.lastY;
+    var fullTravel = outcome === 'closed' &&
+      appSheetReleaseAtOriginEdge(gesture.edge, releaseY, gesture.viewportHeight);
     clearAppSheetGestureResources();
     if (outcome === null) setSheetSnap(appSheetState.snap, shouldReduceVerseMotion());
     else if (outcome === 'closed') requestCloseAppSheet(fullTravel ? 'drag-full-travel' : 'drag', 'none');
