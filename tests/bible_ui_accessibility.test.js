@@ -10,10 +10,10 @@ const marqueeDeclarations = [...bible.matchAll(/([^{}]+)\{([^{}]*)\}/g)]
   .map(([, , declarations]) => declarations)
   .join('\n');
 
-assert.match(bible, /var APP_VERSION = '4\.0\.6';/);
+assert.match(bible, /var APP_VERSION = '4\.0\.7';/);
 assert.match(sw, /var CACHE_NAME = 'bible-v3\.2\.1';/);
 assert.match(bible, /id="app-version"/);
-assert.match(bible, /<span class="app-version-label">Version <span id="app-version">4\.0\.6<\/span><\/span><span class="app-version-separator">\|<\/span><span id="footer-status" class="app-version-status" role="status" aria-live="polite">Signed out<\/span><span id="footer-signout-separator" class="app-version-separator" hidden>\|<\/span><button type="button" id="footer-signout" class="dd-signout-button" hidden>Sign Out<\/button>/);
+assert.match(bible, /<span class="app-version-label">Version <span id="app-version">4\.0\.7<\/span><\/span><span class="app-version-separator">\|<\/span><span id="footer-status" class="app-version-status" role="status" aria-live="polite">Signed out<\/span><span id="footer-signout-separator" class="app-version-separator" hidden>\|<\/span><button type="button" id="footer-signout" class="dd-signout-button" hidden>Sign Out<\/button>/);
 
 assert.match(bible, /--oneui-font:/);
 assert.match(bible, /--surface: #ffffff;/);
