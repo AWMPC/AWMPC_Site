@@ -757,45 +757,74 @@ function fakeElement() {
 {
   const launcher = fakeElement();
   const activations = [];
-  const context = { isFiniteAppSheetNumber(value) { return typeof value === 'number' && Number.isFinite(value); } };
+  const context = {
+    APP_SHEET_AXIS_LOCK_PX: 8,
+    isFiniteAppSheetNumber(value) { return typeof value === 'number' && Number.isFinite(value); }
+  };
   vm.runInNewContext(controllerFunction('bindImmediateAppSheetLauncher') +
     '\nthis.bind = bindImmediateAppSheetLauncher;', context);
   context.bind(launcher, current => activations.push(current));
-  const pointer = {
-    pointerType: 'touch', isPrimary: true, button: 0, timeStamp: 100,
-    prevented: false, stopped: false,
-    preventDefault() { this.prevented = true; },
-    stopPropagation() { this.stopped = true; }
-  };
-  launcher.dispatch('pointerdown', pointer);
-  assert.equal(activations.length, 1, 'a primary touch press activates its sheet before compatibility click');
+  function pointer(pointerId, timeStamp, extras = {}) {
+    return {
+      pointerType: 'touch', isPrimary: true, button: 0, pointerId,
+      clientX: 20, clientY: 20, timeStamp, prevented: false, stopped: false,
+      preventDefault() { this.prevented = true; },
+      stopPropagation() { this.stopped = true; },
+      ...extras
+    };
+  }
+
+  launcher.dispatch('pointerdown', pointer(1, 100));
+  assert.equal(activations.length, 0, 'touch pointerdown alone cannot open before native cancellation is known');
+  launcher.dispatch('pointermove', pointer(1, 110, { clientY: 29 }));
+  launcher.dispatch('pointerup', pointer(1, 120, { clientY: 29 }));
+  assert.equal(activations.length, 0, 'movement beyond native-like slop cancels direct activation');
+
+  launcher.dispatch('pointerdown', pointer(2, 200));
+  launcher.dispatch('pointercancel', pointer(2, 210));
+  launcher.dispatch('pointerup', pointer(2, 220));
+  assert.equal(activations.length, 0, 'pointer cancellation cannot open a sheet');
+
+  launcher.dispatch('pointerdown', pointer(3, 300));
+  const pointerUp = pointer(3, 320);
+  launcher.dispatch('pointerup', pointerUp);
+  assert.equal(activations.length, 1, 'matching unmoved pointerup opens before compatibility click');
   assert.equal(activations[0], launcher);
-  assert.equal(pointer.prevented, true);
-  assert.equal(pointer.stopped, true);
+  assert.equal(pointerUp.prevented, true);
+  assert.equal(pointerUp.stopped, true);
+
+  launcher.dispatch('click', {
+    detail: 0, timeStamp: 330, preventDefault() {}, stopPropagation() {}
+  });
+  assert.equal(activations.length, 2,
+    'keyboard and assistive-technology click interleaving does not consume the touch guard');
+
+  launcher.dispatch('click', {
+    detail: 1, pointerType: 'mouse', timeStamp: 340, preventDefault() {}, stopPropagation() {}
+  });
+  assert.equal(activations.length, 3, 'a real mouse click after touch activation is never swallowed');
 
   const compatibilityClick = {
-    detail: 1, timeStamp: 480, prevented: false, stopped: false,
+    detail: 1, pointerType: 'touch', timeStamp: 480, prevented: false, stopped: false,
     preventDefault() { this.prevented = true; },
     stopPropagation() { this.stopped = true; }
   };
   launcher.dispatch('click', compatibilityClick);
-  assert.equal(activations.length, 1, 'Samsung-style delayed compatibility click cannot open twice');
+  assert.equal(activations.length, 3, 'Samsung-style delayed compatibility click cannot open twice');
   assert.equal(compatibilityClick.prevented, true);
 
-  launcher.dispatch('click', {
-    detail: 0, timeStamp: 500, preventDefault() {}, stopPropagation() {}
-  });
-  assert.equal(activations.length, 2, 'keyboard and assistive-technology click activation remains native');
-
-  launcher.dispatch('pointerdown', {
-    pointerType: 'mouse', isPrimary: true, button: 0, timeStamp: 600,
-    preventDefault() { throw new Error('mouse pointerdown was claimed'); }, stopPropagation() {}
-  });
-  assert.equal(activations.length, 2, 'mouse activation remains owned by native click ordering');
-  launcher.dispatch('click', {
-    detail: 1, timeStamp: 620, preventDefault() {}, stopPropagation() {}
-  });
-  assert.equal(activations.length, 3);
+  launcher.dispatch('pointerdown', pointer(4, 500));
+  launcher.dispatch('pointerup', pointer(4, 520));
+  launcher.dispatch('pointerdown', pointer(5, 530));
+  launcher.dispatch('pointerup', pointer(5, 550));
+  assert.equal(activations.length, 5, 'two completed direct presses each activate exactly once');
+  for (const timeStamp of [800, 700]) {
+    launcher.dispatch('click', {
+      detail: 1, sourceCapabilities: { firesTouchEvents: true }, timeStamp,
+      preventDefault() {}, stopPropagation() {}
+    });
+  }
+  assert.equal(activations.length, 5, 'out-of-order delayed touch clicks consume queued guards without duplicates');
 }
 
 const controllerStart = bible.indexOf('/* APP SHEET CONTROLLER START */');

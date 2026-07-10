@@ -5445,23 +5445,71 @@
   }
 
   function bindImmediateAppSheetLauncher(launcher, activate) {
-    var directPointerTime = null;
-    launcher.addEventListener('pointerdown', function (event) {
-      var directPointer = event.pointerType === 'touch' || event.pointerType === 'pen' ||
+    var candidate = null;
+    var directActivations = [];
+    function isDirectPointer(event) {
+      return event.pointerType === 'touch' || event.pointerType === 'pen' ||
         (event.sourceCapabilities && event.sourceCapabilities.firesTouchEvents === true);
-      if (!directPointer || !event.isPrimary || event.button !== 0) return;
-      directPointerTime = isFiniteAppSheetNumber(event.timeStamp) ? event.timeStamp : null;
+    }
+    function clearCandidate(event) {
+      if (!candidate || !event || event.pointerId === candidate.id) candidate = null;
+    }
+    launcher.addEventListener('pointerdown', function (event) {
+      if (!isDirectPointer(event)) return;
+      if (!event.isPrimary || event.button !== 0 || !isFiniteAppSheetNumber(event.pointerId) ||
+          !isFiniteAppSheetNumber(event.clientX) || !isFiniteAppSheetNumber(event.clientY)) {
+        candidate = null;
+        return;
+      }
+      if (candidate && candidate.id !== event.pointerId) {
+        candidate = null;
+        return;
+      }
+      candidate = { id: event.pointerId, x: event.clientX, y: event.clientY, type: event.pointerType };
+    });
+    launcher.addEventListener('pointermove', function (event) {
+      if (!candidate || event.pointerId !== candidate.id || !isFiniteAppSheetNumber(event.clientX) ||
+          !isFiniteAppSheetNumber(event.clientY)) return;
+      if (Math.abs(event.clientX - candidate.x) > APP_SHEET_AXIS_LOCK_PX ||
+          Math.abs(event.clientY - candidate.y) > APP_SHEET_AXIS_LOCK_PX) candidate = null;
+    });
+    launcher.addEventListener('pointercancel', clearCandidate);
+    launcher.addEventListener('lostpointercapture', clearCandidate);
+    launcher.addEventListener('pointerup', function (event) {
+      if (!candidate || event.pointerId !== candidate.id) return;
+      var pointerType = candidate.type;
+      candidate = null;
+      directActivations.push({
+        type: pointerType,
+        time: isFiniteAppSheetNumber(event.timeStamp) ? event.timeStamp : null
+      });
+      if (directActivations.length > 4) directActivations.shift();
       event.preventDefault();
       event.stopPropagation();
       activate(event.currentTarget);
     });
     launcher.addEventListener('click', function (event) {
       var clickTime = isFiniteAppSheetNumber(event.timeStamp) ? event.timeStamp : null;
-      var compatibilityClick = event.detail !== 0 && directPointerTime !== null && clickTime !== null &&
-        clickTime >= directPointerTime && clickTime - directPointerTime <= 1000;
-      directPointerTime = null;
+      var clickPointerType = event.pointerType === 'touch' || event.pointerType === 'pen' ? event.pointerType : null;
+      var touchGenerated = clickPointerType !== null ||
+        (event.sourceCapabilities && event.sourceCapabilities.firesTouchEvents === true);
+      if (clickTime !== null) directActivations = directActivations.filter(function (activation) {
+        return activation.time === null || clickTime - activation.time <= 1000;
+      });
+      var compatibilityIndex = -1;
+      if (touchGenerated && clickTime !== null) {
+        for (var i = 0; i < directActivations.length; i++) {
+          var activation = directActivations[i];
+          if (activation.time !== null && clickTime >= activation.time && clickTime - activation.time <= 1000 &&
+              (clickPointerType === null || clickPointerType === activation.type)) {
+            compatibilityIndex = i;
+            break;
+          }
+        }
+      }
       event.stopPropagation();
-      if (compatibilityClick) {
+      if (compatibilityIndex !== -1) {
+        directActivations.splice(compatibilityIndex, 1);
         event.preventDefault();
         return;
       }
