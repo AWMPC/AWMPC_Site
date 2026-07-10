@@ -2474,6 +2474,11 @@
       return direction > 0 ? viewportHeight - determinedHeight : determinedHeight;
     }
     if (displacementDirection) {
+      if (snap === 'fullscreen' && displacementDirection < 0) {
+        var closeDistance = viewportHeight - determinedHeight +
+          appSheetEffectiveSnapDistance(determinedHeight);
+        if (Math.abs(displacement) >= closeDistance) return 'closed';
+      }
       var displacementDistance = appSheetEffectiveSnapDistance(adjacentDistanceForDirection(displacementDirection));
       if (displacementDistance !== null && Math.abs(displacement) >= displacementDistance) {
         return outcomeForDirection(displacementDirection);
@@ -2501,9 +2506,16 @@
         !isFiniteAppSheetNumber(viewportHeight) || viewportHeight <= determinedHeight ||
         !isFiniteAppSheetNumber(displacement)) return null;
     var inward = edge === 'bottom' ? -displacement : displacement;
-    var outward = Math.min(determinedHeight, Math.max(0, -inward));
+    var outward = Math.min(viewportHeight, Math.max(0, -inward));
     if (snap === 'fullscreen') {
-      return { height: Math.max(determinedHeight, viewportHeight - outward), offset: 0, backdrop: 1 };
+      var shrinkDistance = viewportHeight - determinedHeight;
+      var shrink = Math.min(outward, shrinkDistance);
+      var closeOffset = Math.min(determinedHeight, Math.max(0, outward - shrinkDistance));
+      return {
+        height: viewportHeight - shrink,
+        offset: edge === 'bottom' ? closeOffset : -closeOffset,
+        backdrop: Math.max(0, 1 - closeOffset / determinedHeight)
+      };
     }
     if (inward > 0) {
       return { height: Math.min(viewportHeight, determinedHeight + inward), offset: 0, backdrop: 1 };
@@ -3318,9 +3330,8 @@
       return;
     }
     var label = descriptor.label;
-    var latchedSearch = appSheetState.kind === 'search' && appSheetState.searchFullscreenLatched;
     appSheet.setAttribute('aria-label', label + ' — Bible panel');
-    appSheetHandle.setAttribute('aria-label', latchedSearch ? 'Close Search panel' :
+    appSheetHandle.setAttribute('aria-label',
       (appSheetState.snap === 'fullscreen' ? 'Restore ' : 'Expand ') + label + ' panel' +
       (appSheetState.snap === 'fullscreen' ? ' size' : ''));
   }
@@ -3367,7 +3378,6 @@
   function setSheetSnap(snap, immediate) {
     if (appSheetState.phase === 'closing') return false;
     if (!isValidAppSheetSnap(snap)) return false;
-    if (appSheetState.searchFullscreenLatched && appSheetState.kind === 'search' && snap === 'determined') return false;
     var generation = appSheetState.generation;
     if (appSheetState.settleTimer !== null) window.clearTimeout(appSheetState.settleTimer);
     appSheetState.settleTimer = null;
@@ -3889,13 +3899,10 @@
       (appSheetState.edge === 'top' && e.key === 'ArrowDown');
     var outward = (appSheetState.edge === 'bottom' && e.key === 'ArrowDown') ||
       (appSheetState.edge === 'top' && e.key === 'ArrowUp');
-    var latchedSearch = appSheetState.kind === 'search' && appSheetState.searchFullscreenLatched;
-    var closesLatchedSearch = latchedSearch && outward;
-    if (latchedSearch && toggle) return;
-    if (appSheetState.phase === 'opening' && e.key !== 'Escape' && !closesLatchedSearch) return;
+    if (appSheetState.phase === 'opening' && e.key !== 'Escape') return;
     if (!toggle && !inward && !outward && e.key !== 'Escape') return;
     e.preventDefault();
-    if (e.key === 'Escape' || closesLatchedSearch) {
+    if (e.key === 'Escape') {
       requestCloseAppSheet('keyboard-handle', 'restore-opener');
     } else if (toggle) {
       setSheetSnap(appSheetState.snap === 'determined' ? 'fullscreen' : 'determined', false);
@@ -3914,10 +3921,6 @@
       e.preventDefault();
       return;
     }
-    if (appSheetState.phase === 'closing' || appSheetState.kind !== 'search' ||
-        !appSheetState.searchFullscreenLatched || appSheetState.snap !== 'fullscreen') return;
-    e.preventDefault();
-    requestCloseAppSheet('keyboard-handle', 'restore-opener');
   }
 
   function installAppSheetListeners() {
