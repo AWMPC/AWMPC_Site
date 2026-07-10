@@ -3751,10 +3751,14 @@
 
   function consumePendingAppSheetCloseTraversal(state) {
     var pending = pendingAppSheetCloseTraversal;
-    var returnGeneration = state && state.sheetReturnGeneration == null ? null :
-      (state ? state.sheetReturnGeneration : null);
-    if (!pending || !state || state.sheet ||
-        returnGeneration !== pending.returnGeneration) return false;
+    if (!pending) return false;
+    var sheetField = appSheetOwnDataField(state, 'sheet', false);
+    var returnField = appSheetOwnDataField(state, 'sheetReturnGeneration', false);
+    if (!sheetField.valid || !returnField.valid || sheetField.present) return true;
+    var returnGeneration = returnField.present && returnField.value != null ? returnField.value : null;
+    if (returnGeneration !== null &&
+        (!Number.isSafeInteger(returnGeneration) || returnGeneration <= 0)) return true;
+    if (returnGeneration !== pending.returnGeneration) return true;
     pendingAppSheetCloseTraversal = null;
     if (!commitDeferredAppSheetHistory()) replaceCurrentReaderHistoryWithoutRender();
     return true;

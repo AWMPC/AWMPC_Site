@@ -2607,6 +2607,20 @@ assert.equal(api.state.kind, 'search');
 assert.equal(api.state.historyDeferred, true);
 assert.equal(historyCalls.push.length, postBackdropPushes, 'immediate UI does not race the old history index');
 assert.equal(historyCalls.replace.length, postBackdropReplaces);
+const hostileDeferredPop = {};
+Object.defineProperty(hostileDeferredPop, 'sheetReturnGeneration', {
+  get() { throw new Error('hostile deferred history getter'); }
+});
+assert.doesNotThrow(() => api.pop(hostileDeferredPop),
+  'hostile delayed history accessors are consumed without execution');
+assert.notEqual(api.pendingTraversal(), null, 'hostile callback cannot discard the real close transaction');
+assert.equal(api.pop({
+  view: 'verses', book: 'John', chapter: '3', verse: '16',
+  sheetReturnGeneration: backdropReturn.sheetReturnGeneration + 999
+}), true, 'wrong delayed token is quarantined while the exact close callback remains pending');
+assert.equal(api.state.kind, 'search');
+assert.equal(api.state.historyDeferred, true);
+assert.equal(historyCalls.push.length, postBackdropPushes);
 assert.equal(api.pop(backdropReturn), true, 'the close traversal is consumed by the sheet controller');
 assert.equal(dialog.open, true, 'background reconciliation cannot close the immediately opened sheet');
 assert.equal(api.state.kind, 'search');
