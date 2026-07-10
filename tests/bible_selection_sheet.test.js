@@ -777,7 +777,8 @@ function runGestureProgram(source = bible, selectionCollapsed = true) {
     'selectionPointerTargetAllowsSwipe', 'selectionCellTarget', 'clearSelectionClickGuard',
     'armSelectionClickGuard', 'guardSelectionClick', 'clearSelectionCompatibilityGuard',
     'rememberSelectionTouchCompatibility', 'isSelectionCompatibilityPointer',
-    'resetSelectionPointerToStablePage', 'renderSelectionPointerFrame', 'releaseSelectionPointer', 'onSelectionPointerDown',
+    'resetSelectionPointerToStablePage', 'selectionRenderedTrackX', 'renderSelectionPointerFrame',
+    'releaseSelectionPointer', 'onSelectionPointerDown',
     'onSelectionPointerMove', 'settleSelectionPointer', 'onSelectionPointerUp',
     'onSelectionPointerCancel', 'onSelectionLostPointerCapture'
   ];
@@ -821,12 +822,15 @@ function runGestureProgram(source = bible, selectionCollapsed = true) {
       generation: function (value) { appSheetState.generation = value; },
       expire: function () { while (timers.length) timers.shift().fn(); },
       track: function () { return selectionTrack.style.transform; },
+      renderedTransform: function (value) { window._renderedTransform = value; },
       setPage: function (page) { selectionSheetPage = page; selectionTrack.style.transform =
         'translateX(' + (-100 * selectionPages.indexOf(page)) + '%)'; },
       page: function () { return selectionSheetPage; }, pointer: function () { return selectionPointer; }
     };
   `)({
     getSelection: () => ({ isCollapsed: selectionCollapsed }),
+    _renderedTransform: 'none',
+    getComputedStyle: function () { return { transform: this._renderedTransform }; },
     setTimeout: function (fn, ms) { timers.push({ fn, ms }); return timers.length; }, clearTimeout: function () {}
   }, pager, pages, timers);
   return { api, pages, captures };
@@ -854,6 +858,7 @@ function gridTarget(kind = '.chapter-btn') {
     panel: null,
     closest(selector) {
       if (selector === '.book-btn,.chapter-btn,.verse-btn') return this;
+      if (selector === '.selection-pager') return this;
       if (selector === '.selection-panel') return this.panel;
       if (selector.split(',').map(value => value.trim()).includes('button')) return this;
       return selector.split(',').map(value => value.trim()).includes(kind) ? this : null;
@@ -862,7 +867,11 @@ function gridTarget(kind = '.chapter-btn') {
 }
 
 function blankTouchTarget(panel = null) {
-  return { closest(selector) { return selector === '.selection-panel' ? panel : null; } };
+  return { closest(selector) {
+    if (selector === '.selection-panel') return panel;
+    if (selector === '.selection-pager') return this;
+    return null;
+  } };
 }
 
 function nestedButtonTarget(panel = null) {
@@ -974,6 +983,37 @@ test('horizontal gestures execute one page both ways while vertical, cancel, and
   assert.notEqual(cancelled.api.page(), 'chapters', 'cancel-listener mutation is observable');
 });
 
+test('two same-direction pointer gestures retarget the moving selector before transition settle', () => {
+  const h = runGestureProgram();
+  const target = blankTouchTarget({ scrollTop: 0, clientHeight: 200, scrollHeight: 600 });
+  h.api.setPage('books');
+
+  h.api.down(pointerEvent(90, 180, 40, 1, target));
+  h.api.move(pointerEvent(90, 80, 40, 10, target));
+  h.api.up(pointerEvent(90, 80, 40, 11, target));
+  h.api.down(pointerEvent(91, 180, 40, 12, target));
+  h.api.move(pointerEvent(91, 80, 40, 20, target));
+  h.api.up(pointerEvent(91, 80, 40, 21, target));
+
+  assert.equal(h.api.page(), 'verses');
+  assert.deepEqual(h.pages, ['chapters', 'verses']);
+  assert.equal(h.api.pointer(), null);
+});
+
+test('a horizontal claim freezes and drags from the rendered in-flight track translation', () => {
+  const original = functionSource('selectionRenderedTrackX');
+  assert.match(original, /getComputedStyle/);
+  assert.match(original, /isFinite/);
+  const h = runGestureProgram();
+  const target = blankTouchTarget({ scrollTop: 0, clientHeight: 200, scrollHeight: 600 });
+  h.api.setPage('chapters');
+  h.api.renderedTransform('matrix(1, 0, 0, 1, -120, 0)');
+  h.api.down(pointerEvent(92, 180, 40, 1, target));
+  h.api.move(pointerEvent(92, 140, 40, 10, target));
+  assert.equal(h.api.track(), 'translateX(-160px)');
+  h.api.cancel(pointerEvent(92, 140, 40, 11, target));
+});
+
 test('real book, chapter, and verse cells support pen and mouse paging with one-shot click suppression', () => {
   for (const kind of ['.book-btn', '.chapter-btn', '.verse-btn']) {
     for (const pointerType of ['pen', 'mouse']) {
@@ -1078,7 +1118,7 @@ function runTouchAdapter() {
     'selectionPointerTargetAllowsSwipe', 'appSheetTouchTargetAllowsVertical', 'selectionCellTarget', 'clearSelectionClickGuard',
     'armSelectionClickGuard', 'guardSelectionClick', 'clearSelectionCompatibilityGuard',
     'rememberSelectionTouchCompatibility', 'isSelectionCompatibilityPointer',
-    'resetSelectionPointerToStablePage', 'renderSelectionPointerFrame', 'releaseSelectionPointer',
+    'resetSelectionPointerToStablePage', 'selectionRenderedTrackX', 'renderSelectionPointerFrame', 'releaseSelectionPointer',
     'onSelectionPointerDown', 'onSelectionPointerMove', 'settleSelectionPointer', 'onSelectionPointerCancel',
     'selectionTouchByIdentifier', 'clearSelectionTouch', 'selectionTouchInput',
     'cancelSelectionTouchCollision',
@@ -1339,12 +1379,23 @@ test('sheet-body touch adapter owns generic and selector blank-region boundary d
   const panel = { scrollTop: 0, clientHeight: 200, scrollHeight: 600 };
   const selectorTarget = blankTouchTarget(panel);
   selector.start(touchEvent(31, 100, 40, 1, selectorTarget));
-  assert.equal(selector.pointer(), null, 'blank selector content does not start horizontal paging');
+  assert.equal(selector.pointer().id, -32, 'blank selector content starts an axis-neutral paging candidate');
   const selectorMove = touchEvent(31, 102, 90, 20, selectorTarget);
   selector.move(selectorMove);
   assert.equal(selector.sheetPointer().id, -32);
+  assert.equal(selector.pointer(), null, 'vertical ownership releases the horizontal candidate');
   assert.ok(selectorMove.prevented > 0);
   selector.cancel(touchEvent(31, 102, 90, 21, selectorTarget));
+
+  const horizontal = runTouchAdapter();
+  const horizontalTarget = blankTouchTarget(panel);
+  horizontal.start(touchEvent(32, 180, 40, 1, horizontalTarget));
+  const horizontalMove = touchEvent(32, 80, 42, 20, horizontalTarget);
+  horizontal.move(horizontalMove);
+  horizontal.flush();
+  horizontal.end(touchEvent(32, 80, 42, 21, horizontalTarget));
+  assert.equal(horizontal.page(), 'verses', 'blank selector content pages horizontally before settling');
+  assert.equal(horizontal.sheetPointer(), null);
 });
 
 test('touch compatibility pointer candidate is replaced by Touch ownership on blank content', () => {

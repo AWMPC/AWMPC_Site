@@ -4412,8 +4412,13 @@
       if (selection && !selection.isCollapsed) return false;
     } catch (selectionError) {}
     if (!target || typeof target.closest !== 'function') return false;
-    if (target.closest('a,input,select,textarea,label,[contenteditable="true"]')) return false;
-    return !!target.closest('.book-btn,.chapter-btn,.verse-btn');
+    try {
+      var cell = target.closest('.book-btn,.chapter-btn,.verse-btn');
+      if (target.closest('button,a,input,select,textarea,label,[contenteditable="true"]') && !cell) return false;
+      return target === selectionPager || !!target.closest('.selection-pager');
+    } catch (targetError) {
+      return false;
+    }
   }
 
   function appSheetTouchTargetAllowsVertical(target) {
@@ -4498,6 +4503,21 @@
     }
   }
 
+  function selectionRenderedTrackX() {
+    if (!selectionTrack || typeof window.getComputedStyle !== 'function') return null;
+    try {
+      var transform = window.getComputedStyle(selectionTrack).transform;
+      if (!transform || transform === 'none') return null;
+      var match = transform.match(/^matrix(3d)?\(([^)]+)\)$/);
+      if (!match) return null;
+      var values = match[2].split(',').map(function (value) { return Number(value.trim()); });
+      var index = match[1] ? 12 : 4;
+      return values.length > index && isFinite(values[index]) ? values[index] : null;
+    } catch (styleError) {
+      return null;
+    }
+  }
+
   function renderSelectionPointerFrame(pointer) {
     selectionPointerFrame = null;
     if (!selectionPointer || selectionPointer !== pointer || pointer.axis !== 'x' || !selectionTrack) return;
@@ -4508,7 +4528,12 @@
         Math.min(SELECTION_ENDPOINT_RESISTANCE_PX, dx * .28));
     }
     selectionTrack.classList.add('no-motion');
-    selectionTrack.style.transform = 'translateX(calc(' + (-100 * index) + '% + ' + dx + 'px))';
+    if (typeof pointer.baseX === 'number' && isFinite(pointer.baseX)) {
+      var translated = pointer.baseX + dx;
+      selectionTrack.style.transform = 'translateX(' + (isFinite(translated) ? translated : pointer.baseX) + 'px)';
+    } else {
+      selectionTrack.style.transform = 'translateX(calc(' + (-100 * index) + '% + ' + dx + 'px))';
+    }
   }
 
   function releaseSelectionPointer() {
@@ -4535,7 +4560,7 @@
     selectionPointer = {
       id: e.pointerId, startX: e.clientX, startY: e.clientY, lastX: e.clientX,
       lastTime: e.timeStamp || Date.now(), lastMoveTime: null, velocity: 0, axis: null, captured: false,
-      target: selectionCellTarget(e.target), pendingX: 0, adapter: e.adapter || 'pointer'
+      target: selectionCellTarget(e.target), pendingX: 0, baseX: null, adapter: e.adapter || 'pointer'
     };
   }
 
@@ -4564,6 +4589,7 @@
           pointer.captured = true;
         } catch (captureError) { return; }
       }
+      pointer.baseX = selectionRenderedTrackX();
     }
     pointer.pendingX = dx;
     if (selectionPointerFrame === null) selectionPointerFrame = requestAnimationFrame(function () {
@@ -4585,7 +4611,7 @@
     if (selectionPointerFrame !== null) cancelAnimationFrame(selectionPointerFrame);
     selectionPointerFrame = null;
     releaseSelectionPointer();
-    if (claimed) armSelectionClickGuard(target);
+    if (claimed && target) armSelectionClickGuard(target);
     if (!cancelled && next !== selectionSheetPage) setSelectionPage(next, true, 'pointer');
     else if (selectionTrack) selectionTrack.style.transform = 'translateX(' +
       (-100 * selectionPages.indexOf(selectionSheetPage)) + '%)';
