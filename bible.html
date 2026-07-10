@@ -741,6 +741,17 @@
     background: var(--surface);
     color: var(--fg);
   }
+  .settings-refresh-button {
+    width: 100%; min-height: var(--display-control-height);
+    padding: var(--display-control-pad-y) var(--display-control-pad-x);
+    border: 1px solid var(--border2); border-radius: var(--radius-sm);
+    background: var(--pill-bg); color: var(--fg); font: inherit; font-weight: 700;
+    cursor: pointer;
+  }
+  .settings-refresh-button:hover,
+  .settings-refresh-button:focus-visible { border-color: var(--accent); background: var(--hover-bg); outline: none; }
+  .settings-refresh-button:disabled { cursor: wait; opacity: .7; }
+  .settings-refresh-status { color: var(--fg3); font-size: var(--text-14); line-height: 1.3; }
   .app-version {
     flex: 0 0 auto;
     display: flex;
@@ -1461,6 +1472,11 @@
           <option value="125">125%</option>
           <option value="150">150%</option>
         </select>
+      </div>
+      <div class="fab-card setting-control-wrap">
+        <span class="fab-card-title">Bible Text</span>
+        <button type="button" id="refresh-bible-text" class="settings-refresh-button" aria-describedby="refresh-bible-text-status">Refresh Bible Text</button>
+        <span id="refresh-bible-text-status" class="settings-refresh-status" role="status" aria-live="polite">Check for newly published Bible text.</span>
       </div>
       <div class="app-version"><span class="app-version-label">Version <span id="app-version">4.0.4</span></span><span class="app-version-separator">|</span><span id="footer-status" class="app-version-status" role="status" aria-live="polite">Signed out</span><span id="footer-signout-separator" class="app-version-separator" hidden>|</span><button type="button" id="footer-signout" class="dd-signout-button" hidden>Sign Out</button></div>
 </div>
@@ -2289,6 +2305,8 @@
   var fabPanel = document.getElementById('fab-panel');
   var historyMenu = document.getElementById('history-menu');
   var statusLive = document.getElementById('status-live');
+  var refreshBibleTextButton = document.getElementById('refresh-bible-text');
+  var refreshBibleTextStatus = document.getElementById('refresh-bible-text-status');
   var appSheet = document.getElementById('app-sheet');
   var appSheetHandle = document.getElementById('app-sheet-handle');
   var appSheetBody = document.getElementById('app-sheet-body');
@@ -7913,6 +7931,7 @@
   var bibleLoadRequest = null;
   var bibleLoadGeneration = 0;
   var bibleStartupComplete = false;
+  var bibleTextRefreshInFlight = false;
 
   /* STARTUP READING LOCATION START */
   function scopedReaderRouteState(state) {
@@ -8101,6 +8120,59 @@
     errorEl.appendChild(retryButton);
   }
 
+  function isUsableBibleDataset(candidate) {
+    if (!candidate || typeof candidate !== 'object' || Array.isArray(candidate)) return false;
+    var books = Object.keys(candidate);
+    for (var i = 0; i < books.length; i++) {
+      var chapters = candidate[books[i]];
+      if (!chapters || typeof chapters !== 'object' || Array.isArray(chapters)) continue;
+      var chapterKeys = Object.keys(chapters);
+      for (var c = 0; c < chapterKeys.length; c++) {
+        var verses = chapters[chapterKeys[c]];
+        if (!verses || typeof verses !== 'object' || Array.isArray(verses)) continue;
+        var verseKeys = Object.keys(verses);
+        for (var v = 0; v < verseKeys.length; v++) {
+          if (typeof verses[verseKeys[v]] === 'string' && verses[verseKeys[v]].trim()) return true;
+        }
+      }
+    }
+    return false;
+  }
+
+  function setBibleTextRefreshState(message, busy) {
+    if (refreshBibleTextStatus) refreshBibleTextStatus.textContent = message;
+    if (refreshBibleTextButton) {
+      refreshBibleTextButton.disabled = busy;
+      refreshBibleTextButton.setAttribute('aria-busy', busy ? 'true' : 'false');
+    }
+  }
+
+  function refreshBibleText() {
+    if (bibleTextRefreshInFlight || typeof window.fetch !== 'function') return Promise.resolve(false);
+    bibleTextRefreshInFlight = true;
+    setBibleTextRefreshState('Checking for newly published Bible text…', true);
+    var refreshUrl = new URL('bible.json', window.location.href);
+    refreshUrl.searchParams.set('refresh', String(Date.now()));
+    return window.fetch(refreshUrl.href, { cache: 'no-store', credentials: 'same-origin' })
+      .then(function (response) {
+        if (!response || !response.ok) throw new Error('refresh-unavailable');
+        return response.json();
+      })
+      .then(function (candidate) {
+        if (!isUsableBibleDataset(candidate)) throw new Error('refresh-invalid');
+        setBibleTextRefreshState('Bible text refreshed. Reloading…', true);
+        announceStatus('Bible text refreshed. Reloading.');
+        window.location.reload();
+        return true;
+      })
+      .catch(function () {
+        bibleTextRefreshInFlight = false;
+        setBibleTextRefreshState('Refresh failed. The current Bible text is still available.', false);
+        announceStatus('Bible text refresh failed. The current text was kept.');
+        return false;
+      });
+  }
+
   function loadBibleData() {
     if (bibleLoadRequest || bibleStartupComplete) return;
     bibleLoadGeneration += 1;
@@ -8158,6 +8230,8 @@
   }
 
   loadBibleData();
+
+  if (refreshBibleTextButton) refreshBibleTextButton.addEventListener('click', refreshBibleText);
 
   if ('serviceWorker' in navigator) {
     navigator.serviceWorker.register('sw.js').catch(function () {});

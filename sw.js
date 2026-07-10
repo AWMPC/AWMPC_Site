@@ -1,4 +1,4 @@
-var CACHE_NAME = 'bible-v3.2.0';
+var CACHE_NAME = 'bible-v3.2.1';
 var ASSETS = [
   'bible.html',
   'bible.json',
@@ -35,6 +35,7 @@ self.addEventListener('activate', function (e) {
 self.addEventListener('fetch', function (e) {
   var url = new URL(e.request.url);
   var biblePageUrl = new URL('bible.html', self.registration.scope);
+  var bibleDataUrl = new URL('bible.json', self.registration.scope);
 
   if (
     e.request.method !== 'GET' ||
@@ -84,15 +85,17 @@ self.addEventListener('fetch', function (e) {
 
   // bible.json must be network-first: cache-on-hit was serving stale JSON forever
   // (cached || fetch never reached the network when any cached Response existed).
-  if (url.pathname.endsWith('bible.json')) {
+  if (url.pathname === bibleDataUrl.pathname) {
+    var bibleDataKey = new Request(bibleDataUrl.href);
     e.respondWith(
       caches.open(CACHE_NAME).then(function (cache) {
         return fetch(e.request)
           .then(function (response) {
-            return cacheIfComplete(cache, e.request, response);
+            // Cache-busted refresh requests always replace the stable offline key.
+            return cacheIfComplete(cache, bibleDataKey, response);
           })
           .catch(function () {
-            return cachedOrError(cache, e.request);
+            return cachedOrError(cache, bibleDataKey);
           });
       })
     );
