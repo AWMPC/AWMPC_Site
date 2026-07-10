@@ -244,11 +244,11 @@ const pureSource = bible.slice(pureStart, pureEnd) + '\nthis.hooks = {' +
   'finite: isFiniteAppSheetNumber, determinedHeight: appSheetDeterminedHeight,' +
   'width: appSheetDeterminedWidth, anchor: appSheetHorizontalAnchor,' +
   'effectiveDistance: appSheetEffectiveSnapDistance, outcome: appSheetReleaseOutcome,' +
-  'visual: appSheetGestureVisual, fullTravel: appSheetGestureIsFullTravel,' +
+  'visual: appSheetGestureVisual, releaseAtEdge: appSheetReleaseAtOriginEdge,' +
   'axis: appSheetAxis, boundary: appSheetBoundaryAllowsDrag, phases: APP_SHEET_PHASES,' +
   'constants: [APP_SHEET_AXIS_LOCK_PX, APP_SHEET_SNAP_PX, APP_SHEET_SNAP_VELOCITY,' +
   'APP_SHEET_VELOCITY_RECENCY_MS, APP_SHEET_MAX_VELOCITY, APP_SHEET_CLICK_GUARD_MS,' +
-  'APP_SHEET_OPEN_CLOSE_MS, APP_SHEET_RESIZE_MS],' +
+  'APP_SHEET_OPEN_CLOSE_MS, APP_SHEET_RESIZE_MS, APP_SHEET_EDGE_RELEASE_TOLERANCE_PX],' +
   'state: validatedAppSheetHistoryState};';
 const context = { Math };
 vm.runInNewContext(pureSource, context);
@@ -269,7 +269,7 @@ assert.equal(h.validAnchor('center'), false);
 assert.equal(h.validAnchor('__proto__'), false, 'anchor enum rejects inherited/property attacks');
 assert.equal(h.validAnchor(0), false, 'anchor enum rejects non-string values');
 assert.deepEqual(Array.from(h.phases), ['closed', 'opening', 'idle', 'dragging', 'settling', 'closing']);
-assert.deepEqual(Array.from(h.constants), [8, 80, .4, 80, 3, 500, 280, 320]);
+assert.deepEqual(Array.from(h.constants), [8, 80, .4, 80, 3, 500, 280, 320, 22]);
 
 assert.equal(h.finite(0), true);
 assert.equal(h.finite(-1), true);
@@ -412,12 +412,27 @@ assert.deepEqual(JSON.parse(JSON.stringify(h.visual('bottom', 'fullscreen', 200,
   { height: 200, offset: 200, backdrop: 0 }, 'fullscreen full travel reaches the originating edge');
 assert.deepEqual(JSON.parse(JSON.stringify(h.visual('top', 'fullscreen', 200, 600, -440))),
   { height: 200, offset: -40, backdrop: .8 }, 'top fullscreen mirrors the continuous close leg');
-assert.equal(h.fullTravel('bottom', 'determined', 200, 600, 199.999), false);
-assert.equal(h.fullTravel('bottom', 'determined', 200, 600, 200), true);
-assert.equal(h.fullTravel('top', 'determined', 200, 600, -200), true);
-assert.equal(h.fullTravel('bottom', 'fullscreen', 200, 600, 599.999), false);
-assert.equal(h.fullTravel('bottom', 'fullscreen', 200, 600, 600), true);
-assert.equal(h.fullTravel('top', 'fullscreen', 200, 600, -600), true);
+assert.equal(h.outcome('bottom', 'determined', 202, 0, 224, 800, 100), 'closed',
+  'a determined bottom handle can physically close from its 22px center inset');
+assert.equal(h.outcome('top', 'determined', -202, 0, 224, 800, 100), 'closed',
+  'a determined top handle mirrors its physically reachable close displacement');
+assert.equal(h.outcome('bottom', 'fullscreen', 778, 0, 224, 800, 100), 'closed',
+  'a fullscreen bottom handle can reach the close threshold at the viewport edge');
+assert.equal(h.outcome('top', 'fullscreen', -778, 0, 224, 800, 100), 'closed',
+  'a fullscreen top handle mirrors its physically reachable close displacement');
+assert.equal(h.releaseAtEdge('bottom', 800, 800), true);
+assert.equal(h.releaseAtEdge('bottom', 778, 800), true, 'bottom includes the half-hit-target tolerance');
+assert.equal(h.releaseAtEdge('bottom', 777.999, 800), false);
+assert.equal(h.releaseAtEdge('top', 0, 800), true);
+assert.equal(h.releaseAtEdge('top', 22, 800), true, 'top includes the half-hit-target tolerance');
+assert.equal(h.releaseAtEdge('top', 22.001, 800), false);
+for (const args of [
+  ['side', 0, 800], ['bottom', Infinity, 800], ['bottom', -Infinity, 800],
+  ['bottom', NaN, 800], ['bottom', '800', 800], ['bottom', new Number(800), 800],
+  ['bottom', { valueOf() { throw new Error('must not coerce'); } }, 800],
+  ['bottom', 800, Infinity], ['bottom', 800, 0], ['bottom', 800, '800'],
+  ['bottom', -22.001, 800], ['bottom', 822.001, 800]
+]) assert.equal(h.releaseAtEdge(...args), false, `invalid release endpoint: ${String(args)}`);
 assert.deepEqual(JSON.parse(JSON.stringify(h.visual('bottom', 'fullscreen', 200, 600, -40))),
   { height: 600, offset: 0, backdrop: 1 }, 'fullscreen cannot drag into a nonexistent inward state');
 for (const args of [
@@ -2575,16 +2590,23 @@ assert.equal(api.pop(popReturn), true);
 assertLauncherClearedImmediately(opener, 'popstate');
 finishUnownedAnimatedClose();
 
+controllerContext.window.innerHeight = 800;
+controllerContext.window.visualViewport.height = 800;
+controllerContext.window.visualViewport.offsetTop = 0;
+controllerContext.document.documentElement.clientHeight = 800;
 openSettled('history', opener, { page: 'drag-close', edge: 'bottom' });
 api.state.determinedHeight = 224;
 handle.dispatch('pointerdown', {
-  isPrimary: true, button: 0, pointerId: 911, clientX: 20, clientY: 100, timeStamp: 1
+  isPrimary: true, button: 0, pointerId: 911, clientX: 20, clientY: 598, timeStamp: 1
 });
 handle.dispatch('pointermove', {
-  pointerId: 911, clientX: 20, clientY: 180, timeStamp: 101, preventDefault() {}
+  pointerId: 911, clientX: 20, clientY: 700, timeStamp: 101, preventDefault() {}
 });
-handle.dispatch('pointerup', { pointerId: 911, clientY: 200, timeStamp: 120 });
+assert.equal(api.state.gesture.viewportHeight, 800, 'release classification freezes the physical viewport height');
+handle.dispatch('pointerup', { pointerId: 911, clientY: 700, timeStamp: 120 });
 assertLauncherClearedImmediately(opener, 'drag release outcome');
+assert.equal(api.state.releaseOnHistoryReconcile, false,
+  'a release outside the 22px edge tolerance retains the close animation');
 finishHistoryOwnedAnimatedClose(currentReturnPopState(), 'drag release');
 
 openSettled('history', opener, { page: 'full-travel-close', edge: 'bottom' });
@@ -2592,12 +2614,12 @@ api.state.determinedHeight = 224;
 const fullTravelReturn = currentReturnPopState();
 const fullTravelFocusBaseline = opener.focusCount + viewInner.focusCount;
 handle.dispatch('pointerdown', {
-  isPrimary: true, button: 0, pointerId: 912, clientX: 20, clientY: 100, timeStamp: 1
+  isPrimary: true, button: 0, pointerId: 912, clientX: 20, clientY: 598, timeStamp: 1
 });
 handle.dispatch('pointermove', {
-  pointerId: 912, clientX: 20, clientY: 324, timeStamp: 101, preventDefault() {}
+  pointerId: 912, clientX: 20, clientY: 800, timeStamp: 101, preventDefault() {}
 });
-handle.dispatch('pointerup', { pointerId: 912, clientY: 324, timeStamp: 120 });
+handle.dispatch('pointerup', { pointerId: 912, clientY: 800, timeStamp: 120 });
 assert.equal(api.state.releaseOnHistoryReconcile, true,
   'a full-travel close waits only for its owned history reconciliation');
 const fullTravelFallbackTimer = api.state.historyTimer;
@@ -2607,6 +2629,16 @@ assert.equal(dialog.open, false, 'history reconciliation synchronously releases 
 assert.equal(timers.has(fullTravelFallbackTimer), false, 'synchronous release cancels the fallback timer');
 assert.equal(opener.focusCount + viewInner.focusCount, fullTravelFocusBaseline,
   'pointer full-travel close preserves the non-focusing policy');
+const postFullTravelPushes = historyCalls.push.length;
+assert.equal(api.open('search', { opener: replacementOpener }), true,
+  'the next launcher activation opens immediately after native modal release');
+assert.equal(dialog.open, true);
+assert.equal(api.state.kind, 'search');
+assert.equal(historyCalls.push.length, postFullTravelPushes + 1, 'one activation opens exactly once');
+api.state.historyOwned = false;
+reduceMotion = true;
+api.close('full-travel-next-launcher-cleanup', 'none');
+reduceMotion = false;
 
 openSettled('history', opener, { page: 'queue-launcher-after-drag', edge: 'bottom' });
 api.state.determinedHeight = 224;
