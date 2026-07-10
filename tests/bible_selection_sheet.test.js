@@ -425,6 +425,7 @@ function runForwardHistory(state) {
     function normalizedSelectionPage() { return 'books'; }
     function openSelectionSheet() {}
     function requestCloseAppSheet() {}
+    function consumePendingAppSheetCloseTraversal() { return false; }
     ${handler}
     return handleAppSheetPopState(state);
   `)(state, validate, replacements, opens);

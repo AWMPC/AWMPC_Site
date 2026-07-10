@@ -1478,7 +1478,7 @@
         <button type="button" id="refresh-bible-text" class="settings-refresh-button" aria-describedby="refresh-bible-text-status">Refresh Bible Text</button>
         <span id="refresh-bible-text-status" class="settings-refresh-status" role="status" aria-live="polite">Check for newly published Bible text.</span>
       </div>
-      <div class="app-version"><span class="app-version-label">Version <span id="app-version">4.0.4</span></span><span class="app-version-separator">|</span><span id="footer-status" class="app-version-status" role="status" aria-live="polite">Signed out</span><span id="footer-signout-separator" class="app-version-separator" hidden>|</span><button type="button" id="footer-signout" class="dd-signout-button" hidden>Sign Out</button></div>
+      <div class="app-version"><span class="app-version-label">Version <span id="app-version">4.0.5</span></span><span class="app-version-separator">|</span><span id="footer-status" class="app-version-status" role="status" aria-live="polite">Signed out</span><span id="footer-signout-separator" class="app-version-separator" hidden>|</span><button type="button" id="footer-signout" class="dd-signout-button" hidden>Sign Out</button></div>
 </div>
 
 <div id="view">
@@ -1523,7 +1523,7 @@
 <script src="https://www.gstatic.com/firebasejs/11.2.0/firebase-firestore-compat.js"></script>
 <script>
 (function () {
-  var APP_VERSION = '4.0.4';
+  var APP_VERSION = '4.0.5';
   var TEXT_SCALE_VALUES = [50, 75, 100, 125, 150];
   var DEFAULT_TEXT_SCALE = 100;
   var LEGACY_DISPLAY_STEP_TO_SCALE = { 0: 75, 1: 100, 2: 125 };
@@ -2677,6 +2677,7 @@
     historyState: null,
     historyReturnGeneration: null,
     historyOwned: false,
+    historyDeferred: false,
     pendingHistoryClose: false,
     pendingPostCloseState: null,
     pendingPostCloseDestination: null,
@@ -2687,6 +2688,7 @@
     releaseOnHistoryReconcile: false
   };
   var appSheetListenersInstalled = false;
+  var pendingAppSheetCloseTraversal = null;
   var appSheetDescriptors = Object.create(null);
   var appSheetReaderFocusCleanup = null;
   var appSheetHandleClickGuardTimer = null;
@@ -3406,6 +3408,7 @@
     appSheetState.historyReturnGeneration = null;
     appSheetState.opener = null;
     appSheetState.historyOwned = false;
+    appSheetState.historyDeferred = false;
     appSheetState.pendingHistoryClose = false;
     appSheetState.pendingPostCloseState = null;
     appSheetState.pendingPostCloseDestination = null;
@@ -3487,16 +3490,6 @@
     }
   }
 
-  function releaseAppSheetNativeModal() {
-    if (!appSheet.open) return false;
-    var nativeOpener = appSheetState.nativeOpener;
-    var preCloseActive = document.activeElement;
-    appSheet.close();
-    applyAppSheetFocusPolicy('none', appSheetState.opener, nativeOpener, preCloseActive);
-    appSheetState.nativeOpener = null;
-    return true;
-  }
-
   function requestCloseAppSheet(source, focusPolicy) {
     if (appSheetState.phase === 'closing') {
       if (source === 'popstate' && appSheetState.releaseOnHistoryReconcile) finishCloseAppSheet();
@@ -3526,12 +3519,13 @@
     if (appSheetState.historyOwned && source !== 'popstate') {
       if (!appSheetState.pendingHistoryClose) {
         appSheetState.pendingHistoryClose = true;
+        if (pointerDismissal) pendingAppSheetCloseTraversal = {
+          returnGeneration: appSheetState.historyReturnGeneration
+        };
         history.back();
       }
       if (!isCurrentAppSheetGeneration(generation) || appSheetState.phase !== 'closing') return true;
-      if (pointerDismissal) {
-        releaseAppSheetNativeModal();
-      } else if (reducedMotion) finishCloseAppSheet();
+      if (pointerDismissal || reducedMotion) finishCloseAppSheet();
       else {
         if (appSheetState.historyTimer !== null) window.clearTimeout(appSheetState.historyTimer);
         var historyTimer = window.setTimeout(function () {
@@ -3623,7 +3617,10 @@
 
   function openAppSheet(kind, options) {
     options = options || {};
-    if (appSheetState.phase === 'closing') return queueAppSheetLauncherOpen(kind, options);
+    if (appSheetState.phase === 'closing') {
+      var queued = queueAppSheetLauncherOpen(kind, options);
+      return queued;
+    }
     if (!isValidAppSheetKind(kind)) return false;
     if (appSheetState.pendingHistoryClose && !options.fromPop) return false;
     var edge = options.edge == null ? 'bottom' : options.edge;
@@ -3701,7 +3698,10 @@
     else if (!wasOpen) appSheetState.phase = 'idle';
     else appSheetState.phase = 'idle';
     if (typeof scheduleAppSheetMeasurement === 'function') scheduleAppSheetMeasurement(appSheetState.generation);
-    if (!options.fromPop) {
+    if (!options.fromPop && pendingAppSheetCloseTraversal) {
+      appSheetState.historyOwned = false;
+      appSheetState.historyDeferred = true;
+    } else if (!options.fromPop) {
       if (wasOpen && appSheetState.historyOwned) history.replaceState(historyState, '', window.location.href);
       else {
         var returnState = currentNavStateForHistory();
@@ -3721,7 +3721,51 @@
     return true;
   }
 
+  function replaceCurrentReaderHistoryWithoutRender() {
+    var readerState = currentNavStateForHistory();
+    if (!readerState) return false;
+    var url = window.location.href;
+    if (readerState.view === 'verses') {
+      var reference = normalizeVerseReference(readerState.book, readerState.chapter, readerState.verse);
+      if (reference) url = canonicalVerseUrl(reference.book, reference.chapter, reference.verse);
+    }
+    history.replaceState(readerState, '', url);
+    return true;
+  }
+
+  function commitDeferredAppSheetHistory() {
+    if (!appSheet.open || !appSheetState.historyDeferred || appSheetState.phase === 'closing') return false;
+    var historyState = validatedAppSheetHistoryState(sheetHistoryState(appSheetState.kind, appSheetState.page));
+    if (!historyState || historyState.sheet.kind !== appSheetState.kind) return false;
+    historyState = tagAppSheetHistoryStateForCurrentLifecycle(historyState);
+    var returnState = currentNavStateForHistory();
+    if (!historyState || !returnState) return false;
+    returnState.sheetReturnGeneration = appSheetState.historyReturnGeneration;
+    history.replaceState(returnState, '', window.location.href);
+    history.pushState(historyState, '', window.location.href);
+    appSheetState.historyState = historyState;
+    appSheetState.historyOwned = true;
+    appSheetState.historyDeferred = false;
+    return true;
+  }
+
+  function consumePendingAppSheetCloseTraversal(state) {
+    var pending = pendingAppSheetCloseTraversal;
+    if (!pending) return false;
+    var sheetField = appSheetOwnDataField(state, 'sheet', false);
+    var returnField = appSheetOwnDataField(state, 'sheetReturnGeneration', false);
+    if (!sheetField.valid || !returnField.valid || sheetField.present) return true;
+    var returnGeneration = returnField.present && returnField.value != null ? returnField.value : null;
+    if (returnGeneration !== null &&
+        (!Number.isSafeInteger(returnGeneration) || returnGeneration <= 0)) return true;
+    if (returnGeneration !== pending.returnGeneration) return true;
+    pendingAppSheetCloseTraversal = null;
+    if (!commitDeferredAppSheetHistory()) replaceCurrentReaderHistoryWithoutRender();
+    return true;
+  }
+
   function handleAppSheetPopState(state) {
+    if (consumePendingAppSheetCloseTraversal(state)) return true;
     var validated = validatedAppSheetHistoryState(state);
     if (validated) {
       if (appSheetState.phase === 'closing') {
