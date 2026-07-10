@@ -10,10 +10,10 @@ const marqueeDeclarations = [...bible.matchAll(/([^{}]+)\{([^{}]*)\}/g)]
   .map(([, , declarations]) => declarations)
   .join('\n');
 
-assert.match(bible, /var APP_VERSION = '4\.0\.5';/);
+assert.match(bible, /var APP_VERSION = '4\.0\.6';/);
 assert.match(sw, /var CACHE_NAME = 'bible-v3\.2\.1';/);
 assert.match(bible, /id="app-version"/);
-assert.match(bible, /<span class="app-version-label">Version <span id="app-version">4\.0\.5<\/span><\/span><span class="app-version-separator">\|<\/span><span id="footer-status" class="app-version-status" role="status" aria-live="polite">Signed out<\/span><span id="footer-signout-separator" class="app-version-separator" hidden>\|<\/span><button type="button" id="footer-signout" class="dd-signout-button" hidden>Sign Out<\/button>/);
+assert.match(bible, /<span class="app-version-label">Version <span id="app-version">4\.0\.6<\/span><\/span><span class="app-version-separator">\|<\/span><span id="footer-status" class="app-version-status" role="status" aria-live="polite">Signed out<\/span><span id="footer-signout-separator" class="app-version-separator" hidden>\|<\/span><button type="button" id="footer-signout" class="dd-signout-button" hidden>Sign Out<\/button>/);
 
 assert.match(bible, /--oneui-font:/);
 assert.match(bible, /--surface: #ffffff;/);
@@ -198,7 +198,7 @@ assert.match(bible, /if \(closedPopup && fabPanelHistoryOpen && !options\.fromPo
 assert.match(bible, /suppressNextPopupPop = true;[\s\S]*history\.back\(\);/);
 assert.match(bible, /closeMenus\(\{ exceptFab: true, keepHistory: true \}\);[\s\S]*ensurePopupHistory\(pushHistory\);/);
 assert.match(bible, /closeMenus\(\{ exceptMenu: menu, keepHistory: true \}\);[\s\S]*ensurePopupHistory\(true\);[\s\S]*menu\.classList\.add\('open'\);/);
-assert.match(bible, /fabMain\.addEventListener\('click',[\s\S]*openAppSheet\('settings', \{ opener: fabMain \}\);/);
+assert.match(bible, /bindImmediateAppSheetLauncher\(fabMain,[\s\S]*openAppSheet\('settings', \{ opener: fabMain \}\);/);
 assert.doesNotMatch(bible, /\.fab-panel \{[^}]*height: 100dvh;/);
 assert.doesNotMatch(bible, /\.fab-root:has\(\.fab-panel\.open\) \.fab-main/);
 assert.doesNotMatch(bible, /id="fab-close"/);
@@ -408,9 +408,8 @@ assert.match(bible, /showChaptersViewWithTransition\(navBook\);/);
 assert.match(bible, /showVersePickerViewWithTransition\(navBook, navChapter\);/);
 assert.match(bible, /showSelectedVerseWithTransition\(book, ch, verse\);/);
 assert.match(bible, /showSelectedVerseWithTransition\(poppedVerse\.book, poppedVerse\.chapter, poppedVerse\.verse\);/);
-assert.match(bible, /document\.getElementById\('btn-history'\)\.addEventListener\('click'/);
-assert.match(bible, /document\.getElementById\('btn-history'\)\.addEventListener\('click',[\s\S]*openAppSheet\('history', \{ opener: e\.currentTarget \}\);/);
-assert.match(bible, /document\.getElementById\('btn-search'\)\.addEventListener\('click',[\s\S]*openAppSheet\('search', \{ opener: e\.currentTarget \}\);/);
+assert.match(bible, /bindImmediateAppSheetLauncher\(document\.getElementById\('btn-history'\),[\s\S]*openAppSheet\('history', \{ opener: launcher \}\);/);
+assert.match(bible, /bindImmediateAppSheetLauncher\(document\.getElementById\('btn-search'\),[\s\S]*openAppSheet\('search', \{ opener: launcher \}\);/);
 assert.match(bible, /normalizeHistoryEntry: function \(entry\) \{[\s\S]*typeof entry === 'string'[\s\S]*return \{ book: parts\[0\], ch: String\(parts\[1\]\), verse: String\(parts\[2\] \|\| '1'\), selectedAt: '' \};/);
 assert.match(bible, /pushHistory: function \(book, ch, verse\) \{[\s\S]*selectedAt: new Date\(\)\.toISOString\(\)[\s\S]*var key = normalized\.book \+ '\|' \+ normalized\.ch;/);
 assert.match(bible, /function formatHistoryTimestamp\(value\) \{[\s\S]*new Intl\.DateTimeFormat\(undefined,[\s\S]*year: 'numeric'[\s\S]*minute: '2-digit'[\s\S]*\}\)\.format\(date\);/);

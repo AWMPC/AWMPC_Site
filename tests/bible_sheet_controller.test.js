@@ -48,6 +48,10 @@ assert.match(bible, /@media \(min-width: 641px\) \{\s*\.app-sheet\s*\{\s*box-sha
 assert.match(bible,
   /\.app-sheet\.snap-determined\s*\{[^}]*width:\s*min\(var\(--sheet-width,\s*50vw\),\s*50vw\);/,
   'determined sheets retain a live CSS cap while stale measured pixels await viewport remeasurement');
+assert.match(bible, /\.app-sheet\.is-exit-surface\s*\{[^}]*position:\s*fixed;[^}]*z-index:\s*140;/,
+  'pointer-close animation survives as a non-modal fixed exit surface');
+assert.match(bible, /#fn-book, #fn-chapter, #fn-verse, #btn-history, #btn-search, #fab-main\s*\{[^}]*touch-action:\s*manipulation;/,
+  'every persistent sheet launcher opts out of delayed compatibility activation');
 
 function controllerFunction(name) {
   const match = bible.match(new RegExp('  function ' + name + '\\([^\\n]*\\) \\{[\\s\\S]*?\\n  \\}'));
@@ -736,7 +740,8 @@ function fakeElement() {
     hasPointerCapture(id) { return captures.has(id); },
     releasePointerCapture(id) { captures.delete(id); this.releaseCount += 1; },
     losePointerCapture(id) { captures.delete(id); },
-    showModal() { this.open = true; },
+    showModal() { this.open = true; this.modal = true; },
+    show() { this.open = true; this.modal = false; },
     close() { this.open = false; if (typeof this.onClose === 'function') this.onClose(); },
     focus(options) {
       this.focusCount += 1; this.focusOptions.push(options);
@@ -747,6 +752,79 @@ function fakeElement() {
   element.children = [];
   element.appendChild = function (child) { this.children.push(child); child.parentNode = this; return child; };
   return element;
+}
+
+{
+  const launcher = fakeElement();
+  const activations = [];
+  const context = {
+    APP_SHEET_AXIS_LOCK_PX: 8,
+    isFiniteAppSheetNumber(value) { return typeof value === 'number' && Number.isFinite(value); }
+  };
+  vm.runInNewContext(controllerFunction('bindImmediateAppSheetLauncher') +
+    '\nthis.bind = bindImmediateAppSheetLauncher;', context);
+  context.bind(launcher, current => activations.push(current));
+  function pointer(pointerId, timeStamp, extras = {}) {
+    return {
+      pointerType: 'touch', isPrimary: true, button: 0, pointerId,
+      clientX: 20, clientY: 20, timeStamp, prevented: false, stopped: false,
+      preventDefault() { this.prevented = true; },
+      stopPropagation() { this.stopped = true; },
+      ...extras
+    };
+  }
+
+  launcher.dispatch('pointerdown', pointer(1, 100));
+  assert.equal(activations.length, 0, 'touch pointerdown alone cannot open before native cancellation is known');
+  launcher.dispatch('pointermove', pointer(1, 110, { clientY: 29 }));
+  launcher.dispatch('pointerup', pointer(1, 120, { clientY: 29 }));
+  assert.equal(activations.length, 0, 'movement beyond native-like slop cancels direct activation');
+
+  launcher.dispatch('pointerdown', pointer(2, 200));
+  launcher.dispatch('pointercancel', pointer(2, 210));
+  launcher.dispatch('pointerup', pointer(2, 220));
+  assert.equal(activations.length, 0, 'pointer cancellation cannot open a sheet');
+
+  launcher.dispatch('pointerdown', pointer(3, 300));
+  const pointerUp = pointer(3, 320);
+  launcher.dispatch('pointerup', pointerUp);
+  assert.equal(activations.length, 1, 'matching unmoved pointerup opens before compatibility click');
+  assert.equal(activations[0], launcher);
+  assert.equal(pointerUp.prevented, true);
+  assert.equal(pointerUp.stopped, true);
+
+  launcher.dispatch('click', {
+    detail: 0, timeStamp: 330, preventDefault() {}, stopPropagation() {}
+  });
+  assert.equal(activations.length, 2,
+    'keyboard and assistive-technology click interleaving does not consume the touch guard');
+
+  launcher.dispatch('click', {
+    detail: 1, pointerType: 'mouse', timeStamp: 340, preventDefault() {}, stopPropagation() {}
+  });
+  assert.equal(activations.length, 3, 'a real mouse click after touch activation is never swallowed');
+
+  const compatibilityClick = {
+    detail: 1, pointerType: 'touch', timeStamp: 480, prevented: false, stopped: false,
+    preventDefault() { this.prevented = true; },
+    stopPropagation() { this.stopped = true; }
+  };
+  launcher.dispatch('click', compatibilityClick);
+  assert.equal(activations.length, 3, 'Samsung-style delayed compatibility click cannot open twice');
+  assert.equal(compatibilityClick.prevented, true);
+
+  launcher.dispatch('pointerdown', pointer(4, 500));
+  launcher.dispatch('pointerup', pointer(4, 520));
+  launcher.dispatch('pointerdown', pointer(5, 530));
+  launcher.dispatch('pointerup', pointer(5, 550));
+  assert.equal(activations.length, 5, 'two completed direct presses each activate exactly once');
+  for (const timeStamp of [800, 700]) {
+    launcher.dispatch('click', {
+      detail: 1, sourceCapabilities: { firesTouchEvents: true }, timeStamp,
+      preventDefault() {}, stopPropagation() {}
+    });
+  }
+  assert.equal(activations.length, 5, 'out-of-order delayed touch clicks consume queued guards without duplicates');
 }
 
 const controllerStart = bible.indexOf('/* APP SHEET CONTROLLER START */');
@@ -2525,14 +2603,20 @@ function assertLauncherClearedImmediately(launcher, message) {
   assert.equal(launcher.getAttribute('aria-expanded'), 'false', `${message} clears aria-expanded immediately`);
 }
 
-function assertPointerDismissedImmediately(launcher, message) {
-  assert.equal(api.state.phase, 'closed', `${message} completes without waiting for Back`);
-  assert.equal(dialog.open, false, `${message} releases the native modal immediately`);
+function assertPointerExitAnimating(launcher, message) {
+  assert.equal(api.state.phase, 'closing', `${message} retains its exit lifecycle`);
+  assert.equal(dialog.open, true, `${message} keeps a visible non-modal exit surface`);
+  assert.equal(dialog.modal, false, `${message} releases native modal hit testing immediately`);
+  assert.equal(api.state.exitDemoted, true, `${message} records non-modal exit ownership`);
+  assert.equal(dialog.inert, true, `${message} exit content is inert`);
+  assert.equal(dialog.getAttribute('aria-hidden'), 'true', `${message} exit content is hidden from accessibility APIs`);
+  assert.equal(dialog.classList.contains('is-exit-surface'), true, `${message} uses the fixed exit surface`);
+  assert.equal(dialog.classList.contains('is-closing'), true, `${message} retains the closing transition class`);
   assert.equal(launcher.classList.contains('active'), false, `${message} clears .active immediately`);
   assert.equal(launcher.getAttribute('aria-expanded'), 'false', `${message} clears aria-expanded immediately`);
-  assert.equal(api.state.historyTimer, null, `${message} leaves no input-blocking history timer`);
-  assert.equal(api.state.settleTimer, null, `${message} leaves no input-blocking animation timer`);
-  assert.equal(api.state.releaseOnHistoryReconcile, false, `${message} resets visible lifecycle ownership`);
+  assert.ok(api.state.historyTimer !== null || api.state.settleTimer !== null,
+    `${message} owns one visual-only completion timer`);
+  assert.equal(api.state.releaseOnHistoryReconcile, false, `${message} cannot finish early from history reconciliation`);
 }
 
 function finishUnownedAnimatedClose() {
@@ -2596,7 +2680,7 @@ openSettled('history', opener, { page: 'backdrop-close' });
 const backdropReturn = currentReturnPopState();
 const backdropFocusBaseline = opener.focusCount;
 dialog.dispatch('click', { target: dialog });
-assertPointerDismissedImmediately(opener, 'pointer backdrop click');
+assertPointerExitAnimating(opener, 'pointer backdrop click');
 assert.equal(opener.focusCount, backdropFocusBaseline, 'pointer backdrop close does not steal focus');
 const postBackdropPushes = historyCalls.push.length;
 const postBackdropReplaces = historyCalls.replace.length;
@@ -2653,11 +2737,9 @@ handle.dispatch('pointermove', {
 });
 assert.equal(api.state.gesture.viewportHeight, 800, 'release classification freezes the physical viewport height');
 handle.dispatch('pointerup', { pointerId: 911, clientY: 700, timeStamp: 120 });
-assertPointerDismissedImmediately(opener, 'drag release outcome');
-assert.equal(api.pop(dragReturn), true,
+assertPointerExitAnimating(opener, 'drag release outcome');
+finishHistoryOwnedAnimatedClose(dragReturn,
   'drag-close Back is consumed without falling through to verse-view navigation');
-assert.equal(api.state.phase, 'closed');
-assert.equal(dialog.open, false);
 
 openSettled('history', opener, { page: 'full-travel-close', edge: 'bottom' });
 api.state.determinedHeight = 224;
@@ -2670,7 +2752,7 @@ handle.dispatch('pointermove', {
   pointerId: 912, clientX: 20, clientY: 800, timeStamp: 101, preventDefault() {}
 });
 handle.dispatch('pointerup', { pointerId: 912, clientY: 800, timeStamp: 120 });
-assertPointerDismissedImmediately(opener, 'full-travel drag');
+assertPointerExitAnimating(opener, 'full-travel drag');
 assert.equal(opener.focusCount + viewInner.focusCount, fullTravelFocusBaseline,
   'pointer full-travel close preserves the non-focusing policy');
 const postFullTravelPushes = historyCalls.push.length;
@@ -2700,7 +2782,7 @@ handle.dispatch('pointermove', {
   pointerId: 913, clientX: 20, clientY: 180, timeStamp: 101, preventDefault() {}
 });
 handle.dispatch('pointerup', { pointerId: 913, clientY: 200, timeStamp: 120 });
-assertPointerDismissedImmediately(opener, 'threshold drag');
+assertPointerExitAnimating(opener, 'threshold drag');
 assert.equal(api.open('search', { opener: replacementOpener }), true,
   'one trusted launcher press fully opens after a threshold drag');
 assert.equal(dialog.open, true);
