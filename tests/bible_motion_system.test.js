@@ -40,8 +40,8 @@ test('one cubic easing token owns application transitions', () => {
 test('app sheet lifecycle uses named paired motion durations and anchored edge origins', () => {
   assert.match(css, /\.app-sheet \{[\s\S]*--sheet-open-close-duration:\s*280ms;/);
   assert.match(css, /\.app-sheet \{[\s\S]*--sheet-resize-duration:\s*320ms;/);
-  assert.match(css, /transition-property:\s*width, height, transform, opacity;/);
-  assert.match(css, /transition-duration:\s*var\(--sheet-resize-duration\),\s*var\(--sheet-resize-duration\),\s*var\(--sheet-open-close-duration\),\s*var\(--sheet-open-close-duration\);/);
+  assert.match(css, /transition-property:\s*width, height, margin-left, margin-right, transform, opacity;/);
+  assert.match(css, /transition-duration:\s*var\(--sheet-resize-duration\),\s*var\(--sheet-resize-duration\),\s*var\(--sheet-resize-duration\),\s*var\(--sheet-resize-duration\),\s*var\(--sheet-open-close-duration\),\s*var\(--sheet-open-close-duration\);/);
   assert.match(css, /--sheet-origin-inline:\s*right;/);
   assert.match(css, /--sheet-origin-block:\s*bottom;/);
   assert.match(css, /transform-origin:\s*var\(--sheet-origin-inline\) var\(--sheet-origin-block\);/);

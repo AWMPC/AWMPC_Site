@@ -1060,8 +1060,8 @@
     box-shadow: var(--menu-shadow);
     transform: translateY(var(--sheet-drag-offset));
     transform-origin: var(--sheet-origin-inline) var(--sheet-origin-block);
-    transition-property: width, height, transform, opacity;
-    transition-duration: var(--sheet-resize-duration), var(--sheet-resize-duration), var(--sheet-open-close-duration), var(--sheet-open-close-duration);
+    transition-property: width, height, margin-left, margin-right, transform, opacity;
+    transition-duration: var(--sheet-resize-duration), var(--sheet-resize-duration), var(--sheet-resize-duration), var(--sheet-resize-duration), var(--sheet-open-close-duration), var(--sheet-open-close-duration);
     transition-timing-function: var(--motion-ease);
   }
   .app-sheet.inline-left { --sheet-origin-inline: left; }
@@ -1189,8 +1189,10 @@
     .app-sheet.inline-left { margin-left: 12px; margin-right: auto; }
     .app-sheet.inline-right { margin-left: auto; margin-right: 12px; }
     .app-sheet.snap-fullscreen {
-      width: calc(100vw); max-width: none; margin-left: 0; margin-right: 0;
+      width: calc(100vw); max-width: none;
     }
+    .app-sheet.snap-fullscreen.inline-left { margin-left: 0; margin-right: auto; }
+    .app-sheet.snap-fullscreen.inline-right { margin-left: auto; margin-right: 0; }
   }
 
   @media (max-width: 640px) {

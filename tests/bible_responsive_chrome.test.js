@@ -116,6 +116,10 @@ test('desktop sheets use measured half-viewport-bounded widths and immutable sid
   assert.match(bible, /@media \(min-width: 641px\) \{[\s\S]*?\.app-sheet\.inline-left[^}]*margin-left:\s*12px;[^}]*margin-right:\s*auto;/);
   assert.match(bible, /@media \(min-width: 641px\) \{[\s\S]*?\.app-sheet\.inline-right[^}]*margin-left:\s*auto;[^}]*margin-right:\s*12px;/);
   assert.match(bible, /@media \(min-width: 641px\) \{[\s\S]*?\.app-sheet\.snap-fullscreen\s*\{[^}]*width:\s*calc\(100vw\);[^}]*max-width:\s*none;/);
+  assert.match(bible, /@media \(min-width: 641px\) \{[\s\S]*?\.app-sheet\.snap-fullscreen\.inline-left\s*\{[^}]*margin-left:\s*0;[^}]*margin-right:\s*auto;/,
+    'left-anchored fullscreen sheets keep their auto end margin while expanding right');
+  assert.match(bible, /@media \(min-width: 641px\) \{[\s\S]*?\.app-sheet\.snap-fullscreen\.inline-right\s*\{[^}]*margin-left:\s*auto;[^}]*margin-right:\s*0;/,
+    'right-anchored fullscreen sheets keep their auto start margin while expanding left');
 });
 
 test('mobile sheet width remains fluid despite determined measurements and text scaling', () => {

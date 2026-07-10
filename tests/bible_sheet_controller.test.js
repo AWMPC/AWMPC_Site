@@ -35,6 +35,12 @@ assert.match(bible, /\.app-sheet\.is-dragging\s*\{[^}]*height:\s*var\(--sheet-li
   'dragging consumes RAF-authored live height without transitions');
 assert.match(bible, /\.app-sheet\.is-dragging::backdrop\s*\{[^}]*transition:\s*none/s,
   'dragging backdrop has no transition latency');
+assert.match(bible,
+  /\.app-sheet\.snap-fullscreen\.inline-left\s*\{[^}]*margin-left:\s*0;[^}]*margin-right:\s*auto;/,
+  'left sheets preserve their inline origin throughout fullscreen width interpolation');
+assert.match(bible,
+  /\.app-sheet\.snap-fullscreen\.inline-right\s*\{[^}]*margin-left:\s*auto;[^}]*margin-right:\s*0;/,
+  'right sheets preserve their inline origin throughout fullscreen width interpolation');
 
 function controllerFunction(name) {
   const match = bible.match(new RegExp('  function ' + name + '\\([^\\n]*\\) \\{[\\s\\S]*?\\n  \\}'));
