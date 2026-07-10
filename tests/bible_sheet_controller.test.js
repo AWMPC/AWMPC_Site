@@ -655,7 +655,7 @@ assert.doesNotMatch(controllerFunction('installAppSheetListeners'),
   /visualViewport[\s\S]*addEventListener[\s\S]*scheduleAppSheet(?:Measurement|OverflowFades)/,
   'global listeners do not permanently retain sheet measurement or fade ownership');
 assert.doesNotMatch(controllerFunction('setSheetSnap'), /offsetHeight/, 'snap changes avoid forced synchronous layout');
-assert.match(bible, /function requestCloseAppSheet\(source, focusPolicy\)/);
+assert.match(bible, /function requestCloseAppSheet\(source, focusPolicy, releaseVisual\)/);
 assert.match(bible, /function finishCloseAppSheet\(\)/);
 for (const name of ['beginAppSheetGesture', 'claimAppSheetGesture', 'updateAppSheetGesture',
   'renderAppSheetGestureFrame', 'clearAppSheetGestureResources', 'finishAppSheetGesture',
@@ -757,74 +757,24 @@ function fakeElement() {
 {
   const launcher = fakeElement();
   const activations = [];
-  const context = {
-    APP_SHEET_AXIS_LOCK_PX: 8,
-    isFiniteAppSheetNumber(value) { return typeof value === 'number' && Number.isFinite(value); }
-  };
-  vm.runInNewContext(controllerFunction('bindImmediateAppSheetLauncher') +
-    '\nthis.bind = bindImmediateAppSheetLauncher;', context);
+  const context = {};
+  vm.runInNewContext(controllerFunction('bindAppSheetLauncher') +
+    '\nthis.bind = bindAppSheetLauncher;', context);
   context.bind(launcher, current => activations.push(current));
-  function pointer(pointerId, timeStamp, extras = {}) {
-    return {
-      pointerType: 'touch', isPrimary: true, button: 0, pointerId,
-      clientX: 20, clientY: 20, timeStamp, prevented: false, stopped: false,
-      preventDefault() { this.prevented = true; },
-      stopPropagation() { this.stopped = true; },
-      ...extras
-    };
-  }
-
-  launcher.dispatch('pointerdown', pointer(1, 100));
-  assert.equal(activations.length, 0, 'touch pointerdown alone cannot open before native cancellation is known');
-  launcher.dispatch('pointermove', pointer(1, 110, { clientY: 29 }));
-  launcher.dispatch('pointerup', pointer(1, 120, { clientY: 29 }));
-  assert.equal(activations.length, 0, 'movement beyond native-like slop cancels direct activation');
-
-  launcher.dispatch('pointerdown', pointer(2, 200));
-  launcher.dispatch('pointercancel', pointer(2, 210));
-  launcher.dispatch('pointerup', pointer(2, 220));
-  assert.equal(activations.length, 0, 'pointer cancellation cannot open a sheet');
-
-  launcher.dispatch('pointerdown', pointer(3, 300));
-  const pointerUp = pointer(3, 320);
-  launcher.dispatch('pointerup', pointerUp);
-  assert.equal(activations.length, 1, 'matching unmoved pointerup opens before compatibility click');
-  assert.equal(activations[0], launcher);
-  assert.equal(pointerUp.prevented, true);
-  assert.equal(pointerUp.stopped, true);
-
-  launcher.dispatch('click', {
-    detail: 0, timeStamp: 330, preventDefault() {}, stopPropagation() {}
-  });
-  assert.equal(activations.length, 2,
-    'keyboard and assistive-technology click interleaving does not consume the touch guard');
-
-  launcher.dispatch('click', {
-    detail: 1, pointerType: 'mouse', timeStamp: 340, preventDefault() {}, stopPropagation() {}
-  });
-  assert.equal(activations.length, 3, 'a real mouse click after touch activation is never swallowed');
-
-  const compatibilityClick = {
-    detail: 1, pointerType: 'touch', timeStamp: 480, prevented: false, stopped: false,
-    preventDefault() { this.prevented = true; },
-    stopPropagation() { this.stopped = true; }
+  launcher.dispatch('pointerdown', { pointerType: 'touch' });
+  launcher.dispatch('pointerup', { pointerType: 'touch' });
+  assert.equal(activations.length, 0, 'custom pointer activation is absent');
+  const touchClick = {
+    pointerType: 'touch', prevented: false,
+    preventDefault() { this.prevented = true; }, stopPropagation() {}
   };
-  launcher.dispatch('click', compatibilityClick);
-  assert.equal(activations.length, 3, 'Samsung-style delayed compatibility click cannot open twice');
-  assert.equal(compatibilityClick.prevented, true);
-
-  launcher.dispatch('pointerdown', pointer(4, 500));
-  launcher.dispatch('pointerup', pointer(4, 520));
-  launcher.dispatch('pointerdown', pointer(5, 530));
-  launcher.dispatch('pointerup', pointer(5, 550));
-  assert.equal(activations.length, 5, 'two completed direct presses each activate exactly once');
-  for (const timeStamp of [800, 700]) {
-    launcher.dispatch('click', {
-      detail: 1, sourceCapabilities: { firesTouchEvents: true }, timeStamp,
-      preventDefault() {}, stopPropagation() {}
-    });
-  }
-  assert.equal(activations.length, 5, 'out-of-order delayed touch clicks consume queued guards without duplicates');
+  launcher.dispatch('click', touchClick);
+  assert.equal(activations.length, 1, 'native touch click activates once');
+  assert.equal(activations[0], launcher);
+  assert.equal(touchClick.prevented, false, 'native touch click is never suppressed');
+  launcher.dispatch('click', { detail: 0, stopPropagation() {} });
+  launcher.dispatch('click', { pointerType: 'mouse', detail: 1, stopPropagation() {} });
+  assert.equal(activations.length, 3, 'keyboard, assistive technology, and mouse share native click activation');
 }
 
 const controllerStart = bible.indexOf('/* APP SHEET CONTROLLER START */');
@@ -837,6 +787,16 @@ const currentVerseActionSource = controllerFunction('currentVerseAction');
 const finishVerseActionSource = controllerFunction('finishVerseAction');
 const renderVerseActionsSource = controllerFunction('renderVerseActionsSheet');
 const dialog = fakeElement();
+const releaseGeometrySnapshots = [];
+dialog.getBoundingClientRect = () => {
+  releaseGeometrySnapshots.push({
+    height: dialog.style.getPropertyValue('--sheet-live-height'),
+    offset: dialog.style.getPropertyValue('--sheet-drag-offset'),
+    backdrop: dialog.style.getPropertyValue('--sheet-backdrop-opacity'),
+    dragExit: dialog.classList.contains('is-drag-exit')
+  });
+  return { left: 0, top: 0, width: 320, height: 224 };
+};
 const handle = fakeElement();
 const body = fakeElement();
 const measure = fakeElement();
@@ -2738,6 +2698,9 @@ handle.dispatch('pointermove', {
 assert.equal(api.state.gesture.viewportHeight, 800, 'release classification freezes the physical viewport height');
 handle.dispatch('pointerup', { pointerId: 911, clientY: 700, timeStamp: 120 });
 assertPointerExitAnimating(opener, 'drag release outcome');
+assert.deepEqual(releaseGeometrySnapshots.at(-1), {
+  height: '224px', offset: '102px', backdrop: '0.5446428571428572', dragExit: true
+}, 'drag close flushes the exact release pose before targeting the edge');
 finishHistoryOwnedAnimatedClose(dragReturn,
   'drag-close Back is consumed without falling through to verse-view navigation');
 
@@ -2753,6 +2716,8 @@ handle.dispatch('pointermove', {
 });
 handle.dispatch('pointerup', { pointerId: 912, clientY: 800, timeStamp: 120 });
 assertPointerExitAnimating(opener, 'full-travel drag');
+assert.equal(releaseGeometrySnapshots.at(-1).offset, '202px',
+  'full-travel close retains its release offset instead of snapping to zero');
 assert.equal(opener.focusCount + viewInner.focusCount, fullTravelFocusBaseline,
   'pointer full-travel close preserves the non-focusing policy');
 const postFullTravelPushes = historyCalls.push.length;
@@ -2783,6 +2748,8 @@ handle.dispatch('pointermove', {
 });
 handle.dispatch('pointerup', { pointerId: 913, clientY: 200, timeStamp: 120 });
 assertPointerExitAnimating(opener, 'threshold drag');
+assert.equal(releaseGeometrySnapshots.at(-1).offset, '100px',
+  'threshold close begins from the pointer release displacement');
 assert.equal(api.open('search', { opener: replacementOpener }), true,
   'one trusted launcher press fully opens after a threshold drag');
 assert.equal(dialog.open, true);
