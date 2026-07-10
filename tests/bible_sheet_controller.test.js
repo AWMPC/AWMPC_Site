@@ -43,6 +43,8 @@ assert.match(bible,
   'right sheets preserve their inline origin throughout fullscreen width interpolation');
 assert.doesNotMatch(bible, /\.app-sheet\.snap-(?:determined|fullscreen)\s*\{[^}]*max-width\s*:/,
   'both snap directions interpolate width without a differing non-animatable maximum');
+assert.match(bible, /@media \(min-width: 641px\) \{\s*\.app-sheet\s*\{\s*box-shadow:\s*none;\s*\}/,
+  'desktop sheets have no broad outer glow');
 assert.match(bible,
   /\.app-sheet\.snap-determined\s*\{[^}]*width:\s*min\(var\(--sheet-width,\s*50vw\),\s*50vw\);/,
   'determined sheets retain a live CSS cap while stale measured pixels await viewport remeasurement');
