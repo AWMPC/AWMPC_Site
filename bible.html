@@ -2526,6 +2526,15 @@
       backdrop: Math.max(0, 1 - outward / determinedHeight)
     };
   }
+  function appSheetGestureIsFullTravel(edge, snap, determinedHeight, viewportHeight, displacement) {
+    if (!isValidAppSheetEdge(edge) || !isValidAppSheetSnap(snap) ||
+        !isFiniteAppSheetNumber(determinedHeight) || determinedHeight <= 0 ||
+        !isFiniteAppSheetNumber(viewportHeight) || viewportHeight <= determinedHeight ||
+        !isFiniteAppSheetNumber(displacement)) return false;
+    var outward = edge === 'bottom' ? displacement : -displacement;
+    var travel = snap === 'fullscreen' ? viewportHeight : determinedHeight;
+    return outward >= travel;
+  }
   function appSheetOwnDataField(object, key, required) {
     if (!object || typeof object !== 'object' || Array.isArray(object)) return { valid: false };
     var descriptor;
@@ -2651,9 +2660,11 @@
     pendingHistoryClose: false,
     pendingPostCloseState: null,
     pendingPostCloseDestination: null,
+    pendingLauncherOpen: null,
     nativeOpener: null,
     focusPolicy: 'none',
-    closeGeneration: null
+    closeGeneration: null,
+    releaseOnHistoryReconcile: false
   };
   var appSheetListenersInstalled = false;
   var appSheetDescriptors = Object.create(null);
@@ -3316,6 +3327,25 @@
     if (launcher.classList) launcher.classList.toggle('active', expanded);
   }
 
+  function queueAppSheetLauncherOpen(kind, options) {
+    options = options || {};
+    var opener = options.opener;
+    var trustedOpener = opener && opener.isConnected === true &&
+      (opener === fabMain || opener.tagName === 'BUTTON' ||
+       (typeof opener.getAttribute === 'function' && opener.getAttribute('role') === 'button'));
+    var edge = options.edge == null ? 'bottom' : options.edge;
+    var snap = options.snap == null ? 'determined' : options.snap;
+    var page = options.page == null ? null : options.page;
+    if (!trustedOpener || !isValidAppSheetKind(kind) || !isValidAppSheetEdge(edge) ||
+        !isValidAppSheetSnap(snap) || (page !== null && (typeof page !== 'string' || page.length > 32)) ||
+        appSheetState.phase !== 'closing' || appSheetState.closeGeneration !== appSheetState.generation) return false;
+    appSheetState.pendingLauncherOpen = {
+      closeGeneration: appSheetState.closeGeneration,
+      kind: kind, page: page, edge: edge, snap: snap, opener: opener
+    };
+    return true;
+  }
+
   function syncAppSheetLauncherState() {
     var expanded = appSheet.open && appSheetState.phase !== 'closing';
     if (fabMain) fabMain.setAttribute('aria-expanded', expanded && appSheetState.kind === 'settings' ? 'true' : 'false');
@@ -3359,6 +3389,7 @@
     appSheetState.pendingHistoryClose = false;
     appSheetState.pendingPostCloseState = null;
     appSheetState.pendingPostCloseDestination = null;
+    appSheetState.pendingLauncherOpen = null;
     appSheetState.nativeOpener = null;
     appSheetState.phase = 'closed';
     appSheetState.determinedHeight = 0;
@@ -3367,6 +3398,7 @@
     appSheetState.gesture = null;
     appSheetState.focusPolicy = 'none';
     appSheetState.closeGeneration = null;
+    appSheetState.releaseOnHistoryReconcile = false;
     appSheet.style.removeProperty('--sheet-height');
     appSheet.style.removeProperty('--sheet-width');
     appSheet.classList.remove('edge-top', 'snap-fullscreen', 'inline-left', 'inline-right');
@@ -3413,10 +3445,18 @@
     var nativeOpener = appSheetState.nativeOpener;
     var preCloseActive = document.activeElement;
     var pendingDestination = appSheetState.pendingPostCloseDestination;
+    var pendingLauncher = appSheetState.pendingLauncherOpen &&
+      appSheetState.pendingLauncherOpen.closeGeneration === appSheetState.closeGeneration ?
+      appSheetState.pendingLauncherOpen : null;
     if (appSheet.open) appSheet.close();
     resetAppSheetState();
     applyAppSheetFocusPolicy(policy, opener, nativeOpener, preCloseActive);
-    if (pendingDestination && pendingDestination.kind === 'sheet') {
+    if (pendingLauncher) {
+      openAppSheet(pendingLauncher.kind, {
+        page: pendingLauncher.page, edge: pendingLauncher.edge, snap: pendingLauncher.snap,
+        opener: pendingLauncher.opener
+      });
+    } else if (pendingDestination && pendingDestination.kind === 'sheet') {
       var pendingState = pendingDestination.state;
       openAppSheet(pendingState.sheet.kind, {
         page: pendingState.sheet.page || null,
@@ -3429,14 +3469,18 @@
 
   function requestCloseAppSheet(source, focusPolicy) {
     if (!appSheet.open) return false;
-    if (appSheetState.phase === 'closing') return true;
+    if (appSheetState.phase === 'closing') {
+      if (source === 'popstate' && appSheetState.releaseOnHistoryReconcile) finishCloseAppSheet();
+      return true;
+    }
     if (!isValidAppSheetFocusPolicy(focusPolicy)) {
       focusPolicy = source === 'cancel' || source === 'keyboard-handle' ? 'restore-opener' :
-        (source === 'drag' || source === 'backdrop' ? 'none' : 'preserve-or-reader');
+        (source === 'drag' || source === 'drag-full-travel' || source === 'backdrop' ? 'none' : 'preserve-or-reader');
     }
     clearAppSheetMotion();
     appSheetState.phase = 'closing';
     appSheetState.closeGeneration = appSheetState.generation;
+    appSheetState.releaseOnHistoryReconcile = source === 'drag-full-travel';
     appSheetState.focusPolicy = focusPolicy;
     clearAppSheetGestureResources();
     cleanupAppSheetMeasurement();
@@ -3464,7 +3508,7 @@
         }, APP_SHEET_OPEN_CLOSE_MS);
         appSheetState.historyTimer = historyTimer;
       }
-    } else if (reducedMotion) {
+    } else if (reducedMotion || appSheetState.releaseOnHistoryReconcile) {
       finishCloseAppSheet();
     } else {
       if (appSheetState.settleTimer !== null) window.clearTimeout(appSheetState.settleTimer);
@@ -3546,7 +3590,7 @@
 
   function openAppSheet(kind, options) {
     options = options || {};
-    if (appSheet.open && appSheetState.phase === 'closing') return false;
+    if (appSheet.open && appSheetState.phase === 'closing') return queueAppSheetLauncherOpen(kind, options);
     if (!isValidAppSheetKind(kind)) return false;
     if (appSheetState.pendingHistoryClose && !options.fromPop) return false;
     var edge = options.edge == null ? 'bottom' : options.edge;
@@ -3877,9 +3921,11 @@
     armAppSheetHandleClickGuard();
     var outcome = appSheetReleaseOutcome(gesture.edge, gesture.startSnap, displacement, pointer.velocity,
       gesture.determinedHeight, gesture.viewportHeight, velocityAge);
+    var fullTravel = appSheetGestureIsFullTravel(gesture.edge, gesture.startSnap,
+      gesture.determinedHeight, gesture.viewportHeight, displacement);
     clearAppSheetGestureResources();
     if (outcome === null) setSheetSnap(appSheetState.snap, shouldReduceVerseMotion());
-    else if (outcome === 'closed') requestCloseAppSheet('drag', 'none');
+    else if (outcome === 'closed') requestCloseAppSheet(fullTravel ? 'drag-full-travel' : 'drag', 'none');
     else setSheetSnap(outcome, shouldReduceVerseMotion());
   }
 
