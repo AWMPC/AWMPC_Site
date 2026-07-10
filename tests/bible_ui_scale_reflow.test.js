@@ -156,6 +156,8 @@ test('Text Scale reflow cannot replace responsive sheet width contracts', () => 
   const application = extract(/function applyTextScale\(value, persist\) \{[\s\S]*?\n  \}/, 'Text Scale application missing');
   assert.doesNotMatch(application, /--sheet-width|\.style\.width/,
     'text scaling may schedule a fresh measurement but may not impose a fixed sheet width');
+  assert.match(bible, /\.app-sheet\.snap-determined\s*\{[^}]*width:\s*min\(var\(--sheet-width,\s*50vw\),\s*50vw\);/,
+    'the CSS half-viewport cap remains live while text-scale measurement is pending');
   assert.match(bible, /@media \(max-width: 640px\) \{[\s\S]*?\.app-sheet\s*\{[^}]*width:\s*100%;[^}]*max-width:\s*none;/);
 });
 

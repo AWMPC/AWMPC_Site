@@ -112,10 +112,12 @@ test('mobile puts navigation at top and full-width actions at bottom with opposi
 });
 
 test('desktop sheets use measured half-viewport-bounded widths and immutable side origins', () => {
-  assert.match(bible, /@media \(min-width: 641px\) \{[\s\S]*?\.app-sheet\.snap-determined\s*\{[^}]*width:\s*var\(--sheet-width,\s*50vw\);/);
+  assert.match(bible, /@media \(min-width: 641px\) \{[\s\S]*?\.app-sheet\.snap-determined\s*\{[^}]*width:\s*min\(var\(--sheet-width,\s*50vw\),\s*50vw\);/,
+    'the live CSS width caps stale measured pixels after viewport narrowing');
   assert.match(bible, /@media \(min-width: 641px\) \{[\s\S]*?\.app-sheet\.inline-left[^}]*margin-left:\s*12px;[^}]*margin-right:\s*auto;/);
   assert.match(bible, /@media \(min-width: 641px\) \{[\s\S]*?\.app-sheet\.inline-right[^}]*margin-left:\s*auto;[^}]*margin-right:\s*12px;/);
-  assert.match(bible, /@media \(min-width: 641px\) \{[\s\S]*?\.app-sheet\.snap-fullscreen\s*\{[^}]*width:\s*calc\(100vw\);/);
+  assert.match(bible, /@media \(min-width: 641px\) \{[\s\S]*?\.app-sheet\.snap-fullscreen\s*\{[^}]*width:\s*min\(100vw,\s*100vw\);/,
+    'fullscreen keeps the same animatable math-function shape as determined width');
   assert.doesNotMatch(bible, /\.app-sheet\.snap-determined\s*\{[^}]*max-width\s*:/,
     'determined width does not introduce a non-animatable constraint during restore');
   assert.doesNotMatch(bible, /\.app-sheet\.snap-fullscreen\s*\{[^}]*max-width\s*:/,
@@ -124,6 +126,8 @@ test('desktop sheets use measured half-viewport-bounded widths and immutable sid
     'left-anchored fullscreen sheets keep their auto end margin while expanding right');
   assert.match(bible, /@media \(min-width: 641px\) \{[\s\S]*?\.app-sheet\.snap-fullscreen\.inline-right\s*\{[^}]*margin-left:\s*auto;[^}]*margin-right:\s*0;/,
     'right-anchored fullscreen sheets keep their auto start margin while expanding left');
+  assert.equal(Math.min(600, 800 * .5), 400,
+    'a stale 600px measured width resolves to the live 50vw cap after narrowing to 800px');
 });
 
 test('mobile sheet width remains fluid despite determined measurements and text scaling', () => {

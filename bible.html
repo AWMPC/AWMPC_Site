@@ -1185,11 +1185,11 @@
   .app-sheet.snap-fullscreen .app-sheet-shell { padding-top: env(safe-area-inset-top); }
 
   @media (min-width: 641px) {
-    .app-sheet.snap-determined { width: var(--sheet-width, 50vw); }
+    .app-sheet.snap-determined { width: min(var(--sheet-width, 50vw), 50vw); }
     .app-sheet.inline-left { margin-left: 12px; margin-right: auto; }
     .app-sheet.inline-right { margin-left: auto; margin-right: 12px; }
     .app-sheet.snap-fullscreen {
-      width: calc(100vw);
+      width: min(100vw, 100vw);
     }
     .app-sheet.snap-fullscreen.inline-left { margin-left: 0; margin-right: auto; }
     .app-sheet.snap-fullscreen.inline-right { margin-left: auto; margin-right: 0; }
