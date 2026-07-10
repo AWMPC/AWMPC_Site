@@ -373,6 +373,7 @@ function fakeElement(tag = 'div') {
   const timers = new Map();
   let nextTimer = 1;
   const runQueries = [];
+  const persistedQueries = [];
   const created = [];
   const focusOrder = [];
   const frames = new Map();
@@ -398,7 +399,7 @@ function fakeElement(tag = 'div') {
     requestAnimationFrame(handler) { const id = nextFrame++; frames.set(id, handler); return id; },
     cancelAnimationFrame(id) { frames.delete(id); },
     boundedSearchQuery(value) { return String(value == null ? '' : value).trim().slice(0, 160); },
-    State: { pushSearchHistory() {} },
+    State: { pushSearchHistory(query) { persistedQueries.push(query); } },
     renderSearchHistory() {},
     renderSearchSkeleton() {},
     runSearch(query) { runQueries.push(query); }
@@ -411,6 +412,26 @@ function fakeElement(tag = 'div') {
   input.dispatch('focus');
   assert.deepEqual(focusOrder, [['latch', 41]],
     'manual input focus uses the generation-owned mobile fullscreen latch');
+  assert.equal(input.maxLength, 160, 'the native input retains its live draft length bound');
+  input.value = 'faith ';
+  input.dispatch('input');
+  assert.equal(input.value, 'faith ', 'a trailing space remains available for the next search word');
+  input.value += 'hope';
+  input.dispatch('input');
+  assert.equal(input.value, 'faith hope', 'the word after a typed space remains a distinct search term');
+  input.value = '  faith   hope  ';
+  input.dispatch('input');
+  assert.equal(input.value, '  faith   hope  ', 'live leading and repeated spaces are not rewritten');
+  input.dispatch('keydown', { key: 'Enter' });
+  assert.deepEqual(persistedQueries, ['faith   hope'],
+    'committing still trims the live draft before persistence');
+  input.value = 'grace ';
+  input.dispatch('input', { isComposing: true });
+  assert.equal(input.value, 'grace ', 'an IME composition draft is never rewritten');
+  input.value = `  ${'x'.repeat(200)}  `;
+  input.dispatch('keydown', { key: 'Enter' });
+  assert.equal(persistedQueries.at(-1), 'x'.repeat(160),
+    'committed queries remain bounded after live draft preservation');
   input.value = ' pending truth ';
   input.dispatch('input');
   context.searchIndexReady = true;

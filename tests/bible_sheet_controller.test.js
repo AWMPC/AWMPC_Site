@@ -162,37 +162,30 @@ assert.match(controllerFunction('installAppSheetListeners'),
   for (const edge of ['bottom', 'top']) {
     const outwardKey = edge === 'bottom' ? 'ArrowDown' : 'ArrowUp';
     for (const key of ['Enter', ' ']) {
-      harness = runHandleKeys({
-        edge, snap: 'fullscreen', kind: 'search', searchFullscreenLatched: true
-      });
-      assert.equal(harness.handleLabel(), 'Close Search panel',
-        `latched ${edge} Search exposes a truthful close action`);
+      harness = runHandleKeys({ edge, snap: 'fullscreen', kind: 'search', searchFullscreenLatched: true });
+      assert.equal(harness.handleLabel(), 'Restore Search panel size',
+        `latched ${edge} Search exposes the same three-state handle as other sheets`);
       event = harness.dispatch(key);
-      assert.equal(event.prevented, false, `latched ${edge} Search leaves native ${key} activation intact`);
-      assert.deepEqual(harness.closeCalls(), [], `latched ${edge} Search avoids keydown double-fire`);
-      const click = harness.click();
-      assert.equal(click.prevented, true, `latched ${edge} Search claims the synthesized click`);
-      assert.deepEqual(harness.closeCalls(), [['keyboard-handle', 'restore-opener']],
-        `latched ${edge} Search native ${key} click closes through the controller`);
-      assert.deepEqual(harness.snapCalls(), [],
-        `latched ${edge} Search native ${key} never attempts the rejected determined restore`);
+      assert.equal(event.prevented, true, `latched ${edge} Search handles ${key}`);
+      assert.equal(harness.snap(), 'determined');
+      assert.deepEqual(harness.closeCalls(), []);
     }
 
     harness = runHandleKeys({ edge, snap: 'fullscreen', kind: 'search', searchFullscreenLatched: true });
     event = harness.dispatch(outwardKey);
     assert.equal(event.prevented, true, `latched ${edge} Search handles ${outwardKey}`);
-    assert.deepEqual(harness.closeCalls(), [['keyboard-handle', 'restore-opener']]);
-    assert.deepEqual(harness.snapCalls(), []);
+    assert.equal(harness.snap(), 'determined');
+    assert.deepEqual(harness.closeCalls(), []);
   }
 
   harness = runHandleKeys({
     edge: 'bottom', snap: 'fullscreen', kind: 'search', phase: 'opening', searchFullscreenLatched: true
   });
   event = harness.dispatch('Enter');
-  assert.equal(event.prevented, false, 'opening latched Search preserves native Enter activation');
+  assert.equal(event.prevented, false, 'opening Search ignores resize activation until opening settles');
   assert.deepEqual(harness.closeCalls(), []);
-  harness.click();
-  assert.deepEqual(harness.closeCalls(), [['keyboard-handle', 'restore-opener']]);
+  assert.equal(harness.click().prevented, false, 'opening Search handle click has no special close path');
+  assert.deepEqual(harness.closeCalls(), []);
   assert.deepEqual(harness.snapCalls(), []);
 
   harness = runHandleKeys({ edge: 'bottom', snap: 'fullscreen', kind: 'history' });
@@ -201,8 +194,8 @@ assert.match(controllerFunction('installAppSheetListeners'),
   harness = runHandleKeys({ edge: 'bottom', snap: 'fullscreen', kind: 'search', searchFullscreenLatched: true });
   assert.equal(harness.click(true).prevented, true, 'the trailing click from a claimed drag is discarded');
   assert.deepEqual(harness.closeCalls(), []);
-  assert.equal(harness.click().prevented, true, 'the drag guard is one-shot');
-  assert.deepEqual(harness.closeCalls(), [['keyboard-handle', 'restore-opener']]);
+  assert.equal(harness.click().prevented, false, 'the drag guard is one-shot without a Search-only action');
+  assert.deepEqual(harness.closeCalls(), []);
 
   harness = runHandleKeys({ edge: 'top', snap: 'fullscreen', kind: 'settings' });
   event = harness.dispatch('Escape');
@@ -251,11 +244,11 @@ const pureSource = bible.slice(pureStart, pureEnd) + '\nthis.hooks = {' +
   'finite: isFiniteAppSheetNumber, determinedHeight: appSheetDeterminedHeight,' +
   'width: appSheetDeterminedWidth, anchor: appSheetHorizontalAnchor,' +
   'effectiveDistance: appSheetEffectiveSnapDistance, outcome: appSheetReleaseOutcome,' +
-  'visual: appSheetGestureVisual,' +
+  'visual: appSheetGestureVisual, releaseAtEdge: appSheetReleaseAtOriginEdge,' +
   'axis: appSheetAxis, boundary: appSheetBoundaryAllowsDrag, phases: APP_SHEET_PHASES,' +
   'constants: [APP_SHEET_AXIS_LOCK_PX, APP_SHEET_SNAP_PX, APP_SHEET_SNAP_VELOCITY,' +
   'APP_SHEET_VELOCITY_RECENCY_MS, APP_SHEET_MAX_VELOCITY, APP_SHEET_CLICK_GUARD_MS,' +
-  'APP_SHEET_OPEN_CLOSE_MS, APP_SHEET_RESIZE_MS],' +
+  'APP_SHEET_OPEN_CLOSE_MS, APP_SHEET_RESIZE_MS, APP_SHEET_EDGE_RELEASE_TOLERANCE_PX],' +
   'state: validatedAppSheetHistoryState};';
 const context = { Math };
 vm.runInNewContext(pureSource, context);
@@ -276,7 +269,7 @@ assert.equal(h.validAnchor('center'), false);
 assert.equal(h.validAnchor('__proto__'), false, 'anchor enum rejects inherited/property attacks');
 assert.equal(h.validAnchor(0), false, 'anchor enum rejects non-string values');
 assert.deepEqual(Array.from(h.phases), ['closed', 'opening', 'idle', 'dragging', 'settling', 'closing']);
-assert.deepEqual(Array.from(h.constants), [8, 80, .4, 80, 3, 500, 280, 320]);
+assert.deepEqual(Array.from(h.constants), [8, 80, .4, 80, 3, 500, 280, 320, 22]);
 
 assert.equal(h.finite(0), true);
 assert.equal(h.finite(-1), true);
@@ -412,6 +405,34 @@ assert.deepEqual(JSON.parse(JSON.stringify(h.visual('top', 'determined', 200, 60
   { height: 200, offset: -40, backdrop: .8 }, 'top outward drag uses the edge-signed offset');
 assert.deepEqual(JSON.parse(JSON.stringify(h.visual('bottom', 'fullscreen', 200, 600, 40))),
   { height: 560, offset: 0, backdrop: 1 }, 'fullscreen only shrinks toward its adjacent determined state');
+assert.deepEqual(JSON.parse(JSON.stringify(h.visual('bottom', 'fullscreen', 200, 600, 440))),
+  { height: 200, offset: 40, backdrop: .8 },
+  'fullscreen continues from determined into the close leg without a visual jump');
+assert.deepEqual(JSON.parse(JSON.stringify(h.visual('bottom', 'fullscreen', 200, 600, 600))),
+  { height: 200, offset: 200, backdrop: 0 }, 'fullscreen full travel reaches the originating edge');
+assert.deepEqual(JSON.parse(JSON.stringify(h.visual('top', 'fullscreen', 200, 600, -440))),
+  { height: 200, offset: -40, backdrop: .8 }, 'top fullscreen mirrors the continuous close leg');
+assert.equal(h.outcome('bottom', 'determined', 202, 0, 224, 800, 100), 'closed',
+  'a determined bottom handle can physically close from its 22px center inset');
+assert.equal(h.outcome('top', 'determined', -202, 0, 224, 800, 100), 'closed',
+  'a determined top handle mirrors its physically reachable close displacement');
+assert.equal(h.outcome('bottom', 'fullscreen', 778, 0, 224, 800, 100), 'closed',
+  'a fullscreen bottom handle can reach the close threshold at the viewport edge');
+assert.equal(h.outcome('top', 'fullscreen', -778, 0, 224, 800, 100), 'closed',
+  'a fullscreen top handle mirrors its physically reachable close displacement');
+assert.equal(h.releaseAtEdge('bottom', 800, 800), true);
+assert.equal(h.releaseAtEdge('bottom', 778, 800), true, 'bottom includes the half-hit-target tolerance');
+assert.equal(h.releaseAtEdge('bottom', 777.999, 800), false);
+assert.equal(h.releaseAtEdge('top', 0, 800), true);
+assert.equal(h.releaseAtEdge('top', 22, 800), true, 'top includes the half-hit-target tolerance');
+assert.equal(h.releaseAtEdge('top', 22.001, 800), false);
+for (const args of [
+  ['side', 0, 800], ['bottom', Infinity, 800], ['bottom', -Infinity, 800],
+  ['bottom', NaN, 800], ['bottom', '800', 800], ['bottom', new Number(800), 800],
+  ['bottom', { valueOf() { throw new Error('must not coerce'); } }, 800],
+  ['bottom', 800, Infinity], ['bottom', 800, 0], ['bottom', 800, '800'],
+  ['bottom', -22.001, 800], ['bottom', 822.001, 800]
+]) assert.equal(h.releaseAtEdge(...args), false, `invalid release endpoint: ${String(args)}`);
 assert.deepEqual(JSON.parse(JSON.stringify(h.visual('bottom', 'fullscreen', 200, 600, -40))),
   { height: 600, offset: 0, backdrop: 1 }, 'fullscreen cannot drag into a nonexistent inward state');
 for (const args of [
@@ -430,8 +451,14 @@ assert.equal(release('top', 'determined', -80, -0.1), 'closed', 'top outward clo
 assert.equal(release('bottom', 'fullscreen', 80, 0.1), 'determined', 'fullscreen moves outward only');
 assert.equal(release('top', 'fullscreen', -80, -0.1), 'determined');
 assert.equal(release('bottom', 'fullscreen', -1000, -3), 'fullscreen', 'fullscreen has no inward state');
-assert.equal(release('bottom', 'fullscreen', 500, 0), 'determined',
-  'above-threshold displacement alone advances one state and kills equality-only comparison mutants');
+assert.equal(release('bottom', 'fullscreen', 655.999, 0, 224, 800), 'determined',
+  'fullscreen remains determined immediately before its second-leg close threshold');
+assert.equal(release('bottom', 'fullscreen', 656, 0, 224, 800), 'closed',
+  'fullscreen closes at shrink distance plus effective determined close threshold');
+assert.equal(release('top', 'fullscreen', -656, 0, 224, 800), 'closed',
+  'top fullscreen mirrors the exact close threshold');
+assert.equal(release('bottom', 'fullscreen', 10, .4), 'determined',
+  'a fullscreen outward flick advances only one state');
 assert.equal(release('bottom', 'determined', 79.999, 0), 'determined', 'below threshold stays put');
 assert.equal(release('bottom', 'determined', 10, .4, 224, 800, 80), 'closed',
   'same-direction velocity qualifies through the exact recency window');
@@ -616,9 +643,8 @@ for (const name of ['cleanupAppSheetViewportOwnership', 'updateSearchViewportGeo
   'scheduleAppSheetViewportUpdate', 'installAppSheetViewportOwnership', 'latchMobileSearchFullscreen']) {
   assert.match(bible, new RegExp('function ' + name + '\\('), `${name} is an explicit generation-owned controller primitive`);
 }
-assert.match(controllerFunction('setSheetSnap'),
-  /searchFullscreenLatched[\s\S]*snap === 'determined'[\s\S]*return false/,
-  'a latched mobile Search cannot be demoted by resize, rotation, gesture, or keyboard controls');
+assert.doesNotMatch(controllerFunction('setSheetSnap'), /searchFullscreenLatched/,
+  'Search viewport ownership does not prohibit an explicit three-state snap transition');
 assert.doesNotMatch(controllerFunction('installAppSheetListeners'),
   /visualViewport[\s\S]*addEventListener[\s\S]*scheduleAppSheet(?:Measurement|OverflowFades)/,
   'global listeners do not permanently retain sheet measurement or fade ownership');
@@ -2194,9 +2220,12 @@ for (let cycle = 0; cycle < 100; cycle += 1) {
   assert.equal(dialog.open, false);
   for (const field of ['candidate', 'pointer', 'gesture', 'frame', 'measureFrame', 'settleTimer',
     'historyTimer', 'resizeObserver', 'contentCleanup', 'closeGeneration', 'pendingPostCloseState',
-    'pendingPostCloseDestination', 'viewportFrame', 'viewportListener', 'viewportOwnerGeneration']) {
+    'pendingPostCloseDestination', 'pendingLauncherOpen', 'viewportFrame', 'viewportListener',
+    'viewportOwnerGeneration']) {
     assert.equal(api.state[field], null, `cycle ${cycle} releases ${field}`);
   }
+  assert.equal(api.state.releaseOnHistoryReconcile, false,
+    `cycle ${cycle} releases full-travel history ownership`);
   assert.equal(api.state.searchFullscreenLatched, false, `cycle ${cycle} releases Search fullscreen ownership`);
   assert.equal(viewportListeners.resize.length, viewportResizeListenerBaseline,
     `cycle ${cycle} removes the exact viewport resize listener`);
@@ -2561,17 +2590,87 @@ assert.equal(api.pop(popReturn), true);
 assertLauncherClearedImmediately(opener, 'popstate');
 finishUnownedAnimatedClose();
 
+controllerContext.window.innerHeight = 800;
+controllerContext.window.visualViewport.height = 800;
+controllerContext.window.visualViewport.offsetTop = 0;
+controllerContext.document.documentElement.clientHeight = 800;
 openSettled('history', opener, { page: 'drag-close', edge: 'bottom' });
 api.state.determinedHeight = 224;
 handle.dispatch('pointerdown', {
-  isPrimary: true, button: 0, pointerId: 911, clientX: 20, clientY: 100, timeStamp: 1
+  isPrimary: true, button: 0, pointerId: 911, clientX: 20, clientY: 598, timeStamp: 1
 });
 handle.dispatch('pointermove', {
-  pointerId: 911, clientX: 20, clientY: 300, timeStamp: 101, preventDefault() {}
+  pointerId: 911, clientX: 20, clientY: 700, timeStamp: 101, preventDefault() {}
 });
-handle.dispatch('pointerup', { pointerId: 911, clientY: 340, timeStamp: 120 });
+assert.equal(api.state.gesture.viewportHeight, 800, 'release classification freezes the physical viewport height');
+handle.dispatch('pointerup', { pointerId: 911, clientY: 700, timeStamp: 120 });
 assertLauncherClearedImmediately(opener, 'drag release outcome');
+assert.equal(api.state.releaseOnHistoryReconcile, false,
+  'a release outside the 22px edge tolerance retains the close animation');
 finishHistoryOwnedAnimatedClose(currentReturnPopState(), 'drag release');
+
+openSettled('history', opener, { page: 'full-travel-close', edge: 'bottom' });
+api.state.determinedHeight = 224;
+const fullTravelReturn = currentReturnPopState();
+const fullTravelFocusBaseline = opener.focusCount + viewInner.focusCount;
+handle.dispatch('pointerdown', {
+  isPrimary: true, button: 0, pointerId: 912, clientX: 20, clientY: 598, timeStamp: 1
+});
+handle.dispatch('pointermove', {
+  pointerId: 912, clientX: 20, clientY: 800, timeStamp: 101, preventDefault() {}
+});
+handle.dispatch('pointerup', { pointerId: 912, clientY: 800, timeStamp: 120 });
+assert.equal(api.state.releaseOnHistoryReconcile, true,
+  'a full-travel close waits only for its owned history reconciliation');
+const fullTravelFallbackTimer = api.state.historyTimer;
+assert.ok(fullTravelFallbackTimer && timers.has(fullTravelFallbackTimer));
+assert.equal(api.pop(fullTravelReturn), true);
+assert.equal(dialog.open, false, 'history reconciliation synchronously releases the already-hidden modal');
+assert.equal(timers.has(fullTravelFallbackTimer), false, 'synchronous release cancels the fallback timer');
+assert.equal(opener.focusCount + viewInner.focusCount, fullTravelFocusBaseline,
+  'pointer full-travel close preserves the non-focusing policy');
+const postFullTravelPushes = historyCalls.push.length;
+assert.equal(api.open('search', { opener: replacementOpener }), true,
+  'the next launcher activation opens immediately after native modal release');
+assert.equal(dialog.open, true);
+assert.equal(api.state.kind, 'search');
+assert.equal(historyCalls.push.length, postFullTravelPushes + 1, 'one activation opens exactly once');
+api.state.historyOwned = false;
+reduceMotion = true;
+api.close('full-travel-next-launcher-cleanup', 'none');
+reduceMotion = false;
+
+openSettled('history', opener, { page: 'queue-launcher-after-drag', edge: 'bottom' });
+api.state.determinedHeight = 224;
+const queuedLauncherReturn = currentReturnPopState();
+handle.dispatch('pointerdown', {
+  isPrimary: true, button: 0, pointerId: 913, clientX: 20, clientY: 100, timeStamp: 1
+});
+handle.dispatch('pointermove', {
+  pointerId: 913, clientX: 20, clientY: 180, timeStamp: 101, preventDefault() {}
+});
+handle.dispatch('pointerup', { pointerId: 913, clientY: 200, timeStamp: 120 });
+const queuedLauncherTimer = api.state.historyTimer;
+assert.equal(api.open('search', { opener: replacementOpener }), true,
+  'one trusted launcher press is accepted during terminal close');
+assert.deepEqual(Object.keys(api.state.pendingLauncherOpen).sort(),
+  ['closeGeneration', 'edge', 'kind', 'opener', 'page', 'snap'],
+  'queued launcher retains no callback or history object');
+assert.equal(api.open('settings', { opener: fabMain }), true, 'latest valid launcher intent wins');
+assert.equal(api.state.pendingLauncherOpen.kind, 'settings');
+assert.equal(api.open('search', { opener: { isConnected: false, tagName: 'BUTTON' } }), false,
+  'untrusted or disconnected launchers cannot enter the queue');
+api.pop(queuedLauncherReturn);
+reduceMotion = true;
+timers.get(queuedLauncherTimer)();
+timers.delete(queuedLauncherTimer);
+assert.equal(dialog.open, true, 'queued launcher opens without a second press after close completion');
+assert.equal(api.state.kind, 'settings');
+assert.equal(api.state.opener, fabMain);
+assert.equal(api.state.pendingLauncherOpen, null);
+api.state.historyOwned = false;
+api.close('queued-launcher-cleanup', 'none');
+reduceMotion = false;
 
 openSettled('selection', opener, { page: 'verses' });
 assert.equal(api.commitSelection(16), true, 'real selection commit executes');
@@ -2622,7 +2721,9 @@ assert.equal(viewportListeners.scroll.length, 1, 'one scroll listener is install
 assert.equal(api.latchSearch(mobileSearchGeneration), true);
 assert.equal(viewportListeners.resize.length, viewportResizeListenerBaseline + 1,
   'repeat focus does not duplicate viewport listeners');
-assert.equal(api.snap('determined', true), false, 'blur, rotation, and generic snap requests cannot demote a latch');
+assert.equal(api.snap('determined', true), true, 'an explicit gesture may restore latched Search to determined');
+assert.equal(api.latchSearch(mobileSearchGeneration), true, 'repeat focus preserves existing viewport ownership');
+assert.equal(api.state.snap, 'determined', 'repeat focus within the same latch does not force fullscreen again');
 controllerContext.window.innerWidth = 900;
 viewportListeners.resize.at(-1)();
 const viewportFrame = api.state.viewportFrame;
@@ -2631,7 +2732,7 @@ viewportListeners.resize.at(-1)();
 assert.equal(api.state.viewportFrame, viewportFrame, 'resize and scroll bursts coalesce into one RAF');
 frames.get(viewportFrame)();
 frames.delete(viewportFrame);
-assert.equal(api.state.snap, 'fullscreen', 'orientation changes preserve fullscreen ownership');
+assert.equal(api.state.snap, 'determined', 'orientation changes update geometry without forcing fullscreen');
 
 controllerContext.window.visualViewport.height = NaN;
 controllerContext.window.visualViewport.offsetTop = -40;

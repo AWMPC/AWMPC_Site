@@ -1461,7 +1461,7 @@
           <option value="150">150%</option>
         </select>
       </div>
-      <div class="app-version"><span class="app-version-label">Version <span id="app-version">4.0.0</span></span><span class="app-version-separator">|</span><span id="footer-status" class="app-version-status" role="status" aria-live="polite">Signed out</span><span id="footer-signout-separator" class="app-version-separator" hidden>|</span><button type="button" id="footer-signout" class="dd-signout-button" hidden>Sign Out</button></div>
+      <div class="app-version"><span class="app-version-label">Version <span id="app-version">4.0.1</span></span><span class="app-version-separator">|</span><span id="footer-status" class="app-version-status" role="status" aria-live="polite">Signed out</span><span id="footer-signout-separator" class="app-version-separator" hidden>|</span><button type="button" id="footer-signout" class="dd-signout-button" hidden>Sign Out</button></div>
 </div>
 
 <div id="view">
@@ -1506,7 +1506,7 @@
 <script src="https://www.gstatic.com/firebasejs/11.2.0/firebase-firestore-compat.js"></script>
 <script>
 (function () {
-  var APP_VERSION = '4.0.0';
+  var APP_VERSION = '4.0.1';
   var TEXT_SCALE_VALUES = [50, 75, 100, 125, 150];
   var DEFAULT_TEXT_SCALE = 100;
   var LEGACY_DISPLAY_STEP_TO_SCALE = { 0: 75, 1: 100, 2: 125 };
@@ -2367,6 +2367,7 @@
   var APP_SHEET_CLICK_GUARD_MS = 500;
   var APP_SHEET_OPEN_CLOSE_MS = 280;
   var APP_SHEET_RESIZE_MS = 320;
+  var APP_SHEET_EDGE_RELEASE_TOLERANCE_PX = 22;
   var BIBLE_WHEEL_AXIS_RATIO = 1.25;
   var BIBLE_WHEEL_ACTIVATION_PX = 48;
   var BIBLE_WHEEL_IDLE_MS = 160;
@@ -2474,6 +2475,11 @@
       return direction > 0 ? viewportHeight - determinedHeight : determinedHeight;
     }
     if (displacementDirection) {
+      if (snap === 'fullscreen' && displacementDirection < 0) {
+        var closeDistance = viewportHeight - determinedHeight +
+          appSheetEffectiveSnapDistance(determinedHeight);
+        if (Math.abs(displacement) >= closeDistance) return 'closed';
+      }
       var displacementDistance = appSheetEffectiveSnapDistance(adjacentDistanceForDirection(displacementDirection));
       if (displacementDistance !== null && Math.abs(displacement) >= displacementDistance) {
         return outcomeForDirection(displacementDirection);
@@ -2501,9 +2507,16 @@
         !isFiniteAppSheetNumber(viewportHeight) || viewportHeight <= determinedHeight ||
         !isFiniteAppSheetNumber(displacement)) return null;
     var inward = edge === 'bottom' ? -displacement : displacement;
-    var outward = Math.min(determinedHeight, Math.max(0, -inward));
+    var outward = Math.min(viewportHeight, Math.max(0, -inward));
     if (snap === 'fullscreen') {
-      return { height: Math.max(determinedHeight, viewportHeight - outward), offset: 0, backdrop: 1 };
+      var shrinkDistance = viewportHeight - determinedHeight;
+      var shrink = Math.min(outward, shrinkDistance);
+      var closeOffset = Math.min(determinedHeight, Math.max(0, outward - shrinkDistance));
+      return {
+        height: viewportHeight - shrink,
+        offset: edge === 'bottom' ? closeOffset : -closeOffset,
+        backdrop: Math.max(0, 1 - closeOffset / determinedHeight)
+      };
     }
     if (inward > 0) {
       return { height: Math.min(viewportHeight, determinedHeight + inward), offset: 0, backdrop: 1 };
@@ -2513,6 +2526,15 @@
       offset: edge === 'bottom' ? outward : -outward,
       backdrop: Math.max(0, 1 - outward / determinedHeight)
     };
+  }
+  function appSheetReleaseAtOriginEdge(edge, clientY, viewportHeight) {
+    if (!isValidAppSheetEdge(edge) || !isFiniteAppSheetNumber(clientY) ||
+        !isFiniteAppSheetNumber(viewportHeight) || viewportHeight <= 0 ||
+        clientY < -APP_SHEET_EDGE_RELEASE_TOLERANCE_PX ||
+        clientY > viewportHeight + APP_SHEET_EDGE_RELEASE_TOLERANCE_PX) return false;
+    return edge === 'bottom' ?
+      clientY >= viewportHeight - APP_SHEET_EDGE_RELEASE_TOLERANCE_PX :
+      clientY <= APP_SHEET_EDGE_RELEASE_TOLERANCE_PX;
   }
   function appSheetOwnDataField(object, key, required) {
     if (!object || typeof object !== 'object' || Array.isArray(object)) return { valid: false };
@@ -2639,9 +2661,11 @@
     pendingHistoryClose: false,
     pendingPostCloseState: null,
     pendingPostCloseDestination: null,
+    pendingLauncherOpen: null,
     nativeOpener: null,
     focusPolicy: 'none',
-    closeGeneration: null
+    closeGeneration: null,
+    releaseOnHistoryReconcile: false
   };
   var appSheetListenersInstalled = false;
   var appSheetDescriptors = Object.create(null);
@@ -3304,6 +3328,25 @@
     if (launcher.classList) launcher.classList.toggle('active', expanded);
   }
 
+  function queueAppSheetLauncherOpen(kind, options) {
+    options = options || {};
+    var opener = options.opener;
+    var trustedOpener = opener && opener.isConnected === true &&
+      (opener === fabMain || opener.tagName === 'BUTTON' ||
+       (typeof opener.getAttribute === 'function' && opener.getAttribute('role') === 'button'));
+    var edge = options.edge == null ? 'bottom' : options.edge;
+    var snap = options.snap == null ? 'determined' : options.snap;
+    var page = options.page == null ? null : options.page;
+    if (!trustedOpener || !isValidAppSheetKind(kind) || !isValidAppSheetEdge(edge) ||
+        !isValidAppSheetSnap(snap) || (page !== null && (typeof page !== 'string' || page.length > 32)) ||
+        appSheetState.phase !== 'closing' || appSheetState.closeGeneration !== appSheetState.generation) return false;
+    appSheetState.pendingLauncherOpen = {
+      closeGeneration: appSheetState.closeGeneration,
+      kind: kind, page: page, edge: edge, snap: snap, opener: opener
+    };
+    return true;
+  }
+
   function syncAppSheetLauncherState() {
     var expanded = appSheet.open && appSheetState.phase !== 'closing';
     if (fabMain) fabMain.setAttribute('aria-expanded', expanded && appSheetState.kind === 'settings' ? 'true' : 'false');
@@ -3318,9 +3361,8 @@
       return;
     }
     var label = descriptor.label;
-    var latchedSearch = appSheetState.kind === 'search' && appSheetState.searchFullscreenLatched;
     appSheet.setAttribute('aria-label', label + ' — Bible panel');
-    appSheetHandle.setAttribute('aria-label', latchedSearch ? 'Close Search panel' :
+    appSheetHandle.setAttribute('aria-label',
       (appSheetState.snap === 'fullscreen' ? 'Restore ' : 'Expand ') + label + ' panel' +
       (appSheetState.snap === 'fullscreen' ? ' size' : ''));
   }
@@ -3348,6 +3390,7 @@
     appSheetState.pendingHistoryClose = false;
     appSheetState.pendingPostCloseState = null;
     appSheetState.pendingPostCloseDestination = null;
+    appSheetState.pendingLauncherOpen = null;
     appSheetState.nativeOpener = null;
     appSheetState.phase = 'closed';
     appSheetState.determinedHeight = 0;
@@ -3356,6 +3399,7 @@
     appSheetState.gesture = null;
     appSheetState.focusPolicy = 'none';
     appSheetState.closeGeneration = null;
+    appSheetState.releaseOnHistoryReconcile = false;
     appSheet.style.removeProperty('--sheet-height');
     appSheet.style.removeProperty('--sheet-width');
     appSheet.classList.remove('edge-top', 'snap-fullscreen', 'inline-left', 'inline-right');
@@ -3367,7 +3411,6 @@
   function setSheetSnap(snap, immediate) {
     if (appSheetState.phase === 'closing') return false;
     if (!isValidAppSheetSnap(snap)) return false;
-    if (appSheetState.searchFullscreenLatched && appSheetState.kind === 'search' && snap === 'determined') return false;
     var generation = appSheetState.generation;
     if (appSheetState.settleTimer !== null) window.clearTimeout(appSheetState.settleTimer);
     appSheetState.settleTimer = null;
@@ -3403,10 +3446,18 @@
     var nativeOpener = appSheetState.nativeOpener;
     var preCloseActive = document.activeElement;
     var pendingDestination = appSheetState.pendingPostCloseDestination;
+    var pendingLauncher = appSheetState.pendingLauncherOpen &&
+      appSheetState.pendingLauncherOpen.closeGeneration === appSheetState.closeGeneration ?
+      appSheetState.pendingLauncherOpen : null;
     if (appSheet.open) appSheet.close();
     resetAppSheetState();
     applyAppSheetFocusPolicy(policy, opener, nativeOpener, preCloseActive);
-    if (pendingDestination && pendingDestination.kind === 'sheet') {
+    if (pendingLauncher) {
+      openAppSheet(pendingLauncher.kind, {
+        page: pendingLauncher.page, edge: pendingLauncher.edge, snap: pendingLauncher.snap,
+        opener: pendingLauncher.opener
+      });
+    } else if (pendingDestination && pendingDestination.kind === 'sheet') {
       var pendingState = pendingDestination.state;
       openAppSheet(pendingState.sheet.kind, {
         page: pendingState.sheet.page || null,
@@ -3419,14 +3470,18 @@
 
   function requestCloseAppSheet(source, focusPolicy) {
     if (!appSheet.open) return false;
-    if (appSheetState.phase === 'closing') return true;
+    if (appSheetState.phase === 'closing') {
+      if (source === 'popstate' && appSheetState.releaseOnHistoryReconcile) finishCloseAppSheet();
+      return true;
+    }
     if (!isValidAppSheetFocusPolicy(focusPolicy)) {
       focusPolicy = source === 'cancel' || source === 'keyboard-handle' ? 'restore-opener' :
-        (source === 'drag' || source === 'backdrop' ? 'none' : 'preserve-or-reader');
+        (source === 'drag' || source === 'drag-full-travel' || source === 'backdrop' ? 'none' : 'preserve-or-reader');
     }
     clearAppSheetMotion();
     appSheetState.phase = 'closing';
     appSheetState.closeGeneration = appSheetState.generation;
+    appSheetState.releaseOnHistoryReconcile = source === 'drag-full-travel';
     appSheetState.focusPolicy = focusPolicy;
     clearAppSheetGestureResources();
     cleanupAppSheetMeasurement();
@@ -3454,7 +3509,7 @@
         }, APP_SHEET_OPEN_CLOSE_MS);
         appSheetState.historyTimer = historyTimer;
       }
-    } else if (reducedMotion) {
+    } else if (reducedMotion || appSheetState.releaseOnHistoryReconcile) {
       finishCloseAppSheet();
     } else {
       if (appSheetState.settleTimer !== null) window.clearTimeout(appSheetState.settleTimer);
@@ -3536,7 +3591,7 @@
 
   function openAppSheet(kind, options) {
     options = options || {};
-    if (appSheet.open && appSheetState.phase === 'closing') return false;
+    if (appSheet.open && appSheetState.phase === 'closing') return queueAppSheetLauncherOpen(kind, options);
     if (!isValidAppSheetKind(kind)) return false;
     if (appSheetState.pendingHistoryClose && !options.fromPop) return false;
     var edge = options.edge == null ? 'bottom' : options.edge;
@@ -3867,9 +3922,12 @@
     armAppSheetHandleClickGuard();
     var outcome = appSheetReleaseOutcome(gesture.edge, gesture.startSnap, displacement, pointer.velocity,
       gesture.determinedHeight, gesture.viewportHeight, velocityAge);
+    var releaseY = isFiniteAppSheetNumber(e.clientY) ? e.clientY : pointer.lastY;
+    var fullTravel = outcome === 'closed' &&
+      appSheetReleaseAtOriginEdge(gesture.edge, releaseY, gesture.viewportHeight);
     clearAppSheetGestureResources();
     if (outcome === null) setSheetSnap(appSheetState.snap, shouldReduceVerseMotion());
-    else if (outcome === 'closed') requestCloseAppSheet('drag', 'none');
+    else if (outcome === 'closed') requestCloseAppSheet(fullTravel ? 'drag-full-travel' : 'drag', 'none');
     else setSheetSnap(outcome, shouldReduceVerseMotion());
   }
 
@@ -3889,13 +3947,10 @@
       (appSheetState.edge === 'top' && e.key === 'ArrowDown');
     var outward = (appSheetState.edge === 'bottom' && e.key === 'ArrowDown') ||
       (appSheetState.edge === 'top' && e.key === 'ArrowUp');
-    var latchedSearch = appSheetState.kind === 'search' && appSheetState.searchFullscreenLatched;
-    var closesLatchedSearch = latchedSearch && outward;
-    if (latchedSearch && toggle) return;
-    if (appSheetState.phase === 'opening' && e.key !== 'Escape' && !closesLatchedSearch) return;
+    if (appSheetState.phase === 'opening' && e.key !== 'Escape') return;
     if (!toggle && !inward && !outward && e.key !== 'Escape') return;
     e.preventDefault();
-    if (e.key === 'Escape' || closesLatchedSearch) {
+    if (e.key === 'Escape') {
       requestCloseAppSheet('keyboard-handle', 'restore-opener');
     } else if (toggle) {
       setSheetSnap(appSheetState.snap === 'determined' ? 'fullscreen' : 'determined', false);
@@ -3914,10 +3969,6 @@
       e.preventDefault();
       return;
     }
-    if (appSheetState.phase === 'closing' || appSheetState.kind !== 'search' ||
-        !appSheetState.searchFullscreenLatched || appSheetState.snap !== 'fullscreen') return;
-    e.preventDefault();
-    requestCloseAppSheet('keyboard-handle', 'restore-opener');
   }
 
   function installAppSheetListeners() {
@@ -3987,9 +4038,6 @@
   var chapterCrossfadeGeneration = 0;
   var preservingChapterCrossfade = false;
   var readerPointerState = null;
-  var pendingReaderVerseAction = null;
-  var READER_DOUBLE_ACTIVATE_MS = 280;
-  var READER_MOUSE_DOUBLE_ACTIVATE_MS = 500;
   var suppressReaderClick = null;
   var suppressReaderClickTimer = null;
   var bibleReaderWheelAction = false;
@@ -6066,7 +6114,6 @@
   }
 
   function openVerseActions(verseEl) {
-    clearPendingReaderVerseAction();
     var payload = verseActionPayload(verseEl);
     if (!payload) return false;
     verseActionTarget = verseEl;
@@ -6178,50 +6225,6 @@
     readerPointerState = null;
   }
 
-  function clearPendingReaderVerseAction() {
-    if (pendingReaderVerseAction) window.clearTimeout(pendingReaderVerseAction.timer);
-    pendingReaderVerseAction = null;
-  }
-
-  function scheduleReaderVerseFootnoteToggle(verse, event, delay) {
-    clearPendingReaderVerseAction();
-    var pending = {
-      verse: verse,
-      pointerType: event.pointerType || 'mouse',
-      x: event.clientX,
-      y: event.clientY,
-      timer: null
-    };
-    pendingReaderVerseAction = pending;
-    pending.timer = window.setTimeout(function () {
-      if (pendingReaderVerseAction !== pending) return;
-      pendingReaderVerseAction = null;
-      if (verse.isConnected && uiView === 'verses' && verse.classList.contains('active')) {
-        toggleAllVerseFootnotes(verse);
-      }
-    }, delay || READER_DOUBLE_ACTIVATE_MS);
-  }
-
-  function scheduleReaderVerseMouseFootnoteToggle(verse, event) {
-    scheduleReaderVerseFootnoteToggle(verse, event, READER_MOUSE_DOUBLE_ACTIVATE_MS);
-  }
-
-  function isMatchingReaderDoubleActivation(event, verse) {
-    return !!pendingReaderVerseAction &&
-      pendingReaderVerseAction.verse === verse &&
-      pendingReaderVerseAction.pointerType === event.pointerType &&
-      Math.abs(event.clientX - pendingReaderVerseAction.x) <= 28 &&
-      Math.abs(event.clientY - pendingReaderVerseAction.y) <= 28;
-  }
-
-  function isMatchingReaderMouseDoubleActivation(event, verse) {
-    return !!pendingReaderVerseAction &&
-      pendingReaderVerseAction.verse === verse &&
-      pendingReaderVerseAction.pointerType === 'mouse' &&
-      Math.abs(event.clientX - pendingReaderVerseAction.x) <= 28 &&
-      Math.abs(event.clientY - pendingReaderVerseAction.y) <= 28;
-  }
-
   function clearSuppressReaderClick() {
     if (suppressReaderClickTimer) window.clearTimeout(suppressReaderClickTimer);
     suppressReaderClickTimer = null;
@@ -6243,7 +6246,6 @@
   function prepareToLeaveReadingView() {
     closeVerseActions(true);
     clearReaderPointerState();
-    clearPendingReaderVerseAction();
     flushReadingRouteReplace();
     if (uiView === 'verses') rememberCurrentChapterPosition();
     flushChapterPositions();
@@ -6413,7 +6415,6 @@
     if (!nextVerse) return;
     var target = getVerseElement(currentBook, currentChapter, nextVerse);
     if (!target) return;
-    clearPendingReaderVerseAction();
     var prev = viewInner.querySelector('.verse.active');
     if (prev) {
       prev.classList.remove('active');
@@ -7654,7 +7655,6 @@
     input.addEventListener('input', function () {
       if (debounce !== null) clearTimeout(debounce);
       var q = boundedSearchQuery(input.value);
-      if (input.value !== q) input.value = q;
       if (q.length < 2) {
         countEl.textContent = '';
         resultsEl.textContent = '';
@@ -7813,7 +7813,6 @@
     var dy = e.clientY - readerPointerState.y;
     if (Math.sqrt((dx * dx) + (dy * dy)) > 10) {
       readerPointerState.moved = true;
-      clearPendingReaderVerseAction();
     }
   }, { passive: true });
   document.addEventListener('pointerup', function (e) {
@@ -7836,31 +7835,15 @@
       return;
     }
     if (!state.verse || hasSelection || !state.verse.isConnected) {
-      clearPendingReaderVerseAction();
       return;
     }
     e.preventDefault();
     suppressFollowingReaderClick(e, state.verse);
-    if (state.pointerType === 'touch' || state.pointerType === 'pen') {
-      if (state.verse.classList.contains('active')) {
-        if (isMatchingReaderDoubleActivation(e, state.verse)) {
-          suppressFollowingReaderClick(e, state.verse);
-          clearPendingReaderVerseAction();
-          openVerseActions(state.verse);
-        } else scheduleReaderVerseFootnoteToggle(state.verse, e);
-      } else {
-        clearPendingReaderVerseAction();
-        setActiveVerse(state.verse.getAttribute('data-v'), true);
-      }
-    }
-    else {
-      clearPendingReaderVerseAction();
-      setActiveVerse(state.verse.getAttribute('data-v'), true);
-    }
+    if (state.verse.classList.contains('active')) toggleAllVerseFootnotes(state.verse);
+    else setActiveVerse(state.verse.getAttribute('data-v'), true);
   });
   document.addEventListener('pointercancel', function (e) {
     if (readerPointerState && readerPointerState.id === e.pointerId) clearReaderPointerState();
-    clearPendingReaderVerseAction();
   });
   document.addEventListener('click', function (e) {
     if (!suppressReaderClick) return;
@@ -7883,27 +7866,14 @@
     if (!verseEl || !viewInner.contains(verseEl)) return;
     if (verseEl.classList.contains('active')) {
       if (!verseEl.isConnected) return;
-      else scheduleReaderVerseMouseFootnoteToggle(verseEl, e);
-    } else {
-      clearPendingReaderVerseAction();
-      setActiveVerse(verseEl.getAttribute('data-v'), true);
-    }
-  });
-  document.addEventListener('dblclick', function (e) {
-    if (uiView !== 'verses' || e.button !== 0) return;
-    if (e.target.closest('button,dialog,a,input,select,textarea,[role="button"],.verse-actions')) return;
-    var verseEl = e.target.closest('.verse');
-    if (!verseEl || !viewInner.contains(verseEl) || !verseEl.classList.contains('active')) return;
-    if (!isMatchingReaderMouseDoubleActivation(e, verseEl)) return;
-    clearPendingReaderVerseAction();
-    openVerseActions(verseEl);
+      else toggleAllVerseFootnotes(verseEl);
+    } else setActiveVerse(verseEl.getAttribute('data-v'), true);
   });
   document.addEventListener('contextmenu', function (e) {
     if (uiView !== 'verses' || e.target.closest('button,dialog,a,input,select,textarea,[role="button"],.verse-actions')) return;
     var verseEl = e.target.closest('.verse');
     if (!verseEl || !viewInner.contains(verseEl) || !verseEl.classList.contains('active')) return;
     e.preventDefault();
-    clearPendingReaderVerseAction();
     openVerseActions(verseEl);
   });
   viewEl.addEventListener('scroll', function () {
