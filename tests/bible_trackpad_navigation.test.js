@@ -105,17 +105,27 @@ function wheelHarness(page = 'chapters') {
     var BIBLE_WHEEL_IDLE_MS = 160;
     var BIBLE_WHEEL_LINE_PX = 16;
     var BIBLE_WHEEL_MAX_EVENT_PX = 120;
+    var SELECTION_WHEEL_RENEW_REFRACTORY_MS = 48;
+    var SELECTION_WHEEL_RELEASE_PX = 12;
+    var SELECTION_WHEEL_REBOUND_PX = 24;
+    var SELECTION_WHEEL_REBOUND_RATIO = 2.25;
+    var SELECTION_WHEEL_REBOUND_DELTA_PX = 16;
     var selectionPages = ['books', 'chapters', 'verses'];
     var selectionSheetPage = ${JSON.stringify(page)};
     var appSheet = { open: true };
-    var appSheetState = { kind: 'selection', phase: 'idle', pointer: null, candidate: null };
+    var appSheetState = { kind: 'selection', phase: 'idle', pointer: null, candidate: null, generation: 7 };
     var selectionPointer = null;
     var bibleWheelBurst = { x: 0, y: 0, consumed: false, direction: 0, timer: null, generation: 0 };
     var bibleReaderWheelTransitionLock = { active: false, direction: 0, generation: 0 };
+    var selectionWheelImpulse = null;
     function isFiniteAppSheetNumber(value) { return typeof value === 'number' && Number.isFinite(value); }
     ${functionSource('scaleBibleWheelDelta')}
     ${functionSource('normalizeBibleWheelDelta')}
     ${functionSource('bibleWheelClaimDirection')}
+    ${functionSource('resetSelectionWheelImpulse')}
+    ${functionSource('selectionWheelEventVector')}
+    ${functionSource('markSelectionWheelClaim')}
+    ${functionSource('selectionWheelShouldRenew')}
     ${functionSource('clearBibleReaderWheelTransitionLock')}
     ${functionSource('resetBibleWheelBurst')}
     ${functionSource('restoreBibleWheelConsumedLock')}
@@ -143,6 +153,8 @@ function wheelHarness(page = 'chapters') {
       liveTimers: function () { return timers.filter(function (timer) { return !timer.cleared; }).length; },
       reset: resetBibleWheelBurst,
       burst: function () { return bibleWheelBurst; },
+      impulse: function () { return selectionWheelImpulse; },
+      generation: function (value) { appSheetState.generation = value; },
       page: function () { return selectionSheetPage; },
       phase: function (value) { appSheetState.phase = value; },
       pointer: function (value) { appSheetState.pointer = value; },
@@ -197,6 +209,60 @@ test('selector wheel accumulates one claimed page per idle-delimited burst', () 
   api.wheel(fresh);
   assert.equal(fresh.prevented, true);
   assert.deepEqual(pages.at(-1), ['chapters', true, 'pointer']);
+});
+
+test('selector wheel rearms on a decayed tail plus deliberate rebound before idle or page settle', () => {
+  const { api, pages } = wheelHarness('books');
+  api.wheel(wheelEvent(24, 0, { timeStamp: 1 }));
+  api.wheel(wheelEvent(24, 0, { timeStamp: 9 }));
+  assert.deepEqual(pages, [['chapters', true, 'pointer']]);
+
+  api.wheel(wheelEvent(11, 0, { timeStamp: 60 }));
+  assert.equal(api.impulse().tailObserved, true, 'a low post-refractory tail opens only the rearm window');
+  api.wheel(wheelEvent(32, 0, { timeStamp: 76 }));
+  assert.deepEqual(pages, [['chapters', true, 'pointer']], 'the rebound starts fresh accumulation');
+  api.wheel(wheelEvent(20, 0, { timeStamp: 84 }));
+  assert.deepEqual(pages, [
+    ['chapters', true, 'pointer'],
+    ['verses', true, 'pointer']
+  ], 'the renewed gesture pages before either timeout or transitionend');
+});
+
+test('selector renewed impulse requires refractory decay and cannot promote momentum or spikes', () => {
+  for (const tail of [
+    [[40, 15], [32, 30], [24, 45], [18, 60], [11, 70], [8, 80]],
+    [[120, 20], [120, 40], [-120, 60]],
+    [[8, 20], [48, 35]]
+  ]) {
+    const { api, pages } = wheelHarness('books');
+    api.wheel(wheelEvent(48, 0, { timeStamp: 1 }));
+    for (const [dx, timeStamp] of tail) api.wheel(wheelEvent(dx, 0, { timeStamp }));
+    assert.deepEqual(pages, [['chapters', true, 'pointer']], 'one physical tail owns one page');
+  }
+});
+
+test('selector renewed impulse supports a deliberate reverse gesture and resets across generations', () => {
+  const reverse = wheelHarness('chapters');
+  reverse.api.wheel(wheelEvent(48, 0, { timeStamp: 1 }));
+  reverse.api.wheel(wheelEvent(8, 0, { timeStamp: 60 }));
+  reverse.api.wheel(wheelEvent(-48, 0, { timeStamp: 80 }));
+  assert.deepEqual(reverse.pages, [
+    ['verses', true, 'pointer'],
+    ['chapters', true, 'pointer']
+  ]);
+
+  const stale = wheelHarness('books');
+  stale.api.wheel(wheelEvent(48, 0, { timeStamp: 1 }));
+  stale.api.wheel(wheelEvent(8, 0, { timeStamp: 60 }));
+  stale.api.generation(8);
+  stale.api.wheel(wheelEvent(48, 0, { timeStamp: 80 }));
+  assert.deepEqual(stale.pages, [['chapters', true, 'pointer']], 'old-sheet decay cannot rearm a new generation');
+  assert.equal(stale.api.impulse().sheetGeneration, 8);
+
+  stale.api.reset();
+  assert.equal(stale.api.impulse().claimed, false);
+  assert.equal(stale.api.impulse().tailObserved, false);
+  assert.equal(stale.api.impulse().valleyAbsX, Infinity);
 });
 
 test('selector wheel accepts vertical then horizontal input at the same target after a claimed page', () => {
@@ -509,6 +575,8 @@ test('100 mounted selector wheel lifecycles release the real listener, timer, an
   assert.equal(api.burst().consumed, false);
   assert.equal(api.burst().direction, 0);
   assert.equal(api.burst().timer, null, 'final unmount resets shared wheel state');
+  assert.equal(api.impulse().claimed, false);
+  assert.equal(api.impulse().tailObserved, false);
   assert.equal(pages.length, 100, 'one shared action registry contains exactly one action per replacement cycle');
 });
 

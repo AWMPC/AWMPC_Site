@@ -2666,6 +2666,7 @@
     bibleWheelBurst.generation = isFiniteAppSheetNumber(bibleWheelBurst.generation) ?
       bibleWheelBurst.generation + 1 : 1;
     clearBibleReaderWheelTransitionLock();
+    if (typeof resetSelectionWheelImpulse === 'function') resetSelectionWheelImpulse();
   }
 
   function restoreBibleWheelConsumedLock(consumed, direction) {
@@ -4100,11 +4101,77 @@
   var selectionRetargetTimer = null;
   var selectionMediaQuery = null;
   var selectionMediaListener = null;
+  var selectionWheelImpulse = null;
   var SELECTION_POINTER_RECENCY_MS = 80;
   var SELECTION_CLICK_GUARD_MS = 500;
   var SELECTION_COMPATIBILITY_GUARD_MS = 500;
   var SELECTION_TOUCH_TIMEOUT_MS = 1200;
   var SELECTION_ENDPOINT_RESISTANCE_PX = 32;
+  var SELECTION_WHEEL_RENEW_REFRACTORY_MS = 48;
+  var SELECTION_WHEEL_RELEASE_PX = 12;
+  var SELECTION_WHEEL_REBOUND_PX = 24;
+  var SELECTION_WHEEL_REBOUND_RATIO = 2.25;
+  var SELECTION_WHEEL_REBOUND_DELTA_PX = 16;
+
+  function resetSelectionWheelImpulse() {
+    selectionWheelImpulse = {
+      sheetGeneration: typeof appSheetState === 'object' && isFiniteAppSheetNumber(appSheetState.generation) ?
+        appSheetState.generation : 0,
+      claimed: false, claimedAt: 0, valleyAbsX: Infinity, tailObserved: false
+    };
+  }
+
+  function selectionWheelEventVector(event) {
+    if (!event) return null;
+    var viewportWidth = window.visualViewport && isFiniteAppSheetNumber(window.visualViewport.width) &&
+      window.visualViewport.width > 0 ? window.visualViewport.width : window.innerWidth;
+    if (!isFiniteAppSheetNumber(viewportWidth) || viewportWidth <= 0) {
+      viewportWidth = document.documentElement && document.documentElement.clientWidth;
+    }
+    var x = scaleBibleWheelDelta(event.deltaX, event.deltaMode, viewportWidth);
+    var y = scaleBibleWheelDelta(event.deltaY, event.deltaMode, viewportWidth);
+    if (x === null || y === null) return null;
+    var time = isFiniteAppSheetNumber(event.timeStamp) && event.timeStamp >= 0 ? event.timeStamp : Date.now();
+    return { x: x, y: y, absX: Math.abs(x), absY: Math.abs(y), time: time };
+  }
+
+  function markSelectionWheelClaim(event) {
+    var vector = selectionWheelEventVector(event);
+    resetSelectionWheelImpulse();
+    if (!vector) return false;
+    selectionWheelImpulse.claimed = true;
+    selectionWheelImpulse.claimedAt = vector.time;
+    return true;
+  }
+
+  function selectionWheelShouldRenew(event) {
+    if (!selectionWheelImpulse || selectionWheelImpulse.sheetGeneration !== appSheetState.generation) {
+      resetSelectionWheelImpulse();
+    }
+    if (bibleWheelTargetBlocked(event)) {
+      resetSelectionWheelImpulse();
+      return false;
+    }
+    var vector = selectionWheelEventVector(event);
+    if (!vector || (vector.absY > 0 &&
+        (vector.absX === 0 || (vector.absY >= vector.absX &&
+          vector.absY / vector.absX >= BIBLE_WHEEL_AXIS_RATIO)))) {
+      resetSelectionWheelImpulse();
+      return false;
+    }
+    if (!bibleWheelBurst.consumed || !selectionWheelImpulse.claimed) return false;
+    var elapsed = Math.max(0, vector.time - selectionWheelImpulse.claimedAt);
+    if (elapsed >= SELECTION_WHEEL_RENEW_REFRACTORY_MS && vector.absX <= SELECTION_WHEEL_RELEASE_PX) {
+      selectionWheelImpulse.tailObserved = true;
+      selectionWheelImpulse.valleyAbsX = Math.min(selectionWheelImpulse.valleyAbsX, vector.absX);
+    }
+    var valley = selectionWheelImpulse.valleyAbsX;
+    var renewed = selectionWheelImpulse.tailObserved && isFinite(valley) &&
+      vector.absX >= SELECTION_WHEEL_REBOUND_PX &&
+      vector.absX >= valley * SELECTION_WHEEL_REBOUND_RATIO &&
+      vector.absX - valley >= SELECTION_WHEEL_REBOUND_DELTA_PX;
+    return renewed;
+  }
 
   function currentSelectionReaderReference() {
     var verse = activeVerse || recalledChapterVerse(navBook, navChapter) || '1';
@@ -4762,11 +4829,13 @@
   function onSelectionWheel(event) {
     if (!event || !selectionPager || !appSheet.open || appSheetState.kind !== 'selection' ||
         !selectionPager.contains(event.target)) return;
+    if (selectionWheelShouldRenew(event)) resetBibleWheelBurst();
     var direction = accumulateBibleWheel(event, true);
     if (!direction) return;
     event.preventDefault();
     if (bibleWheelBurst.consumed) return;
     bibleWheelBurst.consumed = true;
+    markSelectionWheelClaim(event);
     var index = selectionPages.indexOf(selectionSheetPage);
     var next = Math.max(0, Math.min(selectionPages.length - 1, index + direction));
     var oldPanel = selectionPanels && selectionPanels[index];
