@@ -173,10 +173,10 @@ test('selection panels reserve the tonal float and mobile top edge owns only a l
 });
 
 test('navbar opens exact selection pages without invoking destructive legacy views', () => {
-  const handlers = extract(/fnBook\.addEventListener\('click',[\s\S]*?fnVerse\.addEventListener\('click',[\s\S]*?\n  \}\);/, 'selection navbar handlers missing');
-  assert.match(handlers, /openSelectionSheet\('books',\s*e\.currentTarget\)/);
-  assert.match(handlers, /openSelectionSheet\('chapters',\s*e\.currentTarget\)/);
-  assert.match(handlers, /openSelectionSheet\('verses',\s*e\.currentTarget\)/);
+  const handlers = extract(/bindImmediateAppSheetLauncher\(fnBook,[\s\S]*?bindImmediateAppSheetLauncher\(fnVerse,[\s\S]*?\n  \}\);/, 'selection navbar handlers missing');
+  assert.match(handlers, /openSelectionSheet\('books',\s*launcher\)/);
+  assert.match(handlers, /openSelectionSheet\('chapters',\s*launcher\)/);
+  assert.match(handlers, /openSelectionSheet\('verses',\s*launcher\)/);
   assert.doesNotMatch(handlers, /showBooksView|showChaptersView|showVersePickerView/);
 });
 
@@ -641,7 +641,7 @@ test('Alt arrow paging is bounded, focuses through the setter, and announces the
 });
 
 test('navbar direct-page launchers execute without touching the reader', () => {
-  const handlers = extract(/fnBook\.addEventListener\('click',[\s\S]*?fnVerse\.addEventListener\('click',[\s\S]*?\n  \}\);/,
+  const handlers = extract(/bindImmediateAppSheetLauncher\(fnBook,[\s\S]*?bindImmediateAppSheetLauncher\(fnVerse,[\s\S]*?\n  \}\);/,
     'navbar handler program missing');
   const calls = [];
   const fnBook = new FakeElement('button');
@@ -650,6 +650,8 @@ test('navbar direct-page launchers execute without touching the reader', () => {
   Function('fnBook', 'fnChapter', 'fnVerse', 'calls', `
     var bibleData = {};
     function openSelectionSheet(page, opener) { calls.push([page, opener]); }
+    ${functionSource('isFiniteAppSheetNumber')}
+    ${functionSource('bindImmediateAppSheetLauncher')}
     ${handlers}
   `)(fnBook, fnChapter, fnVerse, calls);
   fnBook.dispatch('click');

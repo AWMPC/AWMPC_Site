@@ -450,6 +450,9 @@
   .bottom-action-button:focus-visible {
     color: var(--accent); border-color: var(--accent); background: var(--hover-bg); outline: none;
   }
+  #fn-book, #fn-chapter, #fn-verse, #btn-history, #btn-search, #fab-main {
+    touch-action: manipulation;
+  }
   .bottom-history-menu {
     position: fixed;
     right: 12px;
@@ -1100,6 +1103,7 @@
     border-radius: 0 0 var(--radius-md) var(--radius-md);
   }
   .app-sheet.edge-top.snap-fullscreen { border-radius: 0; }
+  .app-sheet.is-exit-surface { position: fixed; inset: 0; z-index: 140; }
   .app-sheet.is-closing { opacity: 0; pointer-events: none; }
   .app-sheet.no-motion { transition-duration: 0s; }
   .app-sheet::backdrop {
@@ -2685,7 +2689,8 @@
     nativeOpener: null,
     focusPolicy: 'none',
     closeGeneration: null,
-    releaseOnHistoryReconcile: false
+    releaseOnHistoryReconcile: false,
+    exitDemoted: false
   };
   var appSheetListenersInstalled = false;
   var pendingAppSheetCloseTraversal = null;
@@ -3422,9 +3427,12 @@
     appSheetState.focusPolicy = 'none';
     appSheetState.closeGeneration = null;
     appSheetState.releaseOnHistoryReconcile = false;
+    appSheetState.exitDemoted = false;
+    appSheet.inert = false;
+    appSheet.removeAttribute('aria-hidden');
     appSheet.style.removeProperty('--sheet-height');
     appSheet.style.removeProperty('--sheet-width');
-    appSheet.classList.remove('edge-top', 'snap-fullscreen', 'inline-left', 'inline-right');
+    appSheet.classList.remove('edge-top', 'snap-fullscreen', 'inline-left', 'inline-right', 'is-exit-surface');
     appSheet.classList.add('edge-bottom', 'snap-determined');
     syncAppSheetAccessibleState();
     syncAppSheetLauncherState();
@@ -3490,11 +3498,27 @@
     }
   }
 
-  function requestCloseAppSheet(source, focusPolicy) {
-    if (appSheetState.phase === 'closing') {
-      if (source === 'popstate' && appSheetState.releaseOnHistoryReconcile) finishCloseAppSheet();
-      return true;
+  function demoteAppSheetForPointerClose() {
+    if (!appSheet.open || typeof appSheet.show !== 'function') return false;
+    var nativeOpener = appSheetState.nativeOpener;
+    var preCloseActive = document.activeElement;
+    appSheet.close();
+    applyAppSheetFocusPolicy('none', appSheetState.opener, nativeOpener, preCloseActive);
+    appSheetState.nativeOpener = null;
+    try {
+      appSheet.show();
+    } catch (showError) {
+      return false;
     }
+    appSheetState.exitDemoted = true;
+    appSheet.inert = true;
+    appSheet.setAttribute('aria-hidden', 'true');
+    appSheet.classList.add('is-exit-surface');
+    return true;
+  }
+
+  function requestCloseAppSheet(source, focusPolicy) {
+    if (appSheetState.phase === 'closing') return true;
     if (!appSheet.open) return false;
     if (!isValidAppSheetFocusPolicy(focusPolicy)) {
       focusPolicy = source === 'cancel' || source === 'keyboard-handle' ? 'restore-opener' :
@@ -3504,18 +3528,22 @@
     appSheetState.phase = 'closing';
     appSheetState.closeGeneration = appSheetState.generation;
     var pointerDismissal = source === 'drag' || source === 'drag-full-travel' || source === 'backdrop';
-    appSheetState.releaseOnHistoryReconcile = pointerDismissal;
+    appSheetState.releaseOnHistoryReconcile = false;
     appSheetState.focusPolicy = focusPolicy;
     clearAppSheetGestureResources();
     cleanupAppSheetMeasurement();
     cleanupAppSheetOverflowFades();
     var generation = appSheetState.generation;
     syncAppSheetLauncherState();
+    var reducedMotion = shouldReduceVerseMotion();
+    if (pointerDismissal && !reducedMotion && !demoteAppSheetForPointerClose()) {
+      finishCloseAppSheet();
+      return true;
+    }
     appSheet.classList.add('is-closing');
     appSheet.style.setProperty('--sheet-drag-offset', (appSheetState.edge === 'bottom' ? 1 : -1) *
       (appSheetViewportHeight() || appSheetState.determinedHeight || 1) + 'px');
     appSheet.style.setProperty('--sheet-backdrop-opacity', '0');
-    var reducedMotion = shouldReduceVerseMotion();
     if (appSheetState.historyOwned && source !== 'popstate') {
       if (!appSheetState.pendingHistoryClose) {
         appSheetState.pendingHistoryClose = true;
@@ -3525,7 +3553,7 @@
         history.back();
       }
       if (!isCurrentAppSheetGeneration(generation) || appSheetState.phase !== 'closing') return true;
-      if (pointerDismissal || reducedMotion) finishCloseAppSheet();
+      if (reducedMotion) finishCloseAppSheet();
       else {
         if (appSheetState.historyTimer !== null) window.clearTimeout(appSheetState.historyTimer);
         var historyTimer = window.setTimeout(function () {
@@ -3535,7 +3563,7 @@
         }, APP_SHEET_OPEN_CLOSE_MS);
         appSheetState.historyTimer = historyTimer;
       }
-    } else if (reducedMotion || pointerDismissal || appSheetState.releaseOnHistoryReconcile) {
+    } else if (reducedMotion) {
       finishCloseAppSheet();
     } else {
       if (appSheetState.settleTimer !== null) window.clearTimeout(appSheetState.settleTimer);
@@ -3618,8 +3646,11 @@
   function openAppSheet(kind, options) {
     options = options || {};
     if (appSheetState.phase === 'closing') {
-      var queued = queueAppSheetLauncherOpen(kind, options);
-      return queued;
+      if (!appSheetState.exitDemoted) return queueAppSheetLauncherOpen(kind, options);
+      appSheetState.pendingPostCloseState = null;
+      appSheetState.pendingPostCloseDestination = null;
+      appSheetState.pendingLauncherOpen = null;
+      finishCloseAppSheet();
     }
     if (!isValidAppSheetKind(kind)) return false;
     if (appSheetState.pendingHistoryClose && !options.fromPop) return false;
@@ -3685,6 +3716,9 @@
     appSheet.classList.toggle('edge-top', edge === 'top');
     appSheet.classList.toggle('edge-bottom', edge === 'bottom');
     if (!wasOpen) {
+      appSheet.inert = false;
+      appSheet.removeAttribute('aria-hidden');
+      appSheet.classList.remove('is-exit-surface');
       appSheet.classList.add('is-preparing', 'is-opening');
       appSheet.style.setProperty('--sheet-backdrop-opacity', '0');
     }
@@ -5410,9 +5444,33 @@
     });
   }
 
+  function bindImmediateAppSheetLauncher(launcher, activate) {
+    var directPointerTime = null;
+    launcher.addEventListener('pointerdown', function (event) {
+      var directPointer = event.pointerType === 'touch' || event.pointerType === 'pen' ||
+        (event.sourceCapabilities && event.sourceCapabilities.firesTouchEvents === true);
+      if (!directPointer || !event.isPrimary || event.button !== 0) return;
+      directPointerTime = isFiniteAppSheetNumber(event.timeStamp) ? event.timeStamp : null;
+      event.preventDefault();
+      event.stopPropagation();
+      activate(event.currentTarget);
+    });
+    launcher.addEventListener('click', function (event) {
+      var clickTime = isFiniteAppSheetNumber(event.timeStamp) ? event.timeStamp : null;
+      var compatibilityClick = event.detail !== 0 && directPointerTime !== null && clickTime !== null &&
+        clickTime >= directPointerTime && clickTime - directPointerTime <= 1000;
+      directPointerTime = null;
+      event.stopPropagation();
+      if (compatibilityClick) {
+        event.preventDefault();
+        return;
+      }
+      activate(event.currentTarget);
+    });
+  }
+
   // ===================== FAB =====================
-  fabMain.addEventListener('click', function (e) {
-    e.stopPropagation();
+  bindImmediateAppSheetLauncher(fabMain, function () {
     openAppSheet('settings', { opener: fabMain });
   });
   fabPanel.addEventListener('click', function (e) { e.stopPropagation(); });
@@ -7826,14 +7884,14 @@
   fnNext.addEventListener('click', function () {
     showAdjacentChapter(1);
   });
-  fnBook.addEventListener('click', function (e) {
-    if (bibleData) openSelectionSheet('books', e.currentTarget);
+  bindImmediateAppSheetLauncher(fnBook, function (launcher) {
+    if (bibleData) openSelectionSheet('books', launcher);
   });
-  fnChapter.addEventListener('click', function (e) {
-    if (bibleData) openSelectionSheet('chapters', e.currentTarget);
+  bindImmediateAppSheetLauncher(fnChapter, function (launcher) {
+    if (bibleData) openSelectionSheet('chapters', launcher);
   });
-  fnVerse.addEventListener('click', function (e) {
-    if (bibleData) openSelectionSheet('verses', e.currentTarget);
+  bindImmediateAppSheetLauncher(fnVerse, function (launcher) {
+    if (bibleData) openSelectionSheet('verses', launcher);
   });
   document.addEventListener('pointerdown', function (e) {
     clearSuppressReaderClick();
@@ -7959,13 +8017,11 @@
   viewEl.addEventListener('wheel', onBibleReaderWheel, { passive: false });
   viewEl.addEventListener('touchstart', releaseVerseChaseForFreeScroll, { passive: true });
   document.addEventListener('keydown', handleBibleKeyboardNavigation);
-  document.getElementById('btn-history').addEventListener('click', function (e) {
-    e.stopPropagation();
-    openAppSheet('history', { opener: e.currentTarget });
+  bindImmediateAppSheetLauncher(document.getElementById('btn-history'), function (launcher) {
+    openAppSheet('history', { opener: launcher });
   });
-  document.getElementById('btn-search').addEventListener('click', function (e) {
-    e.stopPropagation();
-    if (bibleData) openAppSheet('search', { opener: e.currentTarget });
+  bindImmediateAppSheetLauncher(document.getElementById('btn-search'), function (launcher) {
+    if (bibleData) openAppSheet('search', { opener: launcher });
   });
 
   // ===================== LOAD DATA =====================

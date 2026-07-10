@@ -48,6 +48,10 @@ assert.match(bible, /@media \(min-width: 641px\) \{\s*\.app-sheet\s*\{\s*box-sha
 assert.match(bible,
   /\.app-sheet\.snap-determined\s*\{[^}]*width:\s*min\(var\(--sheet-width,\s*50vw\),\s*50vw\);/,
   'determined sheets retain a live CSS cap while stale measured pixels await viewport remeasurement');
+assert.match(bible, /\.app-sheet\.is-exit-surface\s*\{[^}]*position:\s*fixed;[^}]*z-index:\s*140;/,
+  'pointer-close animation survives as a non-modal fixed exit surface');
+assert.match(bible, /#fn-book, #fn-chapter, #fn-verse, #btn-history, #btn-search, #fab-main\s*\{[^}]*touch-action:\s*manipulation;/,
+  'every persistent sheet launcher opts out of delayed compatibility activation');
 
 function controllerFunction(name) {
   const match = bible.match(new RegExp('  function ' + name + '\\([^\\n]*\\) \\{[\\s\\S]*?\\n  \\}'));
@@ -736,7 +740,8 @@ function fakeElement() {
     hasPointerCapture(id) { return captures.has(id); },
     releasePointerCapture(id) { captures.delete(id); this.releaseCount += 1; },
     losePointerCapture(id) { captures.delete(id); },
-    showModal() { this.open = true; },
+    showModal() { this.open = true; this.modal = true; },
+    show() { this.open = true; this.modal = false; },
     close() { this.open = false; if (typeof this.onClose === 'function') this.onClose(); },
     focus(options) {
       this.focusCount += 1; this.focusOptions.push(options);
@@ -747,6 +752,50 @@ function fakeElement() {
   element.children = [];
   element.appendChild = function (child) { this.children.push(child); child.parentNode = this; return child; };
   return element;
+}
+
+{
+  const launcher = fakeElement();
+  const activations = [];
+  const context = { isFiniteAppSheetNumber(value) { return typeof value === 'number' && Number.isFinite(value); } };
+  vm.runInNewContext(controllerFunction('bindImmediateAppSheetLauncher') +
+    '\nthis.bind = bindImmediateAppSheetLauncher;', context);
+  context.bind(launcher, current => activations.push(current));
+  const pointer = {
+    pointerType: 'touch', isPrimary: true, button: 0, timeStamp: 100,
+    prevented: false, stopped: false,
+    preventDefault() { this.prevented = true; },
+    stopPropagation() { this.stopped = true; }
+  };
+  launcher.dispatch('pointerdown', pointer);
+  assert.equal(activations.length, 1, 'a primary touch press activates its sheet before compatibility click');
+  assert.equal(activations[0], launcher);
+  assert.equal(pointer.prevented, true);
+  assert.equal(pointer.stopped, true);
+
+  const compatibilityClick = {
+    detail: 1, timeStamp: 480, prevented: false, stopped: false,
+    preventDefault() { this.prevented = true; },
+    stopPropagation() { this.stopped = true; }
+  };
+  launcher.dispatch('click', compatibilityClick);
+  assert.equal(activations.length, 1, 'Samsung-style delayed compatibility click cannot open twice');
+  assert.equal(compatibilityClick.prevented, true);
+
+  launcher.dispatch('click', {
+    detail: 0, timeStamp: 500, preventDefault() {}, stopPropagation() {}
+  });
+  assert.equal(activations.length, 2, 'keyboard and assistive-technology click activation remains native');
+
+  launcher.dispatch('pointerdown', {
+    pointerType: 'mouse', isPrimary: true, button: 0, timeStamp: 600,
+    preventDefault() { throw new Error('mouse pointerdown was claimed'); }, stopPropagation() {}
+  });
+  assert.equal(activations.length, 2, 'mouse activation remains owned by native click ordering');
+  launcher.dispatch('click', {
+    detail: 1, timeStamp: 620, preventDefault() {}, stopPropagation() {}
+  });
+  assert.equal(activations.length, 3);
 }
 
 const controllerStart = bible.indexOf('/* APP SHEET CONTROLLER START */');
@@ -2525,14 +2574,20 @@ function assertLauncherClearedImmediately(launcher, message) {
   assert.equal(launcher.getAttribute('aria-expanded'), 'false', `${message} clears aria-expanded immediately`);
 }
 
-function assertPointerDismissedImmediately(launcher, message) {
-  assert.equal(api.state.phase, 'closed', `${message} completes without waiting for Back`);
-  assert.equal(dialog.open, false, `${message} releases the native modal immediately`);
+function assertPointerExitAnimating(launcher, message) {
+  assert.equal(api.state.phase, 'closing', `${message} retains its exit lifecycle`);
+  assert.equal(dialog.open, true, `${message} keeps a visible non-modal exit surface`);
+  assert.equal(dialog.modal, false, `${message} releases native modal hit testing immediately`);
+  assert.equal(api.state.exitDemoted, true, `${message} records non-modal exit ownership`);
+  assert.equal(dialog.inert, true, `${message} exit content is inert`);
+  assert.equal(dialog.getAttribute('aria-hidden'), 'true', `${message} exit content is hidden from accessibility APIs`);
+  assert.equal(dialog.classList.contains('is-exit-surface'), true, `${message} uses the fixed exit surface`);
+  assert.equal(dialog.classList.contains('is-closing'), true, `${message} retains the closing transition class`);
   assert.equal(launcher.classList.contains('active'), false, `${message} clears .active immediately`);
   assert.equal(launcher.getAttribute('aria-expanded'), 'false', `${message} clears aria-expanded immediately`);
-  assert.equal(api.state.historyTimer, null, `${message} leaves no input-blocking history timer`);
-  assert.equal(api.state.settleTimer, null, `${message} leaves no input-blocking animation timer`);
-  assert.equal(api.state.releaseOnHistoryReconcile, false, `${message} resets visible lifecycle ownership`);
+  assert.ok(api.state.historyTimer !== null || api.state.settleTimer !== null,
+    `${message} owns one visual-only completion timer`);
+  assert.equal(api.state.releaseOnHistoryReconcile, false, `${message} cannot finish early from history reconciliation`);
 }
 
 function finishUnownedAnimatedClose() {
@@ -2596,7 +2651,7 @@ openSettled('history', opener, { page: 'backdrop-close' });
 const backdropReturn = currentReturnPopState();
 const backdropFocusBaseline = opener.focusCount;
 dialog.dispatch('click', { target: dialog });
-assertPointerDismissedImmediately(opener, 'pointer backdrop click');
+assertPointerExitAnimating(opener, 'pointer backdrop click');
 assert.equal(opener.focusCount, backdropFocusBaseline, 'pointer backdrop close does not steal focus');
 const postBackdropPushes = historyCalls.push.length;
 const postBackdropReplaces = historyCalls.replace.length;
@@ -2653,11 +2708,9 @@ handle.dispatch('pointermove', {
 });
 assert.equal(api.state.gesture.viewportHeight, 800, 'release classification freezes the physical viewport height');
 handle.dispatch('pointerup', { pointerId: 911, clientY: 700, timeStamp: 120 });
-assertPointerDismissedImmediately(opener, 'drag release outcome');
-assert.equal(api.pop(dragReturn), true,
+assertPointerExitAnimating(opener, 'drag release outcome');
+finishHistoryOwnedAnimatedClose(dragReturn,
   'drag-close Back is consumed without falling through to verse-view navigation');
-assert.equal(api.state.phase, 'closed');
-assert.equal(dialog.open, false);
 
 openSettled('history', opener, { page: 'full-travel-close', edge: 'bottom' });
 api.state.determinedHeight = 224;
@@ -2670,7 +2723,7 @@ handle.dispatch('pointermove', {
   pointerId: 912, clientX: 20, clientY: 800, timeStamp: 101, preventDefault() {}
 });
 handle.dispatch('pointerup', { pointerId: 912, clientY: 800, timeStamp: 120 });
-assertPointerDismissedImmediately(opener, 'full-travel drag');
+assertPointerExitAnimating(opener, 'full-travel drag');
 assert.equal(opener.focusCount + viewInner.focusCount, fullTravelFocusBaseline,
   'pointer full-travel close preserves the non-focusing policy');
 const postFullTravelPushes = historyCalls.push.length;
@@ -2700,7 +2753,7 @@ handle.dispatch('pointermove', {
   pointerId: 913, clientX: 20, clientY: 180, timeStamp: 101, preventDefault() {}
 });
 handle.dispatch('pointerup', { pointerId: 913, clientY: 200, timeStamp: 120 });
-assertPointerDismissedImmediately(opener, 'threshold drag');
+assertPointerExitAnimating(opener, 'threshold drag');
 assert.equal(api.open('search', { opener: replacementOpener }), true,
   'one trusted launcher press fully opens after a threshold drag');
 assert.equal(dialog.open, true);
