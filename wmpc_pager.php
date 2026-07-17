@@ -654,7 +654,7 @@
       <a href="./mission.html"><img src="./resources/images/sidebar_mission.jpg" alt="Mission" loading="lazy" /></a>
       <a href="https://allworldmissionprayercenterinc-321.my.webex.com/meet/awmpc" target="_blank" rel="noopener"><img src="./resources/images/awmpc_webex_join_banner.png" alt="Join on Webex" loading="lazy" /></a>
       <a href="./hymns.html" class="quick-link-hymns quick-link-icon" aria-label="Hymns">🎤<span>Hymns<br>讚美詩</span></a>
-      <a href="./bible.html" class="quick-link-bible quick-link-icon" aria-label="Bible">📖<span>Bible<br>聖經</span></a>
+      <a href="./bible/" class="quick-link-bible quick-link-icon" aria-label="Bible">📖<span>Bible<br>聖經</span></a>
     </div>
   </div>
 
