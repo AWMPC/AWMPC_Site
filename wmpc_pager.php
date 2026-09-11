@@ -722,6 +722,9 @@
     <div class="footer-left">
       <a href="https://info.flagcounter.com/u2K3"><img src="https://s11.flagcounter.com/count2/u2K3/bg_FFFFFF/txt_000000/border_CCCCCC/columns_2/maxflags_10/viewers_0/labels_0/pageviews_0/flags_0/percent_0/" alt="Flag Counter" border="0" loading="lazy"></a>
       <script type="text/javascript" src="https://rf.revolvermaps.com/0/0/2.js?i=536ikush1dr&amp;m=7&amp;s=178&amp;c=ff0000&amp;t=1" async="async"></script>
+      <a href="#" onclick="window.open('https://seal.monarx.com/verify?website_id=f27272510e369936389b17fb1467b0833992b62a5c98771b8622f26b2250239e','Monarx','width=600,height=600,left=160,top=160');">
+        <img src="https://cdn.seal.monarx.com/image?website_id=f27272510e369936389b17fb1467b0833992b62a5c98771b8622f26b2250239e" alt="Monarx" title="Monarx" />
+      </a>
       <br>
       <small style="color:#5A4409;">&copy; awmpc.org</small>
     </div>
