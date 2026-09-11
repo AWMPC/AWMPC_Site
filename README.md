@@ -10,8 +10,8 @@ This preserves the same HTTP query-string behavior used by the remote site.
 bash ./static.sh
 ```
 
-PHP and curl must be installed. Set `AWMPC_STATIC_PORT` to use a different local
-port when needed.
+PHP and curl must be installed. The script tries loopback ports `8765` through
+`8785`; set `AWMPC_STATIC_PORT` to require a specific local port.
 
 ## PHP Stripe Library Install
     composer require stripe/stripe-php

@@ -4,9 +4,11 @@ set -euo pipefail
 
 siteDir="$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)"
 serverHost="127.0.0.1"
-serverPort="${AWMPC_STATIC_PORT:-8765}"
 tempDir="$(mktemp -d "${TMPDIR:-/tmp}/awmpc-static.XXXXXX")"
 serverPid=""
+serverPort=""
+serverUrl=""
+serverLog=""
 
 pages=(
   "mi_home:index.html"
@@ -23,11 +25,16 @@ pages=(
   "hymns:hymns.html"
 )
 
-cleanup() {
-  if [[ -n "$serverPid" ]] && kill -0 "$serverPid" 2>/dev/null; then
-    kill "$serverPid" 2>/dev/null || true
+stopServer() {
+  if [[ -n "$serverPid" ]]; then
+    kill -0 "$serverPid" 2>/dev/null && kill "$serverPid" 2>/dev/null || true
     wait "$serverPid" 2>/dev/null || true
+    serverPid=""
   fi
+}
+
+cleanup() {
+  stopServer
   rm -rf "$tempDir"
 }
 trap cleanup EXIT INT TERM
@@ -42,34 +49,64 @@ if ! command -v curl >/dev/null 2>&1; then
   exit 1
 fi
 
-if [[ ! "$serverPort" =~ ^[0-9]+$ ]] || (( 10#$serverPort < 1 || 10#$serverPort > 65535 )); then
-  echo "Error: AWMPC_STATIC_PORT must be a TCP port from 1 to 65535." >&2
+validatePort() {
+  [[ "$1" =~ ^[0-9]+$ ]] && (( 10#$1 >= 1 && 10#$1 <= 65535 ))
+}
+
+if [[ -n "${AWMPC_STATIC_PORT:-}" ]]; then
+  if ! validatePort "$AWMPC_STATIC_PORT"; then
+    echo "Error: AWMPC_STATIC_PORT must be a TCP port from 1 to 65535." >&2
+    exit 1
+  fi
+  candidatePorts=("$AWMPC_STATIC_PORT")
+else
+  candidatePorts=( {8765..8785} )
+fi
+
+startServer() {
+  local candidatePort="$1"
+  serverPort="$candidatePort"
+  serverUrl="http://${serverHost}:${serverPort}/wmpc_pager.php"
+  serverLog="$tempDir/php-server-${serverPort}.log"
+
+  (
+    cd "$siteDir"
+    exec php -S "${serverHost}:${serverPort}" -t "$siteDir"
+  ) >"$serverLog" 2>&1 &
+  serverPid=$!
+
+  for attempt in {1..50}; do
+    if ! kill -0 "$serverPid" 2>/dev/null; then
+      stopServer
+      return 1
+    fi
+    if curl --silent --fail --output /dev/null "${serverUrl}?page=mi_home"; then
+      return 0
+    fi
+    sleep 0.1
+  done
+
+  stopServer
+  return 1
+}
+
+serverStarted=false
+for candidatePort in "${candidatePorts[@]}"; do
+  if startServer "$candidatePort"; then
+    serverStarted=true
+    break
+  fi
+done
+
+if [[ "$serverStarted" != true ]]; then
+  echo "Error: local PHP server did not become ready." >&2
+  if [[ -n "$serverLog" ]] && [[ -f "$serverLog" ]]; then
+    sed -n '1,120p' "$serverLog" >&2
+  fi
   exit 1
 fi
 
-(
-  cd "$siteDir"
-  exec php -S "${serverHost}:${serverPort}" -t "$siteDir"
-) >"$tempDir/php-server.log" 2>&1 &
-serverPid=$!
-
-serverUrl="http://${serverHost}:${serverPort}/wmpc_pager.php"
-for attempt in {1..50}; do
-  if ! kill -0 "$serverPid" 2>/dev/null; then
-    echo "Error: local PHP server failed to start." >&2
-    sed -n '1,120p' "$tempDir/php-server.log" >&2
-    exit 1
-  fi
-  if curl --silent --show-error --fail --output /dev/null "${serverUrl}?page=mi_home"; then
-    break
-  fi
-  if [[ "$attempt" -eq 50 ]]; then
-    echo "Error: local PHP server did not become ready." >&2
-    sed -n '1,120p' "$tempDir/php-server.log" >&2
-    exit 1
-  fi
-  sleep 0.1
-done
+echo "Using local PHP server at ${serverUrl}"
 
 for page in "${pages[@]}"; do
   IFS=: read -r pageKey outputFile <<< "$page"
