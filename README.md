@@ -17,7 +17,5 @@ The generated `.html` files are deployment artifacts and must be uploaded or
 deployed after a successful run; editing `wmpc_pager.php` alone does not update
 the existing static pages.
 
-## PHP Stripe Library Install
-    composer require stripe/stripe-php
-
-Need to hardcode stripe secret key into create-donation-session.php to allow stripe flow.
+Stripe uses a browser-safe publishable key in the static donation page. Never put
+a Stripe secret key in this repository or in client-side code.
