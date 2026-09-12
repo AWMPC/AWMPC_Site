@@ -479,6 +479,7 @@
       backdrop-filter: var(--ds-blur);
       -webkit-backdrop-filter: var(--ds-blur);
       border-radius: var(--ds-radius-md);
+      overflow: hidden;
       box-shadow: var(--ds-shadow-lg);
       padding: 8px 0;
       min-width: 220px;
