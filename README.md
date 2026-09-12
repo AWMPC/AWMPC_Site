@@ -13,6 +13,10 @@ bash ./static.sh
 PHP and curl must be installed. The script tries loopback ports `8765` through
 `8785`; set `AWMPC_STATIC_PORT` to require a specific local port.
 
+The generated `.html` files are deployment artifacts and must be uploaded or
+deployed after a successful run; editing `wmpc_pager.php` alone does not update
+the existing static pages.
+
 ## PHP Stripe Library Install
     composer require stripe/stripe-php
 

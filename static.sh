@@ -114,6 +114,13 @@ for page in "${pages[@]}"; do
   curl --silent --show-error --fail --location \
     "${serverUrl}?page=${pageKey}" \
     --output "$tempOutput"
+
+  if [[ ! -s "$tempOutput" ]] || \
+    ! grep --fixed-strings --quiet '<footer class="site-footer">' "$tempOutput" || \
+    ! grep --fixed-strings --quiet 'https://cdn.seal.monarx.com/image?website_id=' "$tempOutput"; then
+    echo "Error: ${outputFile} did not contain the expected shared footer and Monarx seal." >&2
+    exit 1
+  fi
 done
 
 for page in "${pages[@]}"; do
