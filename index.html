@@ -1,0 +1,1937 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <title>All World Mission Prayer Center - 信望愛禱告中心</title>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="keywords" content="awmpc,wmpc,awmpc.org,All World Mission Prayer Center,World Mission Prayer Center,prayer,mission" />
+  <meta name="theme-color" content="#EDE3D5" id="metaThemeColor">
+  <meta name="color-scheme" content="light">
+  <link rel="preconnect" href="https://fonts.googleapis.com" crossorigin>
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=Roboto:wght@400;500;700&display=swap" media="print" onload="this.media='all'">
+  <style>
+    /* --- Design system tokens (default = Samsung One UI) --- */
+    :root {
+      /* Typography */
+      --ds-font: Arial, "Helvetica Neue", Helvetica, sans-serif;
+      /* Shape */
+      --ds-radius-sm: 16px;
+      --ds-radius-md: 26px;
+      --ds-radius-pill: 50px;
+      --ds-radius-card: 16px;
+      --ds-radius-btn: 50%;
+      /* Elevation */
+      --ds-shadow-sm: 0 1px 2px rgba(0,0,0,0.06), 0 4px 12px rgba(0,0,0,0.08);
+      --ds-shadow-md: 0 1px 3px rgba(0,0,0,0.08), 0 4px 12px rgba(0,0,0,0.10);
+      --ds-shadow-lg: 0 2px 8px rgba(0,0,0,0.08), 0 12px 40px rgba(0,0,0,0.18);
+      --ds-shadow-btn: 0 1px 3px rgba(0,0,0,0.08), 0 4px 12px rgba(0,0,0,0.10);
+      /* Material */
+      --ds-blur: blur(24px) saturate(1.8);
+      --ds-bar-bg: rgba(255,255,255,0.45);
+      --ds-bar-border: 1px solid rgba(255,255,255,0.55);
+      --ds-bar-shadow: 0 2px 8px rgba(0,0,0,0.06), 0 8px 24px rgba(0,0,0,0.10);
+      /* Motion */
+      --ds-transition: 0.35s cubic-bezier(0.22,0.61,0.36,1);
+      --ds-motion: 0.3s cubic-bezier(0.22,0.61,0.36,1);
+      /* Spacing */
+      --ds-gap: 10px;
+      --ds-padding-sm: 12px;
+      --ds-padding-md: 20px;
+      /* Colors — surfaces */
+      --ds-bg: #EDE3D5;
+      --ds-text: #212121;
+      --ds-text-secondary: #656565;
+      --ds-card-bg: #FFFFFF;
+      --ds-label-color: #5C6B7A;
+      --ds-border: 2px solid rgba(0,0,0,0.22);
+      --ds-divider: #999999;
+      --ds-link-bg: #E8ECF0;
+      /* Colors — accent & info bar */
+      --ds-accent: #CC0000;
+      --ds-info-bg: #CC0000;
+      --ds-info-text: #FFFFFF;
+      /* Colors — buttons */
+      --ds-btn-bg: #212121;
+      --ds-btn-hover: #333333;
+      --ds-btn-active: #444444;
+      /* Colors — FAB */
+      --ds-fab-bg: #FFFFFF;
+      --ds-fab-cross: #CC0000;
+      --ds-fab-open-ring: 0 0 0 2.5px rgba(204,0,0,0.3);
+      /* Colors — menu */
+      --ds-menu-text: #1a1a1a;
+      --ds-menu-hover: #f2f2f2;
+      --ds-menu-active-bg: rgba(204,0,0,0.08);
+      --ds-menu-active-text: #CC0000;
+      /* Colors — footer */
+      --ds-footer-text: #212121;
+      --ds-footer-link: #212121;
+      /* Colors — loader */
+      --ds-loader: #CC0000;
+      /* Colors — scrim */
+      --ds-scrim: rgba(0,0,0,0.42);
+    }
+
+    /* --- Reset & Base --- */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html {
+      overflow-x: hidden;
+    }
+    body {
+      background-color: var(--ds-bg);
+      color: var(--ds-text);
+      font-family: var(--ds-font);
+      font-size: 16px;
+      line-height: 1.5;
+      overflow-x: hidden;
+      overflow-wrap: break-word;
+      word-break: break-word;
+      transition: background-color 0.5s ease, color 0.5s ease;
+    }
+    img {                          /* global safety net for all images */
+      max-width: 100%;
+      height: auto;
+    }
+    table {                        /* force tables to respect viewport */
+      max-width: 100%;
+      width: 100%;
+      table-layout: fixed;
+    }
+    td, th {
+      overflow-wrap: break-word;
+      word-break: break-word;
+    }
+
+    /* --- Site shell: centered, fluid with max --- */
+    .site-wrap {
+      max-width: 1100px;
+      width: 100%;
+      margin: 0 auto;
+      padding: 0 12px;
+    }
+
+    /* --- Banner + info bar combined card --- */
+    .site-hero-card {
+      border-radius: var(--ds-radius-md);
+      margin: 12px 0;
+      box-shadow: var(--ds-shadow-md);
+      overflow: hidden;
+      background-color: #BDA58B;
+    }
+    .site-banner {
+      display: block;
+      padding: 12px;
+      text-decoration: none;
+    }
+    .site-banner img {
+      width: 100%;
+      height: auto;
+      display: block;
+    }
+    .site-top-bar {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      padding: 6px 12px 10px;
+    }
+
+    /* --- Info bar (service times) --- */
+    .site-info-bar {
+      display: flex;
+      align-items: stretch;
+      flex: 1;
+      min-width: 0;
+    }
+    .info-bar-text {
+      flex: 1;
+      min-width: 0;
+      overflow: hidden;
+      background: var(--ds-info-bg);
+      color: var(--ds-info-text);
+      text-align: center;
+      padding: 8px 16px;
+      font-size: 13px;
+      border-radius: var(--ds-radius-md);
+      box-shadow: var(--ds-shadow-md);
+      transition: background-color 0.5s ease, color 0.5s ease, box-shadow 0.5s ease, border-radius 0.4s ease;
+    }
+    .info-bar-scroll {
+      display: inline-block;
+      white-space: nowrap;
+    }
+
+    /* --- Bottom bar icon buttons --- */
+    .site-top-btn {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+      width: 42px;
+      height: 42px;
+      border-radius: var(--ds-radius-btn);
+      border: none;
+      background: var(--ds-btn-bg);
+      color: #fff;
+      cursor: pointer;
+      text-decoration: none;
+      box-shadow: var(--ds-shadow-btn);
+      transition: background-color 0.15s, box-shadow 0.5s ease, border-radius 0.4s ease;
+      -webkit-tap-highlight-color: transparent;
+    }
+    .site-top-btn:hover { background: var(--ds-btn-hover); }
+    .site-top-btn:active { background: var(--ds-btn-active); }
+    .site-top-btn img {
+      width: 20px;
+      height: 20px;
+      border-radius: 4px;
+      box-shadow: none;
+      margin: 0;
+    }
+    .site-top-btn svg {
+      display: block;
+    }
+
+    /* site-main-banner styles deprecated — replaced by single banner image */
+
+    /* --- Media defaults inside content --- */
+    .site-main img {
+      border-radius: var(--ds-radius-sm);
+      box-shadow: var(--ds-shadow-sm);
+      margin-bottom: 16px;
+    }
+    .site-main video {
+      border-radius: var(--ds-radius-sm);
+      box-shadow: var(--ds-shadow-sm);
+      margin-bottom: 16px;
+    }
+
+    /* --- Quick link image grid (One UI cards) --- */
+    .quick-links {
+      display: flex;
+      gap: var(--ds-gap);
+      padding: var(--ds-padding-sm) 0;
+      height: 120px;
+    }
+    .quick-links a {
+      display: block;
+      flex: 1 1 0;
+      min-width: 0;
+      height: 100%;
+      position: relative;
+      border-radius: var(--ds-radius-sm);
+      overflow: hidden;
+      background: var(--ds-link-bg);
+      border: var(--ds-border);
+      box-shadow: var(--ds-shadow-sm);
+      transition: box-shadow 0.3s, transform 0.2s, background-color 0.5s ease, border-color 0.5s ease, border-radius 0.4s ease;
+    }
+    .quick-links a:hover {
+      box-shadow:
+        0 2px 4px rgba(0,0,0,0.10),
+        0 8px 20px rgba(0,0,0,0.14);
+      transform: translateY(-2px);
+    }
+    .quick-links img {
+      width: 100%;
+      height: 100%;
+      object-fit: contain;
+      display: block;
+      border-radius: 0;
+      box-shadow: none;
+      margin-bottom: 0;
+      background: inherit;
+    }
+    .quick-links a::after {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(110deg, transparent 30%, rgba(255,255,255,0.35) 50%, transparent 70%);
+      background-size: 250% 100%;
+      animation: skeleton-shimmer 1.8s ease-in-out infinite;
+      pointer-events: none;
+      z-index: 1;
+      opacity: 1;
+      transition: opacity 0.3s ease;
+    }
+    .quick-links a.loaded::after {
+      opacity: 0;
+    }
+    @keyframes skeleton-shimmer {
+      0% { background-position: 200% 0; }
+      100% { background-position: -50% 0; }
+    }
+    .quick-link-icon {
+      display: flex !important;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      text-decoration: none;
+      background: #f7f5f0 !important;
+      font-size: 28px;
+      line-height: 1;
+      gap: 4px;
+    }
+    .quick-link-icon span {
+      font-size: 11px;
+      font-weight: 600;
+      color: #444;
+      text-align: center;
+      line-height: 1.3;
+    }
+    .quick-link-icon::after { display: none !important; }
+    /* webex-card styles deprecated — replaced by awmpc_webex_join_banner.png */
+    @media (max-width: 768px) {
+      .quick-links {
+        display: grid;
+        grid-template-columns: 1fr 1fr 1fr;
+        grid-template-rows: 1fr 1fr;
+        gap: 8px;
+        height: auto;
+      }
+      .quick-links a {
+        aspect-ratio: 16 / 9;
+      }
+    }
+
+    /* --- Section Cards --- */
+    .section-card {
+      background: var(--ds-card-bg);
+      border-radius: var(--ds-radius-card);
+      margin: 12px 0;
+      box-shadow: var(--ds-shadow-sm);
+      overflow: hidden;
+      transition: background-color 0.5s ease, box-shadow 0.5s ease, border-radius 0.4s ease;
+    }
+    .section-card-label {
+      display: block;
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--ds-label-color);
+      padding: 14px var(--ds-padding-md) 0;
+      letter-spacing: 0.02em;
+      transition: color 0.5s ease;
+    }
+    .section-card-body {
+      padding: var(--ds-padding-sm) var(--ds-padding-md) 16px;
+    }
+    .section-card .quick-links {
+      padding: var(--ds-padding-sm) 16px 16px;
+    }
+
+    /* --- Content area (single column) --- */
+    .site-content {
+      padding: 0;
+    }
+
+    /* Main content column */
+    .site-main {
+      min-width: 0;
+      overflow-wrap: break-word;
+      word-wrap: break-word;
+      padding: 4px var(--ds-padding-md) 16px;
+    }
+
+    /* --- SPA loading bar (One UI style) --- */
+    .spa-loader {
+      position: fixed;
+      top: 0;
+      left: 0;
+      height: 3px;
+      background: var(--ds-loader);
+      z-index: 99999;
+      width: 0%;
+      opacity: 0;
+      transition: none;
+    }
+    .spa-loader.loading {
+      opacity: 1;
+      width: 70%;
+      transition: width 1.2s cubic-bezier(0.22, 0.61, 0.36, 1);
+    }
+    .spa-loader.done {
+      width: 100%;
+      transition: width 0.15s ease-out;
+    }
+    .spa-loader.hide {
+      opacity: 0;
+      transition: opacity 0.3s ease-out;
+    }
+
+    /* SPA content fade transition */
+    .site-main {
+      transition: opacity 0.2s ease;
+    }
+    .site-main.fade-out {
+      opacity: 0;
+    }
+
+    /* --- Footer --- */
+    .site-footer-divider { border: 0; border-top: 1px solid var(--ds-divider); margin: 16px 0; transition: border-color 0.5s ease; }
+    .site-footer {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: space-between;
+      gap: 16px;
+      padding: 12px 0 24px;
+      font-size: 13px;
+      color: var(--ds-footer-text);
+      transition: color 0.5s ease;
+    }
+    .site-footer a { color: var(--ds-footer-link); transition: color 0.5s ease; }
+    .footer-left   { flex: 1; min-width: 160px; }
+    .footer-center { flex: 2; min-width: 200px; text-align: center; font-size: 15px; }
+    .footer-right  { flex: 1; min-width: 200px; text-align: right; }
+    .footer-right a { display: block; margin-bottom: 2px; }
+
+    /* --- FAB (Floating Action Button) --- */
+    .fab-scrim {
+      position: fixed;
+      inset: 0;
+      background: var(--ds-scrim);
+      z-index: 9998;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.25s cubic-bezier(0.33, 0, 0.67, 1);
+      -webkit-tap-highlight-color: transparent;
+    }
+    .fab-scrim.open {
+      opacity: 1;
+      pointer-events: auto;
+    }
+
+    .fab-btn {
+      flex-shrink: 0;
+      width: 42px;
+      height: 42px;
+      border-radius: var(--ds-radius-btn);
+      border: none;
+      background: var(--ds-fab-bg);
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: var(--ds-shadow-btn);
+      transition:
+        box-shadow var(--ds-transition),
+        background-color 0.5s ease,
+        border-radius 0.4s ease;
+      -webkit-tap-highlight-color: transparent;
+      outline: none;
+    }
+    .fab-btn:hover {
+      box-shadow:
+        0 2px 6px rgba(0,0,0,0.14),
+        0 8px 20px rgba(0,0,0,0.16);
+    }
+    .fab-btn:active {
+      background: var(--ds-menu-hover);
+    }
+    .fab-btn.open {
+      box-shadow: var(--ds-shadow-btn), var(--ds-fab-open-ring);
+    }
+    .fab-btn.open:active {
+      background: var(--ds-menu-hover);
+    }
+
+    /* Latin cross icon */
+    .fab-icon {
+      width: 20px;
+      height: 24px;
+      position: relative;
+      transition: transform 0.35s cubic-bezier(0.22, 0.61, 0.36, 1);
+    }
+    .fab-btn.open .fab-icon {
+      transform: scale(1.22);
+    }
+    .fab-icon::before,
+    .fab-icon::after {
+      content: '';
+      position: absolute;
+      background: var(--ds-fab-cross);
+      transition: background-color 0.5s ease;
+    }
+    /* Vertical bar — full height */
+    .fab-icon::before {
+      width: 4px;
+      height: 100%;
+      left: 50%;
+      top: 0;
+      transform: translateX(-50%);
+    }
+    /* Horizontal bar — positioned slightly below upper third */
+    .fab-icon::after {
+      width: 16px;
+      height: 4px;
+      top: 36%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+    }
+
+    /* Expanded menu sheet */
+    .fab-menu {
+      position: fixed;
+      bottom: calc(58px + env(safe-area-inset-bottom, 0px));
+      right: 12px;
+      z-index: 9999;
+      background: rgba(255,255,255,0.72);
+      backdrop-filter: var(--ds-blur);
+      -webkit-backdrop-filter: var(--ds-blur);
+      border-radius: var(--ds-radius-md);
+      overflow: hidden;
+      box-shadow: var(--ds-shadow-lg);
+      padding: 8px 0;
+      min-width: 220px;
+      max-height: calc(100dvh - 140px);
+      transform: translateY(16px) scale(0.92);
+      opacity: 0;
+      pointer-events: none;
+      transform-origin: bottom right;
+      transition:
+        transform var(--ds-motion),
+        opacity 0.25s cubic-bezier(0.33, 0, 0.67, 1),
+        background-color 0.5s ease;
+    }
+    .fab-menu-scroll {
+      overflow-y: auto;
+      overscroll-behavior: contain;
+      max-height: inherit;
+    }
+    .fab-menu.open {
+      transform: translateY(0) scale(1);
+      opacity: 1;
+      pointer-events: auto;
+    }
+
+    /* Scrollbar styling inside sheet */
+    .fab-menu-scroll::-webkit-scrollbar { width: 4px; }
+    .fab-menu-scroll::-webkit-scrollbar-track { background: transparent; }
+    .fab-menu-scroll::-webkit-scrollbar-thumb { background: #ccc; border-radius: 4px; }
+
+    /* Menu items */
+    .fab-menu-item {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      padding: 12px 24px;
+      text-decoration: none;
+      color: var(--ds-menu-text);
+      font-size: 15px;
+      font-weight: 500;
+      line-height: 1.35;
+      transition: background 0.15s, color 0.5s ease;
+      -webkit-tap-highlight-color: transparent;
+      /* Staggered entry */
+      opacity: 0;
+      transform: translateY(8px);
+    }
+    .fab-menu-item:hover {
+      background: var(--ds-menu-hover);
+    }
+    .fab-menu-item:active {
+      background: var(--ds-menu-hover);
+    }
+    .fab-menu.open .fab-menu-item {
+      opacity: 1;
+      transform: translateY(0);
+      transition:
+        background 0.15s,
+        opacity 0.25s cubic-bezier(0.22, 0.61, 0.36, 1),
+        transform 0.3s cubic-bezier(0.22, 0.61, 0.36, 1);
+    }
+    .fab-menu-item .fab-item-zh {
+      font-size: 13px;
+      color: var(--ds-text-secondary);
+      font-weight: 400;
+      margin-left: auto;
+      padding-left: 12px;
+      white-space: nowrap;
+    }
+    .fab-menu-item.fab-active {
+      background: var(--ds-menu-active-bg);
+      color: var(--ds-menu-active-text);
+      font-weight: 600;
+    }
+    .fab-menu-item.fab-active .fab-item-zh {
+      color: var(--ds-menu-active-text);
+    }
+    .fab-menu-item.fab-bible {
+      background: #f0f2f5;
+      border-top: 1px solid #e0e0e0;
+      margin-top: 4px;
+    }
+    .fab-menu-item.fab-bible:hover {
+      background: #e4e6ea;
+    }
+
+
+    /* --- Responsive --- */
+    @media (max-width: 768px) {
+      .info-bar-text { font-size: 13px; }
+      table { table-layout: auto; }
+      td, th { width: auto !important; }
+      .site-footer {
+        flex-direction: column;
+        text-align: center;
+      }
+      .footer-left, .footer-center, .footer-right { text-align: center; }
+    }
+
+    /* --- Bottom sheet for small screens --- */
+    @media (max-width: 600px) {
+      .fab-menu {
+        bottom: 0;
+        right: 0;
+        left: 0;
+        border-radius: var(--ds-radius-md) var(--ds-radius-md) 0 0;
+        min-width: unset;
+        max-height: 70dvh;
+        transform: translateY(100%);
+        transform-origin: bottom center;
+        padding: 8px 16px;
+        padding-bottom: calc(16px + env(safe-area-inset-bottom, 0px));
+      }
+      .fab-menu-scroll {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 2px;
+        max-height: calc(70dvh - 80px);
+      }
+      .fab-menu::before {
+        content: '';
+        display: block;
+        width: 40px;
+        height: 4px;
+        background: #ccc;
+        border-radius: 2px;
+        margin: 4px auto 8px;
+      }
+      .fab-menu.open {
+        transform: translateY(0);
+      }
+      .fab-menu-item {
+        padding: 10px 14px;
+        font-size: 14px;
+        border-radius: 12px;
+        gap: 8px;
+      }
+      .fab-menu-item .fab-item-zh {
+        font-size: 11px;
+        padding-left: 4px;
+      }
+    }
+
+    /* Samsung One UI is the only design system (tokens in :root) */
+  </style>
+</head>
+
+<body>
+
+<div class="site-wrap">
+
+  <!-- Banner + info bar card -->
+  <div class="site-hero-card">
+    <a href="./index.html" class="site-banner">
+      <img src="./resources/images/banners/wmpc_topbanner_transparent.png" alt="All World Mission Prayer Center" />
+    </a>
+    <div class="site-top-bar">
+      <div class="site-info-bar">
+        <div class="info-bar-text">
+          <span class="info-bar-scroll">全年無休 | 晨禱禮拜：6:30am - 8:00am | 晚禱禮拜：8:00pm - 9:00pm | 主日崇拜 周日：10:00am 開始</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Quick links grid -->
+  <div class="section-card">
+    <span class="section-card-label">Site Links</span>
+    <div class="quick-links">
+      <a href="./24hrhop.html"><img src="./resources/images/banners/awmpc_banner_2026_03_05.webp" alt="Church Building" loading="lazy" /></a>
+      <a href="./prayer.html"><img src="./resources/images/sidebar/adwindow_prayermeeting.jpg" alt="Prayer Meeting" loading="lazy" /></a>
+      <a href="./sermons.html"><img src="./resources/images/sidebar/adwindow_dailysermon.jpg" alt="Daily Sermon" loading="lazy" /></a>
+      <a href="./request.html"><img src="./resources/images/sidebar/adwindow_prayerrequest.jpg" alt="Prayer Request" loading="lazy" /></a>
+      <a href="./mission.html"><img src="./resources/images/sidebar_mission.jpg" alt="Mission" loading="lazy" /></a>
+      <a href="https://allworldmissionprayercenterinc-321.my.webex.com/meet/awmpc" target="_blank" rel="noopener"><img src="./resources/images/awmpc_webex_join_banner.png" alt="Join on Webex" loading="lazy" /></a>
+      <a href="./hymns.html" class="quick-link-hymns quick-link-icon" aria-label="Hymns">🎤<span>Hymns<br>讚美詩</span></a>
+      <a href="./bible/" class="quick-link-bible quick-link-icon" aria-label="Bible">📖<span>Bible<br>聖經</span></a>
+    </div>
+  </div>
+
+  <!-- Page content -->
+    <div class="section-card" id="contentCard">
+    <span class="section-card-label" id="contentCardLabel">Homepage</span>
+
+    <main class="site-main">
+
+      <style type="text/css">
+		.style5 { font-size: 24px }
+		.style7 { font-size: 28px; color: #FF0000; }
+		.style8 { font-size: 24 }
+		.style9 { font-size: 18px }
+		.style10 { font-size: 20px; color: #FF0000; text-align: center; }
+
+		/* --- Carousel (One UI) --- */
+		.carousel {
+			position: relative;
+			width: 100%;
+			margin: 16px 0;
+			overflow: hidden;
+			border-radius: 16px;
+			background: #000;
+			touch-action: pan-y;
+			-webkit-user-select: none;
+			user-select: none;
+			box-shadow:
+				0 1px 3px rgba(0,0,0,0.08),
+				0 4px 12px rgba(0,0,0,0.10);
+		}
+		.carousel-track {
+			display: flex;
+			transition: transform 0.45s ease-in-out;
+			will-change: transform;
+		}
+		.carousel-track.no-transition {
+			transition: none;
+		}
+		.carousel-slide {
+			min-width: 100%;
+			display: flex;
+			align-items: center;
+			justify-content: center;
+		}
+		.carousel-slide img {
+			width: 100%;
+			height: auto;
+			max-height: 600px;
+			object-fit: contain;
+			display: block;
+		}
+		.carousel-btn {
+			position: absolute;
+			top: 50%;
+			transform: translateY(-50%);
+			background: rgba(0,0,0,0.35);
+			color: #fff;
+			border: none;
+			font-size: 24px;
+			line-height: 1;
+			padding: 14px 12px;
+			cursor: pointer;
+			z-index: 2;
+			border-radius: 50%;
+			width: 48px;
+			height: 48px;
+			display: flex;
+			align-items: center;
+			justify-content: center;
+			transition: background 0.2s;
+			-webkit-tap-highlight-color: transparent;
+		}
+		.carousel-btn:hover { background: rgba(0,0,0,0.55); }
+		.carousel-btn:active { background: rgba(0,0,0,0.65); }
+		.carousel-btn.prev { left: 12px; }
+		.carousel-btn.next { right: 12px; }
+		.carousel-dots {
+			position: absolute;
+			bottom: 14px;
+			left: 50%;
+			transform: translateX(-50%);
+			display: flex;
+			gap: 8px;
+			z-index: 2;
+		}
+		.carousel-dot {
+			width: 8px;
+			height: 8px;
+			border-radius: 4px;
+			background: rgba(255,255,255,0.4);
+			border: none;
+			cursor: pointer;
+			padding: 0;
+			transition: background 0.25s, width 0.25s cubic-bezier(0.22, 0.61, 0.36, 1);
+		}
+		.carousel-dot.active {
+			background: #fff;
+			width: 20px;
+		}
+		.carousel-counter {
+			position: absolute;
+			top: 14px;
+			right: 14px;
+			background: rgba(0,0,0,0.35);
+			color: #fff;
+			font-size: 12px;
+			font-weight: 500;
+			padding: 4px 12px;
+			border-radius: 16px;
+			z-index: 2;
+		}
+		.carousel-progress {
+			position: absolute;
+			bottom: 0;
+			left: 0;
+			height: 3px;
+			background: rgba(255,255,255,0.85);
+			z-index: 3;
+			width: 0%;
+			transition: none;
+			border-radius: 0 2px 2px 0;
+		}
+		.carousel-playpause {
+			position: absolute;
+			top: 14px;
+			left: 14px;
+			background: rgba(0,0,0,0.35);
+			color: #fff;
+			border: none;
+			font-size: 14px;
+			line-height: 1;
+			padding: 6px 10px;
+			cursor: pointer;
+			z-index: 2;
+			border-radius: 16px;
+			transition: background 0.2s;
+			-webkit-tap-highlight-color: transparent;
+		}
+		.carousel-playpause:hover { background: rgba(0,0,0,0.55); }
+		.carousel-playpause:active { background: rgba(0,0,0,0.65); }
+		.carousel img {
+			border-radius: 0 !important;
+			box-shadow: none !important;
+			margin-bottom: 0 !important;
+		}
+		@media (max-width: 600px) {
+			.carousel-btn { width: 40px; height: 40px; font-size: 18px; }
+			.carousel-slide img { max-height: 350px; }
+		}
+
+</style>
+
+	<!-- Hero image -->
+	<img src="./resources/images/christian_tribune_newsclip.jpg" alt="Christian Tribune Newsclip 2007-06" style="width:100%; max-width:100%; border-radius:16px; margin:16px 0 0;" decoding="async"/>
+
+	<!-- Photo Carousel -->
+	<div class="carousel" id="photoCarousel">
+		<div class="carousel-track" id="carouselTrack">
+			<div class="carousel-slide"><img src="./resources/images/proof_of_servitude_jan_03_2022_01.jpg" alt="Proof of servitude document 1, January 2022" decoding="async"/></div>
+			<div class="carousel-slide"><img src="./resources/images/proof_of_servitude_jan_03_2022_02.jpg" alt="Proof of servitude document 2, January 2022" decoding="async"/></div>
+			<div class="carousel-slide"><img src="./resources/images/proof_of_servitude_jan_03_2022_03.jpg" alt="Proof of servitude document 3, January 2022" decoding="async"/></div>
+			<div class="carousel-slide"><img src="./resources/images/proof_of_servitude_jan_03_2022_04.jpg" alt="Proof of servitude document 4, January 2022" decoding="async"/></div>
+			<div class="carousel-slide"><img src="./resources/images/proof_of_servitude_jan_03_2022_05.jpg" alt="Proof of servitude document 5, January 2022" decoding="async"/></div>
+			<div class="carousel-slide"><img src="./resources/images/Pastor_Lee_Solo_Picture_2022_11_19.jpeg" alt="Pastor Lee, November 19 2022" decoding="async"/></div>
+			<div class="carousel-slide"><img src="./resources/images/thanksgiving_2021/thanksgiving_2021_02.jpeg" alt="Thanksgiving 2021 celebration photo 1" decoding="async"/></div>
+			<div class="carousel-slide"><img src="./resources/images/thanksgiving_2021/thanksgiving_2021_03.jpeg" alt="Thanksgiving 2021 celebration photo 2" decoding="async"/></div>
+			<div class="carousel-slide"><img src="./resources/images/thanksgiving_2021/thanksgiving_2021_04.jpeg" alt="Thanksgiving 2021 celebration photo 3" decoding="async"/></div>
+		</div>
+		<button class="carousel-btn prev" aria-label="Previous slide">&#10094;</button>
+		<button class="carousel-btn next" aria-label="Next slide">&#10095;</button>
+		<div class="carousel-counter"><span id="carouselCurrent">1</span> / <span id="carouselTotal">9</span></div>
+		<button class="carousel-playpause" id="carouselPlayPause" aria-label="Pause slideshow">&#9646;&#9646;</button>
+		<div class="carousel-dots" id="carouselDots"></div>
+		<div class="carousel-progress" id="carouselProgress"></div>
+	</div>
+
+	<!-- Videos -->
+	<div>
+		<video controls style="width:100%; max-width:100%;" preload="metadata">
+			<source src="./resources/videos/2006_conference_01_intro.mp4" type="video/mp4">
+		</video>
+		<video controls style="width:100%; max-width:100%;" preload="metadata">
+			<source src="./resources/videos/2006_conference_02_preach.mp4" type="video/mp4">
+		</video>
+		<video controls style="width:100%; max-width:100%;" preload="metadata">
+			<source src="./resources/videos/2006_conference_03_healing.mp4" type="video/mp4">
+		</video>
+	</div>
+
+	<p style="padding: 3px; font-size:21px;">
+		感謝讃美我們的大能和信實的神。我們已經在 1189 S De Anza 建堂。感恩所有支持我們的人。
+		歡迎你們來到主的殿，親近主，呼求禱告，抵擋魔鬼一切在你和家人任何一方面的攻擊。得勝，榮耀歸主名。
+	</p>
+
+	<hr>
+
+
+	<p><span style="font-size:26px;">November 19, 2022</span></p>
+	<p>
+		<img src="./resources/images/Pastor_Lee_Solo_Picture_2022_11_19.jpeg" alt="Pastor Lee, November 19 2022" style="width: 100%; max-width: 100%; padding: 3px;" loading="lazy" decoding="async"/>
+		<br>
+		<br>Dear Brothers and Sisters,
+		<br>
+		<br>Happy Thanksgiving!!!
+		<br>Thanks to our God who does great work via answering HIS children prayers!!!!
+		<br>It is HIS miracle that we are still here at 1189 S De Anza, worshiping and praying every morning and evening today.
+		<br>Serving God children in distresses and sickness.
+		<br>
+		<br>We are thankful for all God's precious children' support either in prayers or donation!!!
+		<br>
+		<br>We need to raise $70k to close the year for AWMPC 信望愛禱告中心 Operation Funds to finish 2022.
+		<br>
+		<br>Would you join us in fervent prayers and/or have consideration for donation?
+		<br>
+		<br>All the best from above,
+		<br>AWMPC
+		<br>Pastor Paul Lee
+		<br>
+		<br>
+		<br>親愛的主內弟兄姊妹，
+		<br>
+		<br>感恩節快樂！！！
+		<br>
+		<br>我們經歷了又一年非常艱難的一年，感謝天父眷顧和垂聽了許多的禱告。我們今日能夠在這禱告的殿每天敬拜呼求禱告神，服事神寶貴的孩子們就是神的大能的神蹟。
+		<br>
+		<br>非常感謝主的寶貴的兒女犧牲的禱告和金錢的奉獻。
+		<br>
+		<br>我們在迫切的禱告神差祂所神祝福和預備的人參與禱告和或奉獻幫助我們完成年底前$70k 常費需要。
+		<br>
+		<br>你願意參與嗎？
+		<br>
+		<br>信望愛禱告中心
+		<br>李宇珍牧師
+		<br>2022 感恩節
+	</p>
+
+	<p><span style="font-size:26px;">September 05, 2022</span></p>
+	<p>
+		李宇珍牧師邀請你們一起參加下星期一到星期日七天爭戰。
+		<br>
+		“又對門徒說：「聽從你們的就是聽從我；棄絕你們的就是棄絕我；棄絕我的就是棄絕那差我來的。」
+		<br>
+		那七十個人歡歡喜喜地回來，說：「主啊！因你的名，就是鬼也服了我們。」
+		<br>
+		耶穌對他們說：「我曾看見撒但從天上墜落，像閃電一樣。 我已經給你們權柄可以踐踏蛇和蠍子，
+		<br>
+		又勝過仇敵一切的能力，斷沒有甚麼能害你們。 然而，不要因鬼服了你們就歡喜，要因你們的名記錄在天上歡喜。」”
+		<br>
+		路加福音 10:16-20 CUNP-神
+		<br>
+		https://bible.com/bible/46/luk.10.16-20.CUNP-神
+		<br><br>
+		AWMPC, it is time to pray, to focus and fight,
+		<br>
+		praying for success against all of our problems fearlessly.
+		<br><br>
+		Every Evening from 8:00PM to 9:00PM!
+		<br>
+		Monday to Saturday 6:30AM, and Sunday at 10:00AM!
+		<br><br>
+		1189 S De Anza Blvd, San Jose, CA 95129
+		<br><br>
+		Join us via Cisco Webex!
+		<br><br>
+		https://allworldmissionprayercenterinc-321.my.webex.com/meet/awmpc
+		<br><br>
+		Facebook Promo Video!
+		<br>
+		https://www.facebook.com/diana.ding.121/videos/444702220918126/
+		<br><br>
+		God Bless,
+		<br>
+		- AWMPC
+	</p>
+
+	<hr>
+
+	<p><span style="font-size:26px;">July 31, 2022</span></p>
+	<p>
+		好消息！！！
+		<br>我們的好天父應允了我們的21 天爭戰禱告。信望愛中心的重貸完成了。感謝讃美聽祂的兒女呼求大能信實好天父!!!全能的神帶領我們得勝了逃避了埃及追兵一樣兇猛追殺，走過紅海一樣不可能的道路。
+		<br>李宇珍牧師呼籲主的兒女們為自己或家人打一場勝仗，一起參與我們下一個星一開始的七天爭戰禱告 6:30am, 8 pm. ( 李牧師更希望我們介紹你身邊有需要的人一同參與）
+		<br><br>
+		我們所信的那位主，是活著的神！
+		<br><br>
+		GREAT NEWS!
+		<br>Our GOOD Father God has answered our 21 days focus fighting prayers. AWMPC loan has been completely done!
+		<br>PRAISES and THANKS to our FAITHFUL and GOOD GOD the heavenly FATHER!
+		<br>Our almighty God the Father has led us to overcome the strong and violent attacks, like that of the pharaoh's army,
+		<br>walking us through the impossible road, like that of the Red Sea in Exodus.
+		<br><br>
+		Pastor Lee invites you to join 7 Days JERICHO Focus Prayer starting next Monday 6:30am and 8pm.
+		<br>Let us have a GOOD and VICTORIOUS spiritual fight against each of our biggest life issues.
+		<br><br>
+		Pastor Lee hopes that you would introduce those around you, who are in distress or sickness, to join in too.
+		<br><br>
+		Our GOD lives!
+		<br><br>
+		“洪水泛濫之時，耶和華坐着為王； 耶和華坐着為王，直到永遠。 耶和華必賜力量給他的百姓； 耶和華必賜平安的福給他的百姓。”
+		<br>詩篇 29:10-11 CUNP-神
+		<br><br>
+		“The Lord sits enthroned over the flood; the Lord is enthroned as King forever. The Lord gives strength to his people; the Lord blesses his people with peace.”
+		<br>Psalms 29:10-11 NIV
+	</p>
+
+	<hr>
+
+	<p><span style="font-size:26px;">June 27, 2022</span></p>
+	<p>
+		親愛的主內弟兄姊妹們，
+		<br>
+		信望愛禱告中心李宇珍牧師切盼你們與我們同心合意參加 7/1/2022 開始。每天 6:30 am and/or 8:00 pm
+		<br><br>
+		- 最後一場的 21 天為重貸款最後的成功爭戰禱告。
+		<br><br>
+		1. 順利籌募到 closing cost, loan fees, etc.
+		<br>
+		2. Loan closing 順利
+		<br><br>
+		- 同時也為你自己的一個山一樣大的問題禱告。親生經歷活著的基督耶穌。
+		<br><br>
+		- 同時李牧師用聖經與我們分享神應允禱告的前提條件和合神旨意的禱告，並現今流行的錯誤禱告不蒙應允的原因。
+		<br><br>
+		感謝讚美我們的全能信實主神，自上次的7 天爭戰至今，在許多攔阻，攻擊和波折下，在主的身經百戰忠僕帶領下爭戰禱告，終於看到神拯救的手使我們滿足了銀行大部分要求。在利率不斷上升成功 locked rate too.
+		<br><br>
+		此服事世界華人的禱告和訓練中心事關主旨成就，你們的參與必討主的喜悅和記念並蒙福。
+		<br><br>
+		38「你每天所要獻在壇上的就是兩隻一歲的羊羔； 39早晨要獻這一隻，黃昏的時候要獻那一隻。 40和這一隻羊羔同獻的，要用細麵伊法十分之一與搗成的油一欣四分之一調和，又用酒一欣四分之一作為奠祭。 41那一隻羊羔要在黃昏的時候獻上，照着早晨的素祭和奠祭的禮辦理，作為獻給耶和華馨香的火祭。 42這要在耶和華面前、會幕門口，作你們世世代代常獻的燔祭。我要在那裏與你們相會，和你們說話。 43我要在那裏與以色列人相會，會幕就要因我的榮耀成為聖。 44我要使會幕和壇成聖，也要使亞倫和他的兒子成聖，給我供祭司的職分。 45我要住在以色列人中間，作他們的神。 46他們必知道我是耶和華－他們的神，是將他們從埃及地領出來的，為要住在他們中間。我是耶和華－他們的神。」
+		<br>
+		- 出埃及記 29 ：38-46
+		<br><br>
+		Dear Brothers & Sisters in Christ,
+		<br><br>
+		Pastor Lee of AWMPC genuinely looks forward to your joining us on 7/1/2022, praying daily at 6:30 am and/or 8:00 pm.
+		<br><br>
+		- Join us for the last 21 Days of Prayer for the final Successful battle of refinancing.
+		<br><br>
+		1. To swiftly raise for the closing cost, loan fees, and more.
+		<br>
+		2. For the Loan closing to go well.
+		<br><br>
+		- Additionally, pray for your mountains and hurdles, experiencing the true living Christ Jesus.
+		<br><br>
+		- During this time, Pastor Lee will use the Bible to share with us the requirements for God to answer prayers; prayers in line with God's will, and the reasons why commonly made prayers are not answered.
+		<br><br>
+		Thank God and Praise our Almighty and Faithful Lord God. Ever since the previous 7-day Prayer War, we have been fighting and praying under the leadership of the Lord's faithful servants through many obstacles, attacks, and twists and turns, finally seeing God's hand of salvation satisfy us. Most of the banks requirements have been met, including a successfully locked rate as well.
+		<br><br>
+		This prayer center serves The Lord in desperate times. Your participation will be pleasing to God, remember this and be Blessed.
+		<br><br>
+		"This is what you are to offer on the altar regularly each day: two lambs a year old. Offer one in the morning and the other at twilight. With the first lamb offer a tenth of an ephah of fine flour mixed with a quarter of a hin of oil from pressed olives, and a quarter of a hin of wine as a drink offering. Sacrifice the other lamb at twilight with the same grain offering and its drink offering as in the morning--a pleasing aroma, an offering made to the Lord by fire. For the generations to come this burnt offering is to be made regularly at the entrance to the Tent of Meeting before the Lord. There I will meet you and speak to you; there also I will meet with the Israelites, and the place will be consecrated by my glory. So I will consecrate the Tent of Meeting and the altar and will consecrate Aaron and his sons to serve me as priests. Then I will dwell among the Israelites and be their God. They will know that I am the LORD their God, who brought them out of Egypt so that I might dwell among them. I am the LORD their God."
+		<br>
+		- Exodus 29:38-46
+		<br><br>
+		Join us In Person at:
+		<br>
+		1189 S De Anza Blvd San Jose, CA 95129
+		<br><br>
+		Or join us on Cisco Webex:
+		<br>
+		https://allworldmissionprayercenterinc-321.my.webex.com/meet/awmpc
+		<br><br>
+		God Bless,
+		<br>
+		- AWMPC
+	</p>
+
+	<hr>
+
+	<p><span style="font-size:26px;">June 7, 2022</span></p>
+	<p>
+		親愛的主內弟兄姊妹們，
+		<br>
+		信望愛禱告中心李宇珍牧師邀請你們下星期一到星期日每天早上六點半到八點半，或晚上八點到九點的耶利哥城（約書亞6）
+		<br>
+		七天爭戰。
+		<br>
+		這次是重點為禱告中心重貸的最後成功爭戰。
+		<br>
+		“惟求耶和華－我的神垂顧僕人的禱告祈求，俯聽僕人在你面前的祈禱呼籲。 願你晝夜看顧這殿，就是你應許立為你名的居所；求你垂聽僕人向此處禱告的話。 你僕人和你民以色列向此處祈禱的時候，求你從天上你的居所垂聽，垂聽而赦免。”
+		<br>
+		歷代志下 6:19-21 CUNP-神
+		<br>
+		<br>
+		Dear Brothers and Sisters in Christ,
+		<br>
+		<br>
+		Pastor Lee sincerely invites you to join us in 7 Days of Focused Prayer for the Building Refinancing's Final Success! We all have a part in God's work!
+		<br>
+		<br>
+		“Yet, Lord my God, give attention to your servant’s prayer and his plea for mercy. Hear the cry and the prayer that your servant is praying in your presence. May your eyes be open toward this temple day and night, this place of which you said you would put your Name there. May you hear the prayer your servant prays toward this place. Hear the supplications of your servant and of your people Israel when they pray toward this place. Hear from heaven, your dwelling place; and when you hear, forgive.”
+		2 Chronicles 6:19-21 NIV
+		<br>
+		<br>
+		God Bless,
+		<br>
+		- AWMPC
+	</p>
+
+	<hr>
+
+	<p><span style="font-size:26px;">May 17, 2022</span></p>
+	<p>
+		Dear Brothers and Sisters in Christ,
+		<br>
+		<br>
+		Faith Hope Love Prayer Center's Urgent Prayer:
+		<br>
+		<br>
+		Remember in your daily prayers, that our loan refinancing has been successfully completed!!!
+		<br>
+		<br>
+		We are very thankful to the Lord! The great hand of God has built a new prayer and training center at 1189 S De Anza during the pandemic on 7/24/2020.
+		<br>
+		This happened under extremely difficult circumstances on all sides. Pastor Lee obeys the Lord's command to choose this specific property and keep hold of it at all costs as the Lord's sanctuary.
+		<br>
+		While many have said that it is a Mission Impossible, especially during these tough times and pandemic period, our God proves himself as the Mighty One.
+		<br>
+		<br>
+		Pastor Lee has led us in prayers in 100% faith towards God, praying day and night, night and day.
+		<br>
+		It is through the Lord's mighty hand and deep loving heart, that we are serving our Heavenly Father's children and those in need every single day.
+		<br>
+		We have eyewitnesses And testimonies that God's power has manifested among children of faith and obedience.
+		<br>
+		We have witnessed lives changed, sicknesses healed, issues resolved, and individuals being trained as God's prayer warriors.
+		<br>
+		<br>
+		Due to the faith in the Lord and the wholehearted giving from many hands, we have been able to pay for the extremely high interest loans for nearly two years.
+		<br>
+		We are even more grateful that the loan due on 8/1/22 is expected to be refinanced, and has entered the final moment. God is leading us into this opportunity.
+		<br>
+		<br>
+		Join us in fervent prayer to our Lord at this very important juncture for our prayer center, that all loan conditions required are to be completed successfully.
+		<br>
+		We are looking forward to sharing the blessings in this precious work of the Lord.
+		<br>
+		Through this, you will have a significant life experience, testifying of how the Mighty God lead His children across the Red Sea.
+		<br>
+		A Mission Impossible is now a Mission Possible, all because of our Mighty One and Our Creator, God!!!! Alleluia Always!!!
+		<br>
+		<br>
+		信望愛禱告中心緊急禱告呼籲
+		<br>
+		期盼大家每天禱告中記念我們貸款重貸順利完成！！！
+		<br>
+		<br>
+		親愛的主內弟兄姊妹們，
+		<br>
+		我們非常感謝主！神的大能手在7/24/2020 疫情並在各方極奇难難的環境下，在1189 S De Anza 建立了新的禱告聖殿。李牧師遵從主命，早晚呼求禱告主，100% 依靠主的奇妙的供應，並聖徒的犧牲的奉獻。在眾說不可能的情況下，聖殿每天服事天父的兒女和有需要的人。我們見证了，祂的能力在信從的兒女身上彰顯。
+		<br>
+		<br>
+		感謝讃美信實的永生神，我們差不多兩年沒有停止支付極高息貸款。並更感恩現在8/1/22 到期的貸款有望重貸，已經進入最後關頭。神在引導帶領我們有此機會。我們呼籲你們在這禱告中心非常重要的關頭，和我們一起呼求主：所有需要完成貸款條件都完滿成功。期盼你們在這主寶貴的事工上，有你們的一份祝福。親自經歷帶領我們過紅海的大能的神，一生難忘的見證神的榮耀。
+		<br>
+		<br>
+		God Bless,
+		<br>
+		- AWMPC
+	</p>
+
+	<hr>
+
+	<p><span style="font-size:26px;">January 21, 2022</span></p>
+	<p>
+		Dear Brothers and Sisters in Christ,
+		<br>
+		<br>
+		A New Year brings New Tidings, and we welcome all to start anew with the Lord.
+		<br>
+		Come pray with us at 1189 S. De Anza Blvd. San Jose, CA 95129,
+		<br>
+		and join us online at https://allworldmissionprayercenterinc-321.my.webex.com/meet/awmpc.
+		<br>
+		Wishing you all a Happy New Year 2022!
+		<br>
+		<br>
+		God Bless,
+		<br>
+		- AWMPC
+	</p>
+
+	<hr>
+
+	<p><span style="font-size:26px;">December 5, 2021</span></p>
+	<p>
+		Pastor Lee from AWMPC is inviting God's children with issues and distress in life
+		<br>
+		to join the Jericho City 7 Days of Focused Prayer starting this Monday 12/06/2021 at 6:30am or 8pm every day.
+		<br>
+		"Come to me, all you who are weary and burdened, and I will give you rest."
+		<br>
+		Matthew 11:28 NIV
+		<br>
+		1189 S De Anza Blvd San Jose, CA 95129
+		<br>
+		Or Cisco Webex, https://allworldmissionprayercenterinc-321.my.webex.com/meet/awmpc
+		<br>
+		<br>
+		信望愛禱告中心李宇珍牧師誠邀神的孩子參加下星期一開始
+		<br>
+		6:30am or 8 pm 耶利哥城七天爭戰禱告去解決壓在你們身上的重擔或是問題。
+		<br>
+		馬太福音11:28
+		<br>
+		“凡勞苦擔重擔的人可以到我這裏來，我就使你們得安息。”
+		<br>
+		馬太福音 11:28 CUNP-神
+		<br>
+		https://allworldmissionprayercenterinc-321.my.webex.com/meet/awmpc
+		<br>
+		1189 S De Anza Blvd., San Jose
+	</p>
+
+	<hr>
+
+	<p><span style="font-size:26px;">November 28, 2021</span></p>
+	<p>
+		信望愛禱告中心李宇珍牧師向大家說感恩節快樂！
+		<br>
+		“你們要靠主常常喜樂。我再說，你們要喜樂。 當叫眾人知道你們謙讓的心。主已經近了。 應當一無掛慮，只要凡事藉着禱告、祈求，和感謝，將你們所要的告訴神。 神所賜、出人意外的平安必在基督耶穌裏保守你們的心懷意念。”
+		腓立比書 4:4-7 CUNP-神
+		<br>
+		Pastor Lee’s greeting to you and your family:
+		Happy thanksgiving 🍁!
+		<br>
+		“Rejoice always, pray continually, give thanks in all circumstances; for this is God’s will for you in Christ Jesus. Do not quench the Spirit. Do not treat prophecies with contempt but test them all; hold on to what is good, reject every kind of evil.”
+		1 Thessalonians 5:16-22 NIV
+		<br>
+		<div style="display:flex; flex-wrap:wrap; gap:16px;">
+			<img src="./resources/images/thanksgiving_2021/thanksgiving_2021_02.jpeg" alt="Thanksgiving 2021 celebration photo 1" style="width:100%; max-width:48%;" loading="lazy" decoding="async"/>
+			<img src="./resources/images/thanksgiving_2021/thanksgiving_2021_03.jpeg" alt="Thanksgiving 2021 celebration photo 2" style="width:100%; max-width:48%;" loading="lazy" decoding="async"/>
+			<img src="./resources/images/thanksgiving_2021/thanksgiving_2021_04.jpeg" alt="Thanksgiving 2021 celebration photo 3" style="width:100%; max-width:48%;" loading="lazy" decoding="async"/>
+		</div>
+	</p>
+
+	<hr>
+
+	<p><span style="font-size:26px;">November 19, 2021</span></p>
+	<p>
+		Dear Brothers and Sisters in Christ,
+		<br>
+		<br>
+		Thanksgiving Sunday will be held tomorrow at 10:00am,
+		<br>
+		and we welcome all to join us in thanksgiving at 1189 S. De Anza Blvd. San Jose, CA 95129,
+		<br>
+		as well as via our Cisco Webex.
+		<br>
+		Hope to see you all there!
+		<br>
+		<br>
+		God Bless,
+		<br>
+		- AWMPC
+		<br>
+		---
+		<br>
+		信望愛禱告中心李宇珍牧師邀請你們一起參加星期天的感恩節主日10 am 崇拜。
+		<br>
+		1189 S. De Anza Blvd. San Jose, CA 95129
+		<br>
+		或 Cisco Webex:
+		<br>
+		https://allworldmissionprayercenterinc-321.my.webex.com/meet/awmpc
+	</p>
+
+	<hr>
+
+	<p><span style="font-size:26px;">November 11, 2021</span></p>
+	<p>
+		Dear Brothers and Sisters in Christ,
+		<br>
+		<br>
+		<a href="https://youtu.be/nwJjPW_wPjI">"The Power of God heals a paralyzed person! [YouTube]"</a>
+		<br>
+		Pastor Lee encourages you, Children of the Lord, to have faith in the authority that brings about healing of sicknesses!
+		<br>
+		Follow steadfastly in the footsteps of Jesus, spreading the Gospel through experiences of healing and testimony!
+		<br>
+		Pastor Lee is passionate to train you in the Kingdom of God to perform the same works of missionary as seen in the video!
+		<br>
+		You too can experience the joys of walking with the Holy Spirit.
+		<br>
+		<br>
+		Reach out by calling us at (650) 504 - 4901 to participate in Pastor Lee's training
+		<br>
+		to become a victorious soldier within the Kingdom of God!
+		<br>
+		Leave a like and share the video if you feel inspired by the works within!
+		<br>
+		<br>
+		God Bless,
+		<br>
+		- AWMPC
+		<br>
+		---
+		<br>
+		<a href="https://youtu.be/nwJjPW_wPjI">神的大能治癒了癱瘓的人！[YouTube]</a>
+		<br>
+		李牧師鼓勵你們神的兒女也有這樣的權柄作同樣的服事有需要的人。
+		<br>
+		跟隨耶穌的腳步，順從祂所命令-讓人親經歷主耶穌的大能見證所傳的福音。
+		<br>
+		李牧師非常渴望訓練神國的子民和領䄂做錄影帶中的宣教工作。
+		<br>
+		你也可經歷與聖靈同行同工的喜樂。
+        <br>
+		請電650- 504-4901 參加李牧師訓練，作神國得勝精兵。
+		<br>
+		（請點讃，一個like, 如果你喜歡我們的宣教工作）
+		<br>
+	</p>
+
+	<hr>
+
+	<p><span style="font-size:26px;">October 28th, 2021</span></p>
+	<p>
+		Dear Brothers & Sisters in Christ,
+		<br>
+		<br>
+		Pastor Lee invites those with issues or stress in life to join the Jericho City 7 Days Focus Prayer,
+		<br>
+		from 11/01/2021 till 11/07/2021, at 6:30am and 8:00pm every day.
+		<br>
+		<br>
+		"Come to me, all you who are weary and burdened, and I will give you rest."
+		<br>
+		‭‭Matthew‬ ‭11:28‬ ‭NIV‬‬
+		<br>
+		<br>
+		Join us in person at:
+		<br>
+		<a href="https://goo.gl/maps/k9S9q45B7RPGckbr7">1189 S De Anza Blvd San Jose, CA 95129</a>
+		<br>
+		<br>
+		Or join us on Cisco Webex:
+		<br>
+		<a href="https://allworldmissionprayercenterinc-321.my.webex.com/meet/awmpc">Click here to Join via Cisco Webex!</a>
+		<br>
+		<br>
+		God Bless,
+		<br>
+		- AWMPC
+		<br>
+		<br>
+		信望愛禱告中心李宇珍牧師誠邀神的孩子參加11/1/21-11/7/21
+		6:30am or 8 pm 耶利哥城七天爭戰禱告去解決壓在你們身上的重擔或是問題。
+		<br>
+		<br>
+		馬太福音11:28
+		“凡勞苦擔重擔的人可以到我這裏來，我就使你們得安息。”
+		‭‭馬太福音‬ ‭11:28‬ ‭CUNP-神‬‬
+		<br>
+		<br>
+		<a href="https://allworldmissionprayercenterinc-321.my.webex.com/meet/awmpc">https://allworldmissionprayercenterinc-321.my.webex.com/meet/awmpc</a>
+		<br>
+		<br>
+		1189 S De Anza Blvd., San Jose
+	</p>
+
+	<hr>
+
+	<p><span style="font-size:26px;">August 1st, 2021</span></p>
+	<p>
+		Celebrating the 1st Anniversary of AWMPC, we are starting out with 7 Days of Focused Prayer to conquer our number one issues!
+		<br>
+		<br>
+		Come pray with us over Cisco Webex or in person to witness the mighty power of Jesus Christ' Name!
+		<br>
+		Our signs are installed on our roadside pole and building panels, which can be easily seen at day and night.
+		<br>
+		<br>
+		Join our newsletter via the <a href="https://awmpc.org/mailman/listinfo/newsletter_awmpc.org">mail info link</a>.
+		<br>
+		<br>
+		Sincerely,
+		<br>
+		- AWMPC
+		<br>
+	</p>
+
+	<hr>
+
+	<p><span style="font-size:26px;">February 15th, 2020</span></p>
+	<p>
+		主賜美地：1189 De Anza , San Jose
+		2880 SF building, 16k Sf land
+		4/15/20
+		<br>
+		建立24小時禱告的聖殿是 神給信望愛禱告中心的呼召和心意。
+		<br>
+		李宇珍牧師是美國矽谷信望愛禱告中心的主任牧師。
+		韓國純福音神學院畢業。並經趙鏞基親自培訓多年。曾開㧨三間教會。神呼召他到美國服事中國信徒，在加卅矽谷1998年創辦信望愛禱告中心。
+		<br>
+		他和禱告中心的服事：
+		1-建立24 小時禱告聖殿在灣區
+		聖經講解，在聖靈帶領的輔導，在聖靈能力醫冶釋放。
+		2-在美國，台灣，香港裝備牧者，宣教士，傳道人，平信徒在禱告和靈性的訓練，帶著耶穌基督能力進入禾場宣教。
+		<br>
+		3 上年神開門正集中香港宣教，訓練工作
+		<br>
+		<br>
+		在李牧師的帶領下，我們同心合意、早晚禱告呼求 神賜下永久的聖殿。
+		<br>
+		在2/10/2020 七天爭戰後的星期一，神讓我們在一天內找到這殿，五天內贏了其他四位潛在買家， 拿到買賣合約 。感謝 主奇妙的供應，一天內籌得全額訂金。
+		<br>
+		我們正在積極的向天父禱告，並連絡願意幫助教會建堂的人，以期在一個月內籌齊全款 ，來完成買賣合約，取得聖殿所有權.
+		<br>
+		這是一生難得的機會，為 永生神、天上的父、為我們釘十架的耶穌基督，與我們同住的聖靈，一起同工來設立 神的殿。這是榮耀 神並造福子孫千代的美事！
+		<br>
+		信望愛禱告中心和李牧師誠邀甘心樂意参與建堂者，在主裡一同禱告，一同盡心盡力的奉獻，一同成就主在華人身上特別的全世界宣教的旨意，一同蒙福！
+		<br>
+		<br>
+		經文： 列王紀上 8 : 37～40
+		37 「國中若有饑荒、瘟疫、旱風、霉爛、蝗蟲、螞蚱，或有仇敵犯境圍困城邑，無論遭遇甚麼災禍疾病，
+		38 祢的民 以色列 ，或是眾人，或是一人，自覺有罪 ，向這殿舉手，無論祈求甚麼，禱告甚麼，
+		39 求祢在天上祢的居所垂聽赦免。祢是知道人心的，要照各人所行的待他們（惟有祢知道世人的心），
+		40 使他們在祢賜給我們列祖之地上一生一世敬畏祢。
+	</p>
+
+<script>
+(function() {
+	var track = document.getElementById('carouselTrack');
+	var dotsBox = document.getElementById('carouselDots');
+	var counterEl = document.getElementById('carouselCurrent');
+	var progressBar = document.getElementById('carouselProgress');
+	var playPauseBtn = document.getElementById('carouselPlayPause');
+	var slides = track.querySelectorAll('.carousel-slide');
+	var total = slides.length;
+	var idx = 0;
+	var INTERVAL = 8000;
+	var timerId = 0;
+	var playing = true;
+	var startX = 0;
+	var dragging = false;
+
+	for (var i = 0; i < total; i++) {
+		var dot = document.createElement('button');
+		dot.className = 'carousel-dot' + (i === 0 ? ' active' : '');
+		dot.setAttribute('aria-label', 'Go to slide ' + (i + 1));
+		dot.setAttribute('data-idx', i);
+		dot.addEventListener('click', function() {
+			goTo(parseInt(this.getAttribute('data-idx')));
+			scheduleNext();
+		});
+		dotsBox.appendChild(dot);
+	}
+
+	function goTo(n) {
+		idx = ((n % total) + total) % total;
+		track.style.transform = 'translateX(-' + (idx * 100) + '%)';
+		counterEl.textContent = idx + 1;
+		var dots = dotsBox.querySelectorAll('.carousel-dot');
+		for (var j = 0; j < dots.length; j++) {
+			dots[j].className = 'carousel-dot' + (j === idx ? ' active' : '');
+		}
+	}
+
+	function startProgress() {
+		progressBar.style.transition = 'none';
+		progressBar.style.width = '0%';
+		requestAnimationFrame(function() {
+			requestAnimationFrame(function() {
+				progressBar.style.transition = 'width ' + INTERVAL + 'ms linear';
+				progressBar.style.width = '100%';
+			});
+		});
+	}
+
+	function stopProgress() {
+		progressBar.style.transition = 'none';
+		progressBar.style.width = '0%';
+	}
+
+	function scheduleNext() {
+		clearTimeout(timerId);
+		if (!playing) { stopProgress(); return; }
+		startProgress();
+		timerId = setTimeout(function() {
+			goTo(idx + 1);
+			scheduleNext();
+		}, INTERVAL);
+	}
+
+	playPauseBtn.addEventListener('click', function() {
+		playing = !playing;
+		playPauseBtn.innerHTML = playing ? '&#9646;&#9646;' : '&#9654;';
+		playPauseBtn.setAttribute('aria-label', playing ? 'Pause slideshow' : 'Play slideshow');
+		scheduleNext();
+	});
+
+	document.querySelector('#photoCarousel .prev').addEventListener('click', function() { goTo(idx - 1); scheduleNext(); });
+	document.querySelector('#photoCarousel .next').addEventListener('click', function() { goTo(idx + 1); scheduleNext(); });
+
+	document.getElementById('photoCarousel').addEventListener('keydown', function(e) {
+		if (e.key === 'ArrowLeft')  { goTo(idx - 1); scheduleNext(); }
+		if (e.key === 'ArrowRight') { goTo(idx + 1); scheduleNext(); }
+	});
+
+	var carousel = document.getElementById('photoCarousel');
+	carousel.addEventListener('touchstart', function(e) {
+		startX = e.touches[0].clientX;
+		dragging = true;
+	}, { passive: true });
+	carousel.addEventListener('touchend', function(e) {
+		if (!dragging) return;
+		var diff = e.changedTouches[0].clientX - startX;
+		if (Math.abs(diff) > 40) {
+			goTo(diff < 0 ? idx + 1 : idx - 1);
+			scheduleNext();
+		}
+		dragging = false;
+	}, { passive: true });
+
+	scheduleNext();
+})();
+</script>
+
+    </main>
+
+  </div>
+
+
+  <!-- Footer -->
+  <hr class="site-footer-divider">
+  <footer class="site-footer">
+    <div class="footer-left">
+      <a href="https://info.flagcounter.com/u2K3"><img src="https://s11.flagcounter.com/count2/u2K3/bg_FFFFFF/txt_000000/border_CCCCCC/columns_2/maxflags_10/viewers_0/labels_0/pageviews_0/flags_0/percent_0/" alt="Flag Counter" border="0" loading="lazy"></a>
+      <script type="text/javascript" src="https://rf.revolvermaps.com/0/0/2.js?i=536ikush1dr&amp;m=7&amp;s=178&amp;c=ff0000&amp;t=1" async="async"></script>
+      <a href="#" onclick="window.open('https://seal.monarx.com/verify?website_id=f27272510e369936389b17fb1467b0833992b62a5c98771b8622f26b2250239e','Monarx','width=600,height=600,left=160,top=160');">
+        <img src="https://cdn.seal.monarx.com/image?website_id=f27272510e369936389b17fb1467b0833992b62a5c98771b8622f26b2250239e" alt="Monarx" title="Monarx" />
+      </a>
+      <br>
+      <small style="color:#5A4409;">&copy; awmpc.org</small>
+    </div>
+
+    <div class="footer-center">
+      1189 S. De Anza Blvd.<br>
+      San Jose, CA 95129<br>
+      Jay: (415) 816-7873<br>
+      Joanna: (650) 504-4901
+    </div>
+
+    <div class="footer-right">
+      <a href="https://awmpc.org/awmpc_tocau.html">Terms of Conditions and Use</a>
+      <a href="https://awmpc.org/awmpc_privacy.html">Privacy Policy</a>
+      <a href="https://awmpc.org/awmpc_refunds.html">Donations and Refunds Policy</a>
+      <a href="https://www.ssllabs.com/ssltest/analyze.html?d=awmpc.org">Qualys SSL Security Scan</a>
+      <a href="https://developers.google.com/speed/pagespeed/insights/?url=awmpc.org&tab=mobile">Google Lighthouse Performance Scan</a>
+    </div>
+  </footer>
+
+</div>
+
+<!-- FAB button: fixed bottom-right -->
+<button class="fab-btn" id="fabBtn" aria-label="Open navigation menu" aria-expanded="false" style="position:fixed;bottom:calc(12px + env(safe-area-inset-bottom, 0px));right:12px;z-index:10000;">
+  <div class="fab-icon"></div>
+</button>
+
+<!-- Quick-links skeleton → loaded transition -->
+<script>
+(function() {
+  var links = document.querySelectorAll('.quick-links a');
+  links.forEach(function(a) {
+    var img = a.querySelector('img');
+    if (!img) { a.classList.add('loaded'); return; }
+    if (img.complete) { a.classList.add('loaded'); return; }
+    img.addEventListener('load', function() { a.classList.add('loaded'); });
+    img.addEventListener('error', function() { a.classList.add('loaded'); });
+  });
+})();
+</script>
+
+<!-- banner blend script removed — single banner image now -->
+
+
+<!-- Info bar marquee for mobile -->
+<script>
+(function() {
+  var bar = document.querySelector('.info-bar-text');
+  var text = bar && bar.querySelector('.info-bar-scroll');
+  if (!bar || !text) return;
+
+  var timer = null;
+
+  function cycle() {
+    // Account for left+right padding (16px each) so last characters are visible
+    var overflow = text.scrollWidth - bar.clientWidth + 32;
+    if (overflow <= 0) { text.style.transform = ''; return; }
+
+    // Slow linear scroll (~28px/s) for comfortable reading mid-travel
+    var scrollDur = overflow / 28;
+    var returnDur = overflow / 70;
+
+    // 1. Hold at start
+    text.style.transition = 'none';
+    text.style.transform = 'translateX(0)';
+
+    timer = setTimeout(function() {
+      // 2. Scroll left — linear for constant readable speed
+      text.style.transition = 'transform ' + scrollDur + 's linear';
+      text.style.transform = 'translateX(-' + overflow + 'px)';
+
+      timer = setTimeout(function() {
+        // 3. Hold at end, then ease back to start
+        text.style.transition = 'transform ' + returnDur + 's ease-in-out';
+        text.style.transform = 'translateX(0)';
+
+        timer = setTimeout(cycle, returnDur * 1000 + 2000);
+      }, scrollDur * 1000 + 1500);
+    }, 2000);
+  }
+
+  function start() {
+    stop();
+    if (window.matchMedia('(max-width: 768px)').matches) cycle();
+    else { text.style.transition = ''; text.style.transform = ''; }
+  }
+  function stop() { if (timer) { clearTimeout(timer); timer = null; } }
+
+  window.matchMedia('(max-width: 768px)').addEventListener('change', start);
+  start();
+})();
+</script>
+
+<!-- SPA loading bar -->
+<div class="spa-loader" id="spaLoader"></div>
+
+<!-- FAB Navigation -->
+<div class="fab-scrim" id="fabScrim"></div>
+
+<nav class="fab-menu" id="fabMenu" aria-label="Quick navigation">
+  <div class="fab-menu-scroll">
+  <a class="fab-menu-item" href="./index.html">Homepage <span class="fab-item-zh">首頁</span></a>
+  <a class="fab-menu-item" href="./mission.html">Mission <span class="fab-item-zh">使命</span></a>
+  <a class="fab-menu-item" href="./sermons.html">Sermons <span class="fab-item-zh">講道</span></a>
+  <a class="fab-menu-item" href="./testimony.html">Testimony <span class="fab-item-zh">見證</span></a>
+  <a class="fab-menu-item" href="./request.html">Prayers <span class="fab-item-zh">代禱</span></a>
+  <a class="fab-menu-item" href="./24hrhop.html">Church <span class="fab-item-zh">建堂</span></a>
+  <a class="fab-menu-item" href="./support.html">Donations <span class="fab-item-zh">支持</span></a>
+  <a class="fab-menu-item" href="./media.html">Media <span class="fab-item-zh">媒體</span></a>
+  <a class="fab-menu-item" href="./letters.html">Letters <span class="fab-item-zh">信件</span></a>
+  <a class="fab-menu-item" href="./canaan_record.html">Canaan <span class="fab-item-zh">历史</span></a>
+  <a class="fab-menu-item" href="./hymns.html">Hymns <span class="fab-item-zh">讚美詩</span></a>
+  <a class="fab-menu-item fab-bible" href="./bible.html">📚 Bible <span class="fab-item-zh">聖經</span></a>
+  </div>
+</nav>
+
+
+<script>
+(function() {
+  var btn   = document.getElementById('fabBtn');
+  var menu  = document.getElementById('fabMenu');
+  var menuScroll = menu.querySelector('.fab-menu-scroll');
+  var scrim = document.getElementById('fabScrim');
+  var items = menu.querySelectorAll('.fab-menu-item');
+  var isOpen = false;
+
+  function toggle() {
+    isOpen = !isOpen;
+    btn.classList.toggle('open', isOpen);
+    menu.classList.toggle('open', isOpen);
+    scrim.classList.toggle('open', isOpen);
+    btn.setAttribute('aria-expanded', isOpen ? 'true' : 'false');
+
+    // Stagger item entrance — One UI cascading deceleration
+    for (var i = 0; i < items.length; i++) {
+      if (isOpen) {
+        items[i].style.transitionDelay = (i * 30) + 'ms';
+      } else {
+        items[i].style.transitionDelay = '0ms';
+      }
+    }
+
+    // Block background touch-scrolling on mobile while sheet is open
+    if (isOpen) {
+      document.addEventListener('touchmove', preventBgScroll, { passive: false });
+    } else {
+      document.removeEventListener('touchmove', preventBgScroll);
+    }
+
+  }
+
+  // Allow touch-scroll only inside the menu; block everywhere else
+  function preventBgScroll(e) {
+    if (!menu.contains(e.target)) e.preventDefault();
+  }
+
+  function close() {
+    if (isOpen) toggle();
+  }
+
+  // Expose close so SPA router can call it
+  window._fabClose = close;
+
+  btn.addEventListener('click', function(e) {
+    e.stopPropagation();
+    toggle();
+  });
+
+  scrim.addEventListener('click', close);
+
+  document.addEventListener('keydown', function(e) {
+    if (e.key === 'Escape') close();
+  });
+
+  // --- Drag-to-dismiss for mobile bottom sheet ---
+  var dragStartY = 0;
+  var lastY = 0;
+  var lastTime = 0;
+  var velocityY = 0;
+  var dragging = false;
+
+  menu.addEventListener('touchstart', function(e) {
+    if (!isOpen) return;
+    if (menuScroll.scrollTop > 1) return;
+    dragStartY = e.touches[0].clientY;
+    lastY = dragStartY;
+    lastTime = Date.now();
+    velocityY = 0;
+    dragging = true;
+    menu.style.transition = 'none';
+    scrim.style.transition = 'none';
+  }, { passive: true });
+
+  menu.addEventListener('touchmove', function(e) {
+    if (!dragging) return;
+    var touchY = e.touches[0].clientY;
+    var dy = touchY - dragStartY;
+    if (dy < 0) dy = 0;
+
+    var now = Date.now();
+    var dt = now - lastTime;
+    if (dt > 0) velocityY = (touchY - lastY) / dt;
+    lastY = touchY;
+    lastTime = now;
+
+    menu.style.transform = 'translateY(' + dy + 'px)';
+    scrim.style.opacity = Math.max(0, 1 - (dy / menu.offsetHeight));
+
+    e.preventDefault();
+  }, { passive: false });
+
+  menu.addEventListener('touchend', function(e) {
+    if (!dragging) return;
+    dragging = false;
+    var dy = e.changedTouches[0].clientY - dragStartY;
+
+    var shouldDismiss = dy > 80 || velocityY > 0.4;
+    if (shouldDismiss) {
+      menu.style.transition = 'transform 0.25s cubic-bezier(0.22, 0.61, 0.36, 1)';
+      menu.style.transform = 'translateY(100%)';
+      scrim.style.transition = 'opacity 0.25s';
+      scrim.style.opacity = '0';
+      setTimeout(function() {
+        menu.style.transition = '';
+        menu.style.transform = '';
+        scrim.style.transition = '';
+        scrim.style.opacity = '';
+        if (isOpen) toggle();
+      }, 260);
+    } else {
+      menu.style.transition = 'transform 0.25s cubic-bezier(0.22, 0.61, 0.36, 1)';
+      menu.style.transform = 'translateY(0)';
+      scrim.style.transition = 'opacity 0.25s';
+      scrim.style.opacity = '';
+      setTimeout(function() {
+        menu.style.transition = '';
+        menu.style.transform = '';
+        scrim.style.transition = '';
+      }, 260);
+    }
+  });
+})();
+</script>
+
+<!-- SPA Client-Side Router -->
+<script>
+(function() {
+  // Route map: URL filename → content fragment file
+  var routes = {
+    'index.html':         'wmpc_s_home.html',
+    'mission.html':       'wmpc_s_mission_cn.html',
+    'sermons.html':       'wmpc_s_sermons.html',
+    'testimony.html':     'wmpc_s_testimonies.html',
+    'request.html':       'wmpc_s_prayerrequest.html',
+    '24hrhop.html':       'wmpc_s_24hrhop.html',
+    'support.html':       'wmpc_s_ministrysupport.html',
+    'media.html':         'wmpc_s_media.html',
+    'letters.html':       'wmpc_s_letters.html',
+    'canaan_record.html': 'canaan_chapel_record.html',
+    'hymns.html':         'wmpc_s_hymns.html',
+    'prayer.html':        'wmpc_s_focus_prayer_week_04_09v2.html'
+  };
+
+  var pageNames = {
+    'index.html': 'Homepage',
+    'mission.html': 'Mission',
+    'sermons.html': 'Sermons',
+    'testimony.html': 'Testimony',
+    'request.html': 'Prayers',
+    '24hrhop.html': 'Church',
+    'support.html': 'Donations',
+    'media.html': 'Media',
+    'letters.html': 'Letters',
+    'canaan_record.html': 'Canaan',
+    'hymns.html': 'Hymns',
+    'prayer.html': 'Prayer'
+  };
+
+  var mainEl = document.querySelector('.site-main');
+  var loader = document.getElementById('spaLoader');
+  var contentLabel = document.getElementById('contentCardLabel');
+  var cache  = {};  // fragment cache: avoid refetching same page
+
+  // Extract filename from any href
+  function routeKey(href) {
+    try {
+      var url = new URL(href, window.location.origin);
+      var parts = url.pathname.split('/');
+      return parts[parts.length - 1] || '';
+    } catch(e) { return ''; }
+  }
+
+  // --- Loading bar ---
+  function loaderStart() {
+    loader.className = 'spa-loader';
+    void loader.offsetWidth;           // force reflow
+    loader.classList.add('loading');
+  }
+  function loaderDone() {
+    loader.classList.remove('loading');
+    loader.classList.add('done');
+    setTimeout(function() {
+      loader.classList.add('hide');
+    }, 200);
+    setTimeout(function() {
+      loader.className = 'spa-loader';
+    }, 600);
+  }
+
+  // --- Highlight active page in FAB menu ---
+  function updateActiveNav(activeKey) {
+    var items = document.querySelectorAll('.fab-menu-item');
+    for (var i = 0; i < items.length; i++) {
+      items[i].classList.toggle('fab-active', routeKey(items[i].href) === activeKey);
+    }
+  }
+
+  // --- Execute scripts inside injected HTML ---
+  function runScripts(container) {
+    var scripts = Array.prototype.slice.call(container.querySelectorAll('script'));
+
+    return scripts.reduce(function(chain, old) {
+      return chain.then(function() {
+        return new Promise(function(resolve) {
+          var s = document.createElement('script');
+          for (var j = 0; j < old.attributes.length; j++) {
+            s.setAttribute(old.attributes[j].name, old.attributes[j].value);
+          }
+
+          s.async = false;
+
+          if (old.src) {
+            s.onload = resolve;
+            s.onerror = resolve;
+          } else {
+            s.textContent = old.textContent;
+          }
+
+          old.parentNode.replaceChild(s, old);
+          if (!old.src) resolve();
+        });
+      });
+    }, Promise.resolve());
+  }
+
+  // --- Load a content fragment and swap it in ---
+  var contentCard = document.getElementById('contentCard');
+
+  function navigate(fragmentFile, displayUrl, pushState) {
+    loaderStart();
+
+    var done = function(html) {
+      // Fade out current content
+      mainEl.classList.add('fade-out');
+
+      setTimeout(function() {
+        mainEl.innerHTML = html;
+        return runScripts(mainEl).then(function() {
+          if (pushState && displayUrl) {
+            history.pushState({ fragment: fragmentFile }, '', displayUrl);
+          }
+
+          // Update active page indicator in FAB and content card label
+          var activeKey = routeKey(displayUrl || window.location.href);
+          updateActiveNav(activeKey);
+          if (contentLabel) contentLabel.textContent = pageNames[activeKey] || 'Homepage';
+
+          // Scroll to top of content card
+          if (contentCard) {
+            contentCard.scrollIntoView({ behavior: 'smooth', block: 'start' });
+          }
+
+          // Fade in new content
+          void mainEl.offsetWidth;
+          mainEl.classList.remove('fade-out');
+
+          loaderDone();
+        });
+      }, 200);
+    };
+
+    if (cache[fragmentFile]) {
+      done(cache[fragmentFile]);
+      return;
+    }
+
+    fetch(fragmentFile)
+      .then(function(res) {
+        if (!res.ok) throw new Error(res.status);
+        return res.text();
+      })
+      .then(function(html) {
+        cache[fragmentFile] = html;
+        done(html);
+      })
+      .catch(function() {
+        loaderDone();
+        mainEl.innerHTML = '<p style="text-align:center;padding:40px 20px;color:var(--ds-text-secondary);">' +
+          'This page is not available offline. Please reconnect and try again.</p>';
+        mainEl.classList.remove('fade-out');
+      });
+  }
+
+  // --- Intercept clicks on any internal link ---
+  document.addEventListener('click', function(e) {
+    var link = e.target.closest('a');
+    if (!link) return;
+
+    // Skip external, new-tab, download, hash-only links
+    if (link.target === '_blank' || link.target === '_new') return;
+    if (link.hasAttribute('download')) return;
+    if (link.hostname && link.hostname !== window.location.hostname) return;
+
+    var key = routeKey(link.href);
+    var fragment = routes[key];
+    if (!fragment) return;
+
+    e.preventDefault();
+
+    // Close FAB first, then navigate after its animation settles
+    if (window._fabClose) window._fabClose();
+    setTimeout(function() {
+      navigate(fragment, link.href, true);
+    }, 80);
+  });
+
+  // --- Handle browser back / forward ---
+  window.addEventListener('popstate', function(e) {
+    if (e.state && e.state.fragment) {
+      navigate(e.state.fragment, null, false);
+    }
+  });
+
+  // --- Seed initial history entry so back works ---
+  var initKey = routeKey(window.location.href);
+  var initFragment = routes[initKey];
+  if (initFragment) {
+    history.replaceState({ fragment: initFragment }, '', window.location.href);
+  }
+
+  // --- Highlight current page on initial load ---
+  updateActiveNav(initKey);
+})();
+</script>
+
+</body>
+</html>
