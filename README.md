@@ -20,6 +20,8 @@ The standalone Bible reader and policy pages are copied from `templates/` into
 `rendered/`; they are not processed as page fragments. Run the build after
 changing a template or static asset, then deploy the entire `rendered/`
 directory. `rendered/` is generated output and can be recreated at any time.
+It is intentionally ignored by Git because the Pages workflow generates it
+fresh for each deployment.
 
 ## External assets
 
@@ -45,7 +47,7 @@ The Bible dataset is intentionally not committed to Git. Provide it separately
 through the eventual object-storage deployment and update the Bible reader's
 data URL before publishing it.
 
-The included `.github/workflows/jekyll-gh-pages.yml` builds and deploys
+The included `.github/workflows/pages.yml` builds and deploys
 `rendered/` as a GitHub Pages artifact. It verifies that `rendered/index.html`
 is at the artifact root. The workflow uses the Node.js renderer directly and
 does not run Jekyll.
