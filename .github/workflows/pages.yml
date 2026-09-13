@@ -29,6 +29,8 @@ jobs:
         uses: actions/configure-pages@v5
 
       - name: Render static site
+        env:
+          AWMPC_ASSET_BASE_URL: https://images.awmpc.org
         run: npm run build
 
       - name: Verify Pages artifact root

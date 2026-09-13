@@ -42,7 +42,7 @@ const pages = [
   ['hymns', 'hymns.html', 'Hymns', 'wmpc_s_hymns.html']
 ];
 
-const mediaExtensionPattern = '(?:png|jpe?g|gif|webp|svg|avif|mp4|wmv|webm|ogg|mov|m4v|m3u8|mp3|wav|pdf)';
+const mediaExtensionPattern = '(?:png|jpe?g|gif|webp|svg|avif|bmp|ico|tiff?)';
 
 function fail(message) {
   throw new Error(message);
@@ -85,7 +85,8 @@ function rewriteAssetReferences(html, assetBaseUrl) {
     const splitAt = value.search(/[?#]/);
     const assetPath = splitAt === -1 ? value : value.slice(0, splitAt);
     const pathSuffix = splitAt === -1 ? '' : value.slice(splitAt);
-    const normalizedPath = assetPath.replace(/^\.\//, '').replace(/^\/+/, '');
+    let normalizedPath = assetPath.replace(/^\.\//, '').replace(/^\/+/, '');
+    normalizedPath = normalizedPath.replace(/^(?:resources\/)?(?:images|documents)\//i, '');
     return `${prefix}${assetBaseUrl}/${normalizedPath}${pathSuffix}${suffix}`;
   });
 }

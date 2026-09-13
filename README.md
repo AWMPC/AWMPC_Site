@@ -33,10 +33,18 @@ media paths during generation, set `AWMPC_ASSET_BASE_URL`:
 AWMPC_ASSET_BASE_URL='https://your-asset-hostname' bash ./static.sh
 ```
 
-Only media/document `src`, `poster`, and `href` references are rewritten;
+Only image `src`, `poster`, and `href` references are rewritten;
 ordinary page navigation remains relative. Leave the variable unset to keep
 relative asset paths. Keep object-storage credentials out of this repository;
 uploads are a separate deployment step.
+
+The Pages workflow sets `AWMPC_ASSET_BASE_URL` to the image bucket's custom
+domain. Legacy image references are flattened into the bucket: for example,
+`resources/images/banners/example.webp` becomes
+`https://images.awmpc.org/banners/example.webp`, and
+`resources/documents/pictures/example.jpg` becomes
+`https://images.awmpc.org/pictures/example.jpg`. The parent `images/` and
+`documents/` directories are not retained in the bucket key.
 
 The generated site also copies local runtime assets such as `resources/`,
 the hymns manifest, `bible.html`, `manifest.json`, and `sw.js` into `rendered/`
