@@ -25,31 +25,35 @@ fresh for each deployment.
 
 ## External assets
 
-Images, videos, documents, and other large media can be stored in an object
-storage bucket and served through its HTTPS custom domain. To rewrite relative
-media paths during generation, set `AWMPC_ASSET_BASE_URL`:
+Images, videos, documents, and other large media can be stored in object
+storage buckets and served through HTTPS custom domains. To rewrite relative
+paths during generation, set both hosts:
 
 ```sh
-AWMPC_ASSET_BASE_URL='https://your-asset-hostname' bash ./static.sh
+AWMPC_IMAGE_BASE_URL='https://your-image-hostname' \
+AWMPC_DATA_BASE_URL='https://your-data-hostname' bash ./static.sh
 ```
 
-Only image `src`, `poster`, and `href` references are rewritten;
-ordinary page navigation remains relative. Leave the variable unset to keep
-relative asset paths. Keep object-storage credentials out of this repository;
-uploads are a separate deployment step.
+Image `src`, `poster`, and `href` references use the image host. PDF, video,
+audio, stylesheet, text, JSON, and manifest references use the data host.
+Ordinary page navigation remains relative. Leave either variable unset to keep
+that asset class's relative paths. Keep object-storage credentials out of this
+repository; uploads are a separate deployment step.
 
-The Pages workflow sets `AWMPC_ASSET_BASE_URL` to the image bucket's custom
-domain. Legacy image references are flattened into the bucket: for example,
+The Pages workflow sets the image and data hosts to their respective bucket
+custom domains. Legacy references are flattened into the bucket: for example,
 `resources/images/banners/example.webp` becomes
 `https://images.awmpc.org/banners/example.webp`, and
-`resources/documents/pictures/example.jpg` becomes
-`https://images.awmpc.org/pictures/example.jpg`. The parent `images/` and
-`documents/` directories are not retained in the bucket key.
+`resources/documents/hymns/102.pdf` becomes
+`https://data.awmpc.org/hymns/102.pdf`. The parent `images/` and `documents/`
+directories are not retained in either bucket key.
 
-The generated site also copies local runtime assets such as `resources/`,
-the hymns manifest, `bible.html`, `manifest.json`, and `sw.js` into `rendered/`
-so that directory can be deployed as a self-contained site. Large hymn PDFs
-remain external deployment assets and are not committed to Git.
+The generated site copies local runtime assets such as `resources/`,
+`bible.html`, `manifest.json`, and `sw.js` into `rendered/`. When the data host
+is unset, it also copies the local hymn manifest for offline/local rendering;
+with the Pages data host configured, the manifest is loaded from
+`https://data.awmpc.org/hymns/index.json`. Hymn PDFs remain external data
+assets and are not committed to Git.
 
 The Bible dataset is intentionally not committed to Git. Provide it separately
 through the eventual object-storage deployment and update the Bible reader's

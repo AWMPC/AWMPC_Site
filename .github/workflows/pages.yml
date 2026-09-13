@@ -30,7 +30,8 @@ jobs:
 
       - name: Render static site
         env:
-          AWMPC_ASSET_BASE_URL: https://images.awmpc.org
+          AWMPC_IMAGE_BASE_URL: https://images.awmpc.org
+          AWMPC_DATA_BASE_URL: https://data.awmpc.org
         run: npm run build
 
       - name: Verify Pages artifact root

@@ -11,7 +11,6 @@ const outputDir = path.join(siteDir, 'rendered');
 const templatePath = path.join(templateDir, 'site.template.html');
 
 const staticFiles = [
-  'documents/hymns/index.json',
   'manifest.json',
   'sw.js'
 ];
@@ -42,14 +41,16 @@ const pages = [
   ['hymns', 'hymns.html', 'Hymns', 'wmpc_s_hymns.html']
 ];
 
-const mediaExtensionPattern = '(?:png|jpe?g|gif|webp|svg|avif|bmp|ico|tiff?)';
+const hymnManifestPath = 'documents/hymns/index.json';
+const imageExtensionPattern = '(?:png|jpe?g|gif|webp|svg|avif|bmp|ico|tiff?)';
+const dataExtensionPattern = '(?:pdf|mp4|mpe?g|wmv|webm|ogg|mov|m4v|m3u8|mp3|wav|json|css|txt)';
 
 function fail(message) {
   throw new Error(message);
 }
 
-function getAssetBaseUrl() {
-  const value = (process.env.AWMPC_ASSET_BASE_URL || '').trim();
+function getBaseUrl(environmentName, value) {
+  value = (value || '').trim();
   if (!value) {
     return '';
   }
@@ -58,40 +59,68 @@ function getAssetBaseUrl() {
   try {
     parsed = new URL(value);
   } catch {
-    fail('AWMPC_ASSET_BASE_URL must be a valid HTTPS URL.');
+    fail(`${environmentName} must be a valid HTTPS URL.`);
   }
 
   if (parsed.protocol !== 'https:' || !parsed.hostname || parsed.search || parsed.hash) {
-    fail('AWMPC_ASSET_BASE_URL must be an HTTPS origin without a query string or fragment.');
+    fail(`${environmentName} must be an HTTPS origin without a query string or fragment.`);
   }
 
   return value.replace(/\/+$/, '');
 }
 
-function rewriteAssetReferences(html, assetBaseUrl) {
-  if (!assetBaseUrl) {
-    return html;
-  }
-
-  const pattern = new RegExp(
-    `(\\b(?:src|poster|href)\\s*=\\s*["'])` +
-    `(?!https?:|\\/\\/|data:|blob:|#|mailto:|javascript:)` +
-    `([^"']+\\.${mediaExtensionPattern}(?:[?#][^"']*)?)` +
-    `(["'])`,
-    'gi'
-  );
-
-  return html.replace(pattern, (_match, prefix, value, suffix) => {
-    const splitAt = value.search(/[?#]/);
-    const assetPath = splitAt === -1 ? value : value.slice(0, splitAt);
-    const pathSuffix = splitAt === -1 ? '' : value.slice(splitAt);
-    let normalizedPath = assetPath.replace(/^\.\//, '').replace(/^\/+/, '');
-    normalizedPath = normalizedPath.replace(/^(?:resources\/)?(?:images|documents)\//i, '');
-    return `${prefix}${assetBaseUrl}/${normalizedPath}${pathSuffix}${suffix}`;
-  });
+function rewriteAssetValue(value, assetBaseUrl) {
+  const splitAt = value.search(/[?#]/);
+  const assetPath = splitAt === -1 ? value : value.slice(0, splitAt);
+  const pathSuffix = splitAt === -1 ? '' : value.slice(splitAt);
+  let normalizedPath = assetPath
+    .replace(/^(?:https?:)?\/\/(?:www\.)?awmpc\.org\//i, '')
+    .replace(/^\.\//, '')
+    .replace(/^\/+/, '');
+  normalizedPath = normalizedPath.replace(/^(?:resources\/)?(?:images|documents)\//i, '');
+  return `${assetBaseUrl}/${normalizedPath}${pathSuffix}`;
 }
 
-function renderTemplate(template, pageName, pageContent, assetBaseUrl) {
+function rewriteAssetReferences(html, { imageBaseUrl, dataBaseUrl }) {
+  const rewrite = (source, assetBaseUrl, attributes, extensionPattern) => {
+    if (!assetBaseUrl) {
+      return source;
+    }
+
+    const pattern = new RegExp(
+      `(\\b(?:${attributes})\\s*=\\s*["'])` +
+      `([^"']+\\.${extensionPattern}(?:[?#][^"']*)?)` +
+      `(["'])`,
+      'gi'
+    );
+
+    return source.replace(pattern, (match, prefix, value, suffix) => {
+      if (
+        /^(?:https?:|\/\/|data:|blob:|#|mailto:|javascript:)/i.test(value) &&
+        !/^(?:https?:)?\/\/(?:www\.)?awmpc\.org\//i.test(value)
+      ) {
+        return match;
+      }
+
+      return `${prefix}${rewriteAssetValue(value, assetBaseUrl)}${suffix}`;
+    });
+  };
+
+  html = rewrite(html, imageBaseUrl, 'src|poster|href|longdesc', imageExtensionPattern);
+  return rewrite(html, dataBaseUrl, 'src|href|data-manifest-url', dataExtensionPattern);
+}
+
+function getAssetBaseUrls() {
+  return {
+    imageBaseUrl: getBaseUrl(
+      'AWMPC_IMAGE_BASE_URL',
+      process.env.AWMPC_IMAGE_BASE_URL || process.env.AWMPC_ASSET_BASE_URL
+    ),
+    dataBaseUrl: getBaseUrl('AWMPC_DATA_BASE_URL', process.env.AWMPC_DATA_BASE_URL)
+  };
+}
+
+function renderTemplate(template, pageName, pageContent, assetBaseUrls) {
   if (!template.includes('{{PAGE_NAME}}') || !template.includes('{{PAGE_CONTENT}}')) {
     fail('site.template.html is missing a required page placeholder.');
   }
@@ -99,11 +128,11 @@ function renderTemplate(template, pageName, pageContent, assetBaseUrl) {
   let html = template.replace('{{PAGE_NAME}}', pageName);
   html = html.replace('{{PAGE_CONTENT}}', pageContent);
 
-  return rewriteAssetReferences(html, assetBaseUrl);
+  return rewriteAssetReferences(html, assetBaseUrls);
 }
 
 async function main() {
-  const assetBaseUrl = getAssetBaseUrl();
+  const assetBaseUrls = getAssetBaseUrls();
   const template = await readFile(templatePath, 'utf8');
   const tempDir = await mkdtemp(path.join(os.tmpdir(), 'awmpc-static-node-'));
   const tempOutputDir = path.join(tempDir, 'rendered');
@@ -114,7 +143,7 @@ async function main() {
     for (const [, outputName, pageName, sourceName] of pages) {
       const sourcePath = path.join(templateDir, sourceName);
       const pageContent = await readFile(sourcePath, 'utf8');
-      const html = renderTemplate(template, pageName, pageContent, assetBaseUrl);
+      const html = renderTemplate(template, pageName, pageContent, assetBaseUrls);
 
       if (!html.trim() || html.includes('{{PAGE_') || !html.includes('<footer class="site-footer">')) {
         fail(`${outputName} did not produce a complete static document.`);
@@ -129,6 +158,12 @@ async function main() {
       const outputPath = path.join(tempOutputDir, fileName);
       await mkdir(path.dirname(outputPath), { recursive: true });
       await cp(path.join(siteDir, fileName), outputPath);
+    }
+
+    if (!assetBaseUrls.dataBaseUrl) {
+      const outputPath = path.join(tempOutputDir, hymnManifestPath);
+      await mkdir(path.dirname(outputPath), { recursive: true });
+      await cp(path.join(siteDir, hymnManifestPath), outputPath);
     }
 
     for (const fileName of staticTemplateFiles) {
