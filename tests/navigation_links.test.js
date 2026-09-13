@@ -3,7 +3,7 @@ const fs = require('node:fs');
 const path = require('node:path');
 
 const root = path.resolve(__dirname, '..');
-const shell = fs.readFileSync(path.join(root, 'wmpc_pager.php'), 'utf8');
+const shell = fs.readFileSync(path.join(root, 'templates', 'site.template.html'), 'utf8');
 
 assert.match(
   shell,
@@ -12,7 +12,7 @@ assert.match(
 
 assert.match(
   shell,
-  /<a href="\.\/bible\.html" class="quick-link-bible quick-link-icon" aria-label="Bible">/
+  /<a href="\.\/bible\/" class="quick-link-bible quick-link-icon" aria-label="Bible">/
 );
 
 assert.ok(
@@ -54,4 +54,16 @@ assert.match(
   shell,
   /return runScripts\(mainEl\)\.then\(function\(\)/,
   'SPA navigation must wait for fragment scripts to finish loading'
+);
+
+assert.match(
+  shell,
+  /var routes = \{[\s\S]*'index\.html':\s+'index\.html'/,
+  'SPA navigation must fetch generated pages instead of source templates'
+);
+
+assert.match(
+  shell,
+  /new DOMParser\(\)\.parseFromString\(html, 'text\/html'\)/,
+  'SPA navigation must extract content from generated static pages'
 );

@@ -4,7 +4,7 @@ const path = require('node:path');
 const vm = require('node:vm');
 
 const root = path.resolve(__dirname, '..');
-const biblePath = process.env.BIBLE_UNDER_TEST || path.join(root, 'bible.html');
+const biblePath = process.env.BIBLE_UNDER_TEST || path.join(root, 'templates', 'bible.html');
 const bible = fs.readFileSync(biblePath, 'utf8');
 
 const dialogs = [...bible.matchAll(/<dialog\b[^>]*\bid="app-sheet"[^>]*>/g)];

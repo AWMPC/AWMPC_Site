@@ -660,57 +660,79 @@
   </div>
 
   <!-- Page content -->
-  <?php
-    $menuItem = $_GET["page"];
-    $pageNames = array(
-      'mi_home' => 'Homepage',
-      'mi_prayer' => 'Prayer',
-      'mi_events' => 'Events',
-      'mi_contact' => 'Contact',
-      'mi_media' => 'Media',
-      'mi_support' => 'Donations',
-      'mi_mission' => 'Mission',
-      'mi_reply' => 'Prayer Reply',
-      'mi_request' => 'Prayers',
-      'mi_sermons' => 'Sermons',
-      'mi_testimony' => 'Testimony',
-      'mi_24hrhop' => 'Church',
-      'mi_taiwan' => 'Taiwan',
-      'mi_letters' => 'Letters',
-      'mi_canaan_record' => 'Canaan',
-      'hymns' => 'Hymns'
-    );
-  ?>
-  <div class="section-card" id="contentCard">
-    <span class="section-card-label" id="contentCardLabel"><?php echo isset($pageNames[$menuItem]) ? $pageNames[$menuItem] : 'Homepage'; ?></span>
+    <div class="section-card" id="contentCard">
+    <span class="section-card-label" id="contentCardLabel">Church</span>
 
     <main class="site-main">
 
-      <?php
-      $files['mi_home']          = "wmpc_s_home.html";
-      $files['mi_prayer']        = "wmpc_s_focus_prayer_week_04_09v2.html";
-      $files['mi_events']        = "wmpc_s_events.html";
-      $files['mi_contact']       = "wmpc_s_contactus.html";
-      $files['mi_media']         = "wmpc_s_media.html";
-      $files['mi_support']       = "wmpc_s_ministrysupport.html";
-      $files['mi_mission']       = "wmpc_s_mission_cn.html";
-      $files['mi_reply']         = "wmpc_s_prayerreply.html";
-      $files['mi_request']       = "wmpc_s_prayerrequest.html";
-      $files['mi_sermons']       = "wmpc_s_sermons.html";
-      $files['mi_testimony']     = "wmpc_s_testimonies.html";
-      $files['mi_24hrhop']       = "wmpc_s_24hrhop.html";
-      $files['mi_taiwan']        = "wmpc_s_taiwan040809.html";
-      $files['mi_letters']       = "wmpc_s_letters.html";
-      $files['mi_canaan_record'] = "canaan_chapel_record.html";
-      $files['hymns']            = "wmpc_s_hymns.html";
+      <style type="text/css">
+		<!--
+		/* Style Definitions */
 
-      $fname = $files[$menuItem];
-      $file = fopen($fname, "r") or exit("Unable to open file!");
-      while (!feof($file)) {
-        echo fgets($file);
-      }
-      fclose($file);
-      ?>
+		.style5 {
+			font-size: 24px
+		}
+
+		.style7 {
+			font-size: 28px;
+			color: #FF0000;
+		}
+
+		.style8 {
+			font-size: 24
+		}
+
+		.style9 {
+			font-size: 18px
+		}
+
+		.style10 {
+			font-size: 20px;
+			color: #FF0000;
+			text-align: center;
+		}
+		-->
+</style>
+
+	主賜美地：<a href="https://goo.gl/maps/k9S9q45B7RPGckbr7">1189 S De Anza Blvd, San Jose, CA 95129</a>
+	<br>
+	<iframe
+		src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3173.666137481393!2d-122.03490168434281!3d37.303045746931055!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x808fb51c79ad702b%3A0x658ab9b669f2fea7!2s1189%20S%20De%20Anza%20Blvd%2C%20San%20Jose%2C%20CA%2095129!5e0!3m2!1sen!2sus!4v1617666896912!5m2!1sen!2sus"
+		width="600" height="450" style="border:0;" allowfullscreen="" loading="lazy"></iframe>
+	<br>
+	2880 SF building, 16k Sf land
+	<br>
+	4/15/20 籌集全款
+	<br>
+	建立24小時禱告的聖殿是 神給信望愛禱告中心的呼召和心意。
+	<br>
+	李宇珍牧師是美國矽谷信望愛禱告中心的主任牧師。
+	韓國純福音神學院畢業。並經趙鏞基親自培訓多年。曾開㧨三間教會。神呼召他到美國服事中國信徒，在加卅矽谷1998年創辦信望愛禱告中心。
+	<br>
+	他和禱告中心的服事：
+	1-建立24 小時禱告聖殿在灣區
+	聖經講解，在聖靈帶領的輔導，在聖靈能力醫冶釋放。
+	2-在美國，台灣，香港裝備牧者，宣教士，傳道人，平信徒在禱告和靈性的訓練，帶著耶穌基督能力進入禾場宣教。
+	<br>
+	3 上年神開門正集中香港宣教，訓練工作
+	<br>
+	<br>
+	在李牧師的帶領下，我們同心合意、早晚禱告呼求 神賜下永久的聖殿。
+	<br>
+	在2/10/2020 七天爭戰後的星期一，神讓我們在一天內找到這殿，五天內贏了其他四位潛在買家， 拿到買賣合約 。感謝 主奇妙的供應，一天內籌得全額訂金。
+	<br>
+	我們正在積極的向天父禱告，並連絡願意幫助教會建堂的人，以期在一個月內籌齊全款 ，來完成買賣合約，取得聖殿所有權.
+	<br>
+	這是一生難得的機會，為 永生神、天上的父、為我們釘十架的耶穌基督，與我們同住的聖靈，一起同工來設立 神的殿。這是榮耀 神並造福子孫千代的美事！
+	<br>
+	信望愛禱告中心和李牧師誠邀甘心樂意参與建堂者，在主裡一同禱告，一同盡心盡力的奉獻，一同成就主在華人身上特別的全世界宣教的旨意，一同蒙福！
+	<br>
+	<br>
+	經文： 列王紀上 8 : 37～40
+	37 「國中若有饑荒、瘟疫、旱風、霉爛、蝗蟲、螞蚱，或有仇敵犯境圍困城邑，無論遭遇甚麼災禍疾病，
+	38 祢的民 以色列 ，或是眾人，或是一人，自覺有罪 ，向這殿舉手，無論祈求甚麼，禱告甚麼，
+	39 求祢在天上祢的居所垂聽赦免。祢是知道人心的，要照各人所行的待他們（惟有祢知道世人的心），
+	40 使他們在祢賜給我們列祖之地上一生一世敬畏祢。
 
     </main>
 
@@ -973,20 +995,20 @@
 <!-- SPA Client-Side Router -->
 <script>
 (function() {
-  // Route map: URL filename → content fragment file
+  // Route map: URL filename → generated static page
   var routes = {
-    'index.html':         'wmpc_s_home.html',
-    'mission.html':       'wmpc_s_mission_cn.html',
-    'sermons.html':       'wmpc_s_sermons.html',
-    'testimony.html':     'wmpc_s_testimonies.html',
-    'request.html':       'wmpc_s_prayerrequest.html',
-    '24hrhop.html':       'wmpc_s_24hrhop.html',
-    'support.html':       'wmpc_s_ministrysupport.html',
-    'media.html':         'wmpc_s_media.html',
-    'letters.html':       'wmpc_s_letters.html',
-    'canaan_record.html': 'canaan_chapel_record.html',
-    'hymns.html':         'wmpc_s_hymns.html',
-    'prayer.html':        'wmpc_s_focus_prayer_week_04_09v2.html'
+    'index.html':         'index.html',
+    'mission.html':       'mission.html',
+    'sermons.html':       'sermons.html',
+    'testimony.html':     'testimony.html',
+    'request.html':       'request.html',
+    '24hrhop.html':       '24hrhop.html',
+    'support.html':       'support.html',
+    'media.html':         'media.html',
+    'letters.html':       'letters.html',
+    'canaan_record.html': 'canaan_record.html',
+    'hymns.html':         'hymns.html',
+    'prayer.html':        'prayer.html'
   };
 
   var pageNames = {
@@ -1007,7 +1029,7 @@
   var mainEl = document.querySelector('.site-main');
   var loader = document.getElementById('spaLoader');
   var contentLabel = document.getElementById('contentCardLabel');
-  var cache  = {};  // fragment cache: avoid refetching same page
+  var cache  = {};  // page cache: avoid refetching same page
 
   // Extract filename from any href
   function routeKey(href) {
@@ -1071,18 +1093,18 @@
     }, Promise.resolve());
   }
 
-  // --- Load a content fragment and swap it in ---
+  // --- Load a generated page and swap in its main content ---
   var contentCard = document.getElementById('contentCard');
 
   function navigate(fragmentFile, displayUrl, pushState) {
     loaderStart();
 
-    var done = function(html) {
+    var done = function(page) {
       // Fade out current content
       mainEl.classList.add('fade-out');
 
       setTimeout(function() {
-        mainEl.innerHTML = html;
+        mainEl.innerHTML = page.content;
         return runScripts(mainEl).then(function() {
           if (pushState && displayUrl) {
             history.pushState({ fragment: fragmentFile }, '', displayUrl);
@@ -1091,7 +1113,7 @@
           // Update active page indicator in FAB and content card label
           var activeKey = routeKey(displayUrl || window.location.href);
           updateActiveNav(activeKey);
-          if (contentLabel) contentLabel.textContent = pageNames[activeKey] || 'Homepage';
+          if (contentLabel) contentLabel.textContent = page.label || pageNames[activeKey] || 'Homepage';
 
           // Scroll to top of content card
           if (contentCard) {
@@ -1118,8 +1140,16 @@
         return res.text();
       })
       .then(function(html) {
-        cache[fragmentFile] = html;
-        done(html);
+        var parsed = new DOMParser().parseFromString(html, 'text/html');
+        var nextMain = parsed.querySelector('.site-main');
+        if (!nextMain) throw new Error('generated page is missing .site-main');
+        var nextLabel = parsed.querySelector('#contentCardLabel');
+        var page = {
+          content: nextMain.innerHTML,
+          label: nextLabel ? nextLabel.textContent : ''
+        };
+        cache[fragmentFile] = page;
+        done(page);
       })
       .catch(function() {
         loaderDone();

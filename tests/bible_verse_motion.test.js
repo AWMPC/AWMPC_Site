@@ -4,7 +4,7 @@ const fs = require('node:fs');
 const path = require('node:path');
 
 const root = path.resolve(__dirname, '..');
-const bible = fs.readFileSync(path.join(root, 'bible.html'), 'utf8');
+const bible = fs.readFileSync(path.join(root, 'templates', 'bible.html'), 'utf8');
 const functionNames = [
   'beginProgrammaticVerseScroll',
   'endProgrammaticVerseScroll',

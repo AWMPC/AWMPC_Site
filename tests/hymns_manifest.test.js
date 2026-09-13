@@ -5,7 +5,7 @@ const path = require('node:path');
 
 const root = path.resolve(__dirname, '..');
 const manifestPath = path.join(root, 'documents', 'hymns', 'index.json');
-const hymnsHtmlPath = path.join(root, 'wmpc_s_hymns.html');
+const hymnsHtmlPath = path.join(root, 'templates', 'wmpc_s_hymns.html');
 
 function readJson(filePath) {
   return JSON.parse(fs.readFileSync(filePath, 'utf8'));

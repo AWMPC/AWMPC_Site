@@ -4,7 +4,7 @@ const path = require('node:path');
 const test = require('node:test');
 
 const root = path.resolve(__dirname, '..');
-const bible = fs.readFileSync(path.join(root, 'bible.html'), 'utf8');
+const bible = fs.readFileSync(path.join(root, 'templates', 'bible.html'), 'utf8');
 const css = bible.match(/<style>([\s\S]*?)<\/style>/)[1];
 const marqueeMaskDeclaration = /(?:^|[;\s])(?:mask|mask-image|-webkit-mask|-webkit-mask-image)\s*:/;
 

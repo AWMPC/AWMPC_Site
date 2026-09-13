@@ -1591,20 +1591,20 @@ color:black;"> -&nbsp; </span></i></p>
 <!-- SPA Client-Side Router -->
 <script>
 (function() {
-  // Route map: URL filename → content fragment file
+  // Route map: URL filename → generated static page
   var routes = {
-    'index.html':         'wmpc_s_home.html',
-    'mission.html':       'wmpc_s_mission_cn.html',
-    'sermons.html':       'wmpc_s_sermons.html',
-    'testimony.html':     'wmpc_s_testimonies.html',
-    'request.html':       'wmpc_s_prayerrequest.html',
-    '24hrhop.html':       'wmpc_s_24hrhop.html',
-    'support.html':       'wmpc_s_ministrysupport.html',
-    'media.html':         'wmpc_s_media.html',
-    'letters.html':       'wmpc_s_letters.html',
-    'canaan_record.html': 'canaan_chapel_record.html',
-    'hymns.html':         'wmpc_s_hymns.html',
-    'prayer.html':        'wmpc_s_focus_prayer_week_04_09v2.html'
+    'index.html':         'index.html',
+    'mission.html':       'mission.html',
+    'sermons.html':       'sermons.html',
+    'testimony.html':     'testimony.html',
+    'request.html':       'request.html',
+    '24hrhop.html':       '24hrhop.html',
+    'support.html':       'support.html',
+    'media.html':         'media.html',
+    'letters.html':       'letters.html',
+    'canaan_record.html': 'canaan_record.html',
+    'hymns.html':         'hymns.html',
+    'prayer.html':        'prayer.html'
   };
 
   var pageNames = {
@@ -1625,7 +1625,7 @@ color:black;"> -&nbsp; </span></i></p>
   var mainEl = document.querySelector('.site-main');
   var loader = document.getElementById('spaLoader');
   var contentLabel = document.getElementById('contentCardLabel');
-  var cache  = {};  // fragment cache: avoid refetching same page
+  var cache  = {};  // page cache: avoid refetching same page
 
   // Extract filename from any href
   function routeKey(href) {
@@ -1689,18 +1689,18 @@ color:black;"> -&nbsp; </span></i></p>
     }, Promise.resolve());
   }
 
-  // --- Load a content fragment and swap it in ---
+  // --- Load a generated page and swap in its main content ---
   var contentCard = document.getElementById('contentCard');
 
   function navigate(fragmentFile, displayUrl, pushState) {
     loaderStart();
 
-    var done = function(html) {
+    var done = function(page) {
       // Fade out current content
       mainEl.classList.add('fade-out');
 
       setTimeout(function() {
-        mainEl.innerHTML = html;
+        mainEl.innerHTML = page.content;
         return runScripts(mainEl).then(function() {
           if (pushState && displayUrl) {
             history.pushState({ fragment: fragmentFile }, '', displayUrl);
@@ -1709,7 +1709,7 @@ color:black;"> -&nbsp; </span></i></p>
           // Update active page indicator in FAB and content card label
           var activeKey = routeKey(displayUrl || window.location.href);
           updateActiveNav(activeKey);
-          if (contentLabel) contentLabel.textContent = pageNames[activeKey] || 'Homepage';
+          if (contentLabel) contentLabel.textContent = page.label || pageNames[activeKey] || 'Homepage';
 
           // Scroll to top of content card
           if (contentCard) {
@@ -1736,8 +1736,16 @@ color:black;"> -&nbsp; </span></i></p>
         return res.text();
       })
       .then(function(html) {
-        cache[fragmentFile] = html;
-        done(html);
+        var parsed = new DOMParser().parseFromString(html, 'text/html');
+        var nextMain = parsed.querySelector('.site-main');
+        if (!nextMain) throw new Error('generated page is missing .site-main');
+        var nextLabel = parsed.querySelector('#contentCardLabel');
+        var page = {
+          content: nextMain.innerHTML,
+          label: nextLabel ? nextLabel.textContent : ''
+        };
+        cache[fragmentFile] = page;
+        done(page);
       })
       .catch(function() {
         loaderDone();

@@ -15,7 +15,7 @@ History, Settings, Search, and verse actions open as full-width bottom sheets. T
 
 Bible navigation follows the responsive navbar edge. At 640px and below it opens from the top, drags downward to expand, and upward to close. Above 640px it behaves as a bottom sheet. The handle is the primary vertical drag surface. A nested scroller transfers control to the sheet only at the relevant boundary.
 
-Pointer gestures use capture, an axis lock, displacement and velocity thresholds adapted from `wmpc_pager.php`, and complete cleanup for `pointerup`, `pointercancel`, and `lostpointercapture`. Reduced motion settles immediately. Escape, backdrop activation, browser Back, the explicit close button, and edge-relative dismissal share one close path.
+Pointer gestures use capture, an axis lock, displacement and velocity thresholds adapted from `site.template.html`, and complete cleanup for `pointerup`, `pointercancel`, and `lostpointercapture`. Reduced motion settles immediately. Escape, backdrop activation, browser Back, the explicit close button, and edge-relative dismissal share one close path.
 
 ## Selection pager
 

@@ -4,7 +4,7 @@ const path = require('node:path');
 const test = require('node:test');
 const vm = require('node:vm');
 
-const bible = fs.readFileSync(path.join(__dirname, '..', 'bible.html'), 'utf8');
+const bible = fs.readFileSync(path.join(__dirname, '..', 'templates', 'bible.html'), 'utf8');
 const pureStart = bible.indexOf('/* APP SHEET PURE HELPERS START */');
 const pureEnd = bible.indexOf('/* APP SHEET PURE HELPERS END */');
 assert.ok(pureStart >= 0 && pureEnd > pureStart, 'pure sheet decisions are testable');

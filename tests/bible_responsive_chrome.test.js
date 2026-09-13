@@ -4,7 +4,7 @@ const path = require('node:path');
 const test = require('node:test');
 
 const root = path.resolve(__dirname, '..');
-const bible = fs.readFileSync(path.join(root, 'bible.html'), 'utf8');
+const bible = fs.readFileSync(path.join(root, 'templates', 'bible.html'), 'utf8');
 
 function rule(selector) {
   const escaped = selector.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');

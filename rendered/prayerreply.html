@@ -661,886 +661,36 @@
 
   <!-- Page content -->
     <div class="section-card" id="contentCard">
-    <span class="section-card-label" id="contentCardLabel">Hymns</span>
+    <span class="section-card-label" id="contentCardLabel">Prayer Reply</span>
 
     <main class="site-main">
 
-      <style>
-  .hymns-viewer {
-    display: grid;
-    gap: 14px;
-  }
+      <div>
 
-  .hymns-toolbar,
-  .hymns-controls {
-    display: flex;
-    flex-wrap: wrap;
-    align-items: end;
-    gap: 12px;
-  }
+        <h3><span style='font-size:14.0pt;color:#5A4409'>World
+                Mission Prayer Center</span></h3>
 
-  .hymns-field {
-    display: grid;
-    gap: 6px;
-    flex: 1 1 260px;
-    min-width: 0;
-  }
+        <p><span style='font-size:14.0pt;
+color:#5A4409'>Thank you for submitting your prayer request.</span></p>
 
-  .hymns-label {
-    color: var(--ds-label-color, #5C6B7A);
-    font-size: 13px;
-    font-weight: 700;
-  }
 
-  .hymns-select {
-    width: 100%;
-    min-height: 44px;
-    border: 1px solid rgba(0, 0, 0, 0.22);
-    border-radius: 8px;
-    background: #fff;
-    color: var(--ds-text, #212121);
-    font: inherit;
-    padding: 8px 12px;
-  }
 
-  .hymns-button,
-  .hymns-open-link,
-  .hymns-retry-button {
-    min-height: 44px;
-    border-radius: 8px;
-    border: 1px solid rgba(0, 0, 0, 0.22);
-    background: #fff;
-    color: var(--ds-text, #212121);
-    cursor: pointer;
-    font: inherit;
-    font-weight: 700;
-    line-height: 1.2;
-    padding: 10px 14px;
-    text-decoration: none;
-  }
+        <p><span style='font-size:14.0pt;
+color:#5A4409'>We will pray for you according to the will of the Lord.</span></p>
 
-  .hymns-button:disabled {
-    cursor: not-allowed;
-    opacity: 0.5;
-  }
 
-  .hymns-page-status,
-  .hymns-status {
-    min-height: 22px;
-    color: var(--ds-text-secondary, #656565);
-    font-size: 14px;
-  }
 
-  .hymns-page-status {
-    align-self: center;
-    font-weight: 700;
-  }
+        <p><span style='font-size:14.0pt;
+color:#5A4409'>God promised that He would draw near to you as you draw near to
+                Him. </span></p>
 
-  .hymns-stage {
-    position: relative;
-    display: grid;
-    place-items: center;
-    min-height: 72vh;
-    overflow: auto;
-    border: 1px solid rgba(0, 0, 0, 0.18);
-    border-radius: 8px;
-    background: #111;
-  }
 
-  .hymns-stage:fullscreen {
-    width: 100vw;
-    height: 100vh;
-    min-height: 100vh;
-    border: 0;
-    border-radius: 0;
-    background: #000;
-    overflow: hidden;
-    touch-action: none;
-    user-select: none;
-  }
 
-  .hymns-stage:-webkit-full-screen {
-    width: 100vw;
-    height: 100vh;
-    min-height: 100vh;
-    border: 0;
-    border-radius: 0;
-    background: #000;
-    overflow: hidden;
-    touch-action: none;
-    -webkit-user-select: none;
-    user-select: none;
-  }
+        <p><span style='font-size:14.0pt;
+color:#5A4409'>And ...according to your faith will it be done to you. Matthew
+                9:29</span></p>
 
-  .hymns-stage.is-loading::before {
-    content: "";
-    position: absolute;
-    inset: 0;
-    background: linear-gradient(110deg, #222 25%, #333 45%, #222 65%);
-    background-size: 220% 100%;
-    animation: hymns-shimmer 1.5s ease-in-out infinite;
-    z-index: 1;
-  }
-
-  .hymns-stage.is-loading.is-loading-label::after {
-    content: "Loading hymnal PDF...";
-    position: absolute;
-    left: 50%;
-    top: 50%;
-    z-index: 2;
-    transform: translate(-50%, -50%);
-    color: #fff;
-    font-size: 15px;
-    font-weight: 700;
-  }
-
-  .hymns-canvas {
-    display: block;
-    grid-area: 1 / 1;
-    max-width: 100%;
-    height: auto;
-    background: #000;
-    opacity: 0;
-    transition: opacity 520ms ease-in-out;
-    z-index: 0;
-  }
-
-  .hymns-canvas.is-active {
-    opacity: 1;
-    z-index: 2;
-  }
-
-  .hymns-canvas.is-retiring {
-    opacity: 1;
-    z-index: 1;
-  }
-
-  .hymns-stage:fullscreen .hymns-canvas,
-  .hymns-stage:-webkit-full-screen .hymns-canvas {
-    max-width: none;
-    transform-origin: center center;
-  }
-
-  .hymns-stage.is-presentation-zoomed:fullscreen .hymns-canvas,
-  .hymns-stage.is-presentation-zoomed:-webkit-full-screen .hymns-canvas {
-    transform: scale(var(--hymns-presentation-zoom, 1));
-  }
-
-  .hymns-error {
-    padding: 18px;
-    border: 1px solid rgba(204, 0, 0, 0.28);
-    border-radius: 8px;
-    background: rgba(204, 0, 0, 0.06);
-    color: var(--ds-text, #212121);
-  }
-
-  .hymns-hidden {
-    display: none !important;
-  }
-
-  @keyframes hymns-shimmer {
-    0% { background-position: 180% 0; }
-    100% { background-position: -80% 0; }
-  }
-
-  @media (max-width: 640px) {
-    .hymns-stage {
-      min-height: 68vh;
-    }
-
-    .hymns-button,
-    .hymns-open-link,
-    .hymns-retry-button {
-      flex: 1 1 auto;
-      text-align: center;
-    }
-  }
-
-  @media (prefers-reduced-motion: reduce) {
-    .hymns-canvas {
-      transition: none;
-    }
-  }
-</style>
-
-<div class="hymns-viewer" data-manifest-url="documents/hymns/index.json">
-  <div class="hymns-toolbar">
-    <label class="hymns-field" for="hymnPdfSelect">
-      <span class="hymns-label">Hymn PDF</span>
-      <select class="hymns-select" id="hymnPdfSelect" disabled>
-        <option>Loading hymns...</option>
-      </select>
-    </label>
-    <a class="hymns-open-link hymns-hidden" id="hymnPdfFallback" href="#" target="_blank" rel="noopener">Open PDF</a>
-    <button class="hymns-retry-button hymns-hidden" id="hymnPdfRetry" type="button">Retry</button>
-  </div>
-  <div class="hymns-controls" aria-label="Hymn PDF controls">
-    <button class="hymns-button" id="hymnPdfPrev" type="button" disabled>Previous</button>
-    <span class="hymns-page-status" id="hymnPdfPageStatus">Page - / -</span>
-    <button class="hymns-button" id="hymnPdfNext" type="button" disabled>Next</button>
-    <button class="hymns-button" id="hymnPdfFullscreen" type="button" disabled>Present</button>
-  </div>
-  <p class="hymns-status" id="hymnPdfStatus" role="status" aria-live="polite">Loading hymns...</p>
-  <div class="hymns-stage is-loading is-loading-label" id="hymnPdfStage">
-    <canvas class="hymns-canvas is-active" id="hymnPdfCanvas"></canvas>
-    <canvas class="hymns-canvas" id="hymnPdfCanvasNext"></canvas>
-  </div>
-</div>
-
-<script src="resources/vendor/pdfjs/pdf.min.js"></script>
-<script>
-(function() {
-  var root = document.querySelector('.hymns-viewer');
-  if (!root) return;
-
-  var manifestUrl = root.getAttribute('data-manifest-url');
-  var select = document.getElementById('hymnPdfSelect');
-  var fallback = document.getElementById('hymnPdfFallback');
-  var retry = document.getElementById('hymnPdfRetry');
-  var status = document.getElementById('hymnPdfStatus');
-  var pageStatus = document.getElementById('hymnPdfPageStatus');
-  var previousButton = document.getElementById('hymnPdfPrev');
-  var nextButton = document.getElementById('hymnPdfNext');
-  var fullscreenButton = document.getElementById('hymnPdfFullscreen');
-  var stage = document.getElementById('hymnPdfStage');
-  var primaryCanvas = document.getElementById('hymnPdfCanvas');
-  var secondaryCanvas = document.getElementById('hymnPdfCanvasNext');
-  var primaryCanvasContext = primaryCanvas.getContext('2d');
-  var secondaryCanvasContext = secondaryCanvas.getContext('2d');
-  var activeCanvas = primaryCanvas;
-  var inactiveCanvas = secondaryCanvas;
-  var CROSSFADE_OVERLAP_MS = 260;
-  var SWIPE_THRESHOLD_PX = 56;
-  var PRESENTATION_EXIT_SWIPE_THRESHOLD_PX = 56;
-  var SWIPE_VERTICAL_LIMIT_RATIO = 1.25;
-  var MIN_PRESENTATION_ZOOM = 1;
-  var MAX_PRESENTATION_ZOOM = 3;
-  var PRESENTATION_SUPERSAMPLE_SCALE = 5;
-  var MAX_RENDER_PIXELS = 40000000;
-  var hymns = [];
-  var pdfDoc = null;
-  var renderTask = null;
-  var pageNumber = 1;
-  var renderQueued = false;
-  var resizeTimer = null;
-  var crossfadeTimer = null;
-  var activePointers = {};
-  var pinchState = null;
-  var gestureState = null;
-  var swipeState = null;
-  var presentationZoom = 1;
-  var hasRenderedPage = false;
-
-  function cleanupLegacyServiceWorker() {
-    if (!('serviceWorker' in navigator)) return Promise.resolve();
-
-    return navigator.serviceWorker.getRegistrations().then(function(registrations) {
-      return Promise.all(registrations.map(function(registration) {
-        return registration.unregister();
-      }));
-    }).then(function() {
-      if (!window.caches) return Promise.resolve();
-      return caches.keys().then(function(keys) {
-        return Promise.all(keys.filter(function(key) {
-          return key.indexOf('bible-') === 0;
-        }).map(function(key) {
-          return caches.delete(key);
-        }));
-      });
-    }).catch(function() {
-      return undefined;
-    });
-  }
-
-  function ensurePdfJs() {
-    if (window.pdfjsLib) return Promise.resolve();
-
-    return new Promise(function(resolve) {
-      var script = document.querySelector('script[src$="resources/vendor/pdfjs/pdf.min.js"], script[src$="pdf.min.js"]');
-      var settled = false;
-      var timer = window.setTimeout(done, 4000);
-
-      function done() {
-        if (settled) return;
-        settled = true;
-        window.clearTimeout(timer);
-        resolve();
-      }
-
-      if (!script) {
-        script = document.createElement('script');
-        script.src = 'resources/vendor/pdfjs/pdf.min.js';
-        script.async = false;
-        document.head.appendChild(script);
-      }
-
-      script.addEventListener('load', done, { once: true });
-      script.addEventListener('error', done, { once: true });
-
-      if (window.pdfjsLib || script.readyState === 'complete') done();
-    });
-  }
-
-  function setLoading(isLoading, showLabel) {
-    stage.classList.toggle('is-loading', isLoading);
-    stage.classList.toggle('is-loading-label', Boolean(isLoading && showLabel));
-  }
-
-  function setStatus(message) {
-    status.textContent = message;
-  }
-
-  function setControlsEnabled(enabled) {
-    previousButton.disabled = !enabled || pageNumber <= 1;
-    nextButton.disabled = !enabled || !pdfDoc || pageNumber >= pdfDoc.numPages;
-    fullscreenButton.disabled = !enabled;
-  }
-
-  function updatePageStatus() {
-    pageStatus.textContent = pdfDoc ? 'Page ' + pageNumber + ' / ' + pdfDoc.numPages : 'Page - / -';
-  }
-
-  function currentFullscreenElement() {
-    return document.fullscreenElement || document.webkitFullscreenElement || null;
-  }
-
-  function isPresenting() {
-    return currentFullscreenElement() === stage;
-  }
-
-  function canvasContextFor(canvas) {
-    return canvas === primaryCanvas ? primaryCanvasContext : secondaryCanvasContext;
-  }
-
-  function resetCanvas(canvas) {
-    var context = canvasContextFor(canvas);
-    context.clearRect(0, 0, canvas.width, canvas.height);
-    canvas.width = 0;
-    canvas.height = 0;
-    canvas.style.width = '';
-    canvas.style.height = '';
-  }
-
-  function clearCrossfadeTimer() {
-    if (!crossfadeTimer) return;
-    window.clearTimeout(crossfadeTimer);
-    crossfadeTimer = null;
-  }
-
-  function clearCanvas() {
-    clearCrossfadeTimer();
-    resetCanvas(primaryCanvas);
-    resetCanvas(secondaryCanvas);
-    activeCanvas = primaryCanvas;
-    inactiveCanvas = secondaryCanvas;
-    primaryCanvas.classList.add('is-active');
-    secondaryCanvas.classList.remove('is-active');
-    primaryCanvas.classList.remove('is-retiring');
-    secondaryCanvas.classList.remove('is-retiring');
-    hasRenderedPage = false;
-  }
-
-  function swapCanvases(targetCanvas) {
-    clearCrossfadeTimer();
-    primaryCanvas.classList.remove('is-retiring');
-    secondaryCanvas.classList.remove('is-retiring');
-
-    if (targetCanvas !== activeCanvas) {
-      var previousCanvas = activeCanvas;
-      targetCanvas.classList.add('is-active');
-      previousCanvas.classList.remove('is-active');
-      previousCanvas.classList.add('is-retiring');
-      activeCanvas = targetCanvas;
-      inactiveCanvas = previousCanvas;
-      crossfadeTimer = window.setTimeout(function() {
-        previousCanvas.classList.remove('is-retiring');
-        crossfadeTimer = null;
-      }, CROSSFADE_OVERLAP_MS);
-    } else {
-      targetCanvas.classList.add('is-active');
-      inactiveCanvas.classList.remove('is-active');
-      inactiveCanvas.classList.remove('is-retiring');
-    }
-    hasRenderedPage = true;
-  }
-
-  function isSafeHymnFile(file) {
-    return typeof file === 'string' &&
-      /^documents\/hymns\/[^?#]+\.pdf$/i.test(file) &&
-      file.indexOf('..') === -1 &&
-      !/^[a-z][a-z0-9+.-]*:/i.test(file);
-  }
-
-  function normalizeHymns(items) {
-    if (!Array.isArray(items)) return [];
-
-    return items.filter(function(item) {
-      return item &&
-        typeof item.title === 'string' &&
-        item.title.trim() &&
-        isSafeHymnFile(item.file);
-    }).map(function(item) {
-      return {
-        title: item.title.trim(),
-        file: item.file
-      };
-    });
-  }
-
-  function delay(ms) {
-    return new Promise(function(resolve) {
-      window.setTimeout(resolve, ms);
-    });
-  }
-
-  function fetchManifestWithBackoff(attempt) {
-    return fetch(manifestUrl, { cache: 'no-store' }).then(function(response) {
-      if (!response.ok) throw new Error('Manifest request failed: ' + response.status);
-      return response.json();
-    }).catch(function(error) {
-      if (attempt >= 2) throw error;
-      return delay(300 * Math.pow(3, attempt)).then(function() {
-        return fetchManifestWithBackoff(attempt + 1);
-      });
-    });
-  }
-
-  function populateSelect() {
-    var options = document.createDocumentFragment();
-
-    hymns.forEach(function(hymn, index) {
-      var option = document.createElement('option');
-      option.value = String(index);
-      option.textContent = hymn.title;
-      options.appendChild(option);
-    });
-
-    select.textContent = '';
-    select.appendChild(options);
-    select.disabled = hymns.length === 0;
-  }
-
-  function hymnUrl(hymn) {
-    var url = new URL(hymn.file, window.location.href);
-    url.searchParams.set('embed', '1');
-    return encodeURI(url.href);
-  }
-
-  function renderPixelRatioFor(displayViewport) {
-    var deviceScale = Math.min(window.devicePixelRatio || 1, 3);
-    var desiredScale = isPresenting() ?
-      Math.max(deviceScale, PRESENTATION_SUPERSAMPLE_SCALE) :
-      deviceScale;
-    var displayPixels = displayViewport.width * displayViewport.height;
-    if (!isFinite(displayPixels) || displayPixels <= 0) return desiredScale;
-
-    var cappedScale = Math.sqrt(MAX_RENDER_PIXELS / displayPixels);
-    return Math.max(1, Math.min(desiredScale, cappedScale));
-  }
-
-  function renderPage() {
-    if (!pdfDoc) return Promise.resolve();
-
-    if (renderTask) {
-      renderQueued = true;
-      renderTask.cancel();
-      return Promise.resolve();
-    }
-
-    renderQueued = false;
-    setLoading(!hasRenderedPage, !hasRenderedPage);
-    setControlsEnabled(false);
-    updatePageStatus();
-
-    return pdfDoc.getPage(pageNumber).then(function(page) {
-      var baseViewport = page.getViewport({ scale: 1 });
-      var maxCssWidth = Math.max(stage.clientWidth - 24, 320);
-      var maxCssHeight = isPresenting() ? Math.max(stage.clientHeight - 24, 320) : Infinity;
-      var fitScale = Math.min(maxCssWidth / baseViewport.width, maxCssHeight / baseViewport.height);
-      var displayViewport = page.getViewport({ scale: fitScale });
-      var pixelRatio = renderPixelRatioFor(displayViewport);
-      var renderViewport = page.getViewport({ scale: fitScale * pixelRatio });
-      var targetCanvas = hasRenderedPage ? inactiveCanvas : activeCanvas;
-      var targetContext = canvasContextFor(targetCanvas);
-
-      targetCanvas.width = Math.floor(renderViewport.width);
-      targetCanvas.height = Math.floor(renderViewport.height);
-      targetCanvas.style.width = Math.floor(displayViewport.width) + 'px';
-      targetCanvas.style.height = Math.floor(displayViewport.height) + 'px';
-
-      renderTask = page.render({
-        canvasContext: targetContext,
-        viewport: renderViewport
-      });
-
-      return renderTask.promise.then(function() {
-        renderTask = null;
-        swapCanvases(targetCanvas);
-        setLoading(false);
-        updatePageStatus();
-        setControlsEnabled(true);
-        setStatus('Showing ' + hymns[Number(select.value)].title + '.');
-      }).catch(function(error) {
-        renderTask = null;
-        if (error && error.name === 'RenderingCancelledException' && renderQueued) {
-          return renderPage();
-        }
-        throw error;
-      });
-    }).catch(function() {
-      setLoading(false);
-      setControlsEnabled(Boolean(pdfDoc));
-      setStatus('Unable to render this page. Open the PDF directly if the problem continues.');
-    });
-  }
-
-  function destroyCurrentPdf() {
-    if (renderTask) {
-      renderTask.cancel();
-      renderTask = null;
-    }
-    if (pdfDoc) {
-      pdfDoc.destroy();
-      pdfDoc = null;
-    }
-    clearCanvas();
-    pageNumber = 1;
-    updatePageStatus();
-    setControlsEnabled(false);
-  }
-
-  function showHymn(index) {
-    var hymn = hymns[index];
-    if (!hymn) return;
-
-    var encodedFile = hymnUrl(hymn);
-    destroyCurrentPdf();
-    setLoading(true, true);
-    setStatus('Loading ' + hymn.title + '...');
-    fallback.href = encodedFile;
-    fallback.classList.remove('hymns-hidden');
-
-    window.pdfjsLib.getDocument({ url: encodedFile }).promise.then(function(loadedPdf) {
-      pdfDoc = loadedPdf;
-      pageNumber = 1;
-      return renderPage();
-    }).catch(function() {
-      showError('Unable to load this PDF. Open it directly or try another hymn.');
-    });
-  }
-
-  function showError(message) {
-    select.disabled = hymns.length === 0;
-    retry.classList.remove('hymns-hidden');
-    setLoading(false);
-    setControlsEnabled(false);
-    stage.classList.add('hymns-error');
-    setStatus(message || 'Unable to load the hymn list. Please try again.');
-  }
-
-  function goToPreviousPage() {
-    if (!pdfDoc || pageNumber <= 1) return;
-    pageNumber -= 1;
-    renderPage();
-  }
-
-  function goToNextPage() {
-    if (!pdfDoc || pageNumber >= pdfDoc.numPages) return;
-    pageNumber += 1;
-    renderPage();
-  }
-
-  function activePointerList() {
-    return Object.keys(activePointers).map(function(pointerId) {
-      return activePointers[pointerId];
-    });
-  }
-
-  function resetPointerGestures() {
-    activePointers = {};
-    pinchState = null;
-    gestureState = null;
-    swipeState = null;
-  }
-
-  function distanceBetweenPointers(firstPointer, secondPointer) {
-    var deltaX = firstPointer.x - secondPointer.x;
-    var deltaY = firstPointer.y - secondPointer.y;
-    return Math.sqrt(deltaX * deltaX + deltaY * deltaY);
-  }
-
-  function clampPresentationZoom(zoom) {
-    var numericZoom = Number(zoom);
-    if (!isFinite(numericZoom)) return MIN_PRESENTATION_ZOOM;
-    return Math.max(MIN_PRESENTATION_ZOOM, Math.min(MAX_PRESENTATION_ZOOM, numericZoom));
-  }
-
-  function updatePresentationZoom(zoom) {
-    presentationZoom = clampPresentationZoom(zoom);
-    stage.style.setProperty('--hymns-presentation-zoom', String(presentationZoom));
-    stage.classList.toggle('is-presentation-zoomed', isPresenting() && presentationZoom > MIN_PRESENTATION_ZOOM);
-  }
-
-  function resetPresentationZoom() {
-    presentationZoom = MIN_PRESENTATION_ZOOM;
-    stage.style.removeProperty('--hymns-presentation-zoom');
-    stage.classList.remove('is-presentation-zoomed');
-  }
-
-  function beginPinchIfReady() {
-    var pointers = activePointerList();
-    if (pointers.length < 2) return;
-
-    pinchState = {
-      pointerIds: [pointers[0].pointerId, pointers[1].pointerId],
-      startDistance: distanceBetweenPointers(pointers[0], pointers[1]),
-      startZoom: presentationZoom
-    };
-    swipeState = null;
-  }
-
-  function exitPresentationFromGesture(event) {
-    if (event && event.preventDefault) event.preventDefault();
-    resetPointerGestures();
-    exitPresentation();
-  }
-
-  function updatePinchZoom(event) {
-    if (!pinchState) return false;
-
-    var firstPointer = activePointers[pinchState.pointerIds[0]];
-    var secondPointer = activePointers[pinchState.pointerIds[1]];
-    if (!firstPointer || !secondPointer) return false;
-
-    var currentDistance = distanceBetweenPointers(firstPointer, secondPointer);
-    var zoomRatio = currentDistance / pinchState.startDistance;
-    updatePresentationZoom(pinchState.startZoom * zoomRatio);
-
-    return true;
-  }
-
-  function beginSwipe(event) {
-    if (!isPresenting() || !pdfDoc || event.pointerType === 'mouse') return;
-
-    activePointers[event.pointerId] = {
-      pointerId: event.pointerId,
-      x: event.clientX,
-      y: event.clientY
-    };
-
-    swipeState = {
-      pointerId: event.pointerId,
-      startX: event.clientX,
-      startY: event.clientY,
-      lastX: event.clientX,
-      lastY: event.clientY
-    };
-
-    if (stage.setPointerCapture) {
-      try {
-        stage.setPointerCapture(event.pointerId);
-      } catch (error) {
-        // Some browsers may reject capture during fullscreen transitions.
-      }
-    }
-
-    if (activePointerList().length >= 2) {
-      beginPinchIfReady();
-    }
-  }
-
-  function moveSwipe(event) {
-    if (!activePointers[event.pointerId]) return;
-
-    activePointers[event.pointerId].x = event.clientX;
-    activePointers[event.pointerId].y = event.clientY;
-
-    if (pinchState) {
-      event.preventDefault();
-      updatePinchZoom(event);
-      return;
-    }
-
-    if (!swipeState || event.pointerId !== swipeState.pointerId) return;
-
-    swipeState.lastX = event.clientX;
-    swipeState.lastY = event.clientY;
-
-    var deltaX = event.clientX - swipeState.startX;
-    var deltaY = event.clientY - swipeState.startY;
-    if ((Math.abs(deltaX) > 10 && Math.abs(deltaX) > Math.abs(deltaY)) ||
-        (Math.abs(deltaY) > 10 && Math.abs(deltaY) > Math.abs(deltaX))) {
-      event.preventDefault();
-    }
-  }
-
-  function finishSwipe(event) {
-    delete activePointers[event.pointerId];
-
-    if (pinchState) {
-      if (activePointerList().length < 2) pinchState = null;
-      return;
-    }
-
-    if (!swipeState || event.pointerId !== swipeState.pointerId) return;
-
-    var deltaX = event.clientX - swipeState.startX;
-    var deltaY = event.clientY - swipeState.startY;
-    swipeState = null;
-
-    if (!isPresenting()) return;
-    if (Math.abs(deltaY) >= PRESENTATION_EXIT_SWIPE_THRESHOLD_PX &&
-        Math.abs(deltaY) >= Math.abs(deltaX) * SWIPE_VERTICAL_LIMIT_RATIO) {
-      exitPresentationFromGesture(event);
-      return;
-    }
-    if (Math.abs(deltaX) < SWIPE_THRESHOLD_PX) return;
-    if (Math.abs(deltaX) < Math.abs(deltaY) * SWIPE_VERTICAL_LIMIT_RATIO) return;
-
-    event.preventDefault();
-    if (deltaX < 0) goToNextPage();
-    if (deltaX > 0) goToPreviousPage();
-  }
-
-  function cancelSwipe(event) {
-    delete activePointers[event.pointerId];
-    if (swipeState && event.pointerId === swipeState.pointerId) swipeState = null;
-    if (pinchState && activePointerList().length < 2) pinchState = null;
-  }
-
-  function beginGestureZoom(event) {
-    if (!isPresenting()) return;
-    if (event.preventDefault) event.preventDefault();
-    gestureState = {
-      startZoom: presentationZoom
-    };
-  }
-
-  function handleGestureChange(event) {
-    if (!isPresenting()) return;
-    if (event.preventDefault) event.preventDefault();
-    if (typeof event.scale !== 'number') return;
-
-    var startZoom = gestureState ? gestureState.startZoom : presentationZoom;
-    updatePresentationZoom(startZoom * event.scale);
-  }
-
-  function endGestureZoom(event) {
-    if (gestureState && event.preventDefault) event.preventDefault();
-    gestureState = null;
-  }
-
-  function exitPresentation() {
-    if (document.fullscreenElement && document.exitFullscreen) {
-      document.exitFullscreen();
-      return;
-    }
-    if (document.webkitFullscreenElement && document.webkitExitFullscreen) {
-      document.webkitExitFullscreen();
-    }
-  }
-
-  function loadHymns() {
-    if (!window.pdfjsLib) {
-      showError('Unable to load the PDF viewer library. Open the PDF directly or try again.');
-      return;
-    }
-
-    window.pdfjsLib.GlobalWorkerOptions.workerSrc =
-      'resources/vendor/pdfjs/pdf.worker.min.js';
-
-    setLoading(true, true);
-    setStatus('Loading hymns...');
-    retry.classList.add('hymns-hidden');
-    stage.classList.remove('hymns-error');
-
-    fetchManifestWithBackoff(0).then(function(manifest) {
-      hymns = normalizeHymns(manifest.hymns);
-      if (!hymns.length) throw new Error('Manifest has no safe hymn entries.');
-      populateSelect();
-      showHymn(0);
-    }).catch(function() {
-      showError('Unable to load the hymn list. Please try again.');
-    });
-  }
-
-  select.addEventListener('change', function() {
-    showHymn(Number(select.value));
-  });
-
-  previousButton.addEventListener('click', function() {
-    goToPreviousPage();
-  });
-
-  nextButton.addEventListener('click', function() {
-    goToNextPage();
-  });
-
-  fullscreenButton.addEventListener('click', function() {
-    if (currentFullscreenElement()) {
-      exitPresentation();
-      return;
-    }
-    if (stage.requestFullscreen) {
-      stage.requestFullscreen();
-    } else if (stage.webkitRequestFullscreen) {
-      stage.webkitRequestFullscreen();
-    }
-  });
-
-  document.addEventListener('keydown', function(event) {
-    if (!isPresenting()) return;
-
-    if (event.key === 'ArrowLeft') {
-      event.preventDefault();
-      goToPreviousPage();
-      return;
-    }
-    if (event.key === 'ArrowRight') {
-      event.preventDefault();
-      goToNextPage();
-      return;
-    }
-    if (event.key === 'Escape') {
-      event.preventDefault();
-      exitPresentation();
-    }
-  });
-
-  document.addEventListener('fullscreenchange', function() {
-    var presenting = document.fullscreenElement === stage;
-    fullscreenButton.textContent = presenting ? 'Exit' : 'Present';
-    resetPointerGestures();
-    if (!presenting) resetPresentationZoom();
-    renderPage();
-  });
-
-  document.addEventListener('webkitfullscreenchange', function() {
-    var presenting = document.webkitFullscreenElement === stage;
-    fullscreenButton.textContent = presenting ? 'Exit' : 'Present';
-    resetPointerGestures();
-    if (!presenting) resetPresentationZoom();
-    renderPage();
-  });
-
-  stage.addEventListener('pointerdown', beginSwipe);
-  stage.addEventListener('pointermove', moveSwipe);
-  stage.addEventListener('pointerup', finishSwipe);
-  stage.addEventListener('pointercancel', cancelSwipe);
-  stage.addEventListener('lostpointercapture', cancelSwipe);
-  stage.addEventListener('gesturestart', beginGestureZoom);
-  stage.addEventListener('gesturechange', handleGestureChange);
-  stage.addEventListener('gestureend', endGestureZoom);
-
-  window.addEventListener('resize', function() {
-    if (!pdfDoc) return;
-    window.clearTimeout(resizeTimer);
-    resizeTimer = window.setTimeout(renderPage, 150);
-  });
-
-  cleanupLegacyServiceWorker().then(ensurePdfJs).then(loadHymns);
-})();
-</script>
+    </div>
 
     </main>
 
@@ -1803,20 +953,20 @@
 <!-- SPA Client-Side Router -->
 <script>
 (function() {
-  // Route map: URL filename → content fragment file
+  // Route map: URL filename → generated static page
   var routes = {
-    'index.html':         'wmpc_s_home.html',
-    'mission.html':       'wmpc_s_mission_cn.html',
-    'sermons.html':       'wmpc_s_sermons.html',
-    'testimony.html':     'wmpc_s_testimonies.html',
-    'request.html':       'wmpc_s_prayerrequest.html',
-    '24hrhop.html':       'wmpc_s_24hrhop.html',
-    'support.html':       'wmpc_s_ministrysupport.html',
-    'media.html':         'wmpc_s_media.html',
-    'letters.html':       'wmpc_s_letters.html',
-    'canaan_record.html': 'canaan_chapel_record.html',
-    'hymns.html':         'wmpc_s_hymns.html',
-    'prayer.html':        'wmpc_s_focus_prayer_week_04_09v2.html'
+    'index.html':         'index.html',
+    'mission.html':       'mission.html',
+    'sermons.html':       'sermons.html',
+    'testimony.html':     'testimony.html',
+    'request.html':       'request.html',
+    '24hrhop.html':       '24hrhop.html',
+    'support.html':       'support.html',
+    'media.html':         'media.html',
+    'letters.html':       'letters.html',
+    'canaan_record.html': 'canaan_record.html',
+    'hymns.html':         'hymns.html',
+    'prayer.html':        'prayer.html'
   };
 
   var pageNames = {
@@ -1837,7 +987,7 @@
   var mainEl = document.querySelector('.site-main');
   var loader = document.getElementById('spaLoader');
   var contentLabel = document.getElementById('contentCardLabel');
-  var cache  = {};  // fragment cache: avoid refetching same page
+  var cache  = {};  // page cache: avoid refetching same page
 
   // Extract filename from any href
   function routeKey(href) {
@@ -1901,18 +1051,18 @@
     }, Promise.resolve());
   }
 
-  // --- Load a content fragment and swap it in ---
+  // --- Load a generated page and swap in its main content ---
   var contentCard = document.getElementById('contentCard');
 
   function navigate(fragmentFile, displayUrl, pushState) {
     loaderStart();
 
-    var done = function(html) {
+    var done = function(page) {
       // Fade out current content
       mainEl.classList.add('fade-out');
 
       setTimeout(function() {
-        mainEl.innerHTML = html;
+        mainEl.innerHTML = page.content;
         return runScripts(mainEl).then(function() {
           if (pushState && displayUrl) {
             history.pushState({ fragment: fragmentFile }, '', displayUrl);
@@ -1921,7 +1071,7 @@
           // Update active page indicator in FAB and content card label
           var activeKey = routeKey(displayUrl || window.location.href);
           updateActiveNav(activeKey);
-          if (contentLabel) contentLabel.textContent = pageNames[activeKey] || 'Homepage';
+          if (contentLabel) contentLabel.textContent = page.label || pageNames[activeKey] || 'Homepage';
 
           // Scroll to top of content card
           if (contentCard) {
@@ -1948,8 +1098,16 @@
         return res.text();
       })
       .then(function(html) {
-        cache[fragmentFile] = html;
-        done(html);
+        var parsed = new DOMParser().parseFromString(html, 'text/html');
+        var nextMain = parsed.querySelector('.site-main');
+        if (!nextMain) throw new Error('generated page is missing .site-main');
+        var nextLabel = parsed.querySelector('#contentCardLabel');
+        var page = {
+          content: nextMain.innerHTML,
+          label: nextLabel ? nextLabel.textContent : ''
+        };
+        cache[fragmentFile] = page;
+        done(page);
       })
       .catch(function() {
         loaderDone();

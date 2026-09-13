@@ -5,7 +5,7 @@ const test = require('node:test');
 const vm = require('node:vm');
 
 const root = path.resolve(__dirname, '..');
-const bible = fs.readFileSync(path.join(root, 'bible.html'), 'utf8');
+const bible = fs.readFileSync(path.join(root, 'templates', 'bible.html'), 'utf8');
 
 function functionSource(name) {
   const match = bible.match(new RegExp('  function ' + name + '\\([^\\n]*\\) \\{[\\s\\S]*?\\n  \\}'));

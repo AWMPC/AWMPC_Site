@@ -4,7 +4,7 @@ const fs = require('node:fs');
 const path = require('node:path');
 const vm = require('node:vm');
 
-const bible = fs.readFileSync(path.join(__dirname, '..', 'bible.html'), 'utf8');
+const bible = fs.readFileSync(path.join(__dirname, '..', 'templates', 'bible.html'), 'utf8');
 
 function sourceBetween(start, end, source = bible) {
   const from = source.indexOf(start);

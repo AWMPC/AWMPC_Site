@@ -3,7 +3,7 @@ const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const path = require('node:path');
 
-const bible = fs.readFileSync(path.join(__dirname, '..', 'bible.html'), 'utf8');
+const bible = fs.readFileSync(path.join(__dirname, '..', 'templates', 'bible.html'), 'utf8');
 const seasonalCore = [
   'bg', 'bg2', 'bg3', 'bg4', 'surface', 'surface-hi',
   'fg', 'fg2', 'fg3', 'fg4', 'border', 'border2', 'border3',

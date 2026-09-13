@@ -4,7 +4,7 @@ const path = require('node:path');
 const vm = require('node:vm');
 
 const root = path.resolve(__dirname, '..');
-const bible = fs.readFileSync(process.env.BIBLE_UNDER_TEST || path.join(root, 'bible.html'), 'utf8');
+const bible = fs.readFileSync(process.env.BIBLE_UNDER_TEST || path.join(root, 'templates', 'bible.html'), 'utf8');
 
 function functionSource(name, nextMarker) {
   const start = bible.indexOf(`  function ${name}(`);

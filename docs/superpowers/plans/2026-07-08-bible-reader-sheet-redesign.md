@@ -208,7 +208,7 @@ Run every `tests/*.test.js` file and `git diff --check`. Expected: all tests pas
 
 - [ ] **Step 3: Render and compare at target widths**
 
-Verify 320px, 640px, and desktop states: compact/fullscreen/dismiss from both edges, nested scrolling, horizontal pager, dots, dark/light, reduced motion, virtual keyboard, Back/Forward, reload restoration, and unfaded `1 Thessalonians`. Compare the rendered sheet against the existing copy-verse popup and `wmpc_pager.php` at the same viewport.
+Verify 320px, 640px, and desktop states: compact/fullscreen/dismiss from both edges, nested scrolling, horizontal pager, dots, dark/light, reduced motion, virtual keyboard, Back/Forward, reload restoration, and unfaded `1 Thessalonians`. Compare the rendered sheet against the existing copy-verse popup and `site.template.html` at the same viewport.
 
 - [ ] **Step 4: Run final privacy and leak review**
 
