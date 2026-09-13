@@ -43,7 +43,7 @@ const pages = [
 
 const hymnManifestPath = 'documents/hymns/index.json';
 const imageExtensionPattern = '(?:png|jpe?g|gif|webp|svg|avif|bmp|ico|tiff?)';
-const dataExtensionPattern = '(?:pdf|mp4|mpe?g|wmv|webm|ogg|mov|m4v|m3u8|mp3|wav|json|css|txt)';
+const dataExtensionPattern = '(?:pdf|mp4|mpe?g|wmv|webm|ogg|mov|m4v|m3u8|mp3|wav|json|css|js|txt)';
 
 function fail(message) {
   throw new Error(message);
@@ -77,7 +77,9 @@ function rewriteAssetValue(value, assetBaseUrl) {
     .replace(/^(?:https?:)?\/\/(?:www\.)?awmpc\.org\//i, '')
     .replace(/^\.\//, '')
     .replace(/^\/+/, '');
-  normalizedPath = normalizedPath.replace(/^(?:resources\/)?(?:images|documents)\//i, '');
+  normalizedPath = normalizedPath
+    .replace(/^resources\//i, '')
+    .replace(/^(?:images|documents)\//i, '');
   return `${assetBaseUrl}/${normalizedPath}${pathSuffix}`;
 }
 
