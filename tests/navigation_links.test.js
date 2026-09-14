@@ -43,7 +43,7 @@ assert.match(
 
 assert.match(
   shell,
-  /<a class="footer-badge footer-lighthouse-badge" href="https:\/\/developers\.google\.com\/speed\/pagespeed\/insights\/\?url=awmpc\.org&tab=mobile" target="_blank" rel="noopener noreferrer" aria-label="Google Lighthouse Performance Scan">/
+  /<a class="footer-badge footer-pagespeed-badge" href="https:\/\/pagespeed\.web\.dev\/analysis\/https-awmpc-org\/q4uin3chl2" target="_blank" rel="noopener noreferrer" aria-label="PageSpeed Insights by web\.dev">[\s\S]*?<span>PageSpeed Insights<\/span>/
 );
 
 assert.doesNotMatch(
