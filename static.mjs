@@ -10,16 +10,10 @@ const templateDir = path.join(siteDir, 'templates');
 const outputDir = path.join(siteDir, 'rendered');
 const templatePath = path.join(templateDir, 'site.template.html');
 
-const staticFiles = [
-  'manifest.json',
-  'sw.js'
-];
-
 const staticTemplateFiles = [
   'awmpc_privacy.html',
   'awmpc_refunds.html',
   'awmpc_tocau.html',
-  'bible.html',
   'donation_thank_you.html'
 ];
 
@@ -154,12 +148,6 @@ async function main() {
       const tempPath = path.join(tempOutputDir, outputName);
       await writeFile(tempPath, html, 'utf8');
       renderedPages.push([tempPath, outputName, pageName]);
-    }
-
-    for (const fileName of staticFiles) {
-      const outputPath = path.join(tempOutputDir, fileName);
-      await mkdir(path.dirname(outputPath), { recursive: true });
-      await cp(path.join(siteDir, fileName), outputPath);
     }
 
     if (!assetBaseUrls.dataBaseUrl) {

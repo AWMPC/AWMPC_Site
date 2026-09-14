@@ -16,12 +16,13 @@ npm run build
 bash ./static.sh
 ```
 
-The standalone Bible reader and policy pages are copied from `templates/` into
-`rendered/`; they are not processed as page fragments. Run the build after
-changing a template or static asset, then deploy the entire `rendered/`
-directory. `rendered/` is generated output and can be recreated at any time.
-It is intentionally ignored by Git because the Pages workflow generates it
-fresh for each deployment.
+The policy pages are copied from `templates/` into `rendered/`; they are not
+processed as page fragments. The Bible reader is hosted by its own site and is
+linked externally from the main-site navigation. Run the build after changing
+a template or static asset, then deploy the entire `rendered/` directory.
+`rendered/` is generated output and can be recreated at any time. It is
+intentionally ignored by Git because the Pages workflow generates it fresh for
+each deployment.
 
 ## External assets
 
@@ -35,7 +36,7 @@ AWMPC_DATA_BASE_URL='https://your-data-hostname' bash ./static.sh
 ```
 
 Image `src`, `poster`, and `href` references use the image host. PDF, video,
-audio, stylesheet, text, JSON, and manifest references use the data host.
+audio, stylesheet, text, and JSON references use the data host.
 Ordinary page navigation remains relative. Leave either variable unset to keep
 that asset class's relative paths. Keep object-storage credentials out of this
 repository; uploads are a separate deployment step.
@@ -53,16 +54,15 @@ must allow `GET` requests from `https://awmpc.org` and
 `https://www.awmpc.org` through their CORS policies. This is required for the
 hymn manifest, PDF.js worker, and browser-loaded PDFs.
 
-The generated site copies local runtime assets such as `resources/`,
-`bible.html`, `manifest.json`, and `sw.js` into `rendered/`. When the data host
-is unset, it also copies the local hymn manifest for offline/local rendering;
-with the Pages data host configured, the manifest is loaded from
+The generated site copies local runtime assets such as `resources/` into
+`rendered/`. When the data host is unset, it also copies the local hymn
+manifest for offline/local rendering; with the Pages data host configured, the
+manifest is loaded from
 `https://data.awmpc.org/hymns/index.json`. Hymn PDFs remain external data
 assets and are not committed to Git.
 
-The Bible dataset is intentionally not committed to Git. Provide it separately
-through the eventual object-storage deployment and update the Bible reader's
-data URL before publishing it.
+The Bible reader and its dataset are maintained and deployed separately from
+this repository.
 
 The included `.github/workflows/pages.yml` builds and deploys
 `rendered/` as a GitHub Pages artifact. It verifies that `rendered/index.html`
