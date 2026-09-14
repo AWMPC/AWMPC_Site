@@ -48,14 +48,22 @@ assert.match(
 
 assert.match(
   shell,
-  /<a class="footer-copyright-badge" href="\.\/awmpc_tocau\.html#copyright" aria-label="Copyright notice for awmpc\.org, \{\{COPYRIGHT_YEAR\}\}"/,
-  'footer must expose a linked, build-stamped copyright badge'
+  /<div class="footer-right">[\s\S]*?<a class="footer-copyright-badge" href="\.\/awmpc_tocau\.html#copyright" aria-label="Copyright notice for awmpc\.org, \{\{COPYRIGHT_YEAR\}\}"[\s\S]*?<a href="https:\/\/awmpc\.org\/awmpc_tocau\.html">Terms of Conditions and Use<\/a>/,
+  'footer must place the linked copyright badge first in the right column'
 );
 
 assert.match(
   shell,
   /<span class="copyright-badge-name">&copy; \{\{COPYRIGHT_YEAR\}\} awmpc\.org<\/span>/,
   'copyright badge must identify the site and build year'
+);
+
+const copyrightBadge = shell.match(/<a class="footer-copyright-badge"[\s\S]*?<\/a>/);
+assert.ok(copyrightBadge, 'copyright badge markup must be present');
+assert.doesNotMatch(
+  copyrightBadge[0],
+  /<svg/,
+  'copyright badge must not include the shield icon'
 );
 
 assert.doesNotMatch(
