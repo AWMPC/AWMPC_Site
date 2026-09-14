@@ -46,6 +46,18 @@ assert.match(
   /<a class="footer-badge footer-pagespeed-badge" href="https:\/\/pagespeed\.web\.dev\/analysis\/https-awmpc-org\/q4uin3chl2" target="_blank" rel="noopener noreferrer" aria-label="PageSpeed Insights by web\.dev">[\s\S]*?<span>PageSpeed Insights<\/span>/
 );
 
+assert.match(
+  shell,
+  /<a class="footer-copyright-badge" href="\.\/awmpc_tocau\.html#copyright" aria-label="Copyright notice for awmpc\.org, \{\{COPYRIGHT_YEAR\}\}"/,
+  'footer must expose a linked, build-stamped copyright badge'
+);
+
+assert.match(
+  shell,
+  /<span class="copyright-badge-name">&copy; \{\{COPYRIGHT_YEAR\}\} awmpc\.org<\/span>/,
+  'copyright badge must identify the site and build year'
+);
+
 assert.doesNotMatch(
   shell,
   /navigator\.serviceWorker\.register\(['"]\.\/sw\.js['"]\)/,
