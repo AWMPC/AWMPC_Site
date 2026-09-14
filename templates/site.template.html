@@ -384,6 +384,23 @@
     .footer-center { flex: 2; min-width: 200px; text-align: center; font-size: 15px; }
     .footer-right  { flex: 1; min-width: 200px; text-align: right; }
     .footer-right a { display: block; margin-bottom: 2px; }
+    .footer-youtube-badge {
+      display: inline-flex !important;
+      align-items: center;
+      gap: 6px;
+      margin-top: 8px;
+      padding: 6px 10px;
+      border-radius: 999px;
+      background: #ff0000;
+      color: #fff !important;
+      font-size: 12px;
+      font-weight: 700;
+      line-height: 1;
+      text-decoration: none;
+    }
+    .footer-youtube-badge:hover { background: #cc0000; color: #fff !important; }
+    .footer-youtube-badge:focus-visible { outline: 3px solid var(--ds-focus); outline-offset: 2px; }
+    .footer-youtube-badge svg { width: 16px; height: 12px; flex: 0 0 auto; fill: currentColor; }
 
     /* --- FAB (Floating Action Button) --- */
     .fab-scrim {
@@ -679,6 +696,11 @@
       <script type="text/javascript" src="https://rf.revolvermaps.com/0/0/2.js?i=536ikush1dr&amp;m=7&amp;s=178&amp;c=ff0000&amp;t=1" async="async"></script>
       <br>
       <small style="color:#5A4409;">&copy; awmpc.org</small>
+      <br>
+      <a class="footer-youtube-badge" href="https://www.youtube.com/@AWMPC-USA" target="_blank" rel="noopener noreferrer" aria-label="AWMPC on YouTube">
+        <svg viewBox="0 0 24 17" aria-hidden="true" focusable="false"><path d="M23.5 2.66a3 3 0 0 0-2.12-2.12C19.5 0 12 0 12 0S4.5 0 2.62.54A3 3 0 0 0 .5 2.66 31.2 31.2 0 0 0 0 8.5a31.2 31.2 0 0 0 .5 5.84 3 3 0 0 0 2.12 2.12C4.5 17 12 17 12 17s7.5 0 9.38-.54a3 3 0 0 0 2.12-2.12A31.2 31.2 0 0 0 24 8.5a31.2 31.2 0 0 0-.5-5.84ZM9.6 12.1V4.9l6.3 3.6-6.3 3.6Z" /></svg>
+        <span>YouTube</span>
+      </a>
     </div>
 
     <div class="footer-center">

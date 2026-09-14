@@ -31,6 +31,11 @@ assert.match(
   /<a class="fab-menu-item fab-bible" href="https:\/\/bible\.awmpc\.org">📚 Bible <span class="fab-item-zh">聖經<\/span><\/a>/
 );
 
+assert.match(
+  shell,
+  /<a class="footer-youtube-badge" href="https:\/\/www\.youtube\.com\/@AWMPC-USA" target="_blank" rel="noopener noreferrer" aria-label="AWMPC on YouTube">/
+);
+
 assert.doesNotMatch(
   shell,
   /navigator\.serviceWorker\.register\(['"]\.\/sw\.js['"]\)/,
