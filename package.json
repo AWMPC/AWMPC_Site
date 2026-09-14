@@ -1,6 +1,6 @@
 {
   "name": "awmpc-site-generator",
-  "version": "2.5.6",
+  "version": "2.5.7",
   "private": true,
   "description": "Dependency-free static renderer for the site",
   "scripts": {
