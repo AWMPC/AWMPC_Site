@@ -454,7 +454,16 @@
   }
 
   function hymnUrl(hymn) {
-    var url = new URL(hymn.file, window.location.href);
+    var manifestLocation = new URL(manifestUrl, window.location.href);
+    var url;
+
+    if (manifestLocation.origin === window.location.origin) {
+      url = new URL(hymn.file, window.location.href);
+    } else {
+      var dataFile = hymn.file.replace(/^documents\/hymns\//i, 'hymns/');
+      url = new URL(dataFile, manifestLocation.origin + '/');
+    }
+
     url.searchParams.set('embed', '1');
     return encodeURI(url.href);
   }

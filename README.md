@@ -48,6 +48,11 @@ custom domains. Legacy references are flattened into the bucket: for example,
 `https://data.awmpc.org/hymns/102.pdf`. The parent `images/` and `documents/`
 directories are not retained in either bucket key.
 
+Because the image and data hosts are separate origins, their public buckets
+must allow `GET` requests from `https://awmpc.org` and
+`https://www.awmpc.org` through their CORS policies. This is required for the
+hymn manifest, PDF.js worker, and browser-loaded PDFs.
+
 The generated site copies local runtime assets such as `resources/`,
 `bible.html`, `manifest.json`, and `sw.js` into `rendered/`. When the data host
 is unset, it also copies the local hymn manifest for offline/local rendering;

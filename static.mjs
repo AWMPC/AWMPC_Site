@@ -109,7 +109,7 @@ function rewriteAssetReferences(html, { imageBaseUrl, dataBaseUrl }) {
   };
 
   html = rewrite(html, imageBaseUrl, 'src|poster|href|longdesc', imageExtensionPattern);
-  return rewrite(html, dataBaseUrl, 'src|href|data-manifest-url', dataExtensionPattern);
+  return rewrite(html, dataBaseUrl, 'src|href|workerSrc|data-manifest-url', dataExtensionPattern);
 }
 
 function getAssetBaseUrls() {
