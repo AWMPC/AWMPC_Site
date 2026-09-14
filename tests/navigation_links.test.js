@@ -33,7 +33,17 @@ assert.match(
 
 assert.match(
   shell,
-  /<a class="footer-youtube-badge" href="https:\/\/www\.youtube\.com\/@AWMPC-USA" target="_blank" rel="noopener noreferrer" aria-label="AWMPC on YouTube">/
+  /<a class="footer-badge footer-youtube-badge" href="https:\/\/www\.youtube\.com\/@AWMPC-USA" target="_blank" rel="noopener noreferrer" aria-label="AWMPC on YouTube">/
+);
+
+assert.match(
+  shell,
+  /<a class="footer-badge footer-qualys-badge" href="https:\/\/www\.ssllabs\.com\/ssltest\/analyze\.html\?d=awmpc\.org" target="_blank" rel="noopener noreferrer" aria-label="Qualys SSL Security Scan">/
+);
+
+assert.match(
+  shell,
+  /<a class="footer-badge footer-lighthouse-badge" href="https:\/\/developers\.google\.com\/speed\/pagespeed\/insights\/\?url=awmpc\.org&tab=mobile" target="_blank" rel="noopener noreferrer" aria-label="Google Lighthouse Performance Scan">/
 );
 
 assert.doesNotMatch(
