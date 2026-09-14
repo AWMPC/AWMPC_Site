@@ -117,12 +117,17 @@ function getAssetBaseUrls() {
 }
 
 function renderTemplate(template, pageName, pageContent, assetBaseUrls) {
-  if (!template.includes('{{PAGE_NAME}}') || !template.includes('{{PAGE_CONTENT}}')) {
+  if (
+    !template.includes('{{PAGE_NAME}}') ||
+    !template.includes('{{PAGE_CONTENT}}') ||
+    !template.includes('{{COPYRIGHT_YEAR}}')
+  ) {
     fail('site.template.html is missing a required page placeholder.');
   }
 
   let html = template.replace('{{PAGE_NAME}}', pageName);
   html = html.replace('{{PAGE_CONTENT}}', pageContent);
+  html = html.replaceAll('{{COPYRIGHT_YEAR}}', String(new Date().getUTCFullYear()));
 
   return rewriteAssetReferences(html, assetBaseUrls);
 }
