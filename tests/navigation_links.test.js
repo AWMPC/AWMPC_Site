@@ -12,7 +12,7 @@ assert.match(
 
 assert.match(
   shell,
-  /<a href="\.\/bible\/" class="quick-link-bible quick-link-icon" aria-label="Bible">/
+  /<a href="https:\/\/bible\.awmpc\.org" class="quick-link-bible quick-link-icon" aria-label="Bible">/
 );
 
 assert.ok(
@@ -24,6 +24,11 @@ assert.ok(
 assert.match(
   shell,
   /<a class="fab-menu-item" href="\.\/hymns\.html">Hymns <span class="fab-item-zh">讚美詩<\/span><\/a>/
+);
+
+assert.match(
+  shell,
+  /<a class="fab-menu-item fab-bible" href="https:\/\/bible\.awmpc\.org">📚 Bible <span class="fab-item-zh">聖經<\/span><\/a>/
 );
 
 assert.doesNotMatch(
